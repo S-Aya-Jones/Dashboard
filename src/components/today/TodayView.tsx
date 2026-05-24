@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { AnxietySlider } from "@/components/ui/Slider";
 import { today as todayStr, greetingByTime, id } from "@/lib/utils";
 import { celebrate } from "@/lib/confetti";
+import { WeatherWidget } from "./WeatherWidget";
 
 interface Props {
   data: DashboardData;
@@ -92,13 +93,16 @@ export function TodayView({ data, update }: Props) {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div>
-        <h1 className="font-serif text-4xl text-brown">
-          {greetingByTime()}, Aya 🌿
-        </h1>
-        <p className="text-sand-dark text-lg mt-1">
-          {format(new Date(), "EEEE, MMMM d, yyyy")}
-        </p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="font-serif text-4xl text-brown">
+            {greetingByTime()}, Aya 🌿
+          </h1>
+          <p className="text-sand-dark text-lg mt-1">
+            {format(new Date(), "EEEE, MMMM d, yyyy")}
+          </p>
+        </div>
+        <WeatherWidget />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
