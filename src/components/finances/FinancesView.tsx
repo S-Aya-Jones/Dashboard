@@ -5,7 +5,7 @@ import { usePlaidLink } from "react-plaid-link";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
-import { RefreshCw, Unlink, AlertTriangle } from "lucide-react";
+import { RefreshCw, Unlink, AlertTriangle, Link2, Link2Off } from "lucide-react";
 import { DashboardData } from "@/types/dashboard";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -74,12 +74,12 @@ const INCOME_CATS = new Set(["INCOME", "TRANSFER_IN"]);
 
 function typePill(type: string, subtype?: string | null) {
   const label =
-    subtype === "checking"    ? "Checking"
-    : subtype === "savings"   ? "Savings"
+    subtype === "checking"      ? "Checking"
+    : subtype === "savings"     ? "Savings"
     : subtype === "credit card" ? "Credit"
-    : type   === "credit"     ? "Credit"
-    : type   === "loan"       ? "Loan"
-    : type   === "investment" ? "Investment"
+    : type   === "credit"       ? "Credit"
+    : type   === "loan"         ? "Loan"
+    : type   === "investment"   ? "Investment"
     : "Account";
 
   const colors: Record<string, string> = {
@@ -135,7 +135,6 @@ function PlaidConnectButton({ onConnected }: { onConnected: () => void }) {
     },
   });
 
-  // Auto-open once the widget is ready
   useEffect(() => { if (linkToken && ready) open(); }, [linkToken, ready, open]);
 
   const handleClick = async () => {
@@ -228,7 +227,6 @@ export function FinancesView({ data, update }: Props) {
   const totalIncome = thisMo.filter((t) => INCOME_CATS.has(t.category))
     .reduce((s, t) => s + Math.abs(t.amount), 0);
 
-  // Spending by category (exclude income)
   const catMap = new Map<string, number>();
   for (const t of thisMo) {
     if (INCOME_CATS.has(t.category) || t.amount <= 0) continue;
@@ -265,6 +263,30 @@ export function FinancesView({ data, update }: Props) {
 
   const hasPlaid = accounts.length > 0 || loadingAccts;
 
+  // ── Financial goals helpers ────────────────────────────────────────────────
+
+  const financialGoals = data.goals.filter((g) => g.category === "financial" && !g.done);
+
+  const linkGoalToAccount = (goalId: string, accountId: string | undefined) => {
+    const acc = realAccounts.find((a) => a.accountId === accountId);
+    update((d) => ({
+      ...d,
+      goals: d.goals.map((g) =>
+        g.id === goalId
+          ? {
+              ...g,
+              linkedPlaidAccountId: accountId,
+              // Record starting balance only on first link
+              plaidLinkStartBalance:
+                accountId && !g.linkedPlaidAccountId
+                  ? (acc?.balances.current ?? g.plaidLinkStartBalance)
+                  : g.plaidLinkStartBalance,
+            }
+          : g
+      ),
+    }));
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
 
@@ -282,42 +304,43 @@ export function FinancesView({ data, update }: Props) {
       </div>
 
       {/* ── Account Overview (Plaid) ── */}
-      {(hasPlaid) && (
-        <div className="grid grid-cols-3 gap-3">
-          {[
-            { label: "Total Cash",         value: totalCash,   color: "text-sage",       prefix: true },
-            { label: "Total Credit Debt",   value: totalCredit, color: "text-terracotta", prefix: true },
-            { label: "Net Worth",           value: netWorth,    color: netWorth >= 0 ? "text-sage" : "text-rose", prefix: true },
-          ].map((s) => (
-            <div key={s.label} className="card p-4 text-center">
-              <p className={`font-serif text-2xl ${s.color}`}>{fmt$(s.value)}</p>
-              <p className="text-xs text-sand-dark mt-1">{s.label}</p>
-            </div>
-          ))}
+      {hasPlaid && (
+        <div className="space-y-2">
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { label: "Total Cash",       value: totalCash,   color: "text-sage"      },
+              { label: "Total Credit Debt", value: totalCredit, color: "text-terracotta" },
+              { label: "Net Worth",         value: netWorth,    color: netWorth >= 0 ? "text-sage" : "text-rose" },
+            ].map((s) => (
+              <div key={s.label} className="card p-4 text-center">
+                <p className={`font-serif text-2xl ${s.color}`}>{fmt$(s.value)}</p>
+                <p className="text-xs text-sand-dark mt-1">{s.label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Refresh row under overview cards */}
+          <div className="flex items-center justify-end gap-2">
+            {refreshedAt && (
+              <span className="text-[11px] text-sand-dark">
+                Refreshed {format(parseISO(refreshedAt), "h:mm a")}
+              </span>
+            )}
+            <button
+              onClick={handleRefresh}
+              className="flex items-center gap-1 text-[11px] text-sand-dark hover:text-brown transition-colors"
+            >
+              <RefreshCw size={11} className={loadingAccts ? "animate-spin" : ""} />
+              Refresh
+            </button>
+          </div>
         </div>
       )}
 
       {/* ── Connected Accounts ── */}
       {accounts.length > 0 && (
-        <Card
-          title="Connected Accounts"
-          subtitle={
-            refreshedAt
-              ? `Last refreshed ${format(parseISO(refreshedAt), "h:mm a")}`
-              : undefined
-          }
-        >
-          <div className="flex justify-end mb-2">
-            <button
-              onClick={handleRefresh}
-              className="flex items-center gap-1.5 text-xs text-sand-dark hover:text-brown transition-colors"
-            >
-              <RefreshCw size={12} className={loadingAccts ? "animate-spin" : ""} />
-              Refresh
-            </button>
-          </div>
-
-          <div className="space-y-3">
+        <Card title="Connected Accounts">
+          <div className="space-y-3 mt-1">
             {accounts.map((acc, i) => {
               if (acc.loginRequired) {
                 return (
@@ -410,7 +433,6 @@ export function FinancesView({ data, update }: Props) {
       {/* ── This Month ── */}
       {(spendingData.length > 0 || top5.length > 0) && (
         <Card title={`This Month · ${format(new Date(), "MMMM yyyy")}`}>
-          {/* Totals row */}
           <div className="flex gap-6 mt-1 mb-4">
             <div>
               <p className="font-serif text-xl text-terracotta">{fmt$(totalSpent)}</p>
@@ -424,7 +446,6 @@ export function FinancesView({ data, update }: Props) {
             )}
           </div>
 
-          {/* Spending chart */}
           {spendingData.length > 0 && (
             <div className="mb-5">
               <p className="text-xs font-medium text-sand-dark uppercase tracking-wide mb-2">By Category</p>
@@ -457,7 +478,6 @@ export function FinancesView({ data, update }: Props) {
             </div>
           )}
 
-          {/* Top 5 transactions */}
           {top5.length > 0 && (
             <div>
               <p className="text-xs font-medium text-sand-dark uppercase tracking-wide mb-2">Largest Transactions</p>
@@ -552,20 +572,84 @@ export function FinancesView({ data, update }: Props) {
         </Card>
       )}
 
-      {/* ── Financial Goals from data ── */}
-      {data.goals.filter((g) => g.category === "financial" && !g.done).length > 0 && (
+      {/* ── Financial Goals — with Plaid linking ── */}
+      {financialGoals.length > 0 && (
         <Card title="Financial Goals" subtitle="From your goals tracker">
-          <div className="space-y-2 mt-2">
-            {data.goals.filter((g) => g.category === "financial" && !g.done).map((g) => (
-              <div key={g.id} className="flex items-start gap-2 p-2 rounded-xl hover:bg-cream-darker">
-                <span className="text-base mt-0.5">💚</span>
-                <div>
-                  <p className="text-sm text-brown">{g.text}</p>
-                  {g.notes && <p className="text-xs text-sand-dark italic">{g.notes}</p>}
-                  {g.quarter && <p className="text-xs text-terracotta">{g.quarter}</p>}
+          <div className="space-y-3 mt-2">
+            {financialGoals.map((g) => {
+              const linkedAcc   = realAccounts.find((a) => a.accountId === g.linkedPlaidAccountId);
+              const currentBal  = linkedAcc?.balances.current ?? null;
+              const startBal    = g.plaidLinkStartBalance ?? null;
+              const paydownPct  =
+                startBal != null && startBal > 0 && currentBal != null
+                  ? Math.max(0, Math.min(100, Math.round(((startBal - currentBal) / startBal) * 100)))
+                  : null;
+
+              return (
+                <div key={g.id} className="p-3 rounded-xl bg-cream hover:bg-cream-dark transition-colors">
+                  <div className="flex items-start gap-2">
+                    <span className="text-base mt-0.5">💚</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-brown">{g.text}</p>
+                      {g.notes && <p className="text-xs text-sand-dark italic mt-0.5">{g.notes}</p>}
+                      {g.quarter && <p className="text-xs text-terracotta mt-0.5">{g.quarter}</p>}
+
+                      {/* Live Plaid progress when linked */}
+                      {linkedAcc && currentBal != null && (
+                        <div className="mt-2 space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] text-sand-dark">
+                              {linkedAcc.name}{linkedAcc.mask ? ` ···${linkedAcc.mask}` : ""}
+                            </span>
+                            <span className="text-[11px] font-medium text-brown">{fmt$(currentBal)} remaining</span>
+                          </div>
+                          {paydownPct != null && (
+                            <>
+                              <div className="h-1.5 bg-cream-darker rounded-full overflow-hidden">
+                                <div
+                                  className="h-full rounded-full transition-all"
+                                  style={{
+                                    width: `${paydownPct}%`,
+                                    background: paydownPct >= 70 ? "#7a816c" : paydownPct >= 30 ? "#c47a5e" : "#d68d84",
+                                  }}
+                                />
+                              </div>
+                              <p className="text-[10px] text-sand-dark">
+                                {paydownPct}% paid down · started at {fmt$(startBal)}
+                              </p>
+                            </>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Account link selector (only when Plaid accounts are loaded) */}
+                      {!loadingAccts && realAccounts.length > 0 && (
+                        <div className="mt-2 flex items-center gap-1.5">
+                          {linkedAcc ? (
+                            <Link2 size={11} className="text-sage flex-shrink-0" />
+                          ) : (
+                            <Link2Off size={11} className="text-sand flex-shrink-0" />
+                          )}
+                          <select
+                            value={g.linkedPlaidAccountId ?? ""}
+                            onChange={(e) => linkGoalToAccount(g.id, e.target.value || undefined)}
+                            className="text-[11px] py-0.5 px-1.5 h-auto rounded-lg flex-1"
+                            style={{ minWidth: 0 }}
+                          >
+                            <option value="">Link to a Plaid account…</option>
+                            {realAccounts.map((a) => (
+                              <option key={a.accountId} value={a.accountId}>
+                                {a.name}{a.mask ? ` ···${a.mask}` : ""} — {fmt$(a.balances.current)}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </Card>
       )}

@@ -199,6 +199,8 @@ export interface Goal {
   year?: string;
   done: boolean;
   notes?: string;
+  linkedPlaidAccountId?: string;
+  plaidLinkStartBalance?: number;
 }
 
 export interface BookEntry {
