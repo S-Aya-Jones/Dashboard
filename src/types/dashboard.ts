@@ -214,6 +214,15 @@ export interface BookEntry {
   rating?: number;
 }
 
+export interface VisionItem {
+  id: string;
+  type: "url" | "upload";
+  src: string;
+  caption?: string;
+  category?: string;
+  addedAt: string;
+}
+
 export interface YearReflection {
   year: string;
   vision: string;
@@ -288,6 +297,9 @@ export interface DashboardData {
 
   // Year
   yearReflections: YearReflection[];
+
+  // Vision Board
+  visionBoard?: { items: VisionItem[] };
 }
 
 export const defaultDashboardData = (): DashboardData => ({
@@ -345,4 +357,5 @@ export const defaultDashboardData = (): DashboardData => ({
   goals: [],
   books: [],
   yearReflections: [],
+  visionBoard: { items: [] },
 });
