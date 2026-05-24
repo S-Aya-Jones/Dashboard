@@ -10,6 +10,7 @@ import { AnxietySlider } from "@/components/ui/Slider";
 import { today as todayStr, greetingByTime, id } from "@/lib/utils";
 import { celebrate } from "@/lib/confetti";
 import { WeatherWidget } from "./WeatherWidget";
+import { HourlyWeatherCard } from "./HourlyWeatherCard";
 
 interface Props {
   data: DashboardData;
@@ -104,6 +105,8 @@ export function TodayView({ data, update }: Props) {
         </div>
         <WeatherWidget />
       </div>
+
+      <HourlyWeatherCard />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {/* Anxiety check-in */}

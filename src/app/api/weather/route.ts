@@ -4,8 +4,10 @@ const OPEN_METEO =
   "https://api.open-meteo.com/v1/forecast" +
   "?latitude=36.1627&longitude=-86.7816" +
   "&current=temperature_2m,weather_code" +
+  "&hourly=temperature_2m,uv_index,apparent_temperature" +
   "&daily=temperature_2m_max,temperature_2m_min,weather_code" +
-  "&temperature_unit=fahrenheit&timezone=America/Chicago";
+  "&temperature_unit=fahrenheit&timezone=America/Chicago" +
+  "&forecast_days=1";
 
 // Cache at the Next.js layer for 15 minutes
 export const revalidate = 900;
