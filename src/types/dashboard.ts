@@ -175,6 +175,11 @@ export interface MonthlyFinance {
   notes?: string;
 }
 
+export interface BudgetCategory {
+  category: string; // Plaid category key e.g. FOOD_AND_DRINK
+  monthlyLimit: number;
+}
+
 export interface ConnectionLog {
   id: string;
   date: string;
@@ -284,6 +289,7 @@ export interface DashboardData {
   creditCards: CreditCard[];
   savingsGoals: SavingsGoal[];
   monthlyFinances: MonthlyFinance[];
+  budgetCategories: BudgetCategory[];
 
   // Connections
   connectionLogs: ConnectionLog[];
@@ -354,6 +360,7 @@ export const defaultDashboardData = (): DashboardData => ({
   creditCards: [],
   savingsGoals: [],
   monthlyFinances: [],
+  budgetCategories: [],
   connectionLogs: [],
   wins: [],
   goals: [],
