@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Plus, X, Camera, Link as LinkIcon, ArrowLeft, ShoppingCart, Minus } from "lucide-react";
+import { Plus, X, Camera, Link as LinkIcon, ArrowLeft, ShoppingCart, Minus, ImagePlus, Loader2 } from "lucide-react";
 import { Recipe, GroceryItem, NutritionData } from "@/types/dashboard";
 import { assignGrocerySection } from "./groceryUtils";
 
@@ -468,26 +468,42 @@ function SerifRating({ value, onChange }: { value: number; onChange: (n: number)
   );
 }
 
+interface RecipeDraft {
+  title?: string;
+  description?: string;
+  ingredients?: string[];
+  steps?: string[];
+  dietaryTags?: string[];
+  tags?: string[];
+  servings?: number;
+  caloriesPerServing?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+}
+
 function AddRecipeForm({
   onSave,
   onCancel,
+  initial = {},
 }: {
   onSave: (r: Omit<Recipe, "id" | "createdAt">) => void;
   onCancel: () => void;
+  initial?: RecipeDraft;
 }) {
-  const [title, setTitle]         = useState("");
-  const [desc, setDesc]           = useState("");
-  const [ingLine, setIngLine]     = useState("");
-  const [stepLine, setStepLine]   = useState("");
+  const [title, setTitle]         = useState(initial.title ?? "");
+  const [desc, setDesc]           = useState(initial.description ?? "");
+  const [ingLine, setIngLine]     = useState((initial.ingredients ?? []).join("\n"));
+  const [stepLine, setStepLine]   = useState((initial.steps ?? []).join("\n"));
   const [photos, setPhotos]       = useState<string[]>([]);
-  const [tagInput, setTagInput]   = useState("");
-  const [dietaryTags, setDietaryTags] = useState<string[]>([]);
+  const [tagInput, setTagInput]   = useState((initial.tags ?? []).join(", "));
+  const [dietaryTags, setDietaryTags] = useState<string[]>(initial.dietaryTags ?? []);
   const [rating, setRating]       = useState(0);
-  const [servings, setServings]   = useState("");
-  const [calories, setCalories]   = useState("");
-  const [protein, setProtein]     = useState("");
-  const [carbs, setCarbs]         = useState("");
-  const [fat, setFat]             = useState("");
+  const [servings, setServings]   = useState(initial.servings?.toString() ?? "");
+  const [calories, setCalories]   = useState(initial.caloriesPerServing?.toString() ?? "");
+  const [protein, setProtein]     = useState(initial.protein?.toString() ?? "");
+  const [carbs, setCarbs]         = useState(initial.carbs?.toString() ?? "");
+  const [fat, setFat]             = useState(initial.fat?.toString() ?? "");
   const [urlInput, setUrlInput]   = useState("");
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -717,13 +733,18 @@ export function RecipeVault({
   nutrition: NutritionData;
   onUpdate: (n: NutritionData) => void;
 }) {
-  const [adding, setAdding]     = useState(false);
-  const [selected, setSelected] = useState<Recipe | null>(null);
+  const [adding, setAdding]         = useState(false);
+  const [selected, setSelected]     = useState<Recipe | null>(null);
+  const [extracting, setExtracting] = useState(false);
+  const [extractError, setExtractError] = useState<string | null>(null);
+  const [draft, setDraft]           = useState<RecipeDraft | null>(null);
+  const importRef = useRef<HTMLInputElement>(null);
 
   function saveRecipe(r: Omit<Recipe, "id" | "createdAt">) {
     const entry: Recipe = { ...r, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
     onUpdate({ ...nutrition, recipes: [entry, ...nutrition.recipes] });
     setAdding(false);
+    setDraft(null);
   }
 
   function deleteRecipe(id: string) {
@@ -743,6 +764,56 @@ export function RecipeVault({
     onUpdate({ ...nutrition, groceryItems: [...nutrition.groceryItems, ...newItems] });
   }
 
+  async function handleImport(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setExtracting(true);
+    setExtractError(null);
+
+    const results: RecipeDraft[] = [];
+    for (const file of Array.from(files)) {
+      const fd = new FormData();
+      fd.append("file", file);
+      try {
+        const res = await fetch("/api/nutrition/extract-recipe", { method: "POST", body: fd });
+        const json = await res.json();
+        if (json.error) {
+          setExtractError(json.error);
+        } else {
+          results.push(json as RecipeDraft);
+        }
+      } catch {
+        setExtractError("Something went wrong during extraction.");
+      }
+    }
+
+    setExtracting(false);
+
+    if (results.length === 1) {
+      // Single screenshot → open pre-filled form
+      setDraft(results[0]);
+      setAdding(true);
+    } else if (results.length > 1) {
+      // Multiple screenshots → save all at once (user can click each to edit)
+      const newEntries: Recipe[] = results.map((r) => ({
+        id: crypto.randomUUID(),
+        createdAt: new Date().toISOString(),
+        title: r.title ?? "Untitled Recipe",
+        description: r.description,
+        ingredients: r.ingredients ?? [],
+        steps: r.steps ?? [],
+        photos: [],
+        tags: r.tags ?? [],
+        dietaryTags: r.dietaryTags ?? [],
+        servings: r.servings,
+        caloriesPerServing: r.caloriesPerServing,
+        protein: r.protein,
+        carbs: r.carbs,
+        fat: r.fat,
+      }));
+      onUpdate({ ...nutrition, recipes: [...newEntries, ...nutrition.recipes] });
+    }
+  }
+
   if (selected) {
     const fresh = nutrition.recipes.find((r) => r.id === selected.id) ?? selected;
     return (
@@ -757,22 +828,60 @@ export function RecipeVault({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <input
+        ref={importRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={(e) => handleImport(e.target.files)}
+      />
+
+      <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
         <p className="text-sm" style={{ color: "rgba(52,42,33,0.45)" }}>
           {nutrition.recipes.length} recipe{nutrition.recipes.length !== 1 ? "s" : ""} saved
         </p>
         {!adding && (
-          <button
-            onClick={() => setAdding(true)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-white"
-            style={{ background: "#71816D" }}
-          >
-            <Plus size={15} /> Add Recipe
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => { importRef.current?.click(); }}
+              disabled={extracting}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-all"
+              style={{ background: "rgba(113,129,109,0.12)", color: "#71816D", border: "1px solid rgba(113,129,109,0.2)" }}
+            >
+              {extracting
+                ? <><Loader2 size={15} className="animate-spin" /> Extracting…</>
+                : <><ImagePlus size={15} /> Import Screenshot</>
+              }
+            </button>
+            <button
+              onClick={() => { setDraft(null); setAdding(true); }}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-white"
+              style={{ background: "#71816D" }}
+            >
+              <Plus size={15} /> Add Recipe
+            </button>
+          </div>
         )}
       </div>
 
-      {adding && <AddRecipeForm onSave={saveRecipe} onCancel={() => setAdding(false)} />}
+      {extractError && (
+        <div
+          className="mb-4 px-4 py-3 rounded-xl text-sm"
+          style={{ background: "rgba(218,102,123,0.08)", color: "#DA667B", border: "1px solid rgba(218,102,123,0.2)" }}
+        >
+          {extractError}
+          <button onClick={() => setExtractError(null)} className="ml-3 underline text-xs">Dismiss</button>
+        </div>
+      )}
+
+      {adding && (
+        <AddRecipeForm
+          initial={draft ?? {}}
+          onSave={saveRecipe}
+          onCancel={() => { setAdding(false); setDraft(null); }}
+        />
+      )}
 
       {nutrition.recipes.length === 0 && !adding ? (
         <div className="text-center py-16" style={{ color: "rgba(52,42,33,0.4)" }}>
