@@ -95,21 +95,30 @@ function fmt$(n: number | null | undefined) {
 }
 
 function typePill(type: string, subtype?: string | null) {
+  const sub = (subtype ?? "").toLowerCase();
   const label =
-    subtype === "checking"      ? "Checking"
-    : subtype === "savings"     ? "Savings"
-    : subtype === "credit card" ? "Credit"
-    : type   === "credit"       ? "Credit"
-    : type   === "loan"         ? "Loan"
-    : type   === "investment"   ? "Investment"
-    : "Account";
+    sub === "checking"       ? "Checking"
+    : sub === "savings"      ? "Savings"
+    : sub === "cd"           ? "CD"
+    : sub === "money market" ? "Money Mkt"
+    : sub === "hsa"          ? "HSA"
+    : sub === "paypal"       ? "PayPal"
+    : sub === "credit card"  ? "Credit"
+    : type === "credit"      ? "Credit"
+    : type === "depository"  ? "Bank"
+    : type === "loan"        ? "Loan"
+    : type === "investment"  ? "Investment"
+    : "Bank";
   const colors: Record<string, string> = {
     Checking: "bg-sage/20 text-sage", Savings: "bg-sage/20 text-sage",
     Credit: "bg-terracotta/15 text-terracotta", Loan: "bg-rose/20 text-rose",
-    Investment: "bg-brown/15 text-brown", Account: "bg-sand/30 text-sand-dark",
+    Investment: "bg-brown/15 text-brown",
+    Bank: "bg-sand/30 text-sand-dark", CD: "bg-sand/30 text-sand-dark",
+    "Money Mkt": "bg-sand/30 text-sand-dark", HSA: "bg-sage/20 text-sage",
+    PayPal: "bg-sand/30 text-sand-dark",
   };
   return (
-    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${colors[label] ?? colors.Account}`}>
+    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${colors[label] ?? "bg-sand/30 text-sand-dark"}`}>
       {label}
     </span>
   );
@@ -801,8 +810,10 @@ export function FinancesView({ data, update }: Props) {
                     </div>
                     <div className="text-right flex-shrink-0">
                       <p className="font-serif text-lg text-brown leading-tight">{fmt$(displayBal)}</p>
-                      {isCreditCard && <p className="text-[10px] text-sand-dark">owed</p>}
-                      {estimated && <p className="text-[9px] text-sand-dark">(estimated)</p>}
+                      {isCreditCard
+                        ? <p className="text-[10px] text-sand-dark">owed</p>
+                        : <p className="text-[10px] text-sand-dark">{estimated ? "available (est.)" : "available"}</p>
+                      }
                     </div>
                     <button onClick={() => handleDisconnect(acc.itemId)}
                       className="opacity-0 group-hover:opacity-100 ml-1 text-sand hover:text-rose transition-all flex-shrink-0"
