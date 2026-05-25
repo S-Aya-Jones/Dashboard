@@ -331,8 +331,6 @@ export function FinancesView({ data, update }: Props) {
     (t) => !t.isInternalTransfer && (isAfter(parseISO(t.date), monthStart) || parseISO(t.date) >= monthStart),
   );
 
-  const totalSpent  = thisMo.filter((t) => !INCOME_CATS.has(t.category) && t.amount > 0)
-    .reduce((s, t) => s + t.amount, 0);
   const totalIncome = thisMo.filter((t) => INCOME_CATS.has(t.category))
     .reduce((s, t) => s + Math.abs(t.amount), 0);
 
@@ -341,9 +339,17 @@ export function FinancesView({ data, update }: Props) {
   const catActual = new Map<string, number>();
   for (const t of thisMo) {
     const cat = resolvedCat(t);
-    if (INCOME_CATS.has(cat) || t.amount <= 0) continue;
+    if (INCOME_CATS.has(cat)) continue;
+    // Include returns (negative amounts) so they net against purchases
     catActual.set(cat, (catActual.get(cat) ?? 0) + t.amount);
   }
+
+  // Net spending = sum of category totals (returns reduce it naturally)
+  const totalSpent = Math.max(0, Array.from(catActual.values()).reduce((s, v) => s + v, 0));
+
+  // Returns summary for the info chip
+  const returnTxns  = thisMo.filter((t) => !INCOME_CATS.has(resolvedCat(t)) && t.amount < 0);
+  const returnTotal = returnTxns.reduce((s, t) => s + Math.abs(t.amount), 0);
 
   const budgetMap  = new Map(data.budgetCategories.map((b) => [b.category, b.monthlyLimit]));
   const allCats    = Array.from(new Set([
@@ -551,11 +557,20 @@ export function FinancesView({ data, update }: Props) {
             </div>
           )}
 
-          {/* Transfer notice */}
-          {transferCount > 0 && (
-            <p className="text-[11px] text-sand-dark mb-4">
-              🔁 {transferCount} internal transfer{transferCount !== 1 ? "s" : ""} excluded from totals
-            </p>
+          {/* Transfer / returns notices */}
+          {(transferCount > 0 || returnTxns.length > 0) && (
+            <div className="flex flex-wrap gap-x-4 gap-y-1 mb-4">
+              {transferCount > 0 && (
+                <p className="text-[11px] text-sand-dark">
+                  🔁 {transferCount} transfer{transferCount !== 1 ? "s" : ""} excluded
+                </p>
+              )}
+              {returnTxns.length > 0 && (
+                <p className="text-[11px] text-sage font-medium">
+                  ↩ {returnTxns.length} return{returnTxns.length !== 1 ? "s" : ""} · {fmt$(returnTotal)} back
+                </p>
+              )}
+            </div>
           )}
 
           {/* Category breakdown — expandable */}
@@ -577,8 +592,10 @@ export function FinancesView({ data, update }: Props) {
                   const isWarning  = r.limit > 0 && r.pct >= 80 && !isOver;
                   const dotColor   = isOver ? "#d68d84" : isWarning ? "#c47a5e" : "#8e967d";
                   const catTxns    = thisMo
-                    .filter((t) => resolvedCat(t) === r.cat && t.amount > 0)
+                    .filter((t) => resolvedCat(t) === r.cat)
                     .sort((a, b) => b.amount - a.amount);
+                  const purchases  = catTxns.filter((t) => t.amount > 0);
+                  const returns    = catTxns.filter((t) => t.amount < 0);
 
                   return (
                     <div key={r.cat}>
@@ -588,7 +605,9 @@ export function FinancesView({ data, update }: Props) {
                       >
                         <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: dotColor }} />
                         <span className="text-sm text-brown flex-1 truncate">{catLabel(r.cat)}</span>
-                        <span className="text-xs font-medium text-sand-dark">{catTxns.length}×</span>
+                        <span className="text-xs font-medium text-sand-dark">
+                          {purchases.length}×{returns.length > 0 && <span className="text-sage"> ↩{returns.length}</span>}
+                        </span>
                         <span className={`text-sm font-semibold ${isOver ? "text-rose" : "text-brown"}`}>
                           {fmt$(r.actual)}
                         </span>
@@ -619,38 +638,48 @@ export function FinancesView({ data, update }: Props) {
                       {/* Expanded transaction list */}
                       {isExpanded && catTxns.length > 0 && (
                         <div className="mb-2 mx-1.5 rounded-xl overflow-hidden border border-sand/15">
-                          {catTxns.map((t, i) => (
-                            <div key={t.id}
-                              className={`flex items-center gap-3 px-4 py-2.5 ${i > 0 ? "border-t border-sand/10" : ""} bg-cream/40`}>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs text-brown truncate">{t.name}</p>
-                                <p className="text-[10px] text-sand-dark">{format(parseISO(t.date), "MMM d")}</p>
+                          {catTxns.map((t, i) => {
+                            const isReturn = t.amount < 0;
+                            return (
+                              <div key={t.id}
+                                className={`flex items-center gap-3 px-4 py-2.5 ${i > 0 ? "border-t border-sand/10" : ""} ${isReturn ? "bg-sage/5" : "bg-cream/40"}`}>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-1.5">
+                                    <p className="text-xs text-brown truncate">{t.name}</p>
+                                    {isReturn && (
+                                      <span className="text-[9px] font-semibold text-sage bg-sage/15 px-1 py-0.5 rounded flex-shrink-0">refund</span>
+                                    )}
+                                  </div>
+                                  <p className="text-[10px] text-sand-dark">{format(parseISO(t.date), "MMM d")}</p>
+                                </div>
+                                {!isReturn && (fixingTxn === t.id ? (
+                                  <select
+                                    autoFocus
+                                    defaultValue=""
+                                    className="text-[11px] h-6 py-0 px-1.5 rounded-lg flex-shrink-0"
+                                    onChange={(e) => { if (e.target.value) saveOverride(t.name, e.target.value); }}
+                                    onBlur={() => setFixingTxn(null)}
+                                  >
+                                    <option value="" disabled>Move to…</option>
+                                    {OVERRIDE_CAT_OPTIONS.map((o) => (
+                                      <option key={o.value} value={o.value}>{o.label}</option>
+                                    ))}
+                                  </select>
+                                ) : (
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); setFixingTxn(t.id); }}
+                                    className="text-[10px] text-sand hover:text-terracotta transition-colors flex-shrink-0"
+                                    title="Wrong category?"
+                                  >
+                                    fix
+                                  </button>
+                                ))}
+                                <p className={`text-xs font-semibold flex-shrink-0 ${isReturn ? "text-sage" : "text-brown"}`}>
+                                  {isReturn ? `+${fmt$(Math.abs(t.amount))}` : fmt$(t.amount)}
+                                </p>
                               </div>
-                              {fixingTxn === t.id ? (
-                                <select
-                                  autoFocus
-                                  defaultValue=""
-                                  className="text-[11px] h-6 py-0 px-1.5 rounded-lg flex-shrink-0"
-                                  onChange={(e) => { if (e.target.value) saveOverride(t.name, e.target.value); }}
-                                  onBlur={() => setFixingTxn(null)}
-                                >
-                                  <option value="" disabled>Move to…</option>
-                                  {OVERRIDE_CAT_OPTIONS.map((o) => (
-                                    <option key={o.value} value={o.value}>{o.label}</option>
-                                  ))}
-                                </select>
-                              ) : (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); setFixingTxn(t.id); }}
-                                  className="text-[10px] text-sand hover:text-terracotta transition-colors flex-shrink-0"
-                                  title="Wrong category?"
-                                >
-                                  fix
-                                </button>
-                              )}
-                              <p className="text-xs font-semibold text-brown flex-shrink-0">{fmt$(t.amount)}</p>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </div>
