@@ -252,6 +252,65 @@ export interface VisionItem {
   addedAt: string;
 }
 
+export interface MealEntry {
+  id: string;
+  date: string; // YYYY-MM-DD
+  name: string;
+  mealType: "breakfast" | "lunch" | "dinner" | "snack";
+  photos: string[];
+  rating: number; // 1–5
+  tags: string[];
+  notes?: string;
+  createdAt: string;
+}
+
+export interface RecipeIngredient {
+  text: string;
+}
+
+export interface Recipe {
+  id: string;
+  title: string;
+  description?: string;
+  ingredients: string[];
+  steps: string[];
+  photos: string[];
+  tags: string[];
+  rating?: number;
+  createdAt: string;
+}
+
+export interface GroceryItem {
+  id: string;
+  name: string;
+  section: string;
+  checked: boolean;
+  addedAt: string;
+  fromRecipeId?: string;
+}
+
+export interface PantryItem {
+  id: string;
+  name: string;
+  inStock: boolean;
+  updatedAt: string;
+}
+
+export interface ShetritionImage {
+  id: string;
+  src: string;
+  caption?: string;
+  addedAt: string;
+}
+
+export interface NutritionData {
+  meals: MealEntry[];
+  recipes: Recipe[];
+  groceryItems: GroceryItem[];
+  pantryItems: PantryItem[];
+  shetritionImages: ShetritionImage[];
+}
+
 export interface YearReflection {
   year: string;
   vision: string;
@@ -331,6 +390,9 @@ export interface DashboardData {
 
   // Vision Board
   visionBoard?: { items: VisionItem[] };
+
+  // Nutrition & Food Journal
+  nutrition?: NutritionData;
 }
 
 export const defaultDashboardData = (): DashboardData => ({
@@ -402,4 +464,5 @@ export const defaultDashboardData = (): DashboardData => ({
   books: [],
   yearReflections: [],
   visionBoard: { items: [] },
+  nutrition: { meals: [], recipes: [], groceryItems: [], pantryItems: [], shetritionImages: [] },
 });

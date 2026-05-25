@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   Sun, Calendar, CheckSquare, Brain, BookOpen, Activity,
   Heart, Sparkles, DollarSign, Users, Star, Target, BookMarked,
-  Globe, ChevronLeft, ChevronRight, Dumbbell, Gem
+  Globe, ChevronLeft, ChevronRight, Dumbbell, Gem, UtensilsCrossed
 } from "lucide-react";
 import { useState } from "react";
 import { SaveIndicator } from "@/components/ui/SaveIndicator";
@@ -27,6 +27,7 @@ const navItems = [
   { href: "/books", label: "Books", icon: BookMarked },
   { href: "/year", label: "Year View", icon: Globe },
   { href: "/vision", label: "Vision", icon: Gem },
+  { href: "/nutrition", label: "Food Journal", icon: UtensilsCrossed },
 ];
 
 interface SidebarProps {
