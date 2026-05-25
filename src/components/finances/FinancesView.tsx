@@ -126,6 +126,24 @@ function InstitutionAvatar({ name }: { name: string | null | undefined }) {
   );
 }
 
+// Returns the "effective" balance to display:
+//   Depository → available (fallback: current, flagged as estimated)
+//   Credit     → amount owed = limit − available (fallback: current)
+function effectiveBalance(acc: PlaidAccount): number {
+  if (acc.type === "credit") {
+    const limit = acc.balances.limit ?? 0;
+    const avail = acc.balances.available;
+    if (avail != null && limit > 0) return limit - avail;
+    return acc.balances.current ?? 0;
+  }
+  return acc.balances.available ?? acc.balances.current ?? 0;
+}
+
+// True when we're showing current instead of available for a depository account
+function isEstimatedBalance(acc: PlaidAccount): boolean {
+  return acc.type !== "credit" && acc.balances.available == null && acc.balances.current != null;
+}
+
 // ── Plaid Link button ─────────────────────────────────────────────────────────
 
 function PlaidConnectButton({ onConnected }: { onConnected: () => void }) {
@@ -322,11 +340,13 @@ export function FinancesView({ data, update }: Props) {
   // ── Plaid totals ───────────────────────────────────────────────────────────
 
   const realAccounts = accounts.filter((a) => !a.loginRequired);
-  const totalCash    = realAccounts.filter((a) => a.type === "depository")
-    .reduce((s, a) => s + (a.balances.current ?? 0), 0);
-  const totalCredit  = realAccounts.filter((a) => a.type === "credit")
-    .reduce((s, a) => s + (a.balances.current ?? 0), 0);
-  const netWorth     = totalCash - totalCredit;
+  // Available balance in checking/savings only — never include credit lines
+  const totalCash   = realAccounts.filter((a) => a.type === "depository")
+    .reduce((s, a) => s + (a.balances.available ?? a.balances.current ?? 0), 0);
+  // Amount owed on credit cards (limit − available, or current as fallback)
+  const totalCredit = realAccounts.filter((a) => a.type === "credit")
+    .reduce((s, a) => s + effectiveBalance(a), 0);
+  const netWorth    = totalCash - totalCredit;
 
   // ── Cash Runway ───────────────────────────────────────────────────────────
 
@@ -392,12 +412,15 @@ export function FinancesView({ data, update }: Props) {
   // ── Voice stats ────────────────────────────────────────────────────────────
 
   const voiceStats: string[] = [];
+  if (totalCash > 0) {
+    voiceStats.push(`Available cash: ${fmt$(totalCash)}`);
+  }
   if (avgDailySpend > 0 && totalCash > 0) {
-    voiceStats.push(`Cash runway: ${Math.round(totalCash / avgDailySpend)} days at current pace`);
+    voiceStats.push(`Runway: ${Math.round(totalCash / avgDailySpend)} days`);
   }
   const topCatEntry = Array.from(catActual.entries()).sort((a, b) => b[1] - a[1])[0];
   if (topCatEntry) {
-    voiceStats.push(`${catLabel(topCatEntry[0])} is your top category this month — ${fmt$(topCatEntry[1])}`);
+    voiceStats.push(`${catLabel(topCatEntry[0])} is your top spend this month — ${fmt$(topCatEntry[1])}`);
   }
   // ── Manual entries ─────────────────────────────────────────────────────────
 
@@ -445,7 +468,7 @@ export function FinancesView({ data, update }: Props) {
               linkedPlaidAccountId: accountId,
               plaidLinkStartBalance:
                 accountId && !g.linkedPlaidAccountId
-                  ? (acc?.balances.current ?? g.plaidLinkStartBalance)
+                  ? (acc ? effectiveBalance(acc) : g.plaidLinkStartBalance)
                   : g.plaidLinkStartBalance,
             }
           : g,
@@ -506,16 +529,11 @@ export function FinancesView({ data, update }: Props) {
               </div>
             ))}
           </div>
-          <div className="flex items-center justify-end gap-2">
-            {refreshedAt && (
-              <span className="text-[11px] text-sand-dark">Refreshed {format(parseISO(refreshedAt), "h:mm a")}</span>
-            )}
-            <button onClick={handleRefresh}
-              className="flex items-center gap-1 text-[11px] text-sand-dark hover:text-brown transition-colors">
-              <RefreshCw size={11} className={loadingAccts ? "animate-spin" : ""} />
-              Refresh
-            </button>
-          </div>
+          {refreshedAt && (
+            <p className="text-right text-[10px] text-sand-dark pr-0.5">
+              Balances as of {format(parseISO(refreshedAt), "h:mm a")}
+            </p>
+          )}
         </div>
       )}
 
@@ -745,10 +763,12 @@ export function FinancesView({ data, update }: Props) {
                 );
               }
 
-              const isCreditCard = acc.type === "credit";
-              const balance       = acc.balances.current ?? 0;
+              const isCreditCard  = acc.type === "credit";
+              const displayBal    = effectiveBalance(acc);
+              const estimated     = isEstimatedBalance(acc);
               const limit         = acc.balances.limit ?? 0;
-              const utilPct       = isCreditCard && limit > 0 ? Math.round((balance / limit) * 100) : 0;
+              const availCredit   = isCreditCard ? (acc.balances.available ?? null) : null;
+              const utilPct       = isCreditCard && limit > 0 ? Math.min(100, Math.round((displayBal / limit) * 100)) : 0;
               const utilColor     = utilPct < 30 ? "#71816D" : utilPct < 70 ? "#C99A5C" : "#DA667B";
 
               return (
@@ -767,8 +787,10 @@ export function FinancesView({ data, update }: Props) {
                       {isCreditCard && limit > 0 && (
                         <div className="mt-1.5">
                           <div className="flex justify-between text-[10px] text-sand-dark mb-0.5">
-                            <span>{utilPct}% used</span>
-                            <span>limit {fmt$(limit)}</span>
+                            <span>{utilPct}% of {fmt$(limit)}</span>
+                            {availCredit != null && (
+                              <span className="text-sage">{fmt$(availCredit)} left</span>
+                            )}
                           </div>
                           <div className="h-1.5 bg-cream-darker rounded-full overflow-hidden">
                             <div className="h-full rounded-full transition-all"
@@ -778,10 +800,9 @@ export function FinancesView({ data, update }: Props) {
                       )}
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <p className="font-serif text-lg text-brown leading-tight">{fmt$(balance)}</p>
-                      {!isCreditCard && acc.balances.available != null && (
-                        <p className="text-[10px] text-sand-dark">{fmt$(acc.balances.available)} available</p>
-                      )}
+                      <p className="font-serif text-lg text-brown leading-tight">{fmt$(displayBal)}</p>
+                      {isCreditCard && <p className="text-[10px] text-sand-dark">owed</p>}
+                      {estimated && <p className="text-[9px] text-sand-dark">(estimated)</p>}
                     </div>
                     <button onClick={() => handleDisconnect(acc.itemId)}
                       className="opacity-0 group-hover:opacity-100 ml-1 text-sand hover:text-rose transition-all flex-shrink-0"
@@ -853,7 +874,7 @@ export function FinancesView({ data, update }: Props) {
           <div className="space-y-3 mt-2">
             {financialGoals.map((g) => {
               const linkedAcc  = realAccounts.find((a) => a.accountId === g.linkedPlaidAccountId);
-              const currentBal = linkedAcc?.balances.current ?? null;
+              const currentBal = linkedAcc ? effectiveBalance(linkedAcc) : null;
               const startBal   = g.plaidLinkStartBalance ?? null;
               const paydownPct =
                 startBal != null && startBal > 0 && currentBal != null
@@ -875,7 +896,9 @@ export function FinancesView({ data, update }: Props) {
                             <span className="text-[11px] text-sand-dark">
                               {linkedAcc.name}{linkedAcc.mask ? ` ···${linkedAcc.mask}` : ""}
                             </span>
-                            <span className="text-[11px] font-medium text-brown">{fmt$(currentBal)} remaining</span>
+                            <span className="text-[11px] font-medium text-brown">
+                              {fmt$(currentBal)} {linkedAcc.type === "credit" ? "owed" : "available"}
+                            </span>
                           </div>
                           {paydownPct != null && (
                             <>
@@ -900,7 +923,7 @@ export function FinancesView({ data, update }: Props) {
                             <option value="">Link to a Plaid account…</option>
                             {realAccounts.map((a) => (
                               <option key={a.accountId} value={a.accountId}>
-                                {a.name}{a.mask ? ` ···${a.mask}` : ""} — {fmt$(a.balances.current)}
+                                {a.name}{a.mask ? ` ···${a.mask}` : ""} — {fmt$(effectiveBalance(a))}
                               </option>
                             ))}
                           </select>
