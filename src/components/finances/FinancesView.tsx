@@ -48,7 +48,8 @@ interface PlaidTxn {
 // ── Category metadata ─────────────────────────────────────────────────────────
 
 const CAT_LABEL: Record<string, string> = {
-  FOOD_AND_DRINK:              "Food & Drink",
+  FOOD_AND_DRINK:              "Eating Out",
+  GROCERIES:                   "Groceries",
   TRANSPORTATION:              "Transport",
   SHOPPING:                    "Shopping",
   ENTERTAINMENT:               "Entertainment",
@@ -74,7 +75,7 @@ const CAT_LABEL: Record<string, string> = {
 };
 
 const BUDGET_CATS = [
-  "FOOD_AND_DRINK", "TRANSPORTATION", "SHOPPING", "ENTERTAINMENT",
+  "GROCERIES", "FOOD_AND_DRINK", "TRANSPORTATION", "SHOPPING", "ENTERTAINMENT",
   "MEDICAL", "GENERAL_SERVICES", "HOME_IMPROVEMENT", "RENT_AND_UTILITIES",
   "PERSONAL_CARE", "GENERAL_MERCHANDISE", "TRAVEL", "LOAN_PAYMENTS",
 ];

@@ -71,7 +71,7 @@ function detectTransfers(txns: RawTxn[]): EnrichedTxn[] {
 
 export async function GET(req: Request) {
   const refresh  = new URL(req.url).searchParams.get("refresh") === "1";
-  const cacheKey = "transactions:aya:v3";
+  const cacheKey = "transactions:aya:v4";
 
   if (!refresh) {
     const hit = cache.get(cacheKey);
@@ -99,12 +99,19 @@ export async function GET(req: Request) {
 
         for (const txn of resp.data.transactions) {
           if (txn.pending) continue;
+          const primary  = txn.personal_finance_category?.primary ?? txn.category?.[0] ?? "OTHER";
+          const detailed = txn.personal_finance_category?.detailed ?? "";
+          // Split groceries out of general Food & Drink
+          const category =
+            primary === "FOOD_AND_DRINK" && detailed.includes("GROCERIES")
+              ? "GROCERIES"
+              : primary;
           raw.push({
             id:              txn.transaction_id,
             name:            txn.merchant_name ?? txn.name,
             amount:          txn.amount,
             date:            txn.date,
-            category:        txn.personal_finance_category?.primary ?? txn.category?.[0] ?? "OTHER",
+            category,
             accountId:       txn.account_id,
             itemId:          item.item_id,
             institutionName: item.institution_name,
