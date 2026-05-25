@@ -25,10 +25,11 @@ If the image doesn't contain a recipe, return: {"error": "No recipe found in ima
 Return only the JSON object.`;
 
 export async function POST(req: Request) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
   if (!apiKey) {
     return NextResponse.json({ error: "ANTHROPIC_API_KEY is not configured" }, { status: 500 });
   }
+  console.log("API key length:", apiKey.length, "prefix:", apiKey.slice(0, 10));
 
   try {
     const formData = await req.formData();
