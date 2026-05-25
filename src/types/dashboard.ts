@@ -276,6 +276,12 @@ export interface Recipe {
   steps: string[];
   photos: string[];
   tags: string[];
+  dietaryTags: string[];
+  servings?: number;
+  caloriesPerServing?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
   rating?: number;
   createdAt: string;
 }
