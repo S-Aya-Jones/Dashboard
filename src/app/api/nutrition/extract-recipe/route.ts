@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 
+// Allow up to 60s — vision + JSON generation can be slow on large images
+export const maxDuration = 60;
+
 const PROMPT = `Extract the recipe from this image and return ONLY a valid JSON object — no markdown fences, no explanation, just the JSON.
 
 Schema:
@@ -72,7 +75,8 @@ export async function POST(req: Request) {
     }
     return NextResponse.json(parsed);
   } catch (e) {
-    console.error("Recipe extraction error:", e);
-    return NextResponse.json({ error: "Extraction failed" }, { status: 500 });
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("Recipe extraction error:", msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
