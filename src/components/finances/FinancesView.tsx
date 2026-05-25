@@ -187,6 +187,15 @@ const OVERRIDE_CAT_OPTIONS = [
   { value: "TRAVEL",              label: "Travel" },
 ];
 
+function timeAgo(d: Date): string {
+  const mins = Math.round((Date.now() - d.getTime()) / 60_000);
+  if (mins < 1)  return "just now";
+  if (mins === 1) return "1 min ago";
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.round(mins / 60);
+  return hrs === 1 ? "1 hr ago" : `${hrs} hrs ago`;
+}
+
 // ── Main view ─────────────────────────────────────────────────────────────────
 
 export function FinancesView({ data, update }: Props) {
@@ -198,6 +207,8 @@ export function FinancesView({ data, update }: Props) {
   const [refreshedAt,    setRefreshedAt]    = useState<string | null>(null);
   const [loadingAccts,   setLoadingAccts]   = useState(true);
   const [loadingTxns,    setLoadingTxns]    = useState(true);
+  const [refreshing,     setRefreshing]     = useState(false);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
 
   const [cardOpen,    setCardOpen]    = useState(false);
   const [budgetOpen,  setBudgetOpen]  = useState(false);
@@ -227,7 +238,22 @@ export function FinancesView({ data, update }: Props) {
 
   useEffect(() => { fetchAccounts(); fetchTransactions(); }, [fetchAccounts, fetchTransactions]);
 
-  const handleRefresh   = () => { fetchAccounts(true); fetchTransactions(true); };
+  const handleRefresh = async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      const res  = await fetch("/api/plaid/refresh", { method: "POST" });
+      const json = await res.json();
+      const ts   = json.refreshedAt ? new Date(json.refreshedAt) : new Date();
+      setLastRefreshedAt(ts);
+      // If Plaid actually triggered a refresh (not rate-limited), wait 3s
+      // for the data to propagate before re-fetching.
+      if (!json.skipped) await new Promise((r) => setTimeout(r, 3000));
+      await Promise.all([fetchAccounts(!json.skipped), fetchTransactions(!json.skipped)]);
+    } finally {
+      setRefreshing(false);
+    }
+  };
   const handleConnected = () => { fetchAccounts(true); fetchTransactions(true); };
 
   const handleDisconnect = async (itemId: string | undefined) => {
@@ -445,6 +471,15 @@ export function FinancesView({ data, update }: Props) {
             Set Budget
           </Button>
           <Button variant="secondary" onClick={() => setCardOpen(true)}>+ Manual Card</Button>
+          <div className="flex flex-col items-end gap-0.5">
+            <Button variant="secondary" onClick={handleRefresh} disabled={refreshing}>
+              <RefreshCw size={13} className={`mr-1.5 inline ${refreshing ? "animate-spin" : ""}`} />
+              {refreshing ? "Refreshing…" : "Refresh"}
+            </Button>
+            {lastRefreshedAt && (
+              <span className="text-[10px] text-sand-dark">Last refreshed: {timeAgo(lastRefreshedAt)}</span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -914,6 +949,11 @@ export function FinancesView({ data, update }: Props) {
           <Button onClick={saveBudget}>Save Budget</Button>
         </div>
       </Modal>
+
+      {/* ── Footer disclaimer ── */}
+      <p className="text-[11px] text-center pb-2" style={{ color: "rgba(52,42,33,0.5)" }}>
+        Balances and transactions may lag your bank by a few hours. Tap Refresh to request the latest from your bank.
+      </p>
 
       {/* ── Manual card modal ── */}
       <Modal open={cardOpen} onClose={() => setCardOpen(false)} title="Add Manual Card">
