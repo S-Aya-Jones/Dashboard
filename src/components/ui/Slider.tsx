@@ -11,13 +11,13 @@ interface SliderProps {
 }
 
 const levelColors: Record<number, string> = {
-  1: "#7a816c", 2: "#8e967d", 3: "#cfbb9f",
-  4: "#d4927a", 5: "#c47a5e", 6: "#c98a86",
-  7: "#d68d84", 8: "#c47a5e", 9: "#a8624a", 10: "#785b4e",
+  1: "#71816D", 2: "#8A9E87", 3: "#C9B79C",
+  4: "#C99A5C", 5: "#C97B5E", 6: "#C86070",
+  7: "#DA667B", 8: "#C95070", 9: "#B84060", 10: "#A03050",
 };
 
 export function AnxietySlider({ value, onChange, label }: SliderProps) {
-  const color = levelColors[value] ?? "#c47a5e";
+  const color = levelColors[value] ?? "#71816D";
   const pct = ((value - 1) / 9) * 100;
 
   return (

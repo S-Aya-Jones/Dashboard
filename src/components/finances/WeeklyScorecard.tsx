@@ -167,7 +167,7 @@ export function WeeklyScorecard({ transactions, budgetCategories, merchantCatego
             <div className="h-full rounded-full transition-all"
               style={{
                 width: `${Math.min(100, (thisTotal / weeklyBudget) * 100)}%`,
-                background: thisTotal > weeklyBudget ? "#d68d84" : aheadOfPace ? "#7a816c" : "#c47a5e",
+                background: thisTotal > weeklyBudget ? "#DA667B" : aheadOfPace ? "#71816D" : "#C99A5C",
               }} />
           </div>
           <div className="flex justify-between text-[10px] text-sand-dark mt-0.5 px-0.5">
@@ -186,7 +186,7 @@ export function WeeklyScorecard({ transactions, budgetCategories, merchantCatego
           const barMax   = Math.max(thisTotal, lastTotal, r.prorated, 1);
           const thisPct  = Math.min(100, (Math.max(0, r.actual) / barMax) * 100);
           const prevPct  = Math.min(100, (Math.max(0, r.prev)   / barMax) * 100);
-          const dotColor = r.isOver ? "#d68d84" : "#8e967d";
+          const dotColor = r.isOver ? "#DA667B" : "#71816D";
 
           return (
             <div key={r.cat}>
@@ -209,7 +209,7 @@ export function WeeklyScorecard({ transactions, budgetCategories, merchantCatego
                   {/* Last week ghost bar */}
                   {r.prev > 0 && (
                     <div className="absolute top-0 h-full rounded-full opacity-30"
-                      style={{ width: `${prevPct}%`, background: "#cfbb9f" }} />
+                      style={{ width: `${prevPct}%`, background: "#C9B79C" }} />
                   )}
                   {/* This week bar */}
                   <div className="h-full rounded-full transition-all"

@@ -16,10 +16,10 @@ interface Props {
 }
 
 const SECTIONS = [
-  { key: "cars" as const, label: "CARS", color: "#c47a5e" },
-  { key: "bioBiochem" as const, label: "Bio/Biochem", color: "#d68d84" },
-  { key: "chemPhys" as const, label: "Chem/Phys", color: "#7a816c" },
-  { key: "psychSoc" as const, label: "Psych/Soc", color: "#cfbb9f" },
+  { key: "cars" as const, label: "CARS", color: "#DA667B" },
+  { key: "bioBiochem" as const, label: "Bio/Biochem", color: "#71816D" },
+  { key: "chemPhys" as const, label: "Chem/Phys", color: "#C99A5C" },
+  { key: "psychSoc" as const, label: "Psych/Soc", color: "#C9B79C" },
 ];
 
 export function MCATView({ data, update }: Props) {
@@ -103,7 +103,7 @@ export function MCATView({ data, update }: Props) {
         <Card className="text-center">
           {daysUntilMCAT !== null ? (
             <>
-              <p className="font-serif text-3xl" style={{ color: daysUntilMCAT < 30 ? "#c47a5e" : "#785b4e" }}>{daysUntilMCAT}</p>
+              <p className="font-serif text-3xl" style={{ color: daysUntilMCAT < 30 ? "#DA667B" : "#342A21" }}>{daysUntilMCAT}</p>
               <p className="text-xs text-sand-dark mt-1">Days until MCAT</p>
             </>
           ) : (
@@ -141,10 +141,10 @@ export function MCATView({ data, update }: Props) {
           <div className="h-48 mt-2">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={studyChartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e0d5c0" />
-                <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#cfbb9f" }} />
-                <YAxis tick={{ fontSize: 11, fill: "#cfbb9f" }} />
-                <Tooltip contentStyle={{ background: "#fff", border: "1px solid #e0d5c0", borderRadius: "8px", fontSize: "12px" }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#DAC9A8" />
+                <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#A8967E" }} />
+                <YAxis tick={{ fontSize: 11, fill: "#A8967E" }} />
+                <Tooltip contentStyle={{ background: "#FAF3E8", border: "1px solid #DAC9A8", borderRadius: "8px", fontSize: "12px" }} />
                 {SECTIONS.map((s) => <Bar key={s.key} dataKey={s.label} stackId="a" fill={s.color} />)}
               </BarChart>
             </ResponsiveContainer>
@@ -166,7 +166,7 @@ export function MCATView({ data, update }: Props) {
                 />
               </div>
               <div className="h-2 bg-cream-darker rounded-full overflow-hidden">
-                <div className="h-full rounded-full transition-all" style={{ width: `${r.completionPercent}%`, background: "#c47a5e" }} />
+                <div className="h-full rounded-full transition-all" style={{ width: `${r.completionPercent}%`, background: "#71816D" }} />
               </div>
             </div>
           ))}

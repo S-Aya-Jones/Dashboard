@@ -78,7 +78,7 @@ export function ShadowingView({ data, update }: Props) {
                   <span className="text-sand-dark">{hrs}h</span>
                 </div>
                 <div className="h-2 bg-cream-darker rounded-full overflow-hidden">
-                  <div className="h-full rounded-full" style={{ width: `${(hrs / totalHours) * 100}%`, background: spec === "Dermatology" ? "#c47a5e" : "#7a816c" }} />
+                  <div className="h-full rounded-full" style={{ width: `${(hrs / totalHours) * 100}%`, background: spec === "Dermatology" ? "#DA667B" : "#71816D" }} />
                 </div>
               </div>
             ))}

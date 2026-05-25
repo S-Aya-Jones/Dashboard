@@ -9,10 +9,10 @@ export default function PrivacyPage() {
   return (
     <div
       style={{
-        background: "#f6efdf",
+        background: "#F1E0C5",
         minHeight: "100vh",
         fontFamily: "'Inter', system-ui, sans-serif",
-        color: "#785b4e",
+        color: "#342A21",
       }}
     >
       <div style={{ maxWidth: "720px", margin: "0 auto", padding: "3rem 1.5rem 5rem" }}>
@@ -24,7 +24,7 @@ export default function PrivacyPage() {
             alignItems: "center",
             gap: "0.4rem",
             fontSize: "0.8rem",
-            color: "#c47a5e",
+            color: "#DA667B",
             textDecoration: "none",
             marginBottom: "2.5rem",
             letterSpacing: "0.02em",
@@ -34,20 +34,20 @@ export default function PrivacyPage() {
         </Link>
 
         {/* Header */}
-        <div style={{ marginBottom: "2.5rem", borderBottom: "1px solid rgba(207,187,159,0.4)", paddingBottom: "1.5rem" }}>
+        <div style={{ marginBottom: "2.5rem", borderBottom: "1px solid rgba(201,183,156,0.4)", paddingBottom: "1.5rem" }}>
           <h1
             style={{
               fontFamily: "'Cormorant Garamond', Georgia, serif",
               fontSize: "clamp(2rem, 5vw, 3rem)",
               fontWeight: 500,
-              color: "#785b4e",
+              color: "#342A21",
               margin: "0 0 0.5rem",
               lineHeight: 1.15,
             }}
           >
             Privacy Policy
           </h1>
-          <p style={{ fontSize: "0.85rem", color: "#b8a280", margin: 0 }}>
+          <p style={{ fontSize: "0.85rem", color: "#A8967E", margin: 0 }}>
             Last updated: May 23, 2026
           </p>
         </div>
@@ -205,9 +205,9 @@ export default function PrivacyPage() {
           style={{
             marginTop: "3rem",
             paddingTop: "1.5rem",
-            borderTop: "1px solid rgba(207,187,159,0.4)",
+            borderTop: "1px solid rgba(201,183,156,0.4)",
             fontSize: "0.8rem",
-            color: "#b8a280",
+            color: "#A8967E",
             textAlign: "center",
           }}
         >
@@ -226,16 +226,16 @@ function Section({ title, children }: { title: string; children: React.ReactNode
           fontFamily: "'Cormorant Garamond', Georgia, serif",
           fontSize: "1.35rem",
           fontWeight: 500,
-          color: "#785b4e",
+          color: "#342A21",
           margin: "0 0 0.75rem",
           paddingBottom: "0.35rem",
-          borderBottom: "1px solid rgba(207,187,159,0.3)",
+          borderBottom: "1px solid rgba(201,183,156,0.3)",
         }}
       >
         {title}
       </h2>
       <div
-        style={{ color: "#785b4e" }}
+        style={{ color: "#342A21" }}
       >
         {children}
       </div>

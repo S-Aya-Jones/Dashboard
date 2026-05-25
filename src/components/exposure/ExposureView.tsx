@@ -123,18 +123,18 @@ export function ExposureView({ data, update }: Props) {
           <div className="h-52 mt-2">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e0d5c0" />
-                <XAxis dataKey="week" tick={{ fontSize: 11, fill: "#cfbb9f" }} />
-                <YAxis domain={[0, 10]} tick={{ fontSize: 11, fill: "#cfbb9f" }} />
-                <Tooltip contentStyle={{ background: "#fff", border: "1px solid #e0d5c0", borderRadius: "8px", fontSize: "12px" }} />
-                <Line type="monotone" dataKey="before" stroke="#c47a5e" name="Before" strokeWidth={2} dot={{ r: 3 }} />
-                <Line type="monotone" dataKey="peak" stroke="#d68d84" name="Peak" strokeWidth={2} dot={{ r: 3 }} strokeDasharray="4 2" />
-                <Line type="monotone" dataKey="after" stroke="#7a816c" name="After" strokeWidth={2} dot={{ r: 3 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#DAC9A8" />
+                <XAxis dataKey="week" tick={{ fontSize: 11, fill: "#A8967E" }} />
+                <YAxis domain={[0, 10]} tick={{ fontSize: 11, fill: "#A8967E" }} />
+                <Tooltip contentStyle={{ background: "#FAF3E8", border: "1px solid #DAC9A8", borderRadius: "8px", fontSize: "12px" }} />
+                <Line type="monotone" dataKey="before" stroke="#C99A5C" name="Before" strokeWidth={2} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="peak" stroke="#DA667B" name="Peak" strokeWidth={2} dot={{ r: 3 }} strokeDasharray="4 2" />
+                <Line type="monotone" dataKey="after" stroke="#71816D" name="After" strokeWidth={2} dot={{ r: 3 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
           <div className="flex gap-4 mt-2 justify-center">
-            {[{ color: "#c47a5e", label: "Before" }, { color: "#d68d84", label: "Peak" }, { color: "#7a816c", label: "After" }].map((l) => (
+            {[{ color: "#C99A5C", label: "Before" }, { color: "#DA667B", label: "Peak" }, { color: "#71816D", label: "After" }].map((l) => (
               <div key={l.label} className="flex items-center gap-1.5 text-xs text-sand-dark">
                 <div className="w-3 h-0.5 rounded" style={{ background: l.color }} />
                 {l.label}
@@ -163,9 +163,9 @@ export function ExposureView({ data, update }: Props) {
                 </div>
                 <div className="flex gap-4 mt-2">
                   {[
-                    { label: "Before", value: entry.anxietyBefore, color: "#c47a5e" },
-                    { label: "Peak", value: entry.peakAnxiety, color: "#d68d84" },
-                    { label: "After", value: entry.anxietyAfter, color: "#7a816c" },
+                    { label: "Before", value: entry.anxietyBefore, color: "#C99A5C" },
+                    { label: "Peak", value: entry.peakAnxiety, color: "#DA667B" },
+                    { label: "After", value: entry.anxietyAfter, color: "#71816D" },
                   ].map((stat) => (
                     <div key={stat.label} className="text-center">
                       <p className="text-xs text-sand-dark">{stat.label}</p>

@@ -23,7 +23,7 @@ export function Modal({ open, onClose, title, children, width = "max-w-lg" }: Mo
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(120, 91, 78, 0.25)", backdropFilter: "blur(4px)" }}
+      style={{ background: "rgba(52, 42, 33, 0.25)", backdropFilter: "blur(4px)" }}
     >
       <div
         className={`card w-full ${width} max-h-[90vh] overflow-y-auto animate-slide-up`}

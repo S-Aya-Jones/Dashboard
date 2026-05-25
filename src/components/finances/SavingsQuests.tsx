@@ -18,11 +18,11 @@ function fmt$(n: number) {
 const RING_R   = 36; // eslint-disable-line @typescript-eslint/no-unused-vars
 
 const RING_COLORS = [
-  { track: "#f0dfd5", fill: "#c47a5e" }, // terracotta
-  { track: "#d5dbd0", fill: "#7a816c" }, // sage
-  { track: "#dde4ea", fill: "#7a9bb5" }, // blue
-  { track: "#f5dbd8", fill: "#d68d84" }, // rose
-  { track: "#e8e0d5", fill: "#785b4e" }, // brown
+  { track: "#EDD0D7", fill: "#DA667B" }, // blush rose
+  { track: "#D3DAD2", fill: "#71816D" }, // dusty olive
+  { track: "#E5E0D8", fill: "#342A21" }, // dark coffee
+  { track: "#DDD5C8", fill: "#A8967E" }, // khaki
+  { track: "#D9E0D8", fill: "#5A6E58" }, // deep olive
 ];
 
 function Ring({ pct, color, size = 88 }: { pct: number; color: typeof RING_COLORS[0]; size?: number }) {

@@ -98,7 +98,7 @@ export function BigTicketBoard({ transactions, threshold, bigMoves, onTag, onThr
       {totalTagged > 0 && (
         <div className="h-1.5 bg-cream-darker rounded-full overflow-hidden mb-4">
           <div className="h-full rounded-full transition-all"
-            style={{ width: `${intentionalPct}%`, background: "#7a816c" }} />
+            style={{ width: `${intentionalPct}%`, background: "#71816D" }} />
         </div>
       )}
 

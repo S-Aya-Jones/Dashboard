@@ -117,7 +117,7 @@ function typePill(type: string, subtype?: string | null) {
 
 function InstitutionAvatar({ name }: { name: string | null | undefined }) {
   const letter = name?.[0]?.toUpperCase() ?? "?";
-  const colors = ["#c47a5e", "#7a816c", "#785b4e", "#d68d84", "#8e967d"];
+  const colors = ["#71816D", "#C99A5C", "#DA667B", "#8A9E87", "#A8967E"];
   return (
     <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
       style={{ background: colors[letter.charCodeAt(0) % colors.length] }}>
@@ -527,7 +527,7 @@ export function FinancesView({ data, update }: Props) {
               <div className="h-full rounded-full transition-all"
                 style={{
                   width: `${Math.min(100, (totalSpent / totalBudget) * 100)}%`,
-                  background: totalSpent > totalBudget ? "#d68d84" : totalSpent / totalBudget > 0.8 ? "#c47a5e" : "#7a816c",
+                  background: totalSpent > totalBudget ? "#DA667B" : totalSpent / totalBudget > 0.9 ? "#DA667B" : totalSpent / totalBudget > 0.7 ? "#C99A5C" : "#71816D",
                 }} />
             </div>
           )}
@@ -565,7 +565,7 @@ export function FinancesView({ data, update }: Props) {
                   const isExpanded = expandedCat === r.cat;
                   const isOver     = r.limit > 0 && r.diff > 0;
                   const isWarning  = r.limit > 0 && r.pct >= 80 && !isOver;
-                  const dotColor   = isOver ? "#d68d84" : isWarning ? "#c47a5e" : "#8e967d";
+                  const dotColor   = isOver ? "#DA667B" : isWarning ? "#C99A5C" : "#71816D";
                   const catTxns    = thisMo
                     .filter((t) => resolvedCat(t) === r.cat)
                     .sort((a, b) => b.amount - a.amount);
@@ -714,7 +714,7 @@ export function FinancesView({ data, update }: Props) {
               const balance       = acc.balances.current ?? 0;
               const limit         = acc.balances.limit ?? 0;
               const utilPct       = isCreditCard && limit > 0 ? Math.round((balance / limit) * 100) : 0;
-              const utilColor     = utilPct < 30 ? "#7a816c" : utilPct < 70 ? "#c47a5e" : "#d68d84";
+              const utilColor     = utilPct < 30 ? "#71816D" : utilPct < 70 ? "#C99A5C" : "#DA667B";
 
               return (
                 <div key={acc.accountId} className="group">
@@ -792,7 +792,7 @@ export function FinancesView({ data, update }: Props) {
                   </div>
                   <div className="h-2 bg-cream-darker rounded-full overflow-hidden">
                     <div className="h-full rounded-full transition-all"
-                      style={{ width: `${pct}%`, background: pct > 70 ? "#d68d84" : pct > 30 ? "#c47a5e" : "#7a816c" }} />
+                      style={{ width: `${pct}%`, background: pct > 70 ? "#DA667B" : pct > 30 ? "#C99A5C" : "#71816D" }} />
                   </div>
                   <div className="flex justify-between text-xs text-sand-dark">
                     <span>{fmt$(card.balance)} balance</span>
@@ -846,7 +846,7 @@ export function FinancesView({ data, update }: Props) {
                             <>
                               <div className="h-1.5 bg-cream-darker rounded-full overflow-hidden">
                                 <div className="h-full rounded-full transition-all"
-                                  style={{ width: `${paydownPct}%`, background: paydownPct >= 70 ? "#7a816c" : paydownPct >= 30 ? "#c47a5e" : "#d68d84" }} />
+                                  style={{ width: `${paydownPct}%`, background: paydownPct >= 70 ? "#71816D" : paydownPct >= 30 ? "#C99A5C" : "#DA667B" }} />
                               </div>
                               <p className="text-[10px] text-sand-dark">
                                 {paydownPct}% paid down · started at {fmt$(startBal)}

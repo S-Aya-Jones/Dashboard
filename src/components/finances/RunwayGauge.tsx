@@ -6,10 +6,10 @@ interface Props {
 }
 
 function state(days: number) {
-  if (days >= 60) return { label: "Cozy",   icon: "🧊", color: "#7a9bb5", ring: "#d0e5f5" };
-  if (days >= 30) return { label: "Steady", icon: "🌿", color: "#7a816c", ring: "#d5dbd0" };
-  if (days >= 14) return { label: "Watch",  icon: "🌅", color: "#c47a5e", ring: "#f0dfd5" };
-  return            { label: "Tight",  icon: "🔥", color: "#d68d84", ring: "#f5dbd8" };
+  if (days >= 60) return { label: "Cozy",   icon: "☀️", color: "#71816D", ring: "#D3DAD2" };
+  if (days >= 30) return { label: "Steady", icon: "🌿", color: "#71816D", ring: "#D3DAD2" };
+  if (days >= 14) return { label: "Watch",  icon: "🌅", color: "#C99A5C", ring: "#E8D4B0" };
+  return            { label: "Tight",  icon: "🔥", color: "#DA667B", ring: "#EDD0D7" };
 }
 
 export function RunwayGauge({ cashBalance, avgDailySpend }: Props) {

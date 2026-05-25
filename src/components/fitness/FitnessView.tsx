@@ -15,10 +15,10 @@ interface Props {
 }
 
 const SESSION_TYPES = [
-  { value: "gym", label: "Gym 🏋🏾‍♀️", color: "#7a816c" },
-  { value: "tennis", label: "Tennis 🎾", color: "#c47a5e" },
-  { value: "walk", label: "Morning Walk 🚶🏾‍♀️", color: "#8e967d" },
-  { value: "other", label: "Other", color: "#cfbb9f" },
+  { value: "gym", label: "Gym 🏋🏾‍♀️", color: "#71816D" },
+  { value: "tennis", label: "Tennis 🎾", color: "#DA667B" },
+  { value: "walk", label: "Morning Walk 🚶🏾‍♀️", color: "#8A9E87" },
+  { value: "other", label: "Other", color: "#C9B79C" },
 ];
 
 export function FitnessView({ data, update }: Props) {
@@ -134,7 +134,7 @@ export function FitnessView({ data, update }: Props) {
                 </div>
                 <div className="flex gap-0.5">
                   {Array.from({ length: 5 }, (_, i) => (
-                    <div key={i} className="w-2 h-2 rounded-full" style={{ background: i < s.quality ? "#c47a5e" : "#e0d5c0" }} />
+                    <div key={i} className="w-2 h-2 rounded-full" style={{ background: i < s.quality ? "#71816D" : "#DAC9A8" }} />
                   ))}
                 </div>
               </div>

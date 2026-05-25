@@ -24,12 +24,12 @@ interface Props {
 }
 
 const CATEGORIES = [
-  { key: "medical-school" as const, label: "Medical School", icon: "🩺", color: "#c47a5e" },
-  { key: "health-mental" as const, label: "Health & Mental Health", icon: "🧠", color: "#d68d84" },
-  { key: "career" as const, label: "Career", icon: "💼", color: "#7a816c" },
-  { key: "personal" as const, label: "Personal", icon: "🌸", color: "#8e967d" },
-  { key: "financial" as const, label: "Financial", icon: "💚", color: "#785b4e" },
-  { key: "spiritual" as const, label: "Spiritual", icon: "🙏", color: "#cfbb9f" },
+  { key: "medical-school" as const, label: "Medical School", icon: "🩺", color: "#DA667B" },
+  { key: "health-mental" as const, label: "Health & Mental Health", icon: "🧠", color: "#8A9E87" },
+  { key: "career" as const, label: "Career", icon: "💼", color: "#71816D" },
+  { key: "personal" as const, label: "Personal", icon: "🌸", color: "#C99A5C" },
+  { key: "financial" as const, label: "Financial", icon: "💚", color: "#342A21" },
+  { key: "spiritual" as const, label: "Spiritual", icon: "🙏", color: "#C9B79C" },
 ];
 
 const CURRENT_QUARTER = "Q2-2026";
@@ -115,7 +115,7 @@ export function GoalsView({ data, update }: Props) {
             <span className="text-sm text-terracotta font-semibold">{completedCount}/{goals.length}</span>
           </div>
           <div className="h-2 bg-cream-darker rounded-full overflow-hidden">
-            <div className="h-full rounded-full transition-all" style={{ width: `${goals.length ? (completedCount / goals.length) * 100 : 0}%`, background: "linear-gradient(90deg, #c47a5e, #d68d84)" }} />
+            <div className="h-full rounded-full transition-all" style={{ width: `${goals.length ? (completedCount / goals.length) * 100 : 0}%`, background: "linear-gradient(90deg, #71816D, #DA667B)" }} />
           </div>
         </Card>
       )}
@@ -171,7 +171,7 @@ export function GoalsView({ data, update }: Props) {
                                 className="h-full rounded-full transition-all"
                                 style={{
                                   width: `${paydownPct}%`,
-                                  background: paydownPct >= 70 ? "#7a816c" : paydownPct >= 30 ? "#c47a5e" : "#d68d84",
+                                  background: paydownPct >= 70 ? "#71816D" : paydownPct >= 30 ? "#C99A5C" : "#DA667B",
                                 }}
                               />
                             </div>
