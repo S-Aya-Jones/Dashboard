@@ -11,7 +11,6 @@ import { id } from "@/lib/utils";
 import { format, parseISO, startOfMonth, isAfter, differenceInDays } from "date-fns";
 import { RunwayGauge } from "./RunwayGauge";
 import { DashboardVoice } from "./DashboardVoice";
-import { WatchListCard } from "./WatchListCard";
 import { RecurringPanel } from "./RecurringPanel";
 
 interface Props {
@@ -274,13 +273,6 @@ export function FinancesView({ data, update }: Props) {
 
   // ── Handlers for new components ────────────────────────────────────────────
 
-  const handleUpdateMerchants = (merchants: string[]) => {
-    update((d) => {
-      const cfg = d.financesConfig ?? DEFAULT_FC;
-      return { ...d, financesConfig: { ...cfg, watchListMerchants: merchants } };
-    });
-  };
-
   const handleToggleHide = (key: string) => {
     update((d) => {
       const cfg            = d.financesConfig ?? DEFAULT_FC;
@@ -380,14 +372,6 @@ export function FinancesView({ data, update }: Props) {
   const topCatEntry = Array.from(catActual.entries()).sort((a, b) => b[1] - a[1])[0];
   if (topCatEntry) {
     voiceStats.push(`${catLabel(topCatEntry[0])} is your top category this month — ${fmt$(topCatEntry[1])}`);
-  }
-  const watchHitsThisMo = transactions.filter((t) => {
-    if (t.isInternalTransfer || t.amount <= 0) return false;
-    if (parseISO(t.date) < monthStart) return false;
-    return fc.watchListMerchants.some((m) => t.name.toLowerCase().includes(m.toLowerCase()));
-  });
-  if (watchHitsThisMo.length > 0) {
-    voiceStats.push(`${watchHitsThisMo.length} watch-list hits this month · ${fmt$(watchHitsThisMo.reduce((s, t) => s + t.amount, 0))}`);
   }
   // ── Manual entries ─────────────────────────────────────────────────────────
 
@@ -695,14 +679,7 @@ export function FinancesView({ data, update }: Props) {
         </div>
       )}
 
-      {/* ── Watch List ── */}
-      {transactions.length > 0 && (
-        <WatchListCard
-          transactions={transactions}
-          watchListMerchants={fc.watchListMerchants}
-          onUpdate={handleUpdateMerchants}
-        />
-      )}
+
 
       {/* ── Recurring ── */}
       {transactions.length > 0 && (
