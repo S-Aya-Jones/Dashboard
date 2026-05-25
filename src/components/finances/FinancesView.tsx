@@ -12,6 +12,8 @@ import { format, parseISO, startOfMonth, isAfter, differenceInDays } from "date-
 import { RunwayGauge } from "./RunwayGauge";
 import { DashboardVoice } from "./DashboardVoice";
 import { RecurringPanel } from "./RecurringPanel";
+import { WeeklyScorecard } from "./WeeklyScorecard";
+import { SavingsQuests } from "./SavingsQuests";
 
 interface Props {
   data: DashboardData;
@@ -198,10 +200,8 @@ export function FinancesView({ data, update }: Props) {
   const [loadingTxns,    setLoadingTxns]    = useState(true);
 
   const [cardOpen,    setCardOpen]    = useState(false);
-  const [savingsOpen, setSavingsOpen] = useState(false);
   const [budgetOpen,  setBudgetOpen]  = useState(false);
   const [cardForm,    setCardForm]    = useState({ name: "", balance: 0, limit: 0, targetPayoff: "" });
-  const [savingsForm, setSavingsForm] = useState({ name: "", current: 0, target: 0, deadline: "" });
   const [budgetDraft, setBudgetDraft] = useState<Record<string, string>>({});
 
   const fetchAccounts = useCallback(async (bust = false) => {
@@ -381,16 +381,8 @@ export function FinancesView({ data, update }: Props) {
     setCardForm({ name: "", balance: 0, limit: 0, targetPayoff: "" });
     setCardOpen(false);
   };
-  const addSavings = () => {
-    if (!savingsForm.name.trim()) return;
-    update((d) => ({ ...d, savingsGoals: [...d.savingsGoals, { ...savingsForm, id: id() }] }));
-    setSavingsForm({ name: "", current: 0, target: 0, deadline: "" });
-    setSavingsOpen(false);
-  };
   const updateCardBalance = (cid: string, val: number) =>
     update((d) => ({ ...d, creditCards: d.creditCards.map((c) => c.id === cid ? { ...c, balance: val } : c) }));
-  const updateSavings = (gid: string, val: number) =>
-    update((d) => ({ ...d, savingsGoals: d.savingsGoals.map((g) => g.id === gid ? { ...g, current: val } : g) }));
 
   // ── Budget modal ───────────────────────────────────────────────────────────
 
@@ -452,7 +444,6 @@ export function FinancesView({ data, update }: Props) {
             <SlidersHorizontal size={13} className="mr-1.5 inline" />
             Set Budget
           </Button>
-          <Button variant="secondary" onClick={() => setSavingsOpen(true)}>+ Savings Goal</Button>
           <Button variant="secondary" onClick={() => setCardOpen(true)}>+ Manual Card</Button>
         </div>
       </div>
@@ -679,6 +670,14 @@ export function FinancesView({ data, update }: Props) {
         </div>
       )}
 
+      {/* ── Weekly Scorecard ── */}
+      {transactions.length > 0 && (
+        <WeeklyScorecard
+          transactions={transactions}
+          budgetCategories={data.budgetCategories}
+          merchantCategoryOverrides={fc.merchantCategoryOverrides}
+        />
+      )}
 
 
       {/* ── Recurring ── */}
@@ -807,38 +806,11 @@ export function FinancesView({ data, update }: Props) {
         </Card>
       )}
 
-      {/* ── Savings Goals ── */}
-      {data.savingsGoals.length > 0 && (
-        <Card title="Savings Goals">
-          <div className="space-y-4 mt-2">
-            {data.savingsGoals.map((goal) => {
-              const pct = goal.target > 0 ? Math.min(100, Math.round((goal.current / goal.target) * 100)) : 0;
-              return (
-                <div key={goal.id} className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-brown">{goal.name}</p>
-                    <div className="flex items-center gap-2">
-                      <input type="number" min={0} value={goal.current}
-                        onChange={(e) => updateSavings(goal.id, Number(e.target.value))}
-                        className="w-24 text-right text-xs p-1 h-6" />
-                      <span className="text-xs text-sage font-medium">{pct}%</span>
-                    </div>
-                  </div>
-                  <div className="h-2 bg-cream-darker rounded-full overflow-hidden">
-                    <div className="h-full rounded-full transition-all"
-                      style={{ width: `${pct}%`, background: "linear-gradient(90deg, #7a816c, #8e967d)" }} />
-                  </div>
-                  <div className="flex justify-between text-xs text-sand-dark">
-                    <span>{fmt$(goal.current)} saved</span>
-                    <span>Goal: {fmt$(goal.target)}</span>
-                  </div>
-                  {goal.deadline && <p className="text-xs text-terracotta">By: {goal.deadline}</p>}
-                </div>
-              );
-            })}
-          </div>
-        </Card>
-      )}
+      {/* ── Savings Quests ── */}
+      <SavingsQuests
+        goals={data.savingsGoals}
+        onUpdate={(goals) => update((d) => ({ ...d, savingsGoals: goals }))}
+      />
 
       {/* ── Financial Goals with Plaid linking ── */}
       {financialGoals.length > 0 && (
@@ -975,37 +947,6 @@ export function FinancesView({ data, update }: Props) {
         </div>
       </Modal>
 
-      {/* ── Savings modal ── */}
-      <Modal open={savingsOpen} onClose={() => setSavingsOpen(false)} title="Add Savings Goal">
-        <div className="space-y-4">
-          <div>
-            <label className="text-xs font-medium text-brown block mb-1">Goal Name</label>
-            <input type="text" placeholder="e.g. Emergency Fund" value={savingsForm.name}
-              onChange={(e) => setSavingsForm({ ...savingsForm, name: e.target.value })} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-medium text-brown block mb-1">Current ($)</label>
-              <input type="number" min={0} value={savingsForm.current}
-                onChange={(e) => setSavingsForm({ ...savingsForm, current: Number(e.target.value) })} />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-brown block mb-1">Target ($)</label>
-              <input type="number" min={0} value={savingsForm.target}
-                onChange={(e) => setSavingsForm({ ...savingsForm, target: Number(e.target.value) })} />
-            </div>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-brown block mb-1">Deadline (optional)</label>
-            <input type="text" placeholder="e.g. Q3 2026" value={savingsForm.deadline}
-              onChange={(e) => setSavingsForm({ ...savingsForm, deadline: e.target.value })} />
-          </div>
-          <div className="flex gap-2 justify-end">
-            <Button variant="secondary" onClick={() => setSavingsOpen(false)}>Cancel</Button>
-            <Button onClick={addSavings}>Add Goal</Button>
-          </div>
-        </div>
-      </Modal>
     </div>
   );
 }
