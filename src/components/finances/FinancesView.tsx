@@ -94,6 +94,13 @@ function fmt$(n: number | null | undefined) {
   return `$${Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+// For account balances — preserves sign so overdrawn/negative shows correctly
+function fmtBal(n: number | null | undefined): { text: string; negative: boolean } {
+  if (n == null) return { text: "—", negative: false };
+  const abs = Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return { text: n < 0 ? `-$${abs}` : `$${abs}`, negative: n < 0 };
+}
+
 function typePill(type: string, subtype?: string | null) {
   const sub = (subtype ?? "").toLowerCase();
   const label =
@@ -560,7 +567,9 @@ export function FinancesView({ data, update }: Props) {
               { label: "Net Worth",         value: netWorth,    color: netWorth >= 0 ? "text-sage" : "text-rose" },
             ].map((s) => (
               <div key={s.label} className="card p-4 text-center">
-                <p className={`font-serif text-2xl ${s.color}`}>{fmt$(s.value)}</p>
+                <p className={`font-serif text-2xl ${fmtBal(s.value).negative ? "text-rose" : s.color}`}>
+                  {fmtBal(s.value).text}
+                </p>
                 <p className="text-xs text-sand-dark mt-1">{s.label}</p>
               </div>
             ))}
@@ -836,7 +845,9 @@ export function FinancesView({ data, update }: Props) {
                       )}
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <p className="font-serif text-lg text-brown leading-tight">{fmt$(displayBal)}</p>
+                      {(() => { const { text, negative } = fmtBal(displayBal); return (
+                        <p className={`font-serif text-lg leading-tight ${negative ? "text-rose" : "text-brown"}`}>{text}</p>
+                      ); })()}
                       <p className="text-[10px] text-sand-dark">{balanceLabel(acc, estimated)}</p>
                     </div>
                     <button onClick={() => handleDisconnect(acc.itemId)}
