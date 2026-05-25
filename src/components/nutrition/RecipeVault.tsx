@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Plus, X, Camera, Link as LinkIcon, ArrowLeft, ShoppingCart } from "lucide-react";
+import { Plus, X, Camera, Link as LinkIcon, ArrowLeft, ShoppingCart, Minus } from "lucide-react";
 import { Recipe, GroceryItem, NutritionData } from "@/types/dashboard";
 import { assignGrocerySection } from "./groceryUtils";
 
@@ -10,34 +10,22 @@ const DIETARY_OPTIONS = [
   "Vegan", "Vegetarian", "Low-carb", "High-protein",
 ];
 
-function SerifRating({ value, onChange }: { value: number; onChange?: (n: number) => void }) {
-  return (
-    <div className="flex items-center gap-2">
-      {[1, 2, 3, 4, 5].map((n) => (
-        <button key={n} type="button" onClick={() => onChange?.(n)}
-          className="font-serif text-xl leading-none transition-colors"
-          style={{
-            color: n <= (value || 0) ? "#DA667B" : "#C9B79C",
-            cursor: onChange ? "pointer" : "default",
-            fontFamily: "'Cormorant Garamond', Georgia, serif",
-          }}>
-          {n}
-        </button>
-      ))}
-    </div>
-  );
+// Detect a section-header line (e.g. "CHICKEN:" or "CHICKEN" all-caps)
+function isHeader(line: string): boolean {
+  const t = line.trim();
+  if (!t) return false;
+  if (t.endsWith(":")) return true;
+  return t === t.toUpperCase() && t.length < 35 && !/\d/.test(t);
 }
 
-// Parse ingredient lines — a line ending in ":" or all-caps short line = section header
-function parseIngredientLine(line: string): { type: "header" | "item"; text: string } {
-  const trimmed = line.trim();
-  if (trimmed.endsWith(":") || (trimmed === trimmed.toUpperCase() && trimmed.length < 30 && !/\d/.test(trimmed))) {
-    return { type: "header", text: trimmed.replace(/:$/, "") };
-  }
-  return { type: "item", text: trimmed };
+function parseIngredients(lines: string[]) {
+  return lines.map((line) => ({
+    text: line.trim().replace(/:$/, ""),
+    header: isHeader(line),
+  }));
 }
 
-// ── Recipe Detail View ────────────────────────────────────────────────────────
+// ── Recipe Detail (Shetrition-style 2-col) ────────────────────────────────────
 
 function RecipeDetail({
   recipe,
@@ -50,28 +38,35 @@ function RecipeDetail({
   onDelete: () => void;
   onAddToGrocery: (ings: string[]) => void;
 }) {
-  const parsed = recipe.ingredients.map(parseIngredientLine);
-  const itemLines = parsed.filter((l) => l.type === "item").map((l) => l.text);
-  const [checked, setChecked] = useState<Set<number>>(new Set());
+  const parsed = parseIngredients(recipe.ingredients);
+  const itemLines = parsed.filter((l) => !l.header).map((l) => l.text);
+
+  // Local check-off state while cooking
+  const [checkedIdxs, setCheckedIdxs] = useState<Set<number>>(new Set());
+  // Serving multiplier
+  const baseServings = recipe.servings ?? 1;
+  const [servings, setServings] = useState(baseServings);
+  const scale = baseServings > 0 ? servings / baseServings : 1;
 
   function toggleCheck(idx: number) {
-    setChecked((prev) => {
+    setCheckedIdxs((prev) => {
       const next = new Set(prev);
       if (next.has(idx)) { next.delete(idx); } else { next.add(idx); }
       return next;
     });
   }
 
-  // Pre-compute item indices to avoid mutable expression statement in render
-  let _counter = 0;
-  const parsedWithIdx = parsed.map((line) => ({
-    ...line,
-    itemIdx: line.type === "item" ? _counter++ : -1,
-  }));
+  // Map item index for checkboxes (headers don't get an index)
+  let itemCount = -1;
+
+  const scaledCal     = recipe.caloriesPerServing ? Math.round(recipe.caloriesPerServing * scale) : null;
+  const scaledProtein = recipe.protein  ? Math.round(recipe.protein  * scale) : null;
+  const scaledCarbs   = recipe.carbs    ? Math.round(recipe.carbs    * scale) : null;
+  const scaledFat     = recipe.fat      ? Math.round(recipe.fat      * scale) : null;
 
   return (
     <div>
-      {/* Back + actions */}
+      {/* Back bar */}
       <div className="flex items-center justify-between mb-6">
         <button
           onClick={onBack}
@@ -80,214 +75,281 @@ function RecipeDetail({
         >
           <ArrowLeft size={16} /> All Recipes
         </button>
-        <button onClick={onDelete} className="text-xs px-3 py-1.5 rounded-lg transition-colors"
-          style={{ color: "#DA667B", background: "rgba(218,102,123,0.08)" }}>
+        <button
+          onClick={onDelete}
+          className="text-xs px-3 py-1.5 rounded-lg"
+          style={{ color: "#DA667B", background: "rgba(218,102,123,0.08)" }}
+        >
           Delete
         </button>
       </div>
 
-      {/* Hero photo */}
-      {recipe.photos.length > 0 && (
-        <div className="w-full rounded-3xl overflow-hidden mb-8" style={{ maxHeight: "480px" }}>
-          <img src={recipe.photos[0]} alt={recipe.title} className="w-full h-full object-cover" style={{ maxHeight: "480px" }} />
-        </div>
-      )}
+      {/* 2-column layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
 
-      {/* Title + dietary tags */}
-      <div className="text-center mb-6">
-        <h1
-          className="font-serif mb-3"
-          style={{ color: "#342A21", fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(2rem, 5vw, 3rem)", lineHeight: 1.1 }}
-        >
-          {recipe.title}
-        </h1>
-
-        {recipe.dietaryTags?.length > 0 && (
-          <div className="flex flex-wrap gap-2 justify-center mb-3">
-            {recipe.dietaryTags.map((tag) => (
-              <span key={tag} className="text-xs font-medium px-3 py-1 rounded-full"
-                style={{ background: "rgba(113,129,109,0.12)", color: "#71816D" }}>
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {recipe.rating != null && (
-          <div className="flex justify-center mb-2">
-            <SerifRating value={recipe.rating} />
-          </div>
-        )}
-
-        {recipe.description && (
-          <p className="text-sm max-w-lg mx-auto" style={{ color: "rgba(52,42,33,0.6)" }}>
-            {recipe.description}
-          </p>
-        )}
-      </div>
-
-      {/* Serving / calorie bar */}
-      {(recipe.servings || recipe.caloriesPerServing) && (
-        <div
-          className="flex items-center justify-center gap-8 py-4 mb-8 rounded-2xl"
-          style={{ background: "rgba(201,183,156,0.15)", border: "1px solid rgba(201,183,156,0.3)" }}
-        >
-          {recipe.servings && (
-            <div className="text-center">
-              <p className="font-serif text-2xl" style={{ color: "#342A21", fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
-                {recipe.servings}
-              </p>
-              <p className="text-xs" style={{ color: "#A8967E" }}>servings</p>
-            </div>
-          )}
-          {recipe.caloriesPerServing && (
-            <div className="text-center">
-              <p className="font-serif text-2xl" style={{ color: "#342A21", fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
-                {recipe.caloriesPerServing}
-              </p>
-              <p className="text-xs" style={{ color: "#A8967E" }}>cal / serving</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      <div className="max-w-2xl mx-auto">
-        {/* Ingredients */}
-        {recipe.ingredients.length > 0 && (
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold uppercase tracking-widest" style={{ color: "#A8967E" }}>
-                Ingredients
-              </h2>
-              <button
-                onClick={() => onAddToGrocery(itemLines)}
-                className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg text-white"
-                style={{ background: "#71816D" }}
-              >
-                <ShoppingCart size={12} /> Add to Grocery
-              </button>
-            </div>
-
+        {/* LEFT — sticky photo */}
+        <div className="lg:sticky lg:top-8">
+          {recipe.photos.length > 0 ? (
             <div
-              className="rounded-2xl overflow-hidden"
-              style={{ border: "1px solid rgba(201,183,156,0.35)" }}
+              className="w-full rounded-3xl overflow-hidden"
+              style={{ background: "#E8D4B0" }}
             >
-              {parsedWithIdx.map((line, i) => {
-                if (line.type === "header") {
-                  return (
-                    <div key={i} className="px-5 pt-4 pb-1">
-                      <p className="text-[11px] font-semibold uppercase tracking-widest" style={{ color: "#A8967E" }}>
-                        {line.text}
-                      </p>
+              <img
+                src={recipe.photos[0]}
+                alt={recipe.title}
+                className="w-full object-cover"
+                style={{ maxHeight: "560px", minHeight: "300px" }}
+              />
+              {recipe.photos.length > 1 && (
+                <div className="flex gap-2 p-3">
+                  {recipe.photos.slice(1, 4).map((p, i) => (
+                    <div key={i} className="flex-1 rounded-xl overflow-hidden" style={{ height: "72px" }}>
+                      <img src={p} alt="" className="w-full h-full object-cover" />
                     </div>
-                  );
-                }
-                const localIdx = line.itemIdx;
-                const isChecked = checked.has(localIdx);
-                return (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => toggleCheck(localIdx)}
-                    className="w-full flex items-center gap-3 px-5 py-3 text-left transition-colors"
-                    style={{ background: isChecked ? "rgba(201,183,156,0.12)" : "transparent", borderTop: i > 0 ? "1px solid rgba(201,183,156,0.2)" : "none" }}
-                  >
-                    <div
-                      className="w-4 h-4 rounded flex-shrink-0 flex items-center justify-center transition-all"
-                      style={{
-                        border: `1.5px solid ${isChecked ? "#71816D" : "#C9B79C"}`,
-                        background: isChecked ? "#71816D" : "transparent",
-                      }}
-                    >
-                      {isChecked && <svg width="9" height="7" viewBox="0 0 9 7" fill="none"><path d="M1 3.5L3.5 6L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                    </div>
-                    <span
-                      className="text-sm"
-                      style={{
-                        color: isChecked ? "rgba(52,42,33,0.38)" : "#342A21",
-                        textDecoration: isChecked ? "line-through" : "none",
-                      }}
-                    >
-                      {line.text}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Instructions */}
-        {recipe.steps.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-sm font-semibold uppercase tracking-widest mb-4" style={{ color: "#A8967E" }}>
-              Instructions
-            </h2>
-            <div className="space-y-4">
-              {recipe.steps.map((step, i) => (
-                <div key={i} className="flex gap-4">
-                  <div
-                    className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-white text-sm font-medium"
-                    style={{ background: "#71816D" }}
-                  >
-                    {i + 1}
-                  </div>
-                  <p className="text-sm pt-0.5 leading-relaxed" style={{ color: "#342A21" }}>{step}</p>
+                  ))}
                 </div>
+              )}
+            </div>
+          ) : (
+            <div
+              className="w-full rounded-3xl flex items-center justify-center"
+              style={{ height: "360px", background: "rgba(201,183,156,0.2)" }}
+            >
+              <span className="text-7xl">🍳</span>
+            </div>
+          )}
+        </div>
+
+        {/* RIGHT — recipe details */}
+        <div>
+          {/* Title */}
+          <h1
+            className="font-serif leading-tight mb-3"
+            style={{
+              color: "#342A21",
+              fontFamily: "'Cormorant Garamond', Georgia, serif",
+              fontSize: "clamp(1.75rem, 4vw, 2.75rem)",
+            }}
+          >
+            {recipe.title}
+          </h1>
+
+          {/* Dietary tags */}
+          {recipe.dietaryTags?.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-4">
+              {recipe.dietaryTags.map((tag) => (
+                <span
+                  key={tag}
+                  className="text-xs font-medium px-3 py-1 rounded-full"
+                  style={{ background: "rgba(113,129,109,0.12)", color: "#71816D", border: "1px solid rgba(113,129,109,0.2)" }}
+                >
+                  {tag}
+                </span>
               ))}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Nutrition */}
-        {(recipe.protein || recipe.carbs || recipe.fat || recipe.caloriesPerServing) && (
-          <div className="mb-8">
-            <h2 className="text-sm font-semibold uppercase tracking-widest mb-4" style={{ color: "#A8967E" }}>
-              Nutrition
-              {recipe.servings && <span className="normal-case font-normal ml-1" style={{ color: "#C9B79C" }}>· per serving</span>}
-            </h2>
-            <div
-              className="flex gap-6 flex-wrap px-5 py-4 rounded-2xl"
-              style={{ background: "rgba(201,183,156,0.12)", border: "1px solid rgba(201,183,156,0.25)" }}
-            >
-              {recipe.caloriesPerServing && (
-                <div>
-                  <p className="font-serif text-2xl" style={{ color: "#342A21", fontFamily: "'Cormorant Garamond', Georgia, serif" }}>{recipe.caloriesPerServing}</p>
-                  <p className="text-xs" style={{ color: "#A8967E" }}>Calories</p>
-                </div>
-              )}
-              {recipe.protein && (
-                <div>
-                  <p className="font-serif text-2xl" style={{ color: "#342A21", fontFamily: "'Cormorant Garamond', Georgia, serif" }}>{recipe.protein}g</p>
-                  <p className="text-xs" style={{ color: "#A8967E" }}>Protein</p>
-                </div>
-              )}
-              {recipe.fat && (
-                <div>
-                  <p className="font-serif text-2xl" style={{ color: "#342A21", fontFamily: "'Cormorant Garamond', Georgia, serif" }}>{recipe.fat}g</p>
-                  <p className="text-xs" style={{ color: "#A8967E" }}>Fat</p>
-                </div>
-              )}
-              {recipe.carbs && (
-                <div>
-                  <p className="font-serif text-2xl" style={{ color: "#342A21", fontFamily: "'Cormorant Garamond', Georgia, serif" }}>{recipe.carbs}g</p>
-                  <p className="text-xs" style={{ color: "#A8967E" }}>Carbs</p>
-                </div>
-              )}
+          {recipe.description && (
+            <p className="text-sm mb-4 leading-relaxed" style={{ color: "rgba(52,42,33,0.6)" }}>
+              {recipe.description}
+            </p>
+          )}
+
+          {/* Serving controls + calorie bar */}
+          <div
+            className="flex items-center justify-between py-3 px-4 rounded-2xl mb-6"
+            style={{ background: "rgba(201,183,156,0.15)", border: "1px solid rgba(201,183,156,0.3)" }}
+          >
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setServings((s) => Math.max(1, s - 1))}
+                className="w-7 h-7 rounded-full flex items-center justify-center transition-colors"
+                style={{ background: "rgba(52,42,33,0.08)", color: "#342A21" }}
+              >
+                <Minus size={13} />
+              </button>
+              <div className="text-center">
+                <span className="text-sm font-medium" style={{ color: "#342A21" }}>
+                  Makes {servings} {servings === 1 ? "portion" : "portions"}
+                </span>
+              </div>
+              <button
+                onClick={() => setServings((s) => s + 1)}
+                className="w-7 h-7 rounded-full flex items-center justify-center transition-colors"
+                style={{ background: "rgba(52,42,33,0.08)", color: "#342A21" }}
+              >
+                <Plus size={13} />
+              </button>
             </div>
-          </div>
-        )}
-
-        {/* Tags */}
-        {recipe.tags.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {recipe.tags.map((t) => (
-              <span key={t} className="text-xs px-2.5 py-1 rounded-full" style={{ background: "rgba(201,183,156,0.2)", color: "#71816D" }}>
-                #{t}
+            {scaledCal && (
+              <span className="text-sm" style={{ color: "#A8967E" }}>
+                Per portion:{" "}
+                <span className="font-semibold" style={{ color: "#342A21" }}>
+                  {Math.round(scaledCal / servings)} kcal
+                </span>
               </span>
-            ))}
+            )}
           </div>
-        )}
+
+          {/* Ingredients */}
+          {recipe.ingredients.length > 0 && (
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <h2
+                  className="text-xs font-semibold uppercase tracking-widest"
+                  style={{ color: "#A8967E" }}
+                >
+                  Ingredients
+                </h2>
+                <button
+                  onClick={() => onAddToGrocery(itemLines)}
+                  className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg text-white"
+                  style={{ background: "#71816D" }}
+                >
+                  <ShoppingCart size={12} /> Add all to Grocery
+                </button>
+              </div>
+
+              <div
+                className="rounded-2xl overflow-hidden divide-y"
+                style={{ border: "1px solid rgba(201,183,156,0.35)" }}
+              >
+                {parsed.map((line, i) => {
+                  if (line.header) {
+                    return (
+                      <div
+                        key={i}
+                        className="px-4 pt-3 pb-1.5"
+                        style={{ background: "rgba(201,183,156,0.12)" }}
+                      >
+                        <p
+                          className="text-[10px] font-bold uppercase tracking-widest"
+                          style={{ color: "#A8967E" }}
+                        >
+                          {line.text}
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  itemCount++;
+                  const idx = itemCount;
+                  const done = checkedIdxs.has(idx);
+
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => toggleCheck(idx)}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors"
+                      style={{ background: done ? "rgba(201,183,156,0.1)" : "transparent" }}
+                    >
+                      {/* Custom checkbox */}
+                      <div
+                        className="flex-shrink-0 w-4 h-4 rounded flex items-center justify-center transition-all"
+                        style={{
+                          border: `1.5px solid ${done ? "#71816D" : "#C9B79C"}`,
+                          background: done ? "#71816D" : "transparent",
+                        }}
+                      >
+                        {done && (
+                          <svg width="9" height="7" viewBox="0 0 9 7" fill="none">
+                            <path d="M1 3.5L3.5 6L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        )}
+                      </div>
+                      <span
+                        className="text-sm"
+                        style={{
+                          color: done ? "rgba(52,42,33,0.38)" : "#342A21",
+                          textDecoration: done ? "line-through" : "none",
+                        }}
+                      >
+                        {line.text}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Instructions */}
+          {recipe.steps.length > 0 && (
+            <div className="mb-6">
+              <h2 className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: "#A8967E" }}>
+                Instructions
+              </h2>
+              <div className="space-y-4">
+                {recipe.steps.map((step, i) => (
+                  <div key={i} className="flex gap-4">
+                    <div
+                      className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-semibold"
+                      style={{ background: "#71816D" }}
+                    >
+                      {i + 1}
+                    </div>
+                    <p className="text-sm leading-relaxed pt-0.5" style={{ color: "#342A21" }}>
+                      {step}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Nutrition */}
+          {(scaledCal || scaledProtein || scaledCarbs || scaledFat) && (
+            <div className="mb-6">
+              <h2 className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "#A8967E" }}>
+                Nutrition
+                <span className="normal-case font-normal ml-1.5" style={{ color: "#C9B79C" }}>
+                  · {servings} {servings === 1 ? "portion" : "portions"}
+                </span>
+              </h2>
+              <div
+                className="grid grid-cols-4 rounded-2xl overflow-hidden"
+                style={{ border: "1px solid rgba(201,183,156,0.35)" }}
+              >
+                {[
+                  { label: "Calories", val: scaledCal,     unit: "kcal" },
+                  { label: "Protein",  val: scaledProtein, unit: "g" },
+                  { label: "Fat",      val: scaledFat,     unit: "g" },
+                  { label: "Carbs",    val: scaledCarbs,   unit: "g" },
+                ].map(({ label, val, unit }, i) => val != null && (
+                  <div
+                    key={label}
+                    className="py-4 px-2 text-center"
+                    style={{ borderLeft: i > 0 ? "1px solid rgba(201,183,156,0.35)" : "none", background: "#FAF3E8" }}
+                  >
+                    <p
+                      className="font-serif text-2xl leading-none mb-1"
+                      style={{ color: "#342A21", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+                    >
+                      {val}{unit !== "kcal" ? unit : ""}
+                    </p>
+                    <p className="text-[11px]" style={{ color: "#A8967E" }}>{label}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Tags */}
+          {recipe.tags.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {recipe.tags.map((t) => (
+                <span
+                  key={t}
+                  className="text-xs px-2.5 py-1 rounded-full"
+                  style={{ background: "rgba(201,183,156,0.2)", color: "#71816D" }}
+                >
+                  #{t}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -295,7 +357,15 @@ function RecipeDetail({
 
 // ── Recipe Grid Card ──────────────────────────────────────────────────────────
 
-function RecipeCard({ recipe, onClick, onDelete }: { recipe: Recipe; onClick: () => void; onDelete: () => void }) {
+function RecipeCard({
+  recipe,
+  onClick,
+  onDelete,
+}: {
+  recipe: Recipe;
+  onClick: () => void;
+  onDelete: () => void;
+}) {
   return (
     <div
       className="group rounded-2xl overflow-hidden cursor-pointer transition-all duration-200 hover:-translate-y-1"
@@ -307,17 +377,24 @@ function RecipeCard({ recipe, onClick, onDelete }: { recipe: Recipe; onClick: ()
       onClick={onClick}
     >
       {recipe.photos.length > 0 ? (
-        <div className="w-full overflow-hidden" style={{ height: "180px" }}>
-          <img src={recipe.photos[0]} alt={recipe.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+        <div className="w-full overflow-hidden" style={{ height: "190px" }}>
+          <img
+            src={recipe.photos[0]}
+            alt={recipe.title}
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          />
         </div>
       ) : (
-        <div className="w-full flex items-center justify-center" style={{ height: "120px", background: "rgba(201,183,156,0.18)" }}>
+        <div
+          className="w-full flex items-center justify-center"
+          style={{ height: "120px", background: "rgba(201,183,156,0.18)" }}
+        >
           <span className="text-4xl">🍳</span>
         </div>
       )}
 
       <div className="p-4">
-        <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start justify-between gap-2 mb-2">
           <h3
             className="font-serif text-lg leading-tight flex-1"
             style={{ color: "#342A21", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
@@ -326,7 +403,7 @@ function RecipeCard({ recipe, onClick, onDelete }: { recipe: Recipe; onClick: ()
           </h3>
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(); }}
-            className="opacity-0 group-hover:opacity-100 p-1 rounded-full transition-all"
+            className="opacity-0 group-hover:opacity-100 p-1 rounded-full transition-all flex-shrink-0"
             style={{ color: "#A8967E" }}
           >
             <X size={13} />
@@ -334,22 +411,33 @@ function RecipeCard({ recipe, onClick, onDelete }: { recipe: Recipe; onClick: ()
         </div>
 
         {recipe.dietaryTags?.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-2">
+          <div className="flex flex-wrap gap-1 mb-3">
             {recipe.dietaryTags.slice(0, 3).map((tag) => (
-              <span key={tag} className="text-[10px] font-medium px-2 py-0.5 rounded-full"
-                style={{ background: "rgba(113,129,109,0.10)", color: "#71816D" }}>
+              <span
+                key={tag}
+                className="text-[10px] font-medium px-2 py-0.5 rounded-full"
+                style={{ background: "rgba(113,129,109,0.10)", color: "#71816D" }}
+              >
                 {tag}
               </span>
             ))}
           </div>
         )}
 
-        <div className="flex items-center justify-between mt-3">
-          {recipe.rating != null ? (
-            <SerifRating value={recipe.rating} />
-          ) : <div />}
-          {recipe.caloriesPerServing && (
-            <span className="text-xs" style={{ color: "#A8967E" }}>{recipe.caloriesPerServing} cal</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3 text-xs" style={{ color: "#A8967E" }}>
+            {recipe.servings && <span>{recipe.servings} portions</span>}
+            {recipe.caloriesPerServing && recipe.servings && (
+              <>
+                <span style={{ color: "#D9CDBB" }}>·</span>
+                <span>{recipe.caloriesPerServing} kcal/serving</span>
+              </>
+            )}
+          </div>
+          {recipe.rating != null && (
+            <span className="font-serif text-base" style={{ color: "#DA667B", fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
+              {"●".repeat(recipe.rating)}{"○".repeat(5 - recipe.rating)}
+            </span>
           )}
         </div>
       </div>
@@ -359,7 +447,34 @@ function RecipeCard({ recipe, onClick, onDelete }: { recipe: Recipe; onClick: ()
 
 // ── Add Recipe Form ───────────────────────────────────────────────────────────
 
-function AddRecipeForm({ onSave, onCancel }: { onSave: (r: Omit<Recipe, "id" | "createdAt">) => void; onCancel: () => void }) {
+function SerifRating({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+  return (
+    <div className="flex items-center gap-2">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button
+          key={n}
+          type="button"
+          onClick={() => onChange(n)}
+          className="font-serif text-xl leading-none transition-colors"
+          style={{
+            color: n <= value ? "#DA667B" : "#C9B79C",
+            fontFamily: "'Cormorant Garamond', Georgia, serif",
+          }}
+        >
+          {n}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function AddRecipeForm({
+  onSave,
+  onCancel,
+}: {
+  onSave: (r: Omit<Recipe, "id" | "createdAt">) => void;
+  onCancel: () => void;
+}) {
   const [title, setTitle]         = useState("");
   const [desc, setDesc]           = useState("");
   const [ingLine, setIngLine]     = useState("");
@@ -412,15 +527,15 @@ function AddRecipeForm({ onSave, onCancel }: { onSave: (r: Omit<Recipe, "id" | "
       description: desc.trim() || undefined,
       ingredients, steps, photos, tags, dietaryTags,
       rating: rating || undefined,
-      servings: servings ? Number(servings) : undefined,
-      caloriesPerServing: calories ? Number(calories) : undefined,
-      protein: protein ? Number(protein) : undefined,
-      carbs: carbs ? Number(carbs) : undefined,
-      fat: fat ? Number(fat) : undefined,
+      servings:          servings  ? Number(servings)  : undefined,
+      caloriesPerServing: calories ? Number(calories)  : undefined,
+      protein:           protein   ? Number(protein)   : undefined,
+      carbs:             carbs     ? Number(carbs)     : undefined,
+      fat:               fat       ? Number(fat)       : undefined,
     });
   }
 
-  const inputStyle = {
+  const inp: React.CSSProperties = {
     background: "#F7EDD8",
     border: "1px solid rgba(201,183,156,0.5)",
     borderRadius: "10px",
@@ -431,47 +546,60 @@ function AddRecipeForm({ onSave, onCancel }: { onSave: (r: Omit<Recipe, "id" | "
     width: "100%",
   };
 
-  const numInput = (label: string, val: string, set: (v: string) => void, unit = "") => (
-    <div>
-      <p className="text-xs font-medium mb-1" style={{ color: "#A8967E" }}>{label}{unit && <span className="ml-0.5 font-normal">({unit})</span>}</p>
-      <input type="number" min="0" style={{ ...inputStyle }} placeholder="0" value={val} onChange={(e) => set(e.target.value)} />
-    </div>
-  );
-
   return (
-    <div className="rounded-2xl p-6 mb-6" style={{ background: "#FAF3E8", border: "1px solid rgba(201,183,156,0.4)", boxShadow: "0 4px 20px rgba(52,42,33,0.10)" }}>
-      <h3 className="font-serif text-2xl mb-5" style={{ color: "#342A21", fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
+    <div
+      className="rounded-2xl p-6 mb-6"
+      style={{ background: "#FAF3E8", border: "1px solid rgba(201,183,156,0.4)", boxShadow: "0 4px 20px rgba(52,42,33,0.10)" }}
+    >
+      <h3
+        className="font-serif text-2xl mb-5"
+        style={{ color: "#342A21", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+      >
         Add Recipe
       </h3>
+
       <div className="space-y-4">
-        <input style={inputStyle} placeholder="Recipe title…" value={title} onChange={(e) => setTitle(e.target.value)} />
-        <textarea style={{ ...inputStyle, resize: "none", minHeight: "60px" }} placeholder="Short description…" value={desc} onChange={(e) => setDesc(e.target.value)} />
+        <input style={inp} placeholder="Recipe title…" value={title} onChange={(e) => setTitle(e.target.value)} />
+        <textarea style={{ ...inp, resize: "none", minHeight: "60px" }} placeholder="Short description…" value={desc} onChange={(e) => setDesc(e.target.value)} />
 
         {/* Photos */}
         <div>
           <p className="text-xs font-medium mb-2" style={{ color: "#A8967E" }}>Photos</p>
-          <div className="flex gap-2 flex-wrap mb-2">
-            {photos.map((p, i) => (
-              <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden">
-                <img src={p} alt="" className="w-full h-full object-cover" />
-                <button type="button" onClick={() => setPhotos((a) => a.filter((_, j) => j !== i))}
-                  className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full flex items-center justify-center"
-                  style={{ background: "rgba(52,42,33,0.7)" }}>
-                  <X size={9} color="white" />
-                </button>
-              </div>
-            ))}
-          </div>
+          {photos.length > 0 && (
+            <div className="flex gap-2 flex-wrap mb-2">
+              {photos.map((p, i) => (
+                <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden">
+                  <img src={p} alt="" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setPhotos((a) => a.filter((_, j) => j !== i))}
+                    className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full flex items-center justify-center"
+                    style={{ background: "rgba(52,42,33,0.7)" }}
+                  >
+                    <X size={9} color="white" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
           <div className="flex gap-2">
-            <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={uploading}
               className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium"
-              style={{ background: "rgba(113,129,109,0.12)", color: "#71816D" }}>
-              <Camera size={13} /> {uploading ? "Uploading…" : "Upload"}
+              style={{ background: "rgba(113,129,109,0.12)", color: "#71816D" }}
+            >
+              <Camera size={13} /> {uploading ? "Uploading…" : "Upload photo"}
             </button>
             <div className="flex flex-1 gap-1">
-              <input style={{ ...inputStyle, padding: "7px 10px", fontSize: "13px" }} placeholder="Paste image URL…"
-                value={urlInput} onChange={(e) => setUrlInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && addUrl()} />
+              <input
+                style={{ ...inp, padding: "7px 10px", fontSize: "13px" }}
+                placeholder="Or paste image URL…"
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addUrl()}
+              />
               <button type="button" onClick={addUrl} className="px-2.5 rounded-lg"
                 style={{ background: "rgba(113,129,109,0.12)", color: "#71816D" }}>
                 <LinkIcon size={13} />
@@ -482,7 +610,7 @@ function AddRecipeForm({ onSave, onCancel }: { onSave: (r: Omit<Recipe, "id" | "
             onChange={(e) => e.target.files && handleFileUpload(e.target.files)} />
         </div>
 
-        {/* Dietary tags */}
+        {/* Dietary */}
         <div>
           <p className="text-xs font-medium mb-2" style={{ color: "#A8967E" }}>Dietary</p>
           <div className="flex flex-wrap gap-2">
@@ -499,23 +627,37 @@ function AddRecipeForm({ onSave, onCancel }: { onSave: (r: Omit<Recipe, "id" | "
           </div>
         </div>
 
-        {/* Servings + nutrition */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-          {numInput("Servings", servings, setServings)}
-          {numInput("Calories", calories, setCalories, "per serving")}
-          {numInput("Protein", protein, setProtein, "g")}
-          {numInput("Carbs", carbs, setCarbs, "g")}
-          {numInput("Fat", fat, setFat, "g")}
+        {/* Servings + macros */}
+        <div>
+          <p className="text-xs font-medium mb-2" style={{ color: "#A8967E" }}>Servings & Nutrition</p>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+            {[
+              { label: "Servings",   val: servings,  set: setServings },
+              { label: "Cal/serving",val: calories,  set: setCalories },
+              { label: "Protein (g)", val: protein,  set: setProtein },
+              { label: "Carbs (g)",  val: carbs,     set: setCarbs },
+              { label: "Fat (g)",    val: fat,       set: setFat },
+            ].map(({ label, val, set }) => (
+              <div key={label}>
+                <p className="text-[10px] mb-1" style={{ color: "#A8967E" }}>{label}</p>
+                <input type="number" min="0" style={{ ...inp, padding: "6px 10px", fontSize: "13px" }}
+                  placeholder="0" value={val} onChange={(e) => set(e.target.value)} />
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Ingredients */}
         <div>
           <p className="text-xs font-medium mb-1.5" style={{ color: "#A8967E" }}>
-            Ingredients <span className="font-normal">(one per line — use ALL CAPS line for a section header)</span>
+            Ingredients{" "}
+            <span className="font-normal" style={{ color: "#C9B79C" }}>
+              — one per line. Write ALL CAPS or add a colon to create a section header (e.g. CHICKEN: or SOUP:)
+            </span>
           </p>
           <textarea
-            style={{ ...inputStyle, resize: "none", minHeight: "120px", fontFamily: "monospace", fontSize: "13px" }}
-            placeholder={"CHICKEN:\n2 chicken breasts\n1 tbsp olive oil\n\nSOUP:\n4 cups chicken broth\n2 cups egg noodles"}
+            style={{ ...inp, resize: "none", minHeight: "130px", fontFamily: "ui-monospace, monospace", fontSize: "13px" }}
+            placeholder={"CHICKEN:\n2 chicken breasts\n1 tbsp olive oil\n\nSOUP:\n4 cups chicken broth\n6 oz egg noodles"}
             value={ingLine}
             onChange={(e) => setIngLine(e.target.value)}
           />
@@ -523,10 +665,12 @@ function AddRecipeForm({ onSave, onCancel }: { onSave: (r: Omit<Recipe, "id" | "
 
         {/* Steps */}
         <div>
-          <p className="text-xs font-medium mb-1.5" style={{ color: "#A8967E" }}>Steps <span className="font-normal">(one per line)</span></p>
+          <p className="text-xs font-medium mb-1.5" style={{ color: "#A8967E" }}>
+            Instructions <span className="font-normal" style={{ color: "#C9B79C" }}>— one step per line</span>
+          </p>
           <textarea
-            style={{ ...inputStyle, resize: "none", minHeight: "100px" }}
-            placeholder={"Season and sear the chicken until golden.\nMake the sauce in the same pan…"}
+            style={{ ...inp, resize: "none", minHeight: "110px" }}
+            placeholder={"Season chicken and sear until golden.\nMake the cream sauce in the same pan.\nCombine and simmer until noodles are tender."}
             value={stepLine}
             onChange={(e) => setStepLine(e.target.value)}
           />
@@ -540,19 +684,22 @@ function AddRecipeForm({ onSave, onCancel }: { onSave: (r: Omit<Recipe, "id" | "
           </div>
           <div>
             <p className="text-xs font-medium mb-1" style={{ color: "#A8967E" }}>Tags</p>
-            <input style={{ ...inputStyle, padding: "6px 10px", fontSize: "13px" }} placeholder="quick, cozy, date-night…"
+            <input style={{ ...inp, padding: "6px 10px", fontSize: "13px" }}
+              placeholder="cozy, quick, date-night…"
               value={tagInput} onChange={(e) => setTagInput(e.target.value)} />
           </div>
         </div>
 
         <div className="flex gap-2 pt-1">
-          <button onClick={submit} disabled={!title.trim()}
+          <button
+            onClick={submit}
+            disabled={!title.trim()}
             className="px-6 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-40"
-            style={{ background: "#71816D" }}>
+            style={{ background: "#71816D" }}
+          >
             Save Recipe
           </button>
-          <button onClick={onCancel} className="px-4 py-2.5 rounded-xl text-sm font-medium"
-            style={{ color: "#A8967E" }}>
+          <button onClick={onCancel} className="px-4 py-2.5 rounded-xl text-sm font-medium" style={{ color: "#A8967E" }}>
             Cancel
           </button>
         </div>
@@ -570,8 +717,8 @@ export function RecipeVault({
   nutrition: NutritionData;
   onUpdate: (n: NutritionData) => void;
 }) {
-  const [adding, setAdding]         = useState(false);
-  const [selected, setSelected]     = useState<Recipe | null>(null);
+  const [adding, setAdding]     = useState(false);
+  const [selected, setSelected] = useState<Recipe | null>(null);
 
   function saveRecipe(r: Omit<Recipe, "id" | "createdAt">) {
     const entry: Recipe = { ...r, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
@@ -596,19 +743,18 @@ export function RecipeVault({
     onUpdate({ ...nutrition, groceryItems: [...nutrition.groceryItems, ...newItems] });
   }
 
-  // Detail view
   if (selected) {
+    const fresh = nutrition.recipes.find((r) => r.id === selected.id) ?? selected;
     return (
       <RecipeDetail
-        recipe={selected}
+        recipe={fresh}
         onBack={() => setSelected(null)}
-        onDelete={() => deleteRecipe(selected.id)}
-        onAddToGrocery={(ings) => addToGrocery(selected.id, ings)}
+        onDelete={() => deleteRecipe(fresh.id)}
+        onAddToGrocery={(ings) => addToGrocery(fresh.id, ings)}
       />
     );
   }
 
-  // Grid view
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -616,9 +762,11 @@ export function RecipeVault({
           {nutrition.recipes.length} recipe{nutrition.recipes.length !== 1 ? "s" : ""} saved
         </p>
         {!adding && (
-          <button onClick={() => setAdding(true)}
+          <button
+            onClick={() => setAdding(true)}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-white"
-            style={{ background: "#71816D" }}>
+            style={{ background: "#71816D" }}
+          >
             <Plus size={15} /> Add Recipe
           </button>
         )}
@@ -628,10 +776,15 @@ export function RecipeVault({
 
       {nutrition.recipes.length === 0 && !adding ? (
         <div className="text-center py-16" style={{ color: "rgba(52,42,33,0.4)" }}>
-          <p className="font-serif text-2xl mb-2" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
+          <p
+            className="font-serif text-2xl mb-2"
+            style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+          >
             Your cookbook is empty
           </p>
-          <p className="text-sm">Save a recipe to view it like a cookbook page — ingredients, steps, and nutrition all in one place.</p>
+          <p className="text-sm">
+            Save a recipe to open a full cookbook view — photo, checkable ingredients, steps, and nutrition.
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

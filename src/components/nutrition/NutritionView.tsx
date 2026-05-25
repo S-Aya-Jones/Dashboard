@@ -6,7 +6,6 @@ import { MealLog } from "./MealLog";
 import { RecipeVault } from "./RecipeVault";
 import { GroceryList } from "./GroceryList";
 import { PantryTracker } from "./PantryTracker";
-import { ShetritionBoard } from "./ShetritionBoard";
 import { WeeklyFoodReview } from "./WeeklyFoodReview";
 
 const TABS = [
@@ -14,7 +13,6 @@ const TABS = [
   { id: "recipes",  label: "Recipe Vault" },
   { id: "grocery",  label: "Grocery List" },
   { id: "pantry",   label: "Pantry" },
-  { id: "board",    label: "Shetrition" },
   { id: "review",   label: "Weekly Review" },
 ] as const;
 
@@ -69,7 +67,7 @@ export function NutritionView({
           const active = tab === id;
           const badge =
             id === "grocery" && groceryCount > 0 ? groceryCount
-            : id === "pantry" && outOfStock > 0 ? outOfStock
+            : id === "pantry"  && outOfStock > 0  ? outOfStock
             : null;
 
           return (
@@ -106,7 +104,6 @@ export function NutritionView({
         {tab === "recipes" && <RecipeVault   nutrition={nutrition} onUpdate={onUpdate} />}
         {tab === "grocery" && <GroceryList   nutrition={nutrition} onUpdate={onUpdate} />}
         {tab === "pantry"  && <PantryTracker nutrition={nutrition} onUpdate={onUpdate} />}
-        {tab === "board"   && <ShetritionBoard nutrition={nutrition} onUpdate={onUpdate} />}
         {tab === "review"  && <WeeklyFoodReview nutrition={nutrition} />}
       </div>
     </div>
