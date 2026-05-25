@@ -168,6 +168,22 @@ export interface SavingsGoal {
   deadline?: string;
 }
 
+export interface BigMove {
+  id: string;
+  transactionId: string;
+  status: "intentional" | "oops";
+  note?: string;
+  taggedAt: string;
+}
+
+export interface FinancesConfig {
+  bigTicketThreshold: number;
+  watchListMerchants: string[];
+  bigMoves: BigMove[];
+  recurringHidden: string[];
+  recurringFlagged: string[];
+}
+
 export interface MonthlyFinance {
   month: string; // YYYY-MM
   income: number;
@@ -290,6 +306,7 @@ export interface DashboardData {
   savingsGoals: SavingsGoal[];
   monthlyFinances: MonthlyFinance[];
   budgetCategories: BudgetCategory[];
+  financesConfig: FinancesConfig;
 
   // Connections
   connectionLogs: ConnectionLog[];
@@ -361,6 +378,13 @@ export const defaultDashboardData = (): DashboardData => ({
   savingsGoals: [],
   monthlyFinances: [],
   budgetCategories: [],
+  financesConfig: {
+    bigTicketThreshold: 100,
+    watchListMerchants: ["sephora", "ulta", "amazon", "starbucks", "coffee", "doordash", "ubereats", "grubhub", "uber", "lyft"],
+    bigMoves: [],
+    recurringHidden: [],
+    recurringFlagged: [],
+  },
   connectionLogs: [],
   wins: [],
   goals: [],

@@ -4,12 +4,17 @@ import { useState, useEffect, useCallback } from "react";
 import { usePlaidLink } from "react-plaid-link";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell } from "recharts";
 import { RefreshCw, Unlink, AlertTriangle, Link2, Link2Off, SlidersHorizontal, TrendingUp, TrendingDown, Minus } from "lucide-react";
-import { DashboardData } from "@/types/dashboard";
+import { DashboardData, BigMove } from "@/types/dashboard";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { id } from "@/lib/utils";
-import { format, parseISO, startOfMonth, isAfter } from "date-fns";
+import { format, parseISO, startOfMonth, isAfter, differenceInDays } from "date-fns";
+import { RunwayGauge } from "./RunwayGauge";
+import { DashboardVoice } from "./DashboardVoice";
+import { BigTicketBoard } from "./BigTicketBoard";
+import { WatchListCard } from "./WatchListCard";
+import { RecurringPanel } from "./RecurringPanel";
 
 interface Props {
   data: DashboardData;
@@ -30,13 +35,16 @@ interface PlaidAccount {
 }
 
 interface PlaidTxn {
-  id:               string;
-  name:             string;
-  amount:           number;
-  date:             string;
-  category:         string;
-  accountId:        string;
-  institutionName?: string | null;
+  id:                 string;
+  name:               string;
+  amount:             number;
+  date:               string;
+  category:           string;
+  accountId:          string;
+  institutionName?:   string | null;
+  isInternalTransfer: boolean;
+  transferPairId:     string | null;
+  itemId:             string;
 }
 
 // ── Category metadata ─────────────────────────────────────────────────────────
@@ -115,7 +123,7 @@ function InstitutionAvatar({ name }: { name: string | null | undefined }) {
 
 function PlaidConnectButton({ onConnected }: { onConnected: () => void }) {
   const [linkToken, setLinkToken] = useState<string | null>(null);
-  const [fetching, setFetching]   = useState(false);
+  const [fetching,  setFetching]  = useState(false);
 
   const { open, ready } = usePlaidLink({
     token:     linkToken,
@@ -147,21 +155,32 @@ function PlaidConnectButton({ onConnected }: { onConnected: () => void }) {
   );
 }
 
+// ── Default financesConfig ────────────────────────────────────────────────────
+
+const DEFAULT_FC = {
+  bigTicketThreshold: 100,
+  watchListMerchants: ["sephora", "ulta", "amazon", "starbucks", "coffee", "doordash", "ubereats", "grubhub", "uber", "lyft"],
+  bigMoves: [] as BigMove[],
+  recurringHidden: [] as string[],
+  recurringFlagged: [] as string[],
+};
+
 // ── Main view ─────────────────────────────────────────────────────────────────
 
 export function FinancesView({ data, update }: Props) {
-  const [accounts,     setAccounts]     = useState<PlaidAccount[]>([]);
-  const [transactions, setTransactions] = useState<PlaidTxn[]>([]);
-  const [refreshedAt,  setRefreshedAt]  = useState<string | null>(null);
-  const [loadingAccts, setLoadingAccts] = useState(true);
-  const [loadingTxns,  setLoadingTxns]  = useState(true);
+  const [accounts,       setAccounts]       = useState<PlaidAccount[]>([]);
+  const [transactions,   setTransactions]   = useState<PlaidTxn[]>([]);
+  const [transferCount,  setTransferCount]  = useState(0);
+  const [showTransfers,  setShowTransfers]  = useState(false);
+  const [refreshedAt,    setRefreshedAt]    = useState<string | null>(null);
+  const [loadingAccts,   setLoadingAccts]   = useState(true);
+  const [loadingTxns,    setLoadingTxns]    = useState(true);
 
   const [cardOpen,    setCardOpen]    = useState(false);
   const [savingsOpen, setSavingsOpen] = useState(false);
   const [budgetOpen,  setBudgetOpen]  = useState(false);
   const [cardForm,    setCardForm]    = useState({ name: "", balance: 0, limit: 0, targetPayoff: "" });
   const [savingsForm, setSavingsForm] = useState({ name: "", current: 0, target: 0, deadline: "" });
-  // budget draft: category key → limit string
   const [budgetDraft, setBudgetDraft] = useState<Record<string, string>>({});
 
   const fetchAccounts = useCallback(async (bust = false) => {
@@ -178,7 +197,10 @@ export function FinancesView({ data, update }: Props) {
     try {
       const res = await fetch(bust ? "/api/plaid/transactions?refresh=1" : "/api/plaid/transactions");
       const j   = await res.json();
-      if (!j.error) setTransactions(j.transactions ?? []);
+      if (!j.error) {
+        setTransactions(j.transactions ?? []);
+        setTransferCount(j.transferCount ?? 0);
+      }
     } finally { setLoadingTxns(false); }
   }, []);
 
@@ -196,6 +218,64 @@ export function FinancesView({ data, update }: Props) {
     fetchAccounts(true);
   };
 
+  // ── financesConfig ─────────────────────────────────────────────────────────
+
+  const fc = data.financesConfig ?? DEFAULT_FC;
+
+  // ── Handlers for new components ────────────────────────────────────────────
+
+  const handleTag = (txnId: string, status: "intentional" | "oops", note?: string) => {
+    update((d) => {
+      const cfg      = d.financesConfig ?? DEFAULT_FC;
+      const existing = cfg.bigMoves.find((m) => m.transactionId === txnId);
+      const newMove: BigMove = {
+        id:            existing?.id ?? id(),
+        transactionId: txnId,
+        status,
+        note,
+        taggedAt:      new Date().toISOString(),
+      };
+      const bigMoves = existing
+        ? cfg.bigMoves.map((m) => (m.transactionId === txnId ? newMove : m))
+        : [...cfg.bigMoves, newMove];
+      return { ...d, financesConfig: { ...cfg, bigMoves } };
+    });
+  };
+
+  const handleThreshold = (n: number) => {
+    update((d) => {
+      const cfg = d.financesConfig ?? DEFAULT_FC;
+      return { ...d, financesConfig: { ...cfg, bigTicketThreshold: n } };
+    });
+  };
+
+  const handleUpdateMerchants = (merchants: string[]) => {
+    update((d) => {
+      const cfg = d.financesConfig ?? DEFAULT_FC;
+      return { ...d, financesConfig: { ...cfg, watchListMerchants: merchants } };
+    });
+  };
+
+  const handleToggleHide = (key: string) => {
+    update((d) => {
+      const cfg            = d.financesConfig ?? DEFAULT_FC;
+      const recurringHidden = cfg.recurringHidden.includes(key)
+        ? cfg.recurringHidden.filter((k) => k !== key)
+        : [...cfg.recurringHidden, key];
+      return { ...d, financesConfig: { ...cfg, recurringHidden } };
+    });
+  };
+
+  const handleToggleFlag = (key: string) => {
+    update((d) => {
+      const cfg              = d.financesConfig ?? DEFAULT_FC;
+      const recurringFlagged = cfg.recurringFlagged.includes(key)
+        ? cfg.recurringFlagged.filter((k) => k !== key)
+        : [...cfg.recurringFlagged, key];
+      return { ...d, financesConfig: { ...cfg, recurringFlagged } };
+    });
+  };
+
   // ── Plaid totals ───────────────────────────────────────────────────────────
 
   const realAccounts = accounts.filter((a) => !a.loginRequired);
@@ -205,11 +285,25 @@ export function FinancesView({ data, update }: Props) {
     .reduce((s, a) => s + (a.balances.current ?? 0), 0);
   const netWorth     = totalCash - totalCredit;
 
+  // ── Cash Runway ───────────────────────────────────────────────────────────
+
+  const last30Spend = transactions
+    .filter((t) => {
+      if (t.isInternalTransfer) return false;
+      if (INCOME_CATS.has(t.category)) return false;
+      if (t.amount <= 0) return false;
+      return differenceInDays(new Date(), parseISO(t.date)) <= 30;
+    })
+    .reduce((s, t) => s + t.amount, 0);
+  const avgDailySpend = last30Spend / 30;
+
   // ── This-month spending ────────────────────────────────────────────────────
 
   const monthStart = startOfMonth(new Date());
-  const thisMo     = transactions.filter(
-    (t) => isAfter(parseISO(t.date), monthStart) || parseISO(t.date) >= monthStart,
+
+  // Transfers always excluded from spending totals
+  const thisMo = transactions.filter(
+    (t) => !t.isInternalTransfer && (isAfter(parseISO(t.date), monthStart) || parseISO(t.date) >= monthStart),
   );
 
   const totalSpent  = thisMo.filter((t) => !INCOME_CATS.has(t.category) && t.amount > 0)
@@ -217,26 +311,24 @@ export function FinancesView({ data, update }: Props) {
   const totalIncome = thisMo.filter((t) => INCOME_CATS.has(t.category))
     .reduce((s, t) => s + Math.abs(t.amount), 0);
 
-  // Actual spend per category
+  // ── Category analysis ──────────────────────────────────────────────────────
+
   const catActual = new Map<string, number>();
   for (const t of thisMo) {
     if (INCOME_CATS.has(t.category) || t.amount <= 0) continue;
     catActual.set(t.category, (catActual.get(t.category) ?? 0) + t.amount);
   }
 
-  // Budget map from saved data
-  const budgetMap = new Map(data.budgetCategories.map((b) => [b.category, b.monthlyLimit]));
+  const budgetMap  = new Map(data.budgetCategories.map((b) => [b.category, b.monthlyLimit]));
+  const allCats    = Array.from(new Set([
+    ...Array.from(catActual.keys()),
+    ...Array.from(budgetMap.keys()),
+  ])).filter((c) => !INCOME_CATS.has(c));
 
-  // All categories that have either spending or a budget
-  const allCats = Array.from(
-    new Set([...Array.from(catActual.keys()), ...Array.from(budgetMap.keys())])
-  ).filter((c) => !INCOME_CATS.has(c));
-
-  // Budget vs actual rows, sorted: over-budget first, then by spend desc
   const budgetRows = allCats.map((cat) => {
     const actual = catActual.get(cat) ?? 0;
     const limit  = budgetMap.get(cat) ?? 0;
-    const diff   = limit > 0 ? actual - limit : 0; // positive = over
+    const diff   = limit > 0 ? actual - limit : 0;
     const pct    = limit > 0 ? Math.min(Math.round((actual / limit) * 100), 999) : 0;
     return { cat, actual, limit, diff, pct };
   }).sort((a, b) => {
@@ -249,17 +341,39 @@ export function FinancesView({ data, update }: Props) {
   const overBudgetCats = budgetRows.filter((r) => r.limit > 0 && r.diff > 0);
   const hasBudget      = budgetMap.size > 0;
 
-  // Top-5 largest transactions
   const top5 = [...thisMo]
     .filter((t) => !INCOME_CATS.has(t.category) && t.amount > 0)
     .sort((a, b) => b.amount - a.amount)
     .slice(0, 5);
 
-  // Simple chart data (for when no budget is set)
   const spendingData = Array.from(catActual.entries())
     .map(([cat, amount]) => ({ name: catLabel(cat), amount: Math.round(amount) }))
     .sort((a, b) => b.amount - a.amount)
     .slice(0, 8);
+
+  // ── Voice stats ────────────────────────────────────────────────────────────
+
+  const voiceStats: string[] = [];
+  if (avgDailySpend > 0 && totalCash > 0) {
+    voiceStats.push(`Cash runway: ${Math.round(totalCash / avgDailySpend)} days at current pace`);
+  }
+  const topCatEntry = Array.from(catActual.entries()).sort((a, b) => b[1] - a[1])[0];
+  if (topCatEntry) {
+    voiceStats.push(`${catLabel(topCatEntry[0])} is your top category this month — ${fmt$(topCatEntry[1])}`);
+  }
+  const watchHitsThisMo = transactions.filter((t) => {
+    if (t.isInternalTransfer || t.amount <= 0) return false;
+    if (parseISO(t.date) < monthStart) return false;
+    return fc.watchListMerchants.some((m) => t.name.toLowerCase().includes(m.toLowerCase()));
+  });
+  if (watchHitsThisMo.length > 0) {
+    voiceStats.push(`${watchHitsThisMo.length} watch-list hits this month · ${fmt$(watchHitsThisMo.reduce((s, t) => s + t.amount, 0))}`);
+  }
+  const bigTxnCount = transactions.filter((t) => t.amount >= fc.bigTicketThreshold && !t.isInternalTransfer).length;
+  const taggedCount  = fc.bigMoves.length;
+  if (bigTxnCount > 0 && taggedCount > 0) {
+    voiceStats.push(`${taggedCount} of ${bigTxnCount} big transactions tagged`);
+  }
 
   // ── Manual entries ─────────────────────────────────────────────────────────
 
@@ -283,7 +397,6 @@ export function FinancesView({ data, update }: Props) {
   // ── Budget modal ───────────────────────────────────────────────────────────
 
   const openBudgetModal = () => {
-    // Pre-fill with current saved budgets + any category with spending this month
     const draft: Record<string, string> = {};
     for (const b of data.budgetCategories) draft[b.category] = String(b.monthlyLimit);
     for (const cat of Array.from(catActual.keys())) {
@@ -334,7 +447,6 @@ export function FinancesView({ data, update }: Props) {
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="font-serif text-4xl text-brown">Finances</h1>
-          <p className="text-sand-dark mt-1 italic text-sm">Building security, one step at a time 💚</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <PlaidConnectButton onConnected={handleConnected} />
@@ -346,6 +458,14 @@ export function FinancesView({ data, update }: Props) {
           <Button variant="secondary" onClick={() => setCardOpen(true)}>+ Manual Card</Button>
         </div>
       </div>
+
+      {/* ── Dashboard Voice ── */}
+      {voiceStats.length > 0 && <DashboardVoice stats={voiceStats} />}
+
+      {/* ── Cash Runway ── */}
+      {totalCash > 0 && avgDailySpend > 0 && (
+        <RunwayGauge cashBalance={totalCash} avgDailySpend={avgDailySpend} />
+      )}
 
       {/* ── Account Overview ── */}
       {hasPlaid && (
@@ -375,92 +495,20 @@ export function FinancesView({ data, update }: Props) {
         </div>
       )}
 
-      {/* ── Connected Accounts ── */}
-      {accounts.length > 0 && (
-        <Card title="Connected Accounts">
-          <div className="space-y-3 mt-1">
-            {accounts.map((acc, i) => {
-              if (acc.loginRequired) {
-                return (
-                  <div key={acc.itemId ?? i} className="flex items-center gap-3 p-3 rounded-xl bg-rose/10 border border-rose/20">
-                    <AlertTriangle size={16} className="text-rose flex-shrink-0" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-brown">{acc.institutionName ?? "Bank"}</p>
-                      <p className="text-xs text-rose">Reconnection needed — log in to refresh</p>
-                    </div>
-                    <button onClick={() => handleDisconnect(acc.itemId)}
-                      className="text-xs text-sand-dark hover:text-rose transition-colors">Remove</button>
-                  </div>
-                );
-              }
-
-              const isCreditCard = acc.type === "credit";
-              const balance       = acc.balances.current ?? 0;
-              const limit         = acc.balances.limit ?? 0;
-              const utilPct       = isCreditCard && limit > 0 ? Math.round((balance / limit) * 100) : 0;
-              const utilColor     = utilPct < 30 ? "#7a816c" : utilPct < 70 ? "#c47a5e" : "#d68d84";
-
-              return (
-                <div key={acc.accountId} className="group">
-                  <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-cream-darker transition-colors">
-                    <InstitutionAvatar name={acc.institutionName} />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-sm font-medium text-brown truncate">
-                          {acc.name}
-                          {acc.mask ? <span className="text-sand-dark font-normal"> ···{acc.mask}</span> : null}
-                        </p>
-                        {typePill(acc.type, acc.subtype)}
-                      </div>
-                      <p className="text-xs text-sand-dark">{acc.institutionName}</p>
-                      {isCreditCard && limit > 0 && (
-                        <div className="mt-1.5">
-                          <div className="flex justify-between text-[10px] text-sand-dark mb-0.5">
-                            <span>{utilPct}% used</span>
-                            <span>limit {fmt$(limit)}</span>
-                          </div>
-                          <div className="h-1.5 bg-cream-darker rounded-full overflow-hidden">
-                            <div className="h-full rounded-full transition-all"
-                              style={{ width: `${utilPct}%`, background: utilColor }} />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="font-serif text-lg text-brown leading-tight">{fmt$(balance)}</p>
-                      {!isCreditCard && acc.balances.available != null && (
-                        <p className="text-[10px] text-sand-dark">{fmt$(acc.balances.available)} available</p>
-                      )}
-                    </div>
-                    <button onClick={() => handleDisconnect(acc.itemId)}
-                      className="opacity-0 group-hover:opacity-100 ml-1 text-sand hover:text-rose transition-all flex-shrink-0"
-                      title="Disconnect">
-                      <Unlink size={13} />
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </Card>
-      )}
-
-      {/* ── Empty state ── */}
-      {!loadingAccts && accounts.length === 0 && data.creditCards.length === 0 && data.savingsGoals.length === 0 && (
-        <Card>
-          <div className="text-center py-10 space-y-3">
-            <p className="font-serif text-2xl text-sand">Connect your accounts</p>
-            <p className="text-sm text-sand-dark max-w-xs mx-auto">
-              Link a bank or credit card via Plaid to see live balances and spending — or track manually above.
-            </p>
-          </div>
-        </Card>
-      )}
-
       {/* ── This Month: Budget vs Actual ── */}
       {(hasActivity || loadingTxns) && (
         <Card title={`${format(new Date(), "MMMM yyyy")} · Spending`}
           subtitle={hasBudget ? undefined : "No budget set — tap Set Budget to add limits"}>
+
+          {/* Transfer info chip */}
+          {transferCount > 0 && (
+            <button
+              onClick={() => setShowTransfers((s) => !s)}
+              className="text-[11px] text-sand-dark hover:text-brown mb-3 block"
+            >
+              🔁 {showTransfers ? "Hiding transfers" : `Hiding ${transferCount} transfer${transferCount !== 1 ? "s" : ""} · show all`}
+            </button>
+          )}
 
           {/* Totals row */}
           <div className="flex items-end gap-6 mt-1 mb-5">
@@ -569,7 +617,6 @@ export function FinancesView({ data, update }: Props) {
               })}
             </div>
           ) : (
-            /* Simple chart when no budget */
             spendingData.length > 0 && (
               <div>
                 <p className="text-xs font-medium text-sand-dark uppercase tracking-wide mb-2">By Category</p>
@@ -612,6 +659,119 @@ export function FinancesView({ data, update }: Props) {
           {loadingTxns && transactions.length === 0 && (
             <p className="text-xs text-sand-dark text-center py-4 animate-pulse">Loading transactions…</p>
           )}
+        </Card>
+      )}
+
+      {/* ── Big Moves ── */}
+      {transactions.length > 0 && (
+        <BigTicketBoard
+          transactions={transactions}
+          threshold={fc.bigTicketThreshold}
+          bigMoves={fc.bigMoves}
+          onTag={handleTag}
+          onThreshold={handleThreshold}
+        />
+      )}
+
+      {/* ── Watch List ── */}
+      {transactions.length > 0 && (
+        <WatchListCard
+          transactions={transactions}
+          watchListMerchants={fc.watchListMerchants}
+          onUpdate={handleUpdateMerchants}
+        />
+      )}
+
+      {/* ── Recurring ── */}
+      {transactions.length > 0 && (
+        <RecurringPanel
+          transactions={transactions}
+          hiddenIds={fc.recurringHidden}
+          flaggedIds={fc.recurringFlagged}
+          onToggleHide={handleToggleHide}
+          onToggleFlag={handleToggleFlag}
+        />
+      )}
+
+      {/* ── Connected Accounts ── */}
+      {accounts.length > 0 && (
+        <Card title="Connected Accounts">
+          <div className="space-y-3 mt-1">
+            {accounts.map((acc, i) => {
+              if (acc.loginRequired) {
+                return (
+                  <div key={acc.itemId ?? i} className="flex items-center gap-3 p-3 rounded-xl bg-rose/10 border border-rose/20">
+                    <AlertTriangle size={16} className="text-rose flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-brown">{acc.institutionName ?? "Bank"}</p>
+                      <p className="text-xs text-rose">Reconnection needed — log in to refresh</p>
+                    </div>
+                    <button onClick={() => handleDisconnect(acc.itemId)}
+                      className="text-xs text-sand-dark hover:text-rose transition-colors">Remove</button>
+                  </div>
+                );
+              }
+
+              const isCreditCard = acc.type === "credit";
+              const balance       = acc.balances.current ?? 0;
+              const limit         = acc.balances.limit ?? 0;
+              const utilPct       = isCreditCard && limit > 0 ? Math.round((balance / limit) * 100) : 0;
+              const utilColor     = utilPct < 30 ? "#7a816c" : utilPct < 70 ? "#c47a5e" : "#d68d84";
+
+              return (
+                <div key={acc.accountId} className="group">
+                  <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-cream-darker transition-colors">
+                    <InstitutionAvatar name={acc.institutionName} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-medium text-brown truncate">
+                          {acc.name}
+                          {acc.mask ? <span className="text-sand-dark font-normal"> ···{acc.mask}</span> : null}
+                        </p>
+                        {typePill(acc.type, acc.subtype)}
+                      </div>
+                      <p className="text-xs text-sand-dark">{acc.institutionName}</p>
+                      {isCreditCard && limit > 0 && (
+                        <div className="mt-1.5">
+                          <div className="flex justify-between text-[10px] text-sand-dark mb-0.5">
+                            <span>{utilPct}% used</span>
+                            <span>limit {fmt$(limit)}</span>
+                          </div>
+                          <div className="h-1.5 bg-cream-darker rounded-full overflow-hidden">
+                            <div className="h-full rounded-full transition-all"
+                              style={{ width: `${utilPct}%`, background: utilColor }} />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="font-serif text-lg text-brown leading-tight">{fmt$(balance)}</p>
+                      {!isCreditCard && acc.balances.available != null && (
+                        <p className="text-[10px] text-sand-dark">{fmt$(acc.balances.available)} available</p>
+                      )}
+                    </div>
+                    <button onClick={() => handleDisconnect(acc.itemId)}
+                      className="opacity-0 group-hover:opacity-100 ml-1 text-sand hover:text-rose transition-all flex-shrink-0"
+                      title="Disconnect">
+                      <Unlink size={13} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
+      {/* ── Empty state ── */}
+      {!loadingAccts && accounts.length === 0 && data.creditCards.length === 0 && data.savingsGoals.length === 0 && (
+        <Card>
+          <div className="text-center py-10 space-y-3">
+            <p className="font-serif text-2xl text-sand">Connect your accounts</p>
+            <p className="text-sm text-sand-dark max-w-xs mx-auto">
+              Link a bank or credit card via Plaid to see live balances and spending — or track manually above.
+            </p>
+          </div>
         </Card>
       )}
 
@@ -755,7 +915,6 @@ export function FinancesView({ data, update }: Props) {
           <p className="text-xs text-sand-dark mb-3">
             Set a monthly limit for each category. Leave blank to skip tracking that category.
           </p>
-          {/* Show categories with spending first, then common ones not yet spent */}
           {Array.from(new Set([
             ...Object.keys(budgetDraft),
             ...BUDGET_CATS.filter((c) => !(c in budgetDraft)),
