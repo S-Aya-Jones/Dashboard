@@ -43,10 +43,9 @@ function RecipeDetail({
 
   // Local check-off state while cooking
   const [checkedIdxs, setCheckedIdxs] = useState<Set<number>>(new Set());
-  // Serving multiplier
+  // Serving count — per-portion nutrition is fixed; totals scale with count
   const baseServings = recipe.servings ?? 1;
   const [servings, setServings] = useState(baseServings);
-  const scale = baseServings > 0 ? servings / baseServings : 1;
 
   function toggleCheck(idx: number) {
     setCheckedIdxs((prev) => {
@@ -59,10 +58,12 @@ function RecipeDetail({
   // Map item index for checkboxes (headers don't get an index)
   let itemCount = -1;
 
-  const scaledCal     = recipe.caloriesPerServing ? Math.round(recipe.caloriesPerServing * scale) : null;
-  const scaledProtein = recipe.protein  ? Math.round(recipe.protein  * scale) : null;
-  const scaledCarbs   = recipe.carbs    ? Math.round(recipe.carbs    * scale) : null;
-  const scaledFat     = recipe.fat      ? Math.round(recipe.fat      * scale) : null;
+  // Per-portion values are fixed; totals scale with serving count
+  const perCal     = recipe.caloriesPerServing ?? null;
+  const totalCal     = perCal     ? perCal     * servings : null;
+  const totalProtein = recipe.protein ? recipe.protein * servings : null;
+  const totalCarbs   = recipe.carbs   ? recipe.carbs   * servings : null;
+  const totalFat     = recipe.fat     ? recipe.fat     * servings : null;
 
   return (
     <div>
@@ -181,11 +182,11 @@ function RecipeDetail({
                 <Plus size={13} />
               </button>
             </div>
-            {scaledCal && (
+            {perCal && (
               <span className="text-sm" style={{ color: "#A8967E" }}>
                 Per portion:{" "}
                 <span className="font-semibold" style={{ color: "#342A21" }}>
-                  {Math.round(scaledCal / servings)} kcal
+                  {perCal} kcal
                 </span>
               </span>
             )}
@@ -299,12 +300,12 @@ function RecipeDetail({
           )}
 
           {/* Nutrition */}
-          {(scaledCal || scaledProtein || scaledCarbs || scaledFat) && (
+          {(totalCal || totalProtein || totalCarbs || totalFat) && (
             <div className="mb-6">
               <h2 className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "#A8967E" }}>
                 Nutrition
                 <span className="normal-case font-normal ml-1.5" style={{ color: "#C9B79C" }}>
-                  · {servings} {servings === 1 ? "portion" : "portions"}
+                  · {servings} {servings === 1 ? "portion" : "portions"} total
                 </span>
               </h2>
               <div
@@ -312,10 +313,10 @@ function RecipeDetail({
                 style={{ border: "1px solid rgba(201,183,156,0.35)" }}
               >
                 {[
-                  { label: "Calories", val: scaledCal,     unit: "kcal" },
-                  { label: "Protein",  val: scaledProtein, unit: "g" },
-                  { label: "Fat",      val: scaledFat,     unit: "g" },
-                  { label: "Carbs",    val: scaledCarbs,   unit: "g" },
+                  { label: "Calories", val: totalCal,     unit: "kcal" },
+                  { label: "Protein",  val: totalProtein, unit: "g" },
+                  { label: "Fat",      val: totalFat,     unit: "g" },
+                  { label: "Carbs",    val: totalCarbs,   unit: "g" },
                 ].map(({ label, val, unit }, i) => val != null && (
                   <div
                     key={label}
@@ -473,6 +474,7 @@ interface RecipeDraft {
   description?: string;
   ingredients?: string[];
   steps?: string[];
+  photos?: string[];
   dietaryTags?: string[];
   tags?: string[];
   servings?: number;
@@ -495,7 +497,7 @@ function AddRecipeForm({
   const [desc, setDesc]           = useState(initial.description ?? "");
   const [ingLine, setIngLine]     = useState((initial.ingredients ?? []).join("\n"));
   const [stepLine, setStepLine]   = useState((initial.steps ?? []).join("\n"));
-  const [photos, setPhotos]       = useState<string[]>([]);
+  const [photos, setPhotos]       = useState<string[]>(initial.photos ?? []);
   const [tagInput, setTagInput]   = useState((initial.tags ?? []).join(", "));
   const [dietaryTags, setDietaryTags] = useState<string[]>(initial.dietaryTags ?? []);
   const [rating, setRating]       = useState(0);
@@ -771,15 +773,22 @@ export function RecipeVault({
 
     const results: RecipeDraft[] = [];
     for (const file of Array.from(files)) {
-      const fd = new FormData();
-      fd.append("file", file);
       try {
-        const res = await fetch("/api/nutrition/extract-recipe", { method: "POST", body: fd });
+        // Upload screenshot to Blob storage so it becomes the recipe photo
+        const uploadFd = new FormData();
+        uploadFd.append("file", file);
+        const uploadRes = await fetch("/api/upload", { method: "POST", body: uploadFd });
+        const { url: photoUrl } = await uploadRes.json();
+
+        // Extract recipe data from the same image
+        const extractFd = new FormData();
+        extractFd.append("file", file);
+        const res = await fetch("/api/nutrition/extract-recipe", { method: "POST", body: extractFd });
         const json = await res.json();
         if (json.error) {
           setExtractError(json.error);
         } else {
-          results.push(json as RecipeDraft);
+          results.push({ ...json, photos: photoUrl ? [photoUrl] : [] } as RecipeDraft);
         }
       } catch {
         setExtractError("Something went wrong during extraction.");
