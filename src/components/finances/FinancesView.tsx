@@ -135,9 +135,23 @@ function InstitutionAvatar({ name }: { name: string | null | undefined }) {
   );
 }
 
-// Returns the "effective" balance to display:
-//   Depository → available (fallback: current, flagged as estimated)
-//   Credit     → amount owed = limit − available (fallback: current)
+// Plaid sometimes returns raw names like "depository Account 3471" or
+// "loan Account 9593". Strip the internal type prefix and replace with a
+// human label so the UI never shows Plaid's internal terminology.
+function cleanAcctName(raw: string, subtype?: string | null, type?: string): string {
+  if (!/^(depository|loan|credit|investment)\s/i.test(raw)) return raw;
+  const sub = (subtype ?? "").toLowerCase();
+  if (sub === "checking")       return "Checking";
+  if (sub === "savings")        return "Savings";
+  if (sub === "cd")             return "CD";
+  if (sub === "money market")   return "Money Market";
+  if (sub === "credit card")    return "Credit Card";
+  if (type  === "loan")         return "Loan";
+  if (type  === "investment")   return "Brokerage";
+  return "Account";
+}
+
+// Returns the primary balance figure to display per account type.
 function effectiveBalance(acc: PlaidAccount): number {
   if (acc.type === "credit") {
     const limit = acc.balances.limit ?? 0;
@@ -145,12 +159,25 @@ function effectiveBalance(acc: PlaidAccount): number {
     if (avail != null && limit > 0) return limit - avail;
     return acc.balances.current ?? 0;
   }
+  if (acc.type === "loan") {
+    // For loans, current = principal remaining (what's owed)
+    return acc.balances.current ?? 0;
+  }
+  // Depository / investment: prefer available balance
   return acc.balances.available ?? acc.balances.current ?? 0;
 }
 
-// True when we're showing current instead of available for a depository account
+// Only depository accounts show an "estimated" tag when available is missing.
 function isEstimatedBalance(acc: PlaidAccount): boolean {
-  return acc.type !== "credit" && acc.balances.available == null && acc.balances.current != null;
+  return acc.type === "depository" && acc.balances.available == null && acc.balances.current != null;
+}
+
+// Human label for the balance figure shown under the amount.
+function balanceLabel(acc: PlaidAccount, estimated: boolean): string {
+  if (acc.type === "credit") return "owed";
+  if (acc.type === "loan")   return "owed";
+  if (acc.type === "investment") return "value";
+  return estimated ? "available (est.)" : "available";
 }
 
 // ── Plaid Link button ─────────────────────────────────────────────────────────
@@ -787,7 +814,7 @@ export function FinancesView({ data, update }: Props) {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-medium text-brown truncate">
-                          {acc.name}
+                          {cleanAcctName(acc.name, acc.subtype, acc.type)}
                           {acc.mask ? <span className="text-sand-dark font-normal"> ···{acc.mask}</span> : null}
                         </p>
                         {typePill(acc.type, acc.subtype)}
@@ -810,10 +837,7 @@ export function FinancesView({ data, update }: Props) {
                     </div>
                     <div className="text-right flex-shrink-0">
                       <p className="font-serif text-lg text-brown leading-tight">{fmt$(displayBal)}</p>
-                      {isCreditCard
-                        ? <p className="text-[10px] text-sand-dark">owed</p>
-                        : <p className="text-[10px] text-sand-dark">{estimated ? "available (est.)" : "available"}</p>
-                      }
+                      <p className="text-[10px] text-sand-dark">{balanceLabel(acc, estimated)}</p>
                     </div>
                     <button onClick={() => handleDisconnect(acc.itemId)}
                       className="opacity-0 group-hover:opacity-100 ml-1 text-sand hover:text-rose transition-all flex-shrink-0"
