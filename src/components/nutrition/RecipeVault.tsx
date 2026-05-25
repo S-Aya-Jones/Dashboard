@@ -773,25 +773,31 @@ export function RecipeVault({
 
     const results: RecipeDraft[] = [];
     for (const file of Array.from(files)) {
+      // Try to upload screenshot as the recipe photo — optional, skip if it fails
+      let photoUrl: string | null = null;
       try {
-        // Upload screenshot to Blob storage so it becomes the recipe photo
         const uploadFd = new FormData();
         uploadFd.append("file", file);
         const uploadRes = await fetch("/api/upload", { method: "POST", body: uploadFd });
-        const { url: photoUrl } = await uploadRes.json();
+        if (uploadRes.ok) {
+          const uploadJson = await uploadRes.json();
+          photoUrl = uploadJson.url ?? null;
+        }
+      } catch { /* photo upload failed — continue without it */ }
 
-        // Extract recipe data from the same image
+      // Extract recipe data
+      try {
         const extractFd = new FormData();
         extractFd.append("file", file);
         const res = await fetch("/api/nutrition/extract-recipe", { method: "POST", body: extractFd });
-        const json = await res.json();
+        const json = await res.json().catch(() => ({ error: `Server error ${res.status}` }));
         if (json.error) {
           setExtractError(json.error);
         } else {
           results.push({ ...json, photos: photoUrl ? [photoUrl] : [] } as RecipeDraft);
         }
-      } catch {
-        setExtractError("Something went wrong during extraction.");
+      } catch (e) {
+        setExtractError(e instanceof Error ? e.message : "Extraction failed");
       }
     }
 
