@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { usePlaidLink } from "react-plaid-link";
 import { RefreshCw, Unlink, AlertTriangle, Link2, Link2Off, SlidersHorizontal, ChevronDown } from "lucide-react";
-import { DashboardData } from "@/types/dashboard";
+import { DashboardData, MerchantCategoryOverride } from "@/types/dashboard";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
@@ -164,12 +164,27 @@ function PlaidConnectButton({ onConnected }: { onConnected: () => void }) {
 // ── Default financesConfig ────────────────────────────────────────────────────
 
 const DEFAULT_FC = {
-  bigTicketThreshold: 100,
-  watchListMerchants: ["sephora", "ulta", "amazon", "starbucks", "coffee", "doordash", "ubereats", "grubhub", "uber", "lyft"],
-  bigMoves: [],
-  recurringHidden: [] as string[],
-  recurringFlagged: [] as string[],
+  bigTicketThreshold:        100,
+  watchListMerchants:        ["sephora", "ulta", "amazon", "starbucks", "coffee", "doordash", "ubereats", "grubhub", "uber", "lyft"],
+  bigMoves:                  [],
+  recurringHidden:           [] as string[],
+  recurringFlagged:          [] as string[],
+  merchantCategoryOverrides: [] as MerchantCategoryOverride[],
 };
+
+const OVERRIDE_CAT_OPTIONS = [
+  { value: "GROCERIES",           label: "Groceries" },
+  { value: "FOOD_AND_DRINK",      label: "Eating Out" },
+  { value: "TRANSPORTATION",      label: "Transport" },
+  { value: "PERSONAL_CARE",       label: "Personal Care" },
+  { value: "GENERAL_MERCHANDISE", label: "Merchandise" },
+  { value: "SHOPPING",            label: "Shopping" },
+  { value: "ENTERTAINMENT",       label: "Entertainment" },
+  { value: "GENERAL_SERVICES",    label: "Services" },
+  { value: "RENT_AND_UTILITIES",  label: "Housing" },
+  { value: "MEDICAL",             label: "Healthcare" },
+  { value: "TRAVEL",              label: "Travel" },
+];
 
 // ── Main view ─────────────────────────────────────────────────────────────────
 
@@ -178,6 +193,7 @@ export function FinancesView({ data, update }: Props) {
   const [transactions,   setTransactions]   = useState<PlaidTxn[]>([]);
   const [transferCount,  setTransferCount]  = useState(0);
   const [expandedCat,    setExpandedCat]    = useState<string | null>(null);
+  const [fixingTxn,      setFixingTxn]      = useState<string | null>(null);
   const [refreshedAt,    setRefreshedAt]    = useState<string | null>(null);
   const [loadingAccts,   setLoadingAccts]   = useState(true);
   const [loadingTxns,    setLoadingTxns]    = useState(true);
@@ -226,7 +242,35 @@ export function FinancesView({ data, update }: Props) {
 
   // ── financesConfig ─────────────────────────────────────────────────────────
 
-  const fc = data.financesConfig ?? DEFAULT_FC;
+  const fc = {
+    ...DEFAULT_FC,
+    ...(data.financesConfig ?? {}),
+    merchantCategoryOverrides: data.financesConfig?.merchantCategoryOverrides ?? [],
+  };
+
+  const resolvedCat = (t: PlaidTxn) => {
+    for (const o of fc.merchantCategoryOverrides) {
+      if (t.name.toLowerCase().includes(o.nameContains.toLowerCase())) return o.category;
+    }
+    return t.category;
+  };
+
+  const saveOverride = (merchantName: string, newCategory: string) => {
+    const nameContains = merchantName.toLowerCase().trim().slice(0, 40);
+    update((d) => {
+      const cfg      = d.financesConfig ?? DEFAULT_FC;
+      const existing = cfg.merchantCategoryOverrides ?? [];
+      const filtered = existing.filter((o) => !nameContains.startsWith(o.nameContains.slice(0, 8)) && !o.nameContains.startsWith(nameContains.slice(0, 8)));
+      return {
+        ...d,
+        financesConfig: {
+          ...cfg,
+          merchantCategoryOverrides: [...filtered, { nameContains, category: newCategory }],
+        },
+      };
+    });
+    setFixingTxn(null);
+  };
 
   // ── Handlers for new components ────────────────────────────────────────────
 
@@ -296,8 +340,9 @@ export function FinancesView({ data, update }: Props) {
 
   const catActual = new Map<string, number>();
   for (const t of thisMo) {
-    if (INCOME_CATS.has(t.category) || t.amount <= 0) continue;
-    catActual.set(t.category, (catActual.get(t.category) ?? 0) + t.amount);
+    const cat = resolvedCat(t);
+    if (INCOME_CATS.has(cat) || t.amount <= 0) continue;
+    catActual.set(cat, (catActual.get(cat) ?? 0) + t.amount);
   }
 
   const budgetMap  = new Map(data.budgetCategories.map((b) => [b.category, b.monthlyLimit]));
@@ -532,7 +577,7 @@ export function FinancesView({ data, update }: Props) {
                   const isWarning  = r.limit > 0 && r.pct >= 80 && !isOver;
                   const dotColor   = isOver ? "#d68d84" : isWarning ? "#c47a5e" : "#8e967d";
                   const catTxns    = thisMo
-                    .filter((t) => t.category === r.cat && t.amount > 0)
+                    .filter((t) => resolvedCat(t) === r.cat && t.amount > 0)
                     .sort((a, b) => b.amount - a.amount);
 
                   return (
@@ -576,12 +621,34 @@ export function FinancesView({ data, update }: Props) {
                         <div className="mb-2 mx-1.5 rounded-xl overflow-hidden border border-sand/15">
                           {catTxns.map((t, i) => (
                             <div key={t.id}
-                              className={`flex items-center justify-between px-4 py-2.5 ${i > 0 ? "border-t border-sand/10" : ""} bg-cream/40`}>
+                              className={`flex items-center gap-3 px-4 py-2.5 ${i > 0 ? "border-t border-sand/10" : ""} bg-cream/40`}>
                               <div className="flex-1 min-w-0">
                                 <p className="text-xs text-brown truncate">{t.name}</p>
                                 <p className="text-[10px] text-sand-dark">{format(parseISO(t.date), "MMM d")}</p>
                               </div>
-                              <p className="text-xs font-semibold text-brown ml-4 flex-shrink-0">{fmt$(t.amount)}</p>
+                              {fixingTxn === t.id ? (
+                                <select
+                                  autoFocus
+                                  defaultValue=""
+                                  className="text-[11px] h-6 py-0 px-1.5 rounded-lg flex-shrink-0"
+                                  onChange={(e) => { if (e.target.value) saveOverride(t.name, e.target.value); }}
+                                  onBlur={() => setFixingTxn(null)}
+                                >
+                                  <option value="" disabled>Move to…</option>
+                                  {OVERRIDE_CAT_OPTIONS.map((o) => (
+                                    <option key={o.value} value={o.value}>{o.label}</option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setFixingTxn(t.id); }}
+                                  className="text-[10px] text-sand hover:text-terracotta transition-colors flex-shrink-0"
+                                  title="Wrong category?"
+                                >
+                                  fix
+                                </button>
+                              )}
+                              <p className="text-xs font-semibold text-brown flex-shrink-0">{fmt$(t.amount)}</p>
                             </div>
                           ))}
                         </div>

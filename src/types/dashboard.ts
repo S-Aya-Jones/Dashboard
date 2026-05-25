@@ -176,12 +176,18 @@ export interface BigMove {
   taggedAt: string;
 }
 
+export interface MerchantCategoryOverride {
+  nameContains: string;
+  category:     string;
+}
+
 export interface FinancesConfig {
-  bigTicketThreshold: number;
-  watchListMerchants: string[];
-  bigMoves: BigMove[];
-  recurringHidden: string[];
-  recurringFlagged: string[];
+  bigTicketThreshold:        number;
+  watchListMerchants:        string[];
+  bigMoves:                  BigMove[];
+  recurringHidden:           string[];
+  recurringFlagged:          string[];
+  merchantCategoryOverrides: MerchantCategoryOverride[];
 }
 
 export interface MonthlyFinance {
@@ -384,6 +390,11 @@ export const defaultDashboardData = (): DashboardData => ({
     bigMoves: [],
     recurringHidden: [],
     recurringFlagged: [],
+    merchantCategoryOverrides: [
+      { nameContains: "hos corp amer",  category: "FOOD_AND_DRINK" },
+      { nameContains: "midnight oil",   category: "FOOD_AND_DRINK" },
+      { nameContains: "ymca",           category: "PERSONAL_CARE"  },
+    ],
   },
   connectionLogs: [],
   wins: [],
