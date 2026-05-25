@@ -2,9 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { usePlaidLink } from "react-plaid-link";
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell } from "recharts";
-import { RefreshCw, Unlink, AlertTriangle, Link2, Link2Off, SlidersHorizontal, TrendingUp, TrendingDown, Minus } from "lucide-react";
-import { DashboardData, BigMove } from "@/types/dashboard";
+import { RefreshCw, Unlink, AlertTriangle, Link2, Link2Off, SlidersHorizontal, ChevronDown } from "lucide-react";
+import { DashboardData } from "@/types/dashboard";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
@@ -12,7 +11,6 @@ import { id } from "@/lib/utils";
 import { format, parseISO, startOfMonth, isAfter, differenceInDays } from "date-fns";
 import { RunwayGauge } from "./RunwayGauge";
 import { DashboardVoice } from "./DashboardVoice";
-import { BigTicketBoard } from "./BigTicketBoard";
 import { WatchListCard } from "./WatchListCard";
 import { RecurringPanel } from "./RecurringPanel";
 
@@ -50,22 +48,29 @@ interface PlaidTxn {
 // ── Category metadata ─────────────────────────────────────────────────────────
 
 const CAT_LABEL: Record<string, string> = {
-  FOOD_AND_DRINK:      "Food & Drink",
-  TRANSPORTATION:      "Transport",
-  SHOPPING:            "Shopping",
-  ENTERTAINMENT:       "Entertainment",
-  MEDICAL:             "Healthcare",
-  GENERAL_SERVICES:    "Services",
-  HOME_IMPROVEMENT:    "Home",
-  RENT_AND_UTILITIES:  "Housing",
-  PERSONAL_CARE:       "Personal Care",
-  GENERAL_MERCHANDISE: "Merchandise",
-  TRAVEL:              "Travel",
-  LOAN_PAYMENTS:       "Loan Payments",
-  BANK_FEES:           "Bank Fees",
-  INCOME:              "Income",
-  TRANSFER_IN:         "Transfer In",
-  TRANSFER_OUT:        "Transfer Out",
+  FOOD_AND_DRINK:              "Food & Drink",
+  TRANSPORTATION:              "Transport",
+  SHOPPING:                    "Shopping",
+  ENTERTAINMENT:               "Entertainment",
+  MEDICAL:                     "Healthcare",
+  GENERAL_SERVICES:            "Services",
+  HOME_IMPROVEMENT:            "Home",
+  RENT_AND_UTILITIES:          "Housing",
+  PERSONAL_CARE:               "Personal Care",
+  GENERAL_MERCHANDISE:         "Merchandise",
+  TRAVEL:                      "Travel",
+  LOAN_PAYMENTS:               "Loan Payments",
+  BANK_FEES:                   "Bank Fees",
+  INCOME:                      "Income",
+  TRANSFER_IN:                 "Transfer In",
+  TRANSFER_OUT:                "Bank Transfers",
+  GOVERNMENT_AND_NON_PROFIT:   "Gov & Non-Profit",
+  EDUCATION:                   "Education",
+  HOME_SERVICES:               "Home Services",
+  INSURANCE:                   "Insurance",
+  RECREATION:                  "Recreation",
+  PERSONAL_AND_FAMILY_CARE:    "Family Care",
+  FOOD_AND_DRINK_GROCERIES:    "Groceries",
 };
 
 const BUDGET_CATS = [
@@ -160,7 +165,7 @@ function PlaidConnectButton({ onConnected }: { onConnected: () => void }) {
 const DEFAULT_FC = {
   bigTicketThreshold: 100,
   watchListMerchants: ["sephora", "ulta", "amazon", "starbucks", "coffee", "doordash", "ubereats", "grubhub", "uber", "lyft"],
-  bigMoves: [] as BigMove[],
+  bigMoves: [],
   recurringHidden: [] as string[],
   recurringFlagged: [] as string[],
 };
@@ -171,7 +176,7 @@ export function FinancesView({ data, update }: Props) {
   const [accounts,       setAccounts]       = useState<PlaidAccount[]>([]);
   const [transactions,   setTransactions]   = useState<PlaidTxn[]>([]);
   const [transferCount,  setTransferCount]  = useState(0);
-  const [showTransfers,  setShowTransfers]  = useState(false);
+  const [expandedCat,    setExpandedCat]    = useState<string | null>(null);
   const [refreshedAt,    setRefreshedAt]    = useState<string | null>(null);
   const [loadingAccts,   setLoadingAccts]   = useState(true);
   const [loadingTxns,    setLoadingTxns]    = useState(true);
@@ -223,31 +228,6 @@ export function FinancesView({ data, update }: Props) {
   const fc = data.financesConfig ?? DEFAULT_FC;
 
   // ── Handlers for new components ────────────────────────────────────────────
-
-  const handleTag = (txnId: string, status: "intentional" | "oops", note?: string) => {
-    update((d) => {
-      const cfg      = d.financesConfig ?? DEFAULT_FC;
-      const existing = cfg.bigMoves.find((m) => m.transactionId === txnId);
-      const newMove: BigMove = {
-        id:            existing?.id ?? id(),
-        transactionId: txnId,
-        status,
-        note,
-        taggedAt:      new Date().toISOString(),
-      };
-      const bigMoves = existing
-        ? cfg.bigMoves.map((m) => (m.transactionId === txnId ? newMove : m))
-        : [...cfg.bigMoves, newMove];
-      return { ...d, financesConfig: { ...cfg, bigMoves } };
-    });
-  };
-
-  const handleThreshold = (n: number) => {
-    update((d) => {
-      const cfg = d.financesConfig ?? DEFAULT_FC;
-      return { ...d, financesConfig: { ...cfg, bigTicketThreshold: n } };
-    });
-  };
 
   const handleUpdateMerchants = (merchants: string[]) => {
     update((d) => {
@@ -336,20 +316,8 @@ export function FinancesView({ data, update }: Props) {
     return b.actual - a.actual;
   });
 
-  const totalBudget    = Array.from(budgetMap.values()).reduce((s, v) => s + v, 0);
-  const totalOver      = budgetRows.filter((r) => r.diff > 0).reduce((s, r) => s + r.diff, 0);
-  const overBudgetCats = budgetRows.filter((r) => r.limit > 0 && r.diff > 0);
-  const hasBudget      = budgetMap.size > 0;
-
-  const top5 = [...thisMo]
-    .filter((t) => !INCOME_CATS.has(t.category) && t.amount > 0)
-    .sort((a, b) => b.amount - a.amount)
-    .slice(0, 5);
-
-  const spendingData = Array.from(catActual.entries())
-    .map(([cat, amount]) => ({ name: catLabel(cat), amount: Math.round(amount) }))
-    .sort((a, b) => b.amount - a.amount)
-    .slice(0, 8);
+  const totalBudget = Array.from(budgetMap.values()).reduce((s, v) => s + v, 0);
+  const hasBudget   = budgetMap.size > 0;
 
   // ── Voice stats ────────────────────────────────────────────────────────────
 
@@ -369,12 +337,6 @@ export function FinancesView({ data, update }: Props) {
   if (watchHitsThisMo.length > 0) {
     voiceStats.push(`${watchHitsThisMo.length} watch-list hits this month · ${fmt$(watchHitsThisMo.reduce((s, t) => s + t.amount, 0))}`);
   }
-  const bigTxnCount = transactions.filter((t) => t.amount >= fc.bigTicketThreshold && !t.isInternalTransfer).length;
-  const taggedCount  = fc.bigMoves.length;
-  if (bigTxnCount > 0 && taggedCount > 0) {
-    voiceStats.push(`${taggedCount} of ${bigTxnCount} big transactions tagged`);
-  }
-
   // ── Manual entries ─────────────────────────────────────────────────────────
 
   const addCard = () => {
@@ -495,163 +457,129 @@ export function FinancesView({ data, update }: Props) {
         </div>
       )}
 
-      {/* ── This Month: Budget vs Actual ── */}
+      {/* ── This Month: Spending ── */}
       {(hasActivity || loadingTxns) && (
-        <Card title={`${format(new Date(), "MMMM yyyy")} · Spending`}
-          subtitle={hasBudget ? undefined : "No budget set — tap Set Budget to add limits"}>
-
-          {/* Transfer info chip */}
-          {transferCount > 0 && (
-            <button
-              onClick={() => setShowTransfers((s) => !s)}
-              className="text-[11px] text-sand-dark hover:text-brown mb-3 block"
-            >
-              🔁 {showTransfers ? "Hiding transfers" : `Hiding ${transferCount} transfer${transferCount !== 1 ? "s" : ""} · show all`}
+        <div className="card p-5">
+          {/* Header row */}
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-serif text-xl text-brown">{format(new Date(), "MMMM yyyy")}</h3>
+            <button onClick={openBudgetModal}
+              className="flex items-center gap-1 text-[11px] text-sand-dark hover:text-brown transition-colors">
+              <SlidersHorizontal size={11} />
+              {hasBudget ? "Edit budget" : "Set budget"}
             </button>
-          )}
+          </div>
 
-          {/* Totals row */}
-          <div className="flex items-end gap-6 mt-1 mb-5">
+          {/* Key numbers */}
+          <div className="flex items-end gap-5 mb-4">
             <div>
-              <p className="font-serif text-2xl text-terracotta">{fmt$(totalSpent)}</p>
-              <p className="text-xs text-sand-dark">spent this month</p>
+              <p className="font-serif text-3xl text-terracotta leading-none">{fmt$(totalSpent)}</p>
+              <p className="text-xs text-sand-dark mt-1">spent</p>
             </div>
-            {hasBudget && (
+            {hasBudget && totalBudget > 0 && (
               <div>
-                <p className={`font-serif text-2xl ${totalSpent > totalBudget ? "text-rose" : "text-sage"}`}>
-                  {fmt$(totalBudget)}
+                <p className={`font-serif text-2xl leading-none ${totalSpent > totalBudget ? "text-rose" : "text-sage"}`}>
+                  {totalSpent > totalBudget
+                    ? `${fmt$(totalSpent - totalBudget)} over`
+                    : `${fmt$(totalBudget - totalSpent)} left`}
                 </p>
-                <p className="text-xs text-sand-dark">monthly budget</p>
+                <p className="text-xs text-sand-dark mt-1">of {fmt$(totalBudget)}</p>
               </div>
             )}
             {totalIncome > 0 && (
-              <div>
-                <p className="font-serif text-2xl text-sage">{fmt$(totalIncome)}</p>
-                <p className="text-xs text-sand-dark">income</p>
+              <div className="ml-auto text-right">
+                <p className="font-serif text-xl text-sage leading-none">{fmt$(totalIncome)}</p>
+                <p className="text-xs text-sand-dark mt-1">in</p>
               </div>
             )}
           </div>
 
           {/* Overall budget bar */}
           {hasBudget && totalBudget > 0 && (
-            <div className="mb-5">
-              <div className="flex justify-between text-[11px] text-sand-dark mb-1">
-                <span>{Math.round((totalSpent / totalBudget) * 100)}% of budget used</span>
-                {totalOver > 0
-                  ? <span className="text-rose font-medium">{fmt$(totalOver)} over</span>
-                  : <span className="text-sage font-medium">{fmt$(totalBudget - totalSpent)} remaining</span>}
-              </div>
-              <div className="h-2 bg-cream-darker rounded-full overflow-hidden">
-                <div className="h-full rounded-full transition-all"
-                  style={{
-                    width: `${Math.min(100, (totalSpent / totalBudget) * 100)}%`,
-                    background: totalSpent > totalBudget ? "#d68d84" : totalSpent / totalBudget > 0.8 ? "#c47a5e" : "#7a816c",
-                  }} />
-              </div>
+            <div className="h-1 bg-cream-darker rounded-full overflow-hidden mb-5">
+              <div className="h-full rounded-full transition-all"
+                style={{
+                  width: `${Math.min(100, (totalSpent / totalBudget) * 100)}%`,
+                  background: totalSpent > totalBudget ? "#d68d84" : totalSpent / totalBudget > 0.8 ? "#c47a5e" : "#7a816c",
+                }} />
             </div>
           )}
 
-          {/* "Where it went" callout — only when over budget */}
-          {overBudgetCats.length > 0 && (
-            <div className="mb-5 p-3 rounded-xl bg-rose/8 border border-rose/20">
-              <p className="text-xs font-semibold text-brown mb-2">Where the money went</p>
-              <div className="space-y-1">
-                {overBudgetCats.slice(0, 3).map((r) => (
-                  <p key={r.cat} className="text-xs text-brown">
-                    <span className="font-medium">{catLabel(r.cat)}</span>
-                    {" "}is{" "}
-                    <span className="text-rose font-medium">{fmt$(r.diff)} over</span>
-                    {" "}— you spent {fmt$(r.actual)} of a {fmt$(r.limit)} budget
-                  </p>
-                ))}
-                {overBudgetCats.length > 3 && (
-                  <p className="text-xs text-sand-dark">+ {overBudgetCats.length - 3} more categories over budget</p>
-                )}
-              </div>
-            </div>
+          {/* Transfer notice */}
+          {transferCount > 0 && (
+            <p className="text-[11px] text-sand-dark mb-4">
+              🔁 {transferCount} internal transfer{transferCount !== 1 ? "s" : ""} excluded from totals
+            </p>
           )}
 
-          {/* Category breakdown */}
-          {hasBudget ? (
-            <div className="space-y-3">
-              <p className="text-xs font-medium text-sand-dark uppercase tracking-wide">By Category</p>
-              {budgetRows.map((r) => {
-                const isOver    = r.limit > 0 && r.diff > 0;
-                const isWarning = r.limit > 0 && r.pct >= 80 && !isOver;
-                const barColor  = isOver ? "#d68d84" : isWarning ? "#c47a5e" : "#7a816c";
-                const barWidth  = r.limit > 0 ? Math.min(100, r.pct) : 100;
+          {/* Category breakdown — expandable */}
+          {budgetRows.length > 0 && (
+            <div>
+              <p className="text-[10px] font-semibold text-sand-dark uppercase tracking-widest mb-2">Where it went</p>
+              <div className="divide-y divide-sand/10">
+                {budgetRows.map((r) => {
+                  const isExpanded = expandedCat === r.cat;
+                  const isOver     = r.limit > 0 && r.diff > 0;
+                  const isWarning  = r.limit > 0 && r.pct >= 80 && !isOver;
+                  const dotColor   = isOver ? "#d68d84" : isWarning ? "#c47a5e" : "#8e967d";
+                  const catTxns    = thisMo
+                    .filter((t) => t.category === r.cat && t.amount > 0)
+                    .sort((a, b) => b.amount - a.amount);
 
-                return (
-                  <div key={r.cat}>
-                    <div className="flex items-center justify-between mb-0.5">
-                      <div className="flex items-center gap-1.5">
-                        {isOver
-                          ? <TrendingUp size={11} className="text-rose flex-shrink-0" />
-                          : isWarning
-                            ? <Minus size={11} className="text-terracotta flex-shrink-0" />
-                            : <TrendingDown size={11} className="text-sage flex-shrink-0" />}
-                        <span className="text-xs text-brown">{catLabel(r.cat)}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs">
-                        <span className={isOver ? "text-rose font-medium" : "text-sand-dark"}>
+                  return (
+                    <div key={r.cat}>
+                      <button
+                        onClick={() => setExpandedCat(isExpanded ? null : r.cat)}
+                        className="w-full flex items-center gap-3 py-3 text-left hover:bg-cream-darker/60 rounded-lg px-1.5 -mx-1.5 transition-colors"
+                      >
+                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: dotColor }} />
+                        <span className="text-sm text-brown flex-1 truncate">{catLabel(r.cat)}</span>
+                        <span className="text-xs font-medium text-sand-dark">{catTxns.length}×</span>
+                        <span className={`text-sm font-semibold ${isOver ? "text-rose" : "text-brown"}`}>
                           {fmt$(r.actual)}
                         </span>
                         {r.limit > 0 && (
-                          <span className="text-sand-dark">/ {fmt$(r.limit)}</span>
+                          <span className="text-[10px] text-sand-dark hidden sm:block">/ {fmt$(r.limit)}</span>
                         )}
-                        {r.limit > 0 && (
-                          <span className={`text-[10px] font-medium ${isOver ? "text-rose" : "text-sand-dark"}`}>
-                            {isOver ? `+${fmt$(r.diff)} over` : `${fmt$(r.limit - r.actual)} left`}
+                        {isOver && (
+                          <span className="text-[10px] font-semibold text-rose bg-rose/10 px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                            +{fmt$(r.diff)}
                           </span>
                         )}
-                      </div>
-                    </div>
-                    {r.limit > 0 && (
-                      <div className="h-1.5 bg-cream-darker rounded-full overflow-hidden">
-                        <div className="h-full rounded-full transition-all"
-                          style={{ width: `${barWidth}%`, background: barColor }} />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            spendingData.length > 0 && (
-              <div>
-                <p className="text-xs font-medium text-sand-dark uppercase tracking-wide mb-2">By Category</p>
-                <ResponsiveContainer width="100%" height={spendingData.length * 36 + 10}>
-                  <BarChart data={spendingData} layout="vertical" margin={{ top: 0, right: 8, bottom: 0, left: 0 }}>
-                    <XAxis type="number" hide />
-                    <YAxis type="category" dataKey="name" width={110}
-                      tick={{ fontSize: 11, fill: "#785b4e" }} axisLine={false} tickLine={false} />
-                    <Tooltip formatter={(v: unknown) => [`$${Number(v).toLocaleString()}`, "Spent"]}
-                      contentStyle={{ background: "#f6efdf", border: "1px solid #cfbb9f", borderRadius: "12px", fontSize: "12px" }} />
-                    <Bar dataKey="amount" radius={[0, 6, 6, 0]} maxBarSize={22}>
-                      {spendingData.map((_, idx) => (
-                        <Cell key={idx} fill={idx % 2 === 0 ? "#c47a5e" : "#7a816c"} fillOpacity={1 - idx * 0.08} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )
-          )}
+                        {!isOver && r.limit > 0 && (
+                          <span className="text-[10px] text-sage bg-sage/10 px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                            {fmt$(r.limit - r.actual)} left
+                          </span>
+                        )}
+                        <ChevronDown size={12} className={`text-sand flex-shrink-0 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
+                      </button>
 
-          {/* Top 5 transactions */}
-          {top5.length > 0 && (
-            <div className="mt-5">
-              <p className="text-xs font-medium text-sand-dark uppercase tracking-wide mb-2">Largest Transactions</p>
-              <div className="space-y-1.5">
-                {top5.map((t) => (
-                  <div key={t.id} className="flex items-center justify-between gap-3 py-1.5 border-b border-sand/20 last:border-0">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-brown truncate">{t.name}</p>
-                      <p className="text-xs text-sand-dark">{format(parseISO(t.date), "MMM d")} · {catLabel(t.category)}</p>
+                      {/* Budget progress bar (always visible, thin) */}
+                      {r.limit > 0 && (
+                        <div className="h-0.5 bg-cream-darker mx-1.5 mb-1 rounded-full overflow-hidden">
+                          <div className="h-full rounded-full"
+                            style={{ width: `${Math.min(100, r.pct)}%`, background: dotColor }} />
+                        </div>
+                      )}
+
+                      {/* Expanded transaction list */}
+                      {isExpanded && catTxns.length > 0 && (
+                        <div className="mb-2 mx-1.5 rounded-xl overflow-hidden border border-sand/15">
+                          {catTxns.map((t, i) => (
+                            <div key={t.id}
+                              className={`flex items-center justify-between px-4 py-2.5 ${i > 0 ? "border-t border-sand/10" : ""} bg-cream/40`}>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs text-brown truncate">{t.name}</p>
+                                <p className="text-[10px] text-sand-dark">{format(parseISO(t.date), "MMM d")}</p>
+                              </div>
+                              <p className="text-xs font-semibold text-brown ml-4 flex-shrink-0">{fmt$(t.amount)}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    <p className="font-serif text-base text-terracotta flex-shrink-0">{fmt$(t.amount)}</p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -659,18 +587,7 @@ export function FinancesView({ data, update }: Props) {
           {loadingTxns && transactions.length === 0 && (
             <p className="text-xs text-sand-dark text-center py-4 animate-pulse">Loading transactions…</p>
           )}
-        </Card>
-      )}
-
-      {/* ── Big Moves ── */}
-      {transactions.length > 0 && (
-        <BigTicketBoard
-          transactions={transactions}
-          threshold={fc.bigTicketThreshold}
-          bigMoves={fc.bigMoves}
-          onTag={handleTag}
-          onThreshold={handleThreshold}
-        />
+        </div>
       )}
 
       {/* ── Watch List ── */}
