@@ -515,7 +515,15 @@ export function FinancesView({ data, update }: Props) {
           {/* Category breakdown — expandable */}
           {budgetRows.length > 0 && (
             <div>
-              <p className="text-[10px] font-semibold text-sand-dark uppercase tracking-widest mb-2">Where it went</p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] font-semibold text-sand-dark uppercase tracking-widest">Where it went</p>
+                {!hasBudget && (
+                  <button onClick={openBudgetModal}
+                    className="text-[11px] text-terracotta hover:text-brown underline decoration-dotted transition-colors">
+                    + add spending limits
+                  </button>
+                )}
+              </div>
               <div className="divide-y divide-sand/10">
                 {budgetRows.map((r) => {
                   const isExpanded = expandedCat === r.cat;
