@@ -32,14 +32,43 @@ function RecipeDetail({
   onBack,
   onDelete,
   onAddToGrocery,
+  onUpdatePhotos,
 }: {
   recipe: Recipe;
   onBack: () => void;
   onDelete: () => void;
   onAddToGrocery: (ings: string[]) => void;
+  onUpdatePhotos: (photos: string[]) => void;
 }) {
   const parsed = parseIngredients(recipe.ingredients);
   const itemLines = parsed.filter((l) => !l.header).map((l) => l.text);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoUrlInput, setPhotoUrlInput]   = useState("");
+  const photoFileRef = useRef<HTMLInputElement>(null);
+
+  async function handlePhotoFile(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setUploadingPhoto(true);
+    const newPhotos = [...recipe.photos];
+    for (const file of Array.from(files)) {
+      const fd = new FormData();
+      fd.append("file", file);
+      try {
+        const res = await fetch("/api/upload", { method: "POST", body: fd });
+        if (res.ok) {
+          const { url } = await res.json();
+          if (url) newPhotos.push(url);
+        }
+      } catch {}
+    }
+    onUpdatePhotos(newPhotos);
+    setUploadingPhoto(false);
+  }
+
+  function addPhotoUrl() {
+    const u = photoUrlInput.trim();
+    if (u) { onUpdatePhotos([...recipe.photos, u]); setPhotoUrlInput(""); }
+  }
 
   // Local check-off state while cooking
   const [checkedIdxs, setCheckedIdxs] = useState<Set<number>>(new Set());
@@ -113,10 +142,35 @@ function RecipeDetail({
             </div>
           ) : (
             <div
-              className="w-full rounded-3xl flex items-center justify-center"
-              style={{ height: "360px", background: "rgba(201,183,156,0.2)" }}
+              className="w-full rounded-3xl flex flex-col items-center justify-center gap-4"
+              style={{ minHeight: "300px", background: "rgba(201,183,156,0.15)", border: "2px dashed rgba(201,183,156,0.5)" }}
             >
-              <span className="text-7xl">🍳</span>
+              <span className="text-5xl">🍳</span>
+              <p className="text-sm font-medium" style={{ color: "#A8967E" }}>Add a photo</p>
+              <div className="flex flex-col gap-2 w-full px-6">
+                <button
+                  onClick={() => photoFileRef.current?.click()}
+                  disabled={uploadingPhoto}
+                  className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-white w-full"
+                  style={{ background: "#71816D" }}
+                >
+                  <Camera size={14} /> {uploadingPhoto ? "Uploading…" : "Upload photo"}
+                </button>
+                <div className="flex gap-2">
+                  <input
+                    style={{ flex: 1, background: "#F7EDD8", border: "1px solid rgba(201,183,156,0.5)", borderRadius: "10px", color: "#342A21", padding: "7px 10px", fontSize: "13px", outline: "none" }}
+                    placeholder="Or paste image URL…"
+                    value={photoUrlInput}
+                    onChange={(e) => setPhotoUrlInput(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && addPhotoUrl()}
+                  />
+                  <button onClick={addPhotoUrl} className="px-3 rounded-xl text-sm font-medium" style={{ background: "rgba(113,129,109,0.12)", color: "#71816D" }}>
+                    Add
+                  </button>
+                </div>
+              </div>
+              <input ref={photoFileRef} type="file" accept="image/*" multiple className="hidden"
+                onChange={(e) => handlePhotoFile(e.target.files)} />
             </div>
           )}
         </div>
@@ -837,6 +891,10 @@ export function RecipeVault({
         onBack={() => setSelected(null)}
         onDelete={() => deleteRecipe(fresh.id)}
         onAddToGrocery={(ings) => addToGrocery(fresh.id, ings)}
+        onUpdatePhotos={(photos) => {
+          onUpdate({ ...nutrition, recipes: nutrition.recipes.map((r) => r.id === fresh.id ? { ...r, photos } : r) });
+          setSelected({ ...fresh, photos });
+        }}
       />
     );
   }
