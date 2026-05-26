@@ -806,6 +806,8 @@ export function RecipeVault({
   const [selected, setSelected]     = useState<Recipe | null>(null);
   const [editing, setEditing]       = useState(false);
   const [extracting, setExtracting] = useState(false);
+  const [extractProgress, setExtractProgress] = useState<{ current: number; total: number } | null>(null);
+  const [importSummary, setImportSummary] = useState<string | null>(null);
   const [extractError, setExtractError] = useState<string | null>(null);
   const [draft, setDraft]           = useState<RecipeDraft | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
@@ -836,64 +838,72 @@ export function RecipeVault({
 
   async function handleImport(files: FileList | null) {
     if (!files || files.length === 0) return;
+    const fileArr = Array.from(files);
     setExtracting(true);
     setExtractError(null);
+    setImportSummary(null);
+    setExtractProgress({ current: 0, total: fileArr.length });
 
     const results: RecipeDraft[] = [];
-    for (const file of Array.from(files)) {
-      // Try to upload screenshot as the recipe photo — optional, skip if it fails
+    const errors: string[] = [];
+
+    for (let i = 0; i < fileArr.length; i++) {
+      const file = fileArr[i];
+      setExtractProgress({ current: i + 1, total: fileArr.length });
+
+      // Upload screenshot as photo (optional)
       let photoUrl: string | null = null;
       try {
-        const uploadFd = new FormData();
-        uploadFd.append("file", file);
-        const uploadRes = await fetch("/api/upload", { method: "POST", body: uploadFd });
-        if (uploadRes.ok) {
-          const uploadJson = await uploadRes.json();
-          photoUrl = uploadJson.url ?? null;
-        }
-      } catch { /* photo upload failed — continue without it */ }
+        const fd = new FormData();
+        fd.append("file", file);
+        const res = await fetch("/api/upload", { method: "POST", body: fd });
+        if (res.ok) { const j = await res.json(); photoUrl = j.url ?? null; }
+      } catch { /* skip */ }
 
-      // Extract recipe data
+      // Extract recipe
       try {
-        const extractFd = new FormData();
-        extractFd.append("file", file);
-        const res = await fetch("/api/nutrition/extract-recipe", { method: "POST", body: extractFd });
+        const fd = new FormData();
+        fd.append("file", file);
+        const res = await fetch("/api/nutrition/extract-recipe", { method: "POST", body: fd });
         const json = await res.json().catch(() => ({ error: `Server error ${res.status}` }));
         if (json.error) {
-          setExtractError(json.error);
+          errors.push(`${file.name}: ${json.error}`);
         } else {
           results.push({ ...json, photos: photoUrl ? [photoUrl] : [] } as RecipeDraft);
         }
       } catch (e) {
-        setExtractError(e instanceof Error ? e.message : "Extraction failed");
+        errors.push(`${file.name}: ${e instanceof Error ? e.message : "failed"}`);
       }
     }
 
     setExtracting(false);
+    setExtractProgress(null);
+    if (errors.length > 0) setExtractError(errors.join(" · "));
 
-    if (results.length === 1) {
-      // Single screenshot → open pre-filled form
+    if (results.length === 1 && fileArr.length === 1) {
+      // Single file → open pre-filled form for review
       setDraft(results[0]);
       setAdding(true);
-    } else if (results.length > 1) {
-      // Multiple screenshots → save all at once (user can click each to edit)
+    } else if (results.length > 0) {
+      // Multiple → save all, show summary
       const newEntries: Recipe[] = results.map((r) => ({
         id: crypto.randomUUID(),
         createdAt: new Date().toISOString(),
-        title: r.title ?? "Untitled Recipe",
-        description: r.description,
-        ingredients: r.ingredients ?? [],
-        steps: r.steps ?? [],
-        photos: [],
-        tags: r.tags ?? [],
-        dietaryTags: r.dietaryTags ?? [],
-        servings: r.servings,
+        title:              r.title        ?? "Untitled Recipe",
+        description:        r.description,
+        ingredients:        r.ingredients  ?? [],
+        steps:              r.steps        ?? [],
+        photos:             r.photos       ?? [],
+        tags:               r.tags         ?? [],
+        dietaryTags:        r.dietaryTags  ?? [],
+        servings:           r.servings,
         caloriesPerServing: r.caloriesPerServing,
-        protein: r.protein,
-        carbs: r.carbs,
-        fat: r.fat,
+        protein:            r.protein,
+        carbs:              r.carbs,
+        fat:                r.fat,
       }));
       onUpdate({ ...nutrition, recipes: [...newEntries, ...nutrition.recipes] });
+      setImportSummary(`${results.length} recipe${results.length !== 1 ? "s" : ""} imported successfully.`);
     }
   }
 
@@ -955,7 +965,7 @@ export function RecipeVault({
         onChange={(e) => handleImport(e.target.files)}
       />
 
-      <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
+      <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
         <p className="text-sm" style={{ color: "rgba(52,42,33,0.45)" }}>
           {nutrition.recipes.length} recipe{nutrition.recipes.length !== 1 ? "s" : ""} saved
         </p>
@@ -968,8 +978,12 @@ export function RecipeVault({
               style={{ background: "rgba(113,129,109,0.12)", color: "#71816D", border: "1px solid rgba(113,129,109,0.2)" }}
             >
               {extracting
-                ? <><Loader2 size={15} className="animate-spin" /> Extracting…</>
-                : <><ImagePlus size={15} /> Import Screenshot</>
+                ? <><Loader2 size={15} className="animate-spin" />
+                    {extractProgress
+                      ? `Extracting ${extractProgress.current} of ${extractProgress.total}…`
+                      : "Extracting…"}
+                  </>
+                : <><ImagePlus size={15} /> Import Screenshots</>
               }
             </button>
             <button
@@ -982,6 +996,26 @@ export function RecipeVault({
           </div>
         )}
       </div>
+
+      {/* Progress bar for mass import */}
+      {extracting && extractProgress && extractProgress.total > 1 && (
+        <div className="mb-4 rounded-xl overflow-hidden" style={{ background: "rgba(201,183,156,0.2)", height: "6px" }}>
+          <div
+            className="h-full rounded-xl transition-all duration-300"
+            style={{ background: "#71816D", width: `${(extractProgress.current / extractProgress.total) * 100}%` }}
+          />
+        </div>
+      )}
+
+      {importSummary && (
+        <div
+          className="mb-4 px-4 py-3 rounded-xl text-sm flex items-center justify-between"
+          style={{ background: "rgba(113,129,109,0.10)", color: "#71816D", border: "1px solid rgba(113,129,109,0.2)" }}
+        >
+          ✓ {importSummary}
+          <button onClick={() => setImportSummary(null)} className="ml-3 opacity-60 hover:opacity-100 text-xs">Dismiss</button>
+        </div>
+      )}
 
       {extractError && (
         <div
