@@ -30,12 +30,14 @@ function parseIngredients(lines: string[]) {
 function RecipeDetail({
   recipe,
   onBack,
+  onEdit,
   onDelete,
   onAddToGrocery,
   onUpdatePhotos,
 }: {
   recipe: Recipe;
   onBack: () => void;
+  onEdit: () => void;
   onDelete: () => void;
   onAddToGrocery: (ings: string[]) => void;
   onUpdatePhotos: (photos: string[]) => void;
@@ -105,13 +107,22 @@ function RecipeDetail({
         >
           <ArrowLeft size={16} /> All Recipes
         </button>
-        <button
-          onClick={onDelete}
-          className="text-xs px-3 py-1.5 rounded-lg"
-          style={{ color: "#DA667B", background: "rgba(218,102,123,0.08)" }}
-        >
-          Delete
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={onEdit}
+            className="text-xs px-3 py-1.5 rounded-lg font-medium transition-colors"
+            style={{ color: "#71816D", background: "rgba(113,129,109,0.10)" }}
+          >
+            Edit
+          </button>
+          <button
+            onClick={onDelete}
+            className="text-xs px-3 py-1.5 rounded-lg"
+            style={{ color: "#DA667B", background: "rgba(218,102,123,0.08)" }}
+          >
+            Delete
+          </button>
+        </div>
       </div>
 
       {/* 2-column layout */}
@@ -542,10 +553,12 @@ function AddRecipeForm({
   onSave,
   onCancel,
   initial = {},
+  saveLabel = "Save Recipe",
 }: {
   onSave: (r: Omit<Recipe, "id" | "createdAt">) => void;
   onCancel: () => void;
   initial?: RecipeDraft;
+  saveLabel?: string;
 }) {
   const [title, setTitle]         = useState(initial.title ?? "");
   const [desc, setDesc]           = useState(initial.description ?? "");
@@ -769,7 +782,7 @@ function AddRecipeForm({
             className="px-6 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-40"
             style={{ background: "#71816D" }}
           >
-            Save Recipe
+            {saveLabel}
           </button>
           <button onClick={onCancel} className="px-4 py-2.5 rounded-xl text-sm font-medium" style={{ color: "#A8967E" }}>
             Cancel
@@ -791,6 +804,7 @@ export function RecipeVault({
 }) {
   const [adding, setAdding]         = useState(false);
   const [selected, setSelected]     = useState<Recipe | null>(null);
+  const [editing, setEditing]       = useState(false);
   const [extracting, setExtracting] = useState(false);
   const [extractError, setExtractError] = useState<string | null>(null);
   const [draft, setDraft]           = useState<RecipeDraft | null>(null);
@@ -885,10 +899,41 @@ export function RecipeVault({
 
   if (selected) {
     const fresh = nutrition.recipes.find((r) => r.id === selected.id) ?? selected;
+
+    if (editing) {
+      return (
+        <AddRecipeForm
+          initial={{
+            title:              fresh.title,
+            description:        fresh.description,
+            ingredients:        fresh.ingredients,
+            steps:              fresh.steps,
+            photos:             fresh.photos,
+            tags:               fresh.tags,
+            dietaryTags:        fresh.dietaryTags,
+            servings:           fresh.servings,
+            caloriesPerServing: fresh.caloriesPerServing,
+            protein:            fresh.protein,
+            carbs:              fresh.carbs,
+            fat:                fresh.fat,
+          }}
+          saveLabel="Save Changes"
+          onSave={(data) => {
+            const updated: Recipe = { ...fresh, ...data };
+            onUpdate({ ...nutrition, recipes: nutrition.recipes.map((r) => r.id === fresh.id ? updated : r) });
+            setSelected(updated);
+            setEditing(false);
+          }}
+          onCancel={() => setEditing(false)}
+        />
+      );
+    }
+
     return (
       <RecipeDetail
         recipe={fresh}
-        onBack={() => setSelected(null)}
+        onBack={() => { setSelected(null); setEditing(false); }}
+        onEdit={() => setEditing(true)}
         onDelete={() => deleteRecipe(fresh.id)}
         onAddToGrocery={(ings) => addToGrocery(fresh.id, ings)}
         onUpdatePhotos={(photos) => {
