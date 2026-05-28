@@ -216,7 +216,7 @@ function RecipeDetail({
           )}
 
           {recipe.description && (
-            <p className="text-sm mb-4 leading-relaxed" style={{ color: "rgba(52,42,33,0.6)" }}>
+            <p className="text-sm mb-4 leading-relaxed" style={{ color: "rgba(255,255,255,0.55)" }}>
               {recipe.description}
             </p>
           )}
@@ -278,7 +278,7 @@ function RecipeDetail({
 
               <div
                 className="rounded-2xl overflow-hidden divide-y"
-                style={{ border: "1px solid rgba(201,183,156,0.35)" }}
+                style={{ border: "1px solid rgba(255,255,255,0.08)" }}
               >
                 {parsed.map((line, i) => {
                   if (line.header) {
@@ -308,7 +308,7 @@ function RecipeDetail({
                       type="button"
                       onClick={() => toggleCheck(idx)}
                       className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors"
-                      style={{ background: done ? "rgba(201,183,156,0.1)" : "transparent" }}
+                      style={{ background: done ? "rgba(255,255,255,0.04)" : "transparent" }}
                     >
                       {/* Custom checkbox */}
                       <div
@@ -327,7 +327,7 @@ function RecipeDetail({
                       <span
                         className="text-sm"
                         style={{
-                          color: done ? "rgba(52,42,33,0.38)" : "#FFFFFF",
+                          color: done ? "rgba(255,255,255,0.35)" : "#FFFFFF",
                           textDecoration: done ? "line-through" : "none",
                         }}
                       >
@@ -375,7 +375,7 @@ function RecipeDetail({
               </h2>
               <div
                 className="grid grid-cols-4 rounded-2xl overflow-hidden"
-                style={{ border: "1px solid rgba(201,183,156,0.35)" }}
+                style={{ border: "1px solid rgba(255,255,255,0.08)" }}
               >
                 {[
                   { label: "Calories", val: totalCal,     unit: "kcal" },
@@ -386,7 +386,7 @@ function RecipeDetail({
                   <div
                     key={label}
                     className="py-4 px-2 text-center"
-                    style={{ borderLeft: i > 0 ? "1px solid rgba(201,183,156,0.35)" : "none", background: "#141414" }}
+                    style={{ borderLeft: i > 0 ? "1px solid rgba(255,255,255,0.08)" : "none", background: "#141414" }}
                   >
                     <p
                       className="font-serif text-2xl leading-none mb-1"
@@ -437,8 +437,8 @@ function RecipeCard({
       className="group rounded-2xl overflow-hidden cursor-pointer transition-all duration-200 hover:-translate-y-1"
       style={{
         background: "#141414",
-        border: "1px solid rgba(201,183,156,0.35)",
-        boxShadow: "0 3px 14px rgba(52,42,33,0.09)",
+        border: "1px solid rgba(255,255,255,0.08)",
+        boxShadow: "0 3px 14px rgba(0,0,0,0.3)",
       }}
       onClick={onClick}
     >
@@ -634,7 +634,7 @@ function AddRecipeForm({
   return (
     <div
       className="rounded-2xl p-6 mb-6"
-      style={{ background: "#141414", border: "1px solid rgba(201,183,156,0.4)", boxShadow: "0 4px 20px rgba(52,42,33,0.10)" }}
+      style={{ background: "#141414", border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 4px 20px rgba(0,0,0,0.3)" }}
     >
       <h3
         className="font-serif text-2xl mb-5"
@@ -966,7 +966,7 @@ export function RecipeVault({
       />
 
       <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
-        <p className="text-sm" style={{ color: "rgba(52,42,33,0.45)" }}>
+        <p className="text-sm" style={{ color: "rgba(255,255,255,0.4)" }}>
           {nutrition.recipes.length} recipe{nutrition.recipes.length !== 1 ? "s" : ""} saved
         </p>
         {!adding && (

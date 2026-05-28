@@ -88,7 +88,7 @@ export function WeeklyFoodReview({ nutrition }: { nutrition: NutritionData }) {
   const statCard = (label: string, value: string | number, sub?: string) => (
     <div
       className="rounded-2xl p-4 text-center"
-      style={{ background: "rgba(113,129,109,0.08)", border: "1px solid rgba(201,183,156,0.25)" }}
+      style={{ background: "rgba(113,129,109,0.08)", border: "1px solid rgba(255,255,255,0.07)" }}
     >
       <p
         className="font-serif text-3xl leading-none mb-1"
@@ -97,7 +97,7 @@ export function WeeklyFoodReview({ nutrition }: { nutrition: NutritionData }) {
         {value}
       </p>
       <p className="text-xs font-medium" style={{ color: "#A8967E" }}>{label}</p>
-      {sub && <p className="text-[11px] mt-0.5" style={{ color: "rgba(52,42,33,0.45)" }}>{sub}</p>}
+      {sub && <p className="text-[11px] mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>{sub}</p>}
     </div>
   );
 
@@ -129,7 +129,7 @@ export function WeeklyFoodReview({ nutrition }: { nutrition: NutritionData }) {
       {weekMeals.length > 0 && (
         <div
           className="rounded-2xl p-5 mb-4"
-          style={{ background: "#141414", border: "1px solid rgba(201,183,156,0.35)" }}
+          style={{ background: "#141414", border: "1px solid rgba(255,255,255,0.08)" }}
         >
           <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: "#A8967E" }}>
             Meal Breakdown
@@ -142,7 +142,7 @@ export function WeeklyFoodReview({ nutrition }: { nutrition: NutritionData }) {
       {topMeal && (
         <div
           className="rounded-2xl p-5 mb-4 flex gap-4"
-          style={{ background: "#141414", border: "1px solid rgba(201,183,156,0.35)" }}
+          style={{ background: "#141414", border: "1px solid rgba(255,255,255,0.08)" }}
         >
           {topMeal.photos.length > 0 && (
             <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0">
@@ -170,7 +170,7 @@ export function WeeklyFoodReview({ nutrition }: { nutrition: NutritionData }) {
       {topTags.length > 0 && (
         <div
           className="rounded-2xl p-5 mb-4"
-          style={{ background: "#141414", border: "1px solid rgba(201,183,156,0.35)" }}
+          style={{ background: "#141414", border: "1px solid rgba(255,255,255,0.08)" }}
         >
           <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: "#A8967E" }}>
             Top Tags

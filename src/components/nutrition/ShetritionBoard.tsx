@@ -76,7 +76,7 @@ export function ShetritionBoard({
       {/* Upload controls */}
       <div
         className="rounded-2xl p-5 mb-6"
-        style={{ background: "#141414", border: "1px solid rgba(201,183,156,0.4)" }}
+        style={{ background: "#141414", border: "1px solid rgba(255,255,255,0.1)" }}
       >
         <h3 className="font-serif text-lg mb-3" style={{ color: "#FFFFFF", fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
           Add Inspiration
@@ -141,8 +141,8 @@ export function ShetritionBoard({
                 className="rounded-2xl overflow-hidden transition-all duration-200"
                 style={{
                   background: "#141414",
-                  border: "1px solid rgba(201,183,156,0.35)",
-                  boxShadow: "0 3px 14px rgba(52,42,33,0.09)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  boxShadow: "0 3px 14px rgba(0,0,0,0.3)",
                 }}
               >
                 <div className="relative">
@@ -150,7 +150,7 @@ export function ShetritionBoard({
                   <button
                     onClick={() => remove(img.id)}
                     className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
-                    style={{ background: "rgba(52,42,33,0.65)" }}
+                    style={{ background: "rgba(255,255,255,0.6)" }}
                   >
                     <X size={12} color="white" />
                   </button>

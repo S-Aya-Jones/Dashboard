@@ -34,7 +34,7 @@ export default function TermsPage() {
         </Link>
 
         {/* Header */}
-        <div style={{ marginBottom: "2.5rem", borderBottom: "1px solid rgba(201,183,156,0.4)", paddingBottom: "1.5rem" }}>
+        <div style={{ marginBottom: "2.5rem", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "1.5rem" }}>
           <h1
             style={{
               fontFamily: "'Cormorant Garamond', Georgia, serif",
@@ -198,7 +198,7 @@ export default function TermsPage() {
           style={{
             marginTop: "3rem",
             paddingTop: "1.5rem",
-            borderTop: "1px solid rgba(201,183,156,0.4)",
+            borderTop: "1px solid rgba(255,255,255,0.1)",
             fontSize: "0.8rem",
             color: "#A8967E",
             textAlign: "center",

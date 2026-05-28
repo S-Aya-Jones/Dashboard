@@ -125,8 +125,8 @@ function MealCard({ meal, onClick, onDelete }: { meal: MealEntry; onClick: () =>
       className="group break-inside-avoid mb-4 rounded-2xl overflow-hidden cursor-pointer transition-all duration-200 hover:-translate-y-1"
       style={{
         background: "#141414",
-        border: "1px solid rgba(201,183,156,0.35)",
-        boxShadow: "0 3px 14px rgba(52,42,33,0.09)",
+        border: "1px solid rgba(255,255,255,0.08)",
+        boxShadow: "0 3px 14px rgba(0,0,0,0.3)",
       }}
       onClick={onClick}
     >
@@ -154,7 +154,7 @@ function MealCard({ meal, onClick, onDelete }: { meal: MealEntry; onClick: () =>
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(); }}
             className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 w-6 h-6 rounded-full flex items-center justify-center transition-all"
-            style={{ background: "rgba(52,42,33,0.65)" }}
+            style={{ background: "rgba(255,255,255,0.6)" }}
           >
             <X size={11} color="white" />
           </button>
@@ -191,7 +191,7 @@ function MealCard({ meal, onClick, onDelete }: { meal: MealEntry; onClick: () =>
           <div className="flex flex-wrap gap-1 mt-2">
             {meal.tags.slice(0, 3).map((t) => (
               <span key={t} className="text-[11px] px-1.5 py-0.5 rounded-full"
-                style={{ background: "rgba(201,183,156,0.25)", color: "#71816D" }}>
+                style={{ background: "rgba(255,255,255,0.07)", color: "#71816D" }}>
                 #{t}
               </span>
             ))}
@@ -266,7 +266,7 @@ function AddMealForm({
 
   return (
     <div className="rounded-2xl p-5 mb-6"
-      style={{ background: "#141414", border: "1px solid rgba(201,183,156,0.4)", boxShadow: "0 4px 20px rgba(52,42,33,0.10)" }}>
+      style={{ background: "#141414", border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 4px 20px rgba(0,0,0,0.3)" }}>
       <h3 className="font-serif text-2xl mb-4" style={{ color: "#FFFFFF", fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
         Log a Meal
       </h3>

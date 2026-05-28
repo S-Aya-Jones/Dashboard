@@ -283,7 +283,7 @@ function AppleHealthTab({ data }: { data: DashboardData }) {
               const isToday = d === today;
               return (
                 <div key={d} className="flex flex-col items-center gap-1.5">
-                  <p className="text-[10px]" style={{ color: "rgba(52,42,33,0.45)" }}>
+                  <p className="text-[10px]" style={{ color: "rgba(255,255,255,0.4)" }}>
                     {DAYS[date.getDay()]}
                   </p>
                   <div
@@ -291,7 +291,7 @@ function AppleHealthTab({ data }: { data: DashboardData }) {
                     style={{
                       background: color,
                       color: color === "#111111" ? "rgba(255,255,255,0.3)" : "#fff",
-                      boxShadow: isToday ? "0 0 0 2px #342A21" : "none",
+                      boxShadow: isToday ? "0 0 0 2px #C8FF00" : "none",
                     }}
                   >
                     {date.getDate()}

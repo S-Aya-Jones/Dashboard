@@ -144,7 +144,7 @@ export function MCATView({ data, update }: Props) {
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                 <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#A8967E" }} />
                 <YAxis tick={{ fontSize: 11, fill: "#A8967E" }} />
-                <Tooltip contentStyle={{ background: "#141414", border: "1px solid #DAC9A8", borderRadius: "8px", fontSize: "12px" }} />
+                <Tooltip contentStyle={{ background: "#141414", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", fontSize: "12px" }} />
                 {SECTIONS.map((s) => <Bar key={s.key} dataKey={s.label} stackId="a" fill={s.color} />)}
               </BarChart>
             </ResponsiveContainer>

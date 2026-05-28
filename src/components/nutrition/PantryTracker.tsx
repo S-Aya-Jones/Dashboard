@@ -62,7 +62,7 @@ export function PantryTracker({
               <button
                 onClick={() => toggle(item.id)}
                 className="flex-1 text-left text-sm truncate"
-                style={{ color: item.inStock ? "#FFFFFF" : "rgba(52,42,33,0.45)" }}
+                style={{ color: item.inStock ? "#FFFFFF" : "rgba(255,255,255,0.4)" }}
                 title={item.inStock ? "Mark as out" : "Mark as in stock"}
               >
                 <span
