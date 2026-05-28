@@ -13,7 +13,7 @@ export interface PlaidTxnLite {
   isInternalTransfer?: boolean;
 }
 
-interface DetectedRecurring {
+export interface DetectedRecurring {
   key:           string;
   merchant:      string;
   type:          "income" | "expense";
@@ -39,7 +39,7 @@ function fmt$(n: number) {
   return `$${Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-function detectRecurring(txns: PlaidTxnLite[]): DetectedRecurring[] {
+export function detectRecurring(txns: PlaidTxnLite[]): DetectedRecurring[] {
   const eligible = txns.filter((t) => !t.isInternalTransfer);
   const byKey    = new Map<string, PlaidTxnLite[]>();
 

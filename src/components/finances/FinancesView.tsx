@@ -2,17 +2,16 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { usePlaidLink } from "react-plaid-link";
-import { RefreshCw, Unlink, AlertTriangle, Link2, Link2Off, SlidersHorizontal, ChevronDown } from "lucide-react";
+import { RefreshCw, Unlink, AlertTriangle, SlidersHorizontal } from "lucide-react";
 import { DashboardData, MerchantCategoryOverride } from "@/types/dashboard";
-import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { id } from "@/lib/utils";
-import { format, parseISO, startOfMonth, isAfter, differenceInDays } from "date-fns";
-import { RunwayGauge } from "./RunwayGauge";
-import { DashboardVoice } from "./DashboardVoice";
-import { RecurringPanel } from "./RecurringPanel";
-import { WeeklyScorecard } from "./WeeklyScorecard";
+import {
+  format, parseISO, startOfMonth, isAfter, differenceInDays,
+  startOfWeek, addDays,
+} from "date-fns";
+import { detectRecurring } from "./RecurringPanel";
 import { SavingsQuests } from "./SavingsQuests";
 
 interface Props {
@@ -87,78 +86,37 @@ function catLabel(raw: string) {
 
 const INCOME_CATS = new Set(["INCOME", "TRANSFER_IN"]);
 
-// ── Small helpers ─────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmt$(n: number | null | undefined) {
   if (n == null) return "—";
   return `$${Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-// For account balances — preserves sign so overdrawn/negative shows correctly
+function fmtN(n: number | null | undefined) {
+  if (n == null) return "—";
+  return `$${Math.abs(Math.round(n)).toLocaleString()}`;
+}
+
 function fmtBal(n: number | null | undefined): { text: string; negative: boolean } {
   if (n == null) return { text: "—", negative: false };
   const abs = Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return { text: n < 0 ? `-$${abs}` : `$${abs}`, negative: n < 0 };
 }
 
-function typePill(type: string, subtype?: string | null) {
-  const sub = (subtype ?? "").toLowerCase();
-  const label =
-    sub === "checking"       ? "Checking"
-    : sub === "savings"      ? "Savings"
-    : sub === "cd"           ? "CD"
-    : sub === "money market" ? "Money Mkt"
-    : sub === "hsa"          ? "HSA"
-    : sub === "paypal"       ? "PayPal"
-    : sub === "credit card"  ? "Credit"
-    : type === "credit"      ? "Credit"
-    : type === "depository"  ? "Bank"
-    : type === "loan"        ? "Loan"
-    : type === "investment"  ? "Investment"
-    : "Bank";
-  const colors: Record<string, string> = {
-    Checking: "bg-sage/20 text-sage", Savings: "bg-sage/20 text-sage",
-    Credit: "bg-terracotta/15 text-terracotta", Loan: "bg-rose/20 text-rose",
-    Investment: "bg-brown/15 text-brown",
-    Bank: "bg-sand/30 text-sand-dark", CD: "bg-sand/30 text-sand-dark",
-    "Money Mkt": "bg-sand/30 text-sand-dark", HSA: "bg-sage/20 text-sage",
-    PayPal: "bg-sand/30 text-sand-dark",
-  };
-  return (
-    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${colors[label] ?? "bg-sand/30 text-sand-dark"}`}>
-      {label}
-    </span>
-  );
-}
-
-function InstitutionAvatar({ name }: { name: string | null | undefined }) {
-  const letter = name?.[0]?.toUpperCase() ?? "?";
-  const colors = ["#71816D", "#C99A5C", "#DA667B", "#8A9E87", "#A8967E"];
-  return (
-    <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
-      style={{ background: colors[letter.charCodeAt(0) % colors.length] }}>
-      {letter}
-    </div>
-  );
-}
-
-// Plaid sometimes returns raw names like "depository Account 3471" or
-// "loan Account 9593". Strip the internal type prefix and replace with a
-// human label so the UI never shows Plaid's internal terminology.
 function cleanAcctName(raw: string, subtype?: string | null, type?: string): string {
   if (!/^(depository|loan|credit|investment)\s/i.test(raw)) return raw;
   const sub = (subtype ?? "").toLowerCase();
-  if (sub === "checking")       return "Checking";
-  if (sub === "savings")        return "Savings";
-  if (sub === "cd")             return "CD";
-  if (sub === "money market")   return "Money Market";
-  if (sub === "credit card")    return "Credit Card";
-  if (type  === "loan")         return "Loan";
-  if (type  === "investment")   return "Brokerage";
+  if (sub === "checking")      return "Checking";
+  if (sub === "savings")       return "Savings";
+  if (sub === "cd")            return "CD";
+  if (sub === "money market")  return "Money Market";
+  if (sub === "credit card")   return "Credit Card";
+  if (type === "loan")         return "Loan";
+  if (type === "investment")   return "Brokerage";
   return "Account";
 }
 
-// Returns the primary balance figure to display per account type.
 function effectiveBalance(acc: PlaidAccount): number {
   if (acc.type === "credit") {
     const limit = acc.balances.limit ?? 0;
@@ -166,30 +124,22 @@ function effectiveBalance(acc: PlaidAccount): number {
     if (avail != null && limit > 0) return limit - avail;
     return acc.balances.current ?? 0;
   }
-  if (acc.type === "loan") {
-    // For loans, current = principal remaining (what's owed)
-    return acc.balances.current ?? 0;
-  }
-  // Depository / investment: prefer available balance
+  if (acc.type === "loan") return acc.balances.current ?? 0;
   return acc.balances.available ?? acc.balances.current ?? 0;
 }
 
-// Only depository accounts show an "estimated" tag when available is missing.
-function isEstimatedBalance(acc: PlaidAccount): boolean {
-  return acc.type === "depository" && acc.balances.available == null && acc.balances.current != null;
+function timeAgo(d: Date): string {
+  const mins = Math.round((Date.now() - d.getTime()) / 60_000);
+  if (mins < 1)  return "just now";
+  if (mins === 1) return "1 min ago";
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.round(mins / 60);
+  return hrs === 1 ? "1 hr ago" : `${hrs} hrs ago`;
 }
 
-// Human label for the balance figure shown under the amount.
-function balanceLabel(acc: PlaidAccount, estimated: boolean): string {
-  if (acc.type === "credit") return "owed";
-  if (acc.type === "loan")   return "owed";
-  if (acc.type === "investment") return "value";
-  return estimated ? "available (est.)" : "available";
-}
+// ── Plaid Connect ─────────────────────────────────────────────────────────────
 
-// ── Plaid Link button ─────────────────────────────────────────────────────────
-
-function PlaidConnectButton({ onConnected }: { onConnected: () => void }) {
+function PlaidConnectButton({ onConnected, compact = false }: { onConnected: () => void; compact?: boolean }) {
   const [linkToken, setLinkToken] = useState<string | null>(null);
   const [fetching,  setFetching]  = useState(false);
 
@@ -216,6 +166,15 @@ function PlaidConnectButton({ onConnected }: { onConnected: () => void }) {
     } finally { setFetching(false); }
   };
 
+  if (compact) {
+    return (
+      <button onClick={handleClick} disabled={fetching}
+        className="text-[10px] text-sand-dark hover:text-white transition-colors">
+        {fetching ? "…" : "+ connect"}
+      </button>
+    );
+  }
+
   return (
     <Button onClick={handleClick} disabled={fetching}>
       {fetching ? "Preparing…" : "+ Connect a bank"}
@@ -223,7 +182,7 @@ function PlaidConnectButton({ onConnected }: { onConnected: () => void }) {
   );
 }
 
-// ── Default financesConfig ────────────────────────────────────────────────────
+// ── Config defaults ───────────────────────────────────────────────────────────
 
 const DEFAULT_FC = {
   bigTicketThreshold:        100,
@@ -234,45 +193,22 @@ const DEFAULT_FC = {
   merchantCategoryOverrides: [] as MerchantCategoryOverride[],
 };
 
-const OVERRIDE_CAT_OPTIONS = [
-  { value: "GROCERIES",           label: "Groceries" },
-  { value: "FOOD_AND_DRINK",      label: "Eating Out" },
-  { value: "TRANSPORTATION",      label: "Transport" },
-  { value: "PERSONAL_CARE",       label: "Personal Care" },
-  { value: "GENERAL_MERCHANDISE", label: "Merchandise" },
-  { value: "SHOPPING",            label: "Shopping" },
-  { value: "ENTERTAINMENT",       label: "Entertainment" },
-  { value: "GENERAL_SERVICES",    label: "Services" },
-  { value: "RENT_AND_UTILITIES",  label: "Housing" },
-  { value: "MEDICAL",             label: "Healthcare" },
-  { value: "TRAVEL",              label: "Travel" },
-];
 
-function timeAgo(d: Date): string {
-  const mins = Math.round((Date.now() - d.getTime()) / 60_000);
-  if (mins < 1)  return "just now";
-  if (mins === 1) return "1 min ago";
-  if (mins < 60) return `${mins} min ago`;
-  const hrs = Math.round(mins / 60);
-  return hrs === 1 ? "1 hr ago" : `${hrs} hrs ago`;
-}
-
-// ── Main view ─────────────────────────────────────────────────────────────────
+// ── Main component ────────────────────────────────────────────────────────────
 
 export function FinancesView({ data, update }: Props) {
-  const [accounts,       setAccounts]       = useState<PlaidAccount[]>([]);
-  const [transactions,   setTransactions]   = useState<PlaidTxn[]>([]);
-  const [transferCount,  setTransferCount]  = useState(0);
-  const [expandedCat,    setExpandedCat]    = useState<string | null>(null);
-  const [fixingTxn,      setFixingTxn]      = useState<string | null>(null);
-  const [refreshedAt,    setRefreshedAt]    = useState<string | null>(null);
-  const [loadingAccts,   setLoadingAccts]   = useState(true);
-  const [loadingTxns,    setLoadingTxns]    = useState(true);
-  const [refreshing,     setRefreshing]     = useState(false);
+  const [accounts,        setAccounts]        = useState<PlaidAccount[]>([]);
+  const [transactions,    setTransactions]    = useState<PlaidTxn[]>([]);
+  const [, setTransferCount]   = useState(0);
+  const [refreshedAt,     setRefreshedAt]     = useState<string | null>(null);
+  const [loadingAccts,    setLoadingAccts]    = useState(true);
+  const [loadingTxns,     setLoadingTxns]     = useState(true);
+  const [refreshing,      setRefreshing]      = useState(false);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
 
   const [cardOpen,    setCardOpen]    = useState(false);
   const [budgetOpen,  setBudgetOpen]  = useState(false);
+  const [savingsOpen, setSavingsOpen] = useState(false);
   const [cardForm,    setCardForm]    = useState({ name: "", balance: 0, limit: 0, targetPayoff: "" });
   const [budgetDraft, setBudgetDraft] = useState<Record<string, string>>({});
 
@@ -307,14 +243,11 @@ export function FinancesView({ data, update }: Props) {
       const json = await res.json();
       const ts   = json.refreshedAt ? new Date(json.refreshedAt) : new Date();
       setLastRefreshedAt(ts);
-      // If Plaid actually triggered a refresh (not rate-limited), wait 3s
-      // for the data to propagate before re-fetching.
       if (!json.skipped) await new Promise((r) => setTimeout(r, 3000));
       await Promise.all([fetchAccounts(!json.skipped), fetchTransactions(!json.skipped)]);
-    } finally {
-      setRefreshing(false);
-    }
+    } finally { setRefreshing(false); }
   };
+
   const handleConnected = () => { fetchAccounts(true); fetchTransactions(true); };
 
   const handleDisconnect = async (itemId: string | undefined) => {
@@ -326,7 +259,7 @@ export function FinancesView({ data, update }: Props) {
     fetchAccounts(true);
   };
 
-  // ── financesConfig ─────────────────────────────────────────────────────────
+  // ── Config ─────────────────────────────────────────────────────────────────
 
   const fc = {
     ...DEFAULT_FC,
@@ -341,57 +274,16 @@ export function FinancesView({ data, update }: Props) {
     return t.category;
   };
 
-  const saveOverride = (merchantName: string, newCategory: string) => {
-    const nameContains = merchantName.toLowerCase().trim().slice(0, 40);
-    update((d) => {
-      const cfg      = d.financesConfig ?? DEFAULT_FC;
-      const existing = cfg.merchantCategoryOverrides ?? [];
-      const filtered = existing.filter((o) => !nameContains.startsWith(o.nameContains.slice(0, 8)) && !o.nameContains.startsWith(nameContains.slice(0, 8)));
-      return {
-        ...d,
-        financesConfig: {
-          ...cfg,
-          merchantCategoryOverrides: [...filtered, { nameContains, category: newCategory }],
-        },
-      };
-    });
-    setFixingTxn(null);
-  };
-
-  // ── Handlers for new components ────────────────────────────────────────────
-
-  const handleToggleHide = (key: string) => {
-    update((d) => {
-      const cfg            = d.financesConfig ?? DEFAULT_FC;
-      const recurringHidden = cfg.recurringHidden.includes(key)
-        ? cfg.recurringHidden.filter((k) => k !== key)
-        : [...cfg.recurringHidden, key];
-      return { ...d, financesConfig: { ...cfg, recurringHidden } };
-    });
-  };
-
-  const handleToggleFlag = (key: string) => {
-    update((d) => {
-      const cfg              = d.financesConfig ?? DEFAULT_FC;
-      const recurringFlagged = cfg.recurringFlagged.includes(key)
-        ? cfg.recurringFlagged.filter((k) => k !== key)
-        : [...cfg.recurringFlagged, key];
-      return { ...d, financesConfig: { ...cfg, recurringFlagged } };
-    });
-  };
-
-  // ── Plaid totals ───────────────────────────────────────────────────────────
+  // ── Account totals ─────────────────────────────────────────────────────────
 
   const realAccounts = accounts.filter((a) => !a.loginRequired);
-  // Available balance in checking/savings only — never include credit lines
-  const totalCash   = realAccounts.filter((a) => a.type === "depository")
+  const totalCash    = realAccounts.filter((a) => a.type === "depository")
     .reduce((s, a) => s + (a.balances.available ?? a.balances.current ?? 0), 0);
-  // Amount owed on credit cards (limit − available, or current as fallback)
-  const totalCredit = realAccounts.filter((a) => a.type === "credit")
+  const totalCredit  = realAccounts.filter((a) => a.type === "credit")
     .reduce((s, a) => s + effectiveBalance(a), 0);
-  const netWorth    = totalCash - totalCredit;
+  const netWorth     = totalCash - totalCredit;
 
-  // ── Cash Runway ───────────────────────────────────────────────────────────
+  // ── Runway ─────────────────────────────────────────────────────────────────
 
   const last30Spend = transactions
     .filter((t) => {
@@ -401,36 +293,30 @@ export function FinancesView({ data, update }: Props) {
       return differenceInDays(new Date(), parseISO(t.date)) <= 30;
     })
     .reduce((s, t) => s + t.amount, 0);
+
   const avgDailySpend = last30Spend / 30;
+  const runwayDays    = avgDailySpend > 0 && totalCash > 0 ? Math.round(totalCash / avgDailySpend) : null;
+  const runwayColor   = runwayDays == null ? "#ffffff"
+    : runwayDays > 90 ? "#9B7FFF"
+    : runwayDays > 30 ? "#C99A5C"
+    : "#DA667B";
 
   // ── This-month spending ────────────────────────────────────────────────────
 
   const monthStart = startOfMonth(new Date());
 
-  // Transfers always excluded from spending totals
   const thisMo = transactions.filter(
     (t) => !t.isInternalTransfer && (isAfter(parseISO(t.date), monthStart) || parseISO(t.date) >= monthStart),
   );
-
-  const totalIncome = thisMo.filter((t) => INCOME_CATS.has(t.category))
-    .reduce((s, t) => s + Math.abs(t.amount), 0);
-
-  // ── Category analysis ──────────────────────────────────────────────────────
 
   const catActual = new Map<string, number>();
   for (const t of thisMo) {
     const cat = resolvedCat(t);
     if (INCOME_CATS.has(cat)) continue;
-    // Include returns (negative amounts) so they net against purchases
     catActual.set(cat, (catActual.get(cat) ?? 0) + t.amount);
   }
 
-  // Net spending = sum of category totals (returns reduce it naturally)
   const totalSpent = Math.max(0, Array.from(catActual.values()).reduce((s, v) => s + v, 0));
-
-  // Returns summary for the info chip
-  const returnTxns  = thisMo.filter((t) => !INCOME_CATS.has(resolvedCat(t)) && t.amount < 0);
-  const returnTotal = returnTxns.reduce((s, t) => s + Math.abs(t.amount), 0);
 
   const budgetMap  = new Map(data.budgetCategories.map((b) => [b.category, b.monthlyLimit]));
   const allCats    = Array.from(new Set([
@@ -438,45 +324,76 @@ export function FinancesView({ data, update }: Props) {
     ...Array.from(budgetMap.keys()),
   ])).filter((c) => !INCOME_CATS.has(c));
 
-  const budgetRows = allCats.map((cat) => {
-    const actual = catActual.get(cat) ?? 0;
-    const limit  = budgetMap.get(cat) ?? 0;
-    const diff   = limit > 0 ? actual - limit : 0;
-    const pct    = limit > 0 ? Math.min(Math.round((actual / limit) * 100), 999) : 0;
-    return { cat, actual, limit, diff, pct };
-  }).sort((a, b) => {
-    if (a.limit > 0 && b.limit > 0) return b.diff - a.diff;
-    return b.actual - a.actual;
-  });
+  const budgetRows = allCats
+    .map((cat) => {
+      const actual = catActual.get(cat) ?? 0;
+      const limit  = budgetMap.get(cat) ?? 0;
+      const diff   = limit > 0 ? actual - limit : 0;
+      const pct    = limit > 0 ? Math.min(Math.round((actual / limit) * 100), 999) : 0;
+      return { cat, actual, limit, diff, pct };
+    })
+    .filter((r) => r.actual > 0 || r.limit > 0)
+    .sort((a, b) => {
+      if (a.limit > 0 && b.limit > 0) return b.diff - a.diff;
+      return b.actual - a.actual;
+    });
 
   const totalBudget = Array.from(budgetMap.values()).reduce((s, v) => s + v, 0);
   const hasBudget   = budgetMap.size > 0;
 
-  // ── Voice stats ────────────────────────────────────────────────────────────
+  // ── Weekly calculations ────────────────────────────────────────────────────
 
-  const voiceStats: string[] = [];
-  if (totalCash > 0) {
-    voiceStats.push(`Available cash: ${fmt$(totalCash)}`);
-  }
-  if (avgDailySpend > 0 && totalCash > 0) {
-    voiceStats.push(`Runway: ${Math.round(totalCash / avgDailySpend)} days`);
-  }
-  const topCatEntry = Array.from(catActual.entries()).sort((a, b) => b[1] - a[1])[0];
-  if (topCatEntry) {
-    voiceStats.push(`${catLabel(topCatEntry[0])} is your top spend this month — ${fmt$(topCatEntry[1])}`);
-  }
-  // ── Manual entries ─────────────────────────────────────────────────────────
+  const today      = new Date();
+  const weekStart  = startOfWeek(today, { weekStartsOn: 1 });
+  const daysIntoWeek = Math.min(differenceInDays(today, weekStart) + 1, 7);
+  const weekFraction = daysIntoWeek / 7;
 
-  const addCard = () => {
-    if (!cardForm.name.trim()) return;
-    update((d) => ({ ...d, creditCards: [...d.creditCards, { ...cardForm, id: id() }] }));
-    setCardForm({ name: "", balance: 0, limit: 0, targetPayoff: "" });
-    setCardOpen(false);
-  };
-  const updateCardBalance = (cid: string, val: number) =>
-    update((d) => ({ ...d, creditCards: d.creditCards.map((c) => c.id === cid ? { ...c, balance: val } : c) }));
+  const thisWeekCatMap = new Map<string, number>();
+  for (const t of transactions) {
+    if (t.isInternalTransfer) continue;
+    const tDate = parseISO(t.date);
+    if (tDate < weekStart || tDate > today) continue;
+    const cat = resolvedCat(t);
+    if (INCOME_CATS.has(cat)) continue;
+    if (t.amount <= 0) continue;
+    thisWeekCatMap.set(cat, (thisWeekCatMap.get(cat) ?? 0) + t.amount);
+  }
 
-  // ── Budget modal ───────────────────────────────────────────────────────────
+  const thisWeekTotal   = Array.from(thisWeekCatMap.values()).reduce((s, v) => s + v, 0);
+  const weeklyBudget    = totalBudget > 0 ? totalBudget / 4.3 : 0;
+  const weekPaceTarget  = weeklyBudget * weekFraction;
+  const weekAheadOfPace = weekPaceTarget > 0 && thisWeekTotal < weekPaceTarget;
+
+  const weekDayAmounts = Array.from({ length: 7 }, (_, i) => {
+    const day    = addDays(weekStart, i);
+    const dayStr = format(day, "yyyy-MM-dd");
+    const amt    = transactions
+      .filter((t) => !t.isInternalTransfer && t.date === dayStr && t.amount > 0 && !INCOME_CATS.has(resolvedCat(t)))
+      .reduce((s, t) => s + t.amount, 0);
+    return {
+      label:    format(day, "EEEEE"),
+      amount:   amt,
+      isToday:  dayStr === format(today, "yyyy-MM-dd"),
+      isFuture: day > today,
+    };
+  });
+
+  const thisWeekTopCats = Array.from(thisWeekCatMap.entries()).sort((a, b) => b[1] - a[1]);
+  const dayBarMax       = Math.max(...weekDayAmounts.map((d) => d.amount), 1);
+
+  // ── Recurring ─────────────────────────────────────────────────────────────
+
+  const allRecurring    = detectRecurring(transactions);
+  const recurringItems  = allRecurring.filter(
+    (r) => r.type === "expense" && !fc.recurringHidden.includes(r.key),
+  );
+  const monthlyRecurring = recurringItems.reduce((s, r) => {
+    const mult = r.cadence === "weekly" ? 4.3 : r.cadence === "biweekly" ? 2.15
+      : r.cadence === "monthly" ? 1 : r.cadence === "annual" ? 1 / 12 : 1;
+    return s + r.avgAmount * mult;
+  }, 0);
+
+  // ── Modals ─────────────────────────────────────────────────────────────────
 
   const openBudgetModal = () => {
     const draft: Record<string, string> = {};
@@ -496,499 +413,358 @@ export function FinancesView({ data, update }: Props) {
     setBudgetOpen(false);
   };
 
-  // ── Goal linking ───────────────────────────────────────────────────────────
-
-  const financialGoals = data.goals.filter((g) => g.category === "financial" && !g.done);
-
-  const linkGoalToAccount = (goalId: string, accountId: string | undefined) => {
-    const acc = realAccounts.find((a) => a.accountId === accountId);
-    update((d) => ({
-      ...d,
-      goals: d.goals.map((g) =>
-        g.id === goalId
-          ? {
-              ...g,
-              linkedPlaidAccountId: accountId,
-              plaidLinkStartBalance:
-                accountId && !g.linkedPlaidAccountId
-                  ? (acc ? effectiveBalance(acc) : g.plaidLinkStartBalance)
-                  : g.plaidLinkStartBalance,
-            }
-          : g,
-      ),
-    }));
+  const addCard = () => {
+    if (!cardForm.name.trim()) return;
+    update((d) => ({ ...d, creditCards: [...d.creditCards, { ...cardForm, id: id() }] }));
+    setCardForm({ name: "", balance: 0, limit: 0, targetPayoff: "" });
+    setCardOpen(false);
   };
 
-  const hasPlaid    = accounts.length > 0 || loadingAccts;
-  const hasActivity = thisMo.length > 0;
+  // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="h-full flex flex-col p-4 gap-3 overflow-hidden">
 
       {/* ── Header ── */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="font-serif text-4xl text-brown">Finances</h1>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-center justify-between flex-shrink-0">
+        <h1 className="font-serif text-2xl text-white">Finances</h1>
+        <div className="flex items-center gap-2">
+          {(loadingAccts || loadingTxns) && (
+            <span className="text-xs text-sand-dark animate-pulse">Loading…</span>
+          )}
           <PlaidConnectButton onConnected={handleConnected} />
           <Button variant="secondary" onClick={openBudgetModal}>
-            <SlidersHorizontal size={13} className="mr-1.5 inline" />
-            Set Budget
+            <SlidersHorizontal size={12} className="mr-1 inline" />Budget
           </Button>
-          <Button variant="secondary" onClick={() => setCardOpen(true)}>+ Manual Card</Button>
-          <div className="flex flex-col items-end gap-0.5">
-            <Button variant="secondary" onClick={handleRefresh} disabled={refreshing}>
-              <RefreshCw size={13} className={`mr-1.5 inline ${refreshing ? "animate-spin" : ""}`} />
-              {refreshing ? "Refreshing…" : "Refresh"}
-            </Button>
-            {lastRefreshedAt && (
-              <span className="text-[10px] text-sand-dark">Last refreshed: {timeAgo(lastRefreshedAt)}</span>
-            )}
-          </div>
+          <button
+            onClick={handleRefresh} disabled={refreshing}
+            className="flex items-center gap-1.5 text-xs text-sand-dark hover:text-white transition-colors px-3 py-1.5 rounded-lg border border-white/10 hover:border-white/20"
+          >
+            <RefreshCw size={12} className={refreshing ? "animate-spin" : ""} />
+            {refreshing ? "Refreshing…" : "Refresh"}
+          </button>
+          {lastRefreshedAt && (
+            <span className="text-[10px] text-sand-dark">{timeAgo(lastRefreshedAt)}</span>
+          )}
         </div>
       </div>
 
-      {/* ── Dashboard Voice ── */}
-      {voiceStats.length > 0 && <DashboardVoice stats={voiceStats} />}
+      {/* ── Hero: 4 stat cards ── */}
+      <div className="grid grid-cols-4 gap-3 flex-shrink-0">
 
-      {/* ── Cash Runway ── */}
-      {totalCash > 0 && avgDailySpend > 0 && (
-        <RunwayGauge cashBalance={totalCash} avgDailySpend={avgDailySpend} />
-      )}
+        <div className="card p-4 flex flex-col justify-between" style={{ minHeight: 90 }}>
+          <p className="text-[10px] font-medium text-sand-dark uppercase tracking-widest">Net Worth</p>
+          <p className={`font-serif text-3xl leading-none mt-1 ${netWorth < 0 ? "text-rose" : "text-white"}`}>
+            {netWorth < 0 && "−"}{fmtN(netWorth)}
+          </p>
+          <p className="text-[10px] text-sand-dark mt-1.5">
+            {fmtN(totalCash)} cash · {fmtN(totalCredit)} owed
+          </p>
+        </div>
 
-      {/* ── Account Overview ── */}
-      {hasPlaid && (
-        <div className="space-y-2">
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { label: "Total Cash",        value: totalCash,   color: "text-sage" },
-              { label: "Total Credit Debt", value: totalCredit, color: "text-terracotta" },
-              { label: "Net Worth",         value: netWorth,    color: netWorth >= 0 ? "text-sage" : "text-rose" },
-            ].map((s) => (
-              <div key={s.label} className="card p-4 text-center">
-                <p className={`font-serif text-2xl ${fmtBal(s.value).negative ? "text-rose" : s.color}`}>
-                  {fmtBal(s.value).text}
-                </p>
-                <p className="text-xs text-sand-dark mt-1">{s.label}</p>
-              </div>
-            ))}
-          </div>
-          {refreshedAt && (
-            <p className="text-right text-[10px] text-sand-dark pr-0.5">
-              Balances as of {format(parseISO(refreshedAt), "h:mm a")}
-            </p>
+        <div className="card p-4 flex flex-col justify-between" style={{ minHeight: 90 }}>
+          <p className="text-[10px] font-medium text-sand-dark uppercase tracking-widest">Cash Runway</p>
+          <p className="font-serif text-3xl leading-none mt-1" style={{ color: runwayColor }}>
+            {runwayDays != null ? `${runwayDays}d` : "—"}
+          </p>
+          <p className="text-[10px] text-sand-dark mt-1.5">
+            {avgDailySpend > 0 ? `~$${Math.round(avgDailySpend)}/day avg` : "loading…"}
+          </p>
+        </div>
+
+        <div className="card p-4 flex flex-col justify-between" style={{ minHeight: 90 }}>
+          <p className="text-[10px] font-medium text-sand-dark uppercase tracking-widest">
+            {format(today, "MMMM")}
+          </p>
+          {hasBudget && totalBudget > 0 ? (
+            <>
+              <p className={`font-serif text-3xl leading-none mt-1 ${totalSpent > totalBudget ? "text-rose" : "text-sage"}`}>
+                {totalSpent > totalBudget
+                  ? `${fmtN(totalSpent - totalBudget)} over`
+                  : `${fmtN(totalBudget - totalSpent)} left`}
+              </p>
+              <p className="text-[10px] text-sand-dark mt-1.5">
+                {fmtN(totalSpent)} of {fmtN(totalBudget)}
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="font-serif text-3xl text-white leading-none mt-1">{fmtN(totalSpent)}</p>
+              <p className="text-[10px] text-sand-dark mt-1.5">spent this month</p>
+            </>
           )}
         </div>
-      )}
 
-      {/* ── This Month: Spending ── */}
-      {(hasActivity || loadingTxns) && (
-        <div className="card p-5">
-          {/* Header row */}
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-serif text-xl text-brown">{format(new Date(), "MMMM yyyy")}</h3>
-            <button onClick={openBudgetModal}
-              className="flex items-center gap-1 text-[11px] text-sand-dark hover:text-brown transition-colors">
-              <SlidersHorizontal size={11} />
-              {hasBudget ? "Edit budget" : "Set budget"}
+        <div className="card p-4 flex flex-col justify-between" style={{ minHeight: 90 }}>
+          <p className="text-[10px] font-medium text-sand-dark uppercase tracking-widest">This Week</p>
+          <p className="font-serif text-3xl leading-none mt-1" style={{ color: "#C8FF00" }}>
+            {fmtN(thisWeekTotal)}
+          </p>
+          <p className="text-[10px] text-sand-dark mt-1.5">
+            {weekAheadOfPace
+              ? `${fmtN(weekPaceTarget - thisWeekTotal)} under pace`
+              : weeklyBudget > 0
+              ? `${fmtN(thisWeekTotal - weekPaceTarget)} over pace`
+              : `day ${daysIntoWeek} of 7`}
+          </p>
+        </div>
+
+      </div>
+
+      {/* ── Middle Row: Budget · This Week · Recurring ── */}
+      <div className="grid grid-cols-3 gap-3 flex-1 min-h-0">
+
+        {/* Budget Categories */}
+        <div className="card p-4 overflow-hidden flex flex-col">
+          <div className="flex items-center justify-between mb-2 flex-shrink-0">
+            <h3 className="font-serif text-base text-white">Budget</h3>
+            <button onClick={openBudgetModal} className="text-[10px] text-sand-dark hover:text-white transition-colors">
+              edit
             </button>
           </div>
-
-          {/* Key numbers */}
-          <div className="flex items-end gap-5 mb-4">
-            <div>
-              <p className="font-serif text-3xl text-terracotta leading-none">{fmt$(totalSpent)}</p>
-              <p className="text-xs text-sand-dark mt-1">spent</p>
+          {hasBudget && totalBudget > 0 && (
+            <div className="flex items-center gap-2 mb-2 flex-shrink-0">
+              <div className="flex-1 h-0.5 bg-cream-darker rounded-full overflow-hidden">
+                <div className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${Math.min(100, (totalSpent / totalBudget) * 100)}%`,
+                    background: totalSpent > totalBudget ? "#DA667B" : "#9B7FFF",
+                  }} />
+              </div>
+              <span className="text-[10px] text-sand-dark flex-shrink-0">
+                {Math.round((totalSpent / totalBudget) * 100)}%
+              </span>
             </div>
-            {hasBudget && totalBudget > 0 && (
-              <div>
-                <p className={`font-serif text-2xl leading-none ${totalSpent > totalBudget ? "text-rose" : "text-sage"}`}>
-                  {totalSpent > totalBudget
-                    ? `${fmt$(totalSpent - totalBudget)} over`
-                    : `${fmt$(totalBudget - totalSpent)} left`}
-                </p>
-                <p className="text-xs text-sand-dark mt-1">of {fmt$(totalBudget)}</p>
-              </div>
+          )}
+          <div className="space-y-2 overflow-hidden flex-1">
+            {budgetRows.slice(0, 6).map((r) => {
+              const isOver = r.limit > 0 && r.diff > 0;
+              const isWarn = r.limit > 0 && r.pct >= 80 && !isOver;
+              const dotColor = isOver ? "#DA667B" : isWarn ? "#C99A5C" : "#9B7FFF";
+              const barPct   = r.limit > 0 ? Math.min(100, r.pct) : 60;
+              return (
+                <div key={r.cat} className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: dotColor }} />
+                  <span className="text-xs text-white flex-1 truncate min-w-0">{catLabel(r.cat)}</span>
+                  <div className="w-14 h-0.5 bg-cream-darker rounded-full overflow-hidden flex-shrink-0">
+                    <div className="h-full rounded-full" style={{ width: `${barPct}%`, background: dotColor }} />
+                  </div>
+                  <span className={`text-[11px] font-medium flex-shrink-0 ${isOver ? "text-rose" : "text-white"}`}>
+                    {fmtN(r.actual)}
+                  </span>
+                </div>
+              );
+            })}
+            {budgetRows.length > 6 && (
+              <p className="text-[10px] text-sand-dark">+{budgetRows.length - 6} more categories</p>
             )}
-            {totalIncome > 0 && (
-              <div className="ml-auto text-right">
-                <p className="font-serif text-xl text-sage leading-none">{fmt$(totalIncome)}</p>
-                <p className="text-xs text-sand-dark mt-1">in</p>
-              </div>
+            {budgetRows.length === 0 && !loadingTxns && (
+              <p className="text-xs text-sand-dark">No spending this month yet.</p>
             )}
           </div>
-
-          {/* Overall budget bar */}
-          {hasBudget && totalBudget > 0 && (
-            <div className="h-1 bg-cream-darker rounded-full overflow-hidden mb-5">
-              <div className="h-full rounded-full transition-all"
-                style={{
-                  width: `${Math.min(100, (totalSpent / totalBudget) * 100)}%`,
-                  background: totalSpent > totalBudget ? "#DA667B" : totalSpent / totalBudget > 0.9 ? "#DA667B" : totalSpent / totalBudget > 0.7 ? "#C99A5C" : "#71816D",
-                }} />
-            </div>
-          )}
-
-          {/* Transfer / returns notices */}
-          {(transferCount > 0 || returnTxns.length > 0) && (
-            <div className="flex flex-wrap gap-x-4 gap-y-1 mb-4">
-              {transferCount > 0 && (
-                <p className="text-[11px] text-sand-dark">
-                  🔁 {transferCount} transfer{transferCount !== 1 ? "s" : ""} excluded
-                </p>
-              )}
-              {returnTxns.length > 0 && (
-                <p className="text-[11px] text-sage font-medium">
-                  ↩ {returnTxns.length} return{returnTxns.length !== 1 ? "s" : ""} · {fmt$(returnTotal)} back
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* Category breakdown — expandable */}
-          {budgetRows.length > 0 && (
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-[10px] font-semibold text-sand-dark uppercase tracking-widest">Where it went</p>
-                {!hasBudget && (
-                  <button onClick={openBudgetModal}
-                    className="text-[11px] text-terracotta hover:text-brown underline decoration-dotted transition-colors">
-                    + add spending limits
-                  </button>
-                )}
-              </div>
-              <div className="divide-y divide-sand/10">
-                {budgetRows.map((r) => {
-                  const isExpanded = expandedCat === r.cat;
-                  const isOver     = r.limit > 0 && r.diff > 0;
-                  const isWarning  = r.limit > 0 && r.pct >= 80 && !isOver;
-                  const dotColor   = isOver ? "#DA667B" : isWarning ? "#C99A5C" : "#71816D";
-                  const catTxns    = thisMo
-                    .filter((t) => resolvedCat(t) === r.cat)
-                    .sort((a, b) => b.amount - a.amount);
-                  const purchases  = catTxns.filter((t) => t.amount > 0);
-                  const returns    = catTxns.filter((t) => t.amount < 0);
-
-                  return (
-                    <div key={r.cat}>
-                      <button
-                        onClick={() => setExpandedCat(isExpanded ? null : r.cat)}
-                        className="w-full flex items-center gap-3 py-3 text-left hover:bg-cream-darker/60 rounded-lg px-1.5 -mx-1.5 transition-colors"
-                      >
-                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: dotColor }} />
-                        <span className="text-sm text-brown flex-1 truncate">{catLabel(r.cat)}</span>
-                        <span className="text-xs font-medium text-sand-dark">
-                          {purchases.length}×{returns.length > 0 && <span className="text-sage"> ↩{returns.length}</span>}
-                        </span>
-                        <span className={`text-sm font-semibold ${isOver ? "text-rose" : "text-brown"}`}>
-                          {fmt$(r.actual)}
-                        </span>
-                        {r.limit > 0 && (
-                          <span className="text-[10px] text-sand-dark hidden sm:block">/ {fmt$(r.limit)}</span>
-                        )}
-                        {isOver && (
-                          <span className="text-[10px] font-semibold text-rose bg-rose/10 px-1.5 py-0.5 rounded-full whitespace-nowrap">
-                            +{fmt$(r.diff)}
-                          </span>
-                        )}
-                        {!isOver && r.limit > 0 && (
-                          <span className="text-[10px] text-sage bg-sage/10 px-1.5 py-0.5 rounded-full whitespace-nowrap">
-                            {fmt$(r.limit - r.actual)} left
-                          </span>
-                        )}
-                        <ChevronDown size={12} className={`text-sand flex-shrink-0 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
-                      </button>
-
-                      {/* Budget progress bar (always visible, thin) */}
-                      {r.limit > 0 && (
-                        <div className="h-0.5 bg-cream-darker mx-1.5 mb-1 rounded-full overflow-hidden">
-                          <div className="h-full rounded-full"
-                            style={{ width: `${Math.min(100, r.pct)}%`, background: dotColor }} />
-                        </div>
-                      )}
-
-                      {/* Expanded transaction list */}
-                      {isExpanded && catTxns.length > 0 && (
-                        <div className="mb-2 mx-1.5 rounded-xl overflow-hidden border border-sand/15">
-                          {catTxns.map((t, i) => {
-                            const isReturn = t.amount < 0;
-                            return (
-                              <div key={t.id}
-                                className={`flex items-center gap-3 px-4 py-2.5 ${i > 0 ? "border-t border-sand/10" : ""} ${isReturn ? "bg-sage/5" : "bg-cream/40"}`}>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-1.5">
-                                    <p className="text-xs text-brown truncate">{t.name}</p>
-                                    {isReturn && (
-                                      <span className="text-[9px] font-semibold text-sage bg-sage/15 px-1 py-0.5 rounded flex-shrink-0">refund</span>
-                                    )}
-                                  </div>
-                                  <p className="text-[10px] text-sand-dark">{format(parseISO(t.date), "MMM d")}</p>
-                                </div>
-                                {!isReturn && (fixingTxn === t.id ? (
-                                  <select
-                                    autoFocus
-                                    defaultValue=""
-                                    className="text-[11px] h-6 py-0 px-1.5 rounded-lg flex-shrink-0"
-                                    onChange={(e) => { if (e.target.value) saveOverride(t.name, e.target.value); }}
-                                    onBlur={() => setFixingTxn(null)}
-                                  >
-                                    <option value="" disabled>Move to…</option>
-                                    {OVERRIDE_CAT_OPTIONS.map((o) => (
-                                      <option key={o.value} value={o.value}>{o.label}</option>
-                                    ))}
-                                  </select>
-                                ) : (
-                                  <button
-                                    onClick={(e) => { e.stopPropagation(); setFixingTxn(t.id); }}
-                                    className="text-[10px] text-sand hover:text-terracotta transition-colors flex-shrink-0"
-                                    title="Wrong category?"
-                                  >
-                                    fix
-                                  </button>
-                                ))}
-                                <p className={`text-xs font-semibold flex-shrink-0 ${isReturn ? "text-sage" : "text-brown"}`}>
-                                  {isReturn ? `+${fmt$(Math.abs(t.amount))}` : fmt$(t.amount)}
-                                </p>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {loadingTxns && transactions.length === 0 && (
-            <p className="text-xs text-sand-dark text-center py-4 animate-pulse">Loading transactions…</p>
-          )}
         </div>
-      )}
 
-      {/* ── Weekly Scorecard ── */}
-      {transactions.length > 0 && (
-        <WeeklyScorecard
-          transactions={transactions}
-          budgetCategories={data.budgetCategories}
-          merchantCategoryOverrides={fc.merchantCategoryOverrides}
-        />
-      )}
+        {/* This Week */}
+        <div className="card p-4 overflow-hidden flex flex-col">
+          <div className="flex items-center justify-between mb-1 flex-shrink-0">
+            <h3 className="font-serif text-base text-white">This Week</h3>
+            {weeklyBudget > 0 && (
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${weekAheadOfPace ? "bg-sage/15 text-sage" : "bg-rose/10 text-rose"}`}>
+                {weekAheadOfPace ? "on track" : "over pace"}
+              </span>
+            )}
+          </div>
+          <div className="flex items-baseline gap-2 mb-3 flex-shrink-0">
+            <p className="font-serif text-2xl text-white leading-none">{fmtN(thisWeekTotal)}</p>
+            <span className="text-xs text-sand-dark">day {daysIntoWeek}/7</span>
+          </div>
 
+          {/* Day bars */}
+          <div className="flex items-end gap-1 mb-3 flex-shrink-0" style={{ height: 40 }}>
+            {weekDayAmounts.map((d, i) => {
+              const barH = d.isFuture ? 2 : Math.max(2, Math.round((d.amount / dayBarMax) * 32));
+              return (
+                <div key={i} className="flex flex-col items-center gap-0.5 flex-1">
+                  <div className="w-full rounded-sm" style={{
+                    height: barH,
+                    background: d.isToday ? "#C8FF00" : d.isFuture ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.18)",
+                    alignSelf: "flex-end",
+                  }} />
+                  <span className="text-[9px]" style={{ color: d.isToday ? "#C8FF00" : "rgba(255,255,255,0.35)" }}>
+                    {d.label}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
 
-      {/* ── Recurring ── */}
-      {transactions.length > 0 && (
-        <RecurringPanel
-          transactions={transactions}
-          hiddenIds={fc.recurringHidden}
-          flaggedIds={fc.recurringFlagged}
-          onToggleHide={handleToggleHide}
-          onToggleFlag={handleToggleFlag}
-        />
-      )}
+          {/* Top categories */}
+          <div className="space-y-1.5 overflow-hidden flex-1">
+            {thisWeekTopCats.slice(0, 4).map(([cat, amt]) => {
+              const pct = thisWeekTotal > 0 ? (amt / thisWeekTotal) * 100 : 0;
+              return (
+                <div key={cat} className="flex items-center gap-2">
+                  <span className="text-[11px] text-white flex-1 truncate">{catLabel(cat)}</span>
+                  <div className="w-14 h-0.5 bg-cream-darker rounded-full overflow-hidden flex-shrink-0">
+                    <div className="h-full rounded-full" style={{ width: `${pct}%`, background: "rgba(155,127,255,0.6)" }} />
+                  </div>
+                  <span className="text-[11px] text-sand-dark flex-shrink-0">{fmtN(amt)}</span>
+                </div>
+              );
+            })}
+            {thisWeekTopCats.length === 0 && (
+              <p className="text-xs text-sand-dark">No spending yet this week.</p>
+            )}
+          </div>
+        </div>
 
-      {/* ── Connected Accounts ── */}
-      {accounts.length > 0 && (
-        <Card title="Connected Accounts">
-          <div className="space-y-3 mt-1">
-            {accounts.map((acc, i) => {
+        {/* Recurring */}
+        <div className="card p-4 overflow-hidden flex flex-col">
+          <div className="mb-2 flex-shrink-0">
+            <h3 className="font-serif text-base text-white">Recurring</h3>
+            {monthlyRecurring > 0 && (
+              <p className="text-[10px] text-sand-dark mt-0.5">{fmt$(monthlyRecurring)}/month in bills</p>
+            )}
+          </div>
+          <div className="space-y-2 overflow-hidden flex-1">
+            {recurringItems.slice(0, 7).map((r) => {
+              const daysUntil = r.nextEstimated
+                ? differenceInDays(parseISO(r.nextEstimated), today)
+                : null;
+              const dueSoon = daysUntil !== null && daysUntil <= 3 && daysUntil >= 0;
+              return (
+                <div key={r.key} className="flex items-center gap-2">
+                  <span className="text-[11px] text-white truncate flex-1 min-w-0">{r.merchant}</span>
+                  <span className="text-[10px] text-sand-dark flex-shrink-0">{fmt$(r.avgAmount)}</span>
+                  {daysUntil !== null && (
+                    <span className="text-[10px] flex-shrink-0 font-medium"
+                      style={{ color: dueSoon ? "#C8FF00" : "rgba(255,255,255,0.35)" }}>
+                      {daysUntil <= 0 ? "due" : daysUntil === 1 ? "tmrw" : `${daysUntil}d`}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+            {recurringItems.length > 7 && (
+              <p className="text-[10px] text-sand-dark">+{recurringItems.length - 7} more</p>
+            )}
+            {recurringItems.length === 0 && !loadingTxns && (
+              <p className="text-xs text-sand-dark">No recurring detected yet.</p>
+            )}
+          </div>
+        </div>
+
+      </div>
+
+      {/* ── Bottom Row: Accounts · Savings ── */}
+      <div className="grid grid-cols-2 gap-3 flex-shrink-0" style={{ height: 168 }}>
+
+        {/* Connected Accounts */}
+        <div className="card p-4 overflow-hidden flex flex-col">
+          <div className="flex items-center justify-between mb-2 flex-shrink-0">
+            <h3 className="font-serif text-base text-white">Accounts</h3>
+            <div className="flex items-center gap-3">
+              {refreshedAt && (
+                <span className="text-[10px] text-sand-dark">as of {format(parseISO(refreshedAt), "h:mm a")}</span>
+              )}
+              <PlaidConnectButton onConnected={handleConnected} compact />
+              <button onClick={() => setCardOpen(true)} className="text-[10px] text-sand-dark hover:text-white transition-colors">
+                + manual
+              </button>
+            </div>
+          </div>
+          <div className="space-y-1.5 overflow-hidden flex-1">
+            {loadingAccts && accounts.length === 0 && (
+              <p className="text-xs text-sand-dark animate-pulse">Loading accounts…</p>
+            )}
+            {accounts.slice(0, 5).map((acc) => {
               if (acc.loginRequired) {
                 return (
-                  <div key={acc.itemId ?? i} className="flex items-center gap-3 p-3 rounded-xl bg-rose/10 border border-rose/20">
-                    <AlertTriangle size={16} className="text-rose flex-shrink-0" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-brown">{acc.institutionName ?? "Bank"}</p>
-                      <p className="text-xs text-rose">Reconnection needed — log in to refresh</p>
-                    </div>
-                    <button onClick={() => handleDisconnect(acc.itemId)}
-                      className="text-xs text-sand-dark hover:text-rose transition-colors">Remove</button>
+                  <div key={acc.itemId ?? acc.accountId} className="flex items-center gap-2">
+                    <AlertTriangle size={10} className="text-rose flex-shrink-0" />
+                    <span className="text-xs text-rose truncate flex-1">
+                      {acc.institutionName ?? "Bank"} — reconnect needed
+                    </span>
                   </div>
                 );
               }
-
-              const isCreditCard  = acc.type === "credit";
-              const displayBal    = effectiveBalance(acc);
-              const estimated     = isEstimatedBalance(acc);
-              const limit         = acc.balances.limit ?? 0;
-              const availCredit   = isCreditCard ? (acc.balances.available ?? null) : null;
-              const utilPct       = isCreditCard && limit > 0 ? Math.min(100, Math.round((displayBal / limit) * 100)) : 0;
-              const utilColor     = utilPct < 30 ? "#71816D" : utilPct < 70 ? "#C99A5C" : "#DA667B";
-
+              const dotColor = acc.type === "credit" ? "#DA667B" : acc.type === "loan" ? "#FF6B9D" : "#9B7FFF";
+              const { text, negative } = fmtBal(effectiveBalance(acc));
               return (
-                <div key={acc.accountId} className="group">
-                  <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-cream-darker transition-colors">
-                    <InstitutionAvatar name={acc.institutionName} />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-sm font-medium text-brown truncate">
-                          {cleanAcctName(acc.name, acc.subtype, acc.type)}
-                          {acc.mask ? <span className="text-sand-dark font-normal"> ···{acc.mask}</span> : null}
-                        </p>
-                        {typePill(acc.type, acc.subtype)}
-                      </div>
-                      <p className="text-xs text-sand-dark">{acc.institutionName}</p>
-                      {isCreditCard && limit > 0 && (
-                        <div className="mt-1.5">
-                          <div className="flex justify-between text-[10px] text-sand-dark mb-0.5">
-                            <span>{utilPct}% of {fmt$(limit)}</span>
-                            {availCredit != null && (
-                              <span className="text-sage">{fmt$(availCredit)} left</span>
-                            )}
-                          </div>
-                          <div className="h-1.5 bg-cream-darker rounded-full overflow-hidden">
-                            <div className="h-full rounded-full transition-all"
-                              style={{ width: `${utilPct}%`, background: utilColor }} />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      {(() => { const { text, negative } = fmtBal(displayBal); return (
-                        <p className={`font-serif text-lg leading-tight ${negative ? "text-rose" : "text-brown"}`}>{text}</p>
-                      ); })()}
-                      <p className="text-[10px] text-sand-dark">{balanceLabel(acc, estimated)}</p>
-                    </div>
-                    <button onClick={() => handleDisconnect(acc.itemId)}
-                      className="opacity-0 group-hover:opacity-100 ml-1 text-sand hover:text-rose transition-all flex-shrink-0"
-                      title="Disconnect">
-                      <Unlink size={13} />
-                    </button>
-                  </div>
+                <div key={acc.accountId} className="group flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: dotColor }} />
+                  <span className="text-xs text-white truncate flex-1 min-w-0">
+                    {acc.institutionName ?? cleanAcctName(acc.name, acc.subtype, acc.type)}
+                    {acc.mask ? ` ···${acc.mask}` : ""}
+                  </span>
+                  <span className={`text-xs font-medium flex-shrink-0 ${negative ? "text-rose" : "text-white"}`}>
+                    {text}
+                  </span>
+                  <button onClick={() => handleDisconnect(acc.itemId)}
+                    className="opacity-0 group-hover:opacity-100 text-sand hover:text-rose transition-all flex-shrink-0"
+                    title="Disconnect">
+                    <Unlink size={10} />
+                  </button>
                 </div>
               );
             })}
+            {accounts.length > 5 && (
+              <p className="text-[10px] text-sand-dark">+{accounts.length - 5} more accounts</p>
+            )}
+            {!loadingAccts && accounts.length === 0 && (
+              <p className="text-xs text-sand-dark">No accounts connected yet.</p>
+            )}
           </div>
-        </Card>
-      )}
+        </div>
 
-      {/* ── Empty state ── */}
-      {!loadingAccts && accounts.length === 0 && data.creditCards.length === 0 && data.savingsGoals.length === 0 && (
-        <Card>
-          <div className="text-center py-10 space-y-3">
-            <p className="font-serif text-2xl text-sand">Connect your accounts</p>
-            <p className="text-sm text-sand-dark max-w-xs mx-auto">
-              Link a bank or credit card via Plaid to see live balances and spending — or track manually above.
-            </p>
+        {/* Savings Quests */}
+        <div className="card p-4 overflow-hidden flex flex-col">
+          <div className="flex items-center justify-between mb-2 flex-shrink-0">
+            <h3 className="font-serif text-base text-white">Savings Quests</h3>
+            <button onClick={() => setSavingsOpen(true)} className="text-[10px] text-sand-dark hover:text-white transition-colors">
+              manage
+            </button>
           </div>
-        </Card>
-      )}
-
-      {/* ── Manual Credit Cards ── */}
-      {data.creditCards.length > 0 && (
-        <Card title="Manual Cards" subtitle="Tracked by hand">
-          <div className="space-y-4 mt-2">
-            {data.creditCards.map((card) => {
-              const pct = card.limit > 0 ? Math.round((card.balance / card.limit) * 100) : 0;
-              return (
-                <div key={card.id} className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-brown">{card.name}</p>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-sand-dark">{pct}% used</span>
-                      <input type="number" min={0} value={card.balance}
-                        onChange={(e) => updateCardBalance(card.id, Number(e.target.value))}
-                        className="w-24 text-right text-xs p-1 h-6" />
+          {data.savingsGoals.length === 0 ? (
+            <button onClick={() => setSavingsOpen(true)}
+              className="text-xs text-sand-dark hover:text-white transition-colors flex-1 flex items-start pt-1">
+              + Add a savings goal
+            </button>
+          ) : (
+            <div className="space-y-2 overflow-hidden flex-1">
+              {data.savingsGoals.slice(0, 4).map((goal, i) => {
+                const pct = goal.target > 0 ? Math.min(100, (goal.current / goal.target) * 100) : 0;
+                const barColors = ["#DA667B", "#9B7FFF", "#C8FF00", "#C99A5C"];
+                const barColor  = barColors[i % barColors.length];
+                return (
+                  <div key={goal.id}>
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className="text-[11px] text-white truncate flex-1 min-w-0">{goal.name}</span>
+                      <span className="text-[10px] text-sand-dark ml-2 flex-shrink-0">
+                        {fmtN(goal.current)} / {fmtN(goal.target)}
+                      </span>
+                    </div>
+                    <div className="h-1 bg-cream-darker rounded-full overflow-hidden">
+                      <div className="h-full rounded-full transition-all"
+                        style={{ width: `${pct}%`, background: barColor }} />
                     </div>
                   </div>
-                  <div className="h-2 bg-cream-darker rounded-full overflow-hidden">
-                    <div className="h-full rounded-full transition-all"
-                      style={{ width: `${pct}%`, background: pct > 70 ? "#DA667B" : pct > 30 ? "#C99A5C" : "#71816D" }} />
-                  </div>
-                  <div className="flex justify-between text-xs text-sand-dark">
-                    <span>{fmt$(card.balance)} balance</span>
-                    <span>{fmt$(card.limit)} limit</span>
-                  </div>
-                  {card.targetPayoff && <p className="text-xs text-terracotta">Target: {card.targetPayoff}</p>}
-                </div>
-              );
-            })}
-          </div>
-        </Card>
-      )}
+                );
+              })}
+              {data.savingsGoals.length > 4 && (
+                <p className="text-[10px] text-sand-dark">+{data.savingsGoals.length - 4} more</p>
+              )}
+            </div>
+          )}
+        </div>
 
-      {/* ── Savings Quests ── */}
-      <SavingsQuests
-        goals={data.savingsGoals}
-        onUpdate={(goals) => update((d) => ({ ...d, savingsGoals: goals }))}
-      />
+      </div>
 
-      {/* ── Financial Goals with Plaid linking ── */}
-      {financialGoals.length > 0 && (
-        <Card title="Financial Goals" subtitle="From your goals tracker">
-          <div className="space-y-3 mt-2">
-            {financialGoals.map((g) => {
-              const linkedAcc  = realAccounts.find((a) => a.accountId === g.linkedPlaidAccountId);
-              const currentBal = linkedAcc ? effectiveBalance(linkedAcc) : null;
-              const startBal   = g.plaidLinkStartBalance ?? null;
-              const paydownPct =
-                startBal != null && startBal > 0 && currentBal != null
-                  ? Math.max(0, Math.min(100, Math.round(((startBal - currentBal) / startBal) * 100)))
-                  : null;
-
-              return (
-                <div key={g.id} className="p-3 rounded-xl bg-cream hover:bg-cream-dark transition-colors">
-                  <div className="flex items-start gap-2">
-                    <span className="text-base mt-0.5">💚</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-brown">{g.text}</p>
-                      {g.notes && <p className="text-xs text-sand-dark italic mt-0.5">{g.notes}</p>}
-                      {g.quarter && <p className="text-xs text-terracotta mt-0.5">{g.quarter}</p>}
-
-                      {linkedAcc && currentBal != null && (
-                        <div className="mt-2 space-y-1">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[11px] text-sand-dark">
-                              {linkedAcc.name}{linkedAcc.mask ? ` ···${linkedAcc.mask}` : ""}
-                            </span>
-                            <span className="text-[11px] font-medium text-brown">
-                              {fmt$(currentBal)} {linkedAcc.type === "credit" ? "owed" : "available"}
-                            </span>
-                          </div>
-                          {paydownPct != null && (
-                            <>
-                              <div className="h-1.5 bg-cream-darker rounded-full overflow-hidden">
-                                <div className="h-full rounded-full transition-all"
-                                  style={{ width: `${paydownPct}%`, background: paydownPct >= 70 ? "#71816D" : paydownPct >= 30 ? "#C99A5C" : "#DA667B" }} />
-                              </div>
-                              <p className="text-[10px] text-sand-dark">
-                                {paydownPct}% paid down · started at {fmt$(startBal)}
-                              </p>
-                            </>
-                          )}
-                        </div>
-                      )}
-
-                      {!loadingAccts && realAccounts.length > 0 && (
-                        <div className="mt-2 flex items-center gap-1.5">
-                          {linkedAcc ? <Link2 size={11} className="text-sage flex-shrink-0" /> : <Link2Off size={11} className="text-sand flex-shrink-0" />}
-                          <select value={g.linkedPlaidAccountId ?? ""}
-                            onChange={(e) => linkGoalToAccount(g.id, e.target.value || undefined)}
-                            className="text-[11px] py-0.5 px-1.5 h-auto rounded-lg flex-1" style={{ minWidth: 0 }}>
-                            <option value="">Link to a Plaid account…</option>
-                            {realAccounts.map((a) => (
-                              <option key={a.accountId} value={a.accountId}>
-                                {a.name}{a.mask ? ` ···${a.mask}` : ""} — {fmt$(effectiveBalance(a))}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </Card>
-      )}
-
-      {/* ── Budget modal ── */}
-      <Modal open={budgetOpen} onClose={() => setBudgetOpen(false)} title={`Monthly Budget · ${format(new Date(), "MMMM yyyy")}`}>
+      {/* ── Budget Modal ── */}
+      <Modal open={budgetOpen} onClose={() => setBudgetOpen(false)} title={`Monthly Budget · ${format(today, "MMMM yyyy")}`}>
         <div className="space-y-1 max-h-[60vh] overflow-y-auto pr-1">
           <p className="text-xs text-sand-dark mb-3">
-            Set a monthly limit for each category. Leave blank to skip tracking that category.
+            Set a monthly limit for each category. Leave blank to skip tracking.
           </p>
           {Array.from(new Set([
             ...Object.keys(budgetDraft),
@@ -1007,7 +783,7 @@ export function FinancesView({ data, update }: Props) {
               </div>
               {catActual.get(cat) != null && (
                 <span className="text-[10px] text-sand-dark w-16 text-right flex-shrink-0">
-                  spent {fmt$(catActual.get(cat))}
+                  spent {fmtN(catActual.get(cat))}
                 </span>
               )}
             </div>
@@ -1019,12 +795,7 @@ export function FinancesView({ data, update }: Props) {
         </div>
       </Modal>
 
-      {/* ── Footer disclaimer ── */}
-      <p className="text-[11px] text-center pb-2" style={{ color: "rgba(255,255,255,0.45)" }}>
-        Balances and transactions may lag your bank by a few hours. Tap Refresh to request the latest from your bank.
-      </p>
-
-      {/* ── Manual card modal ── */}
+      {/* ── Manual Card Modal ── */}
       <Modal open={cardOpen} onClose={() => setCardOpen(false)} title="Add Manual Card">
         <div className="space-y-4">
           <div>
@@ -1034,25 +805,30 @@ export function FinancesView({ data, update }: Props) {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-brown block mb-1">Current Balance ($)</label>
+              <label className="text-xs font-medium text-brown block mb-1">Balance ($)</label>
               <input type="number" min={0} value={cardForm.balance}
                 onChange={(e) => setCardForm({ ...cardForm, balance: Number(e.target.value) })} />
             </div>
             <div>
-              <label className="text-xs font-medium text-brown block mb-1">Credit Limit ($)</label>
+              <label className="text-xs font-medium text-brown block mb-1">Limit ($)</label>
               <input type="number" min={0} value={cardForm.limit}
                 onChange={(e) => setCardForm({ ...cardForm, limit: Number(e.target.value) })} />
             </div>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-brown block mb-1">Target payoff (optional)</label>
-            <input type="text" placeholder="e.g. December 2025" value={cardForm.targetPayoff}
-              onChange={(e) => setCardForm({ ...cardForm, targetPayoff: e.target.value })} />
           </div>
           <div className="flex gap-2 justify-end">
             <Button variant="secondary" onClick={() => setCardOpen(false)}>Cancel</Button>
             <Button onClick={addCard}>Add Card</Button>
           </div>
+        </div>
+      </Modal>
+
+      {/* ── Savings Quests Modal ── */}
+      <Modal open={savingsOpen} onClose={() => setSavingsOpen(false)} title="Savings Quests">
+        <div className="max-h-[70vh] overflow-y-auto -mx-1">
+          <SavingsQuests
+            goals={data.savingsGoals}
+            onUpdate={(goals) => update((d) => ({ ...d, savingsGoals: goals }))}
+          />
         </div>
       </Modal>
 

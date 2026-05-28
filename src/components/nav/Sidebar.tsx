@@ -36,7 +36,7 @@ interface SidebarProps {
 
 export function Sidebar({ saving = false }: SidebarProps) {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
 
   return (
     <aside
