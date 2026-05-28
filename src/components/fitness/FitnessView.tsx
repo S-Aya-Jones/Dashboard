@@ -474,7 +474,7 @@ export function FitnessView({ data, update }: Props) {
             Fitness & Sleep
           </h1>
           <p className="text-sm mt-1" style={{ color: "rgba(255,255,255,0.45)" }}>
-            Movement that brings you joy, rest that restores you 🎾
+            Movement that brings you joy, rest that restores you
           </p>
         </div>
         {tab === "log" && (
@@ -516,7 +516,7 @@ export function FitnessView({ data, update }: Props) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Card className="text-center">
               <p className="font-serif text-3xl text-brown">{tennisCount}</p>
-              <p className="text-xs text-sand-dark mt-1">Tennis sessions 🎾</p>
+              <p className="text-xs text-sand-dark mt-1">Tennis sessions</p>
               <p className="text-xs text-terracotta mt-0.5">joy, not exercise</p>
             </Card>
             <Card className="text-center">
@@ -535,7 +535,7 @@ export function FitnessView({ data, update }: Props) {
 
           <Card title="Recent Activity">
             {data.fitnessSessions.length === 0 ? (
-              <p className="text-sand-dark text-sm">No sessions logged yet. Move your body! 🌿</p>
+              <p className="text-sand-dark text-sm">No sessions logged yet. Move your body.</p>
             ) : (
               <div className="space-y-2">
                 {[...data.fitnessSessions]

@@ -30,7 +30,7 @@ export function Modal({ open, onClose, title, children, width = "max-w-lg" }: Mo
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-5 pb-0">
-          {title && <h2 className="font-serif text-2xl text-white">{title}</h2>}
+          {title && <h2 className="font-serif text-xl text-white">{title}</h2>}
           <button
             onClick={onClose}
             className="ml-auto p-1.5 rounded-lg hover:bg-white/10 text-white/50 hover:text-white transition-colors"

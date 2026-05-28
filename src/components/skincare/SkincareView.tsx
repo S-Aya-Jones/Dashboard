@@ -75,7 +75,7 @@ export function SkincareView({ data, update }: Props) {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="font-serif text-4xl text-brown">Skincare</h1>
-          <p className="text-sand-dark mt-1">Real data for your future dermatology practice ✨</p>
+          <p className="text-sand-dark mt-1">Real data for your future dermatology practice</p>
         </div>
         <div className="flex gap-2">
           <Button variant="secondary" onClick={() => setCheckInOpen(true)}>
@@ -105,13 +105,13 @@ export function SkincareView({ data, update }: Props) {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <Card>{renderProductList(amProducts, "☀️ AM Routine")}</Card>
-        <Card>{renderProductList(pmProducts, "🌙 PM Routine")}</Card>
+        <Card>{renderProductList(amProducts, "AM Routine")}</Card>
+        <Card>{renderProductList(pmProducts, "PM Routine")}</Card>
       </div>
 
       <Card title="Skin Check-in Log">
         {data.skinCheckIns.length === 0 ? (
-          <p className="text-sand-dark text-sm">No check-ins yet. Log your skin&apos;s journey! 🌸</p>
+          <p className="text-sand-dark text-sm">No check-ins yet. Log your skin&apos;s journey.</p>
         ) : (
           <div className="space-y-3">
             {[...data.skinCheckIns].reverse().slice(0, 15).map((c) => (

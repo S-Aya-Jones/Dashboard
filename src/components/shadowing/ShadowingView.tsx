@@ -46,7 +46,7 @@ export function ShadowingView({ data, update }: Props) {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="font-serif text-4xl text-brown">Shadowing & Clinical Hours</h1>
-          <p className="text-sand-dark mt-1">Building your foundation for dermatology 🩺</p>
+          <p className="text-sand-dark mt-1">Building your foundation for dermatology</p>
         </div>
         <Button onClick={() => setLogOpen(true)}>
           <Plus size={14} className="mr-1.5 inline" /> Log Session
@@ -64,7 +64,7 @@ export function ShadowingView({ data, update }: Props) {
         </Card>
         <Card className="text-center">
           <p className="font-serif text-4xl text-brown">{specialtyMap["Dermatology"] ?? 0}</p>
-          <p className="text-sm text-sand-dark mt-1">Dermatology hours ✨</p>
+          <p className="text-sm text-sand-dark mt-1">Dermatology hours</p>
         </Card>
       </div>
 
@@ -88,7 +88,7 @@ export function ShadowingView({ data, update }: Props) {
 
       <Card title="Session Log">
         {data.shadowingSessions.length === 0 ? (
-          <p className="text-sand-dark text-sm">No sessions logged yet. Add your first! 🌟</p>
+          <p className="text-sand-dark text-sm">No sessions logged yet. Add your first.</p>
         ) : (
           <div className="space-y-3">
             {[...data.shadowingSessions].reverse().map((s) => (

@@ -37,7 +37,7 @@ export function WinsView({ data, update }: Props) {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="font-serif text-4xl text-brown">Wins Jar ⭐</h1>
+        <h1 className="font-serif text-4xl text-brown">Wins Jar</h1>
         <p className="text-sand-dark mt-1">When anxiety lies to you, scroll here. Evidence of your greatness.</p>
       </div>
 
@@ -55,7 +55,7 @@ export function WinsView({ data, update }: Props) {
             <Plus size={14} className="mr-1 inline" /> Add Win
           </Button>
         </div>
-        <p className="text-xs text-sand-dark mt-2">{data.wins.length} wins logged total ✨</p>
+        <p className="text-xs text-sand-dark mt-2">{data.wins.length} wins logged</p>
       </Card>
 
       <div className="relative">
@@ -73,7 +73,7 @@ export function WinsView({ data, update }: Props) {
         {filtered.length === 0 ? (
           <Card>
             <p className="text-sand-dark text-sm text-center py-4">
-              {search ? "No wins match that search." : "No wins yet — add your first! You already have some. 🌟"}
+              {search ? "No wins match that search." : "No wins yet — add your first win above."}
             </p>
           </Card>
         ) : (

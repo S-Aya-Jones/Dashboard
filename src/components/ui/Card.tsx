@@ -17,7 +17,7 @@ export function Card({ children, className = "", title, subtitle, action }: Card
         <div className="flex items-start justify-between mb-4">
           <div>
             {title && <h2 className="font-serif text-xl text-white">{title}</h2>}
-            {subtitle && <p className="text-sm text-white/45 mt-0.5">{subtitle}</p>}
+            {subtitle && <p className="text-sm text-white/50 mt-0.5">{subtitle}</p>}
           </div>
           {action && <div>{action}</div>}
         </div>

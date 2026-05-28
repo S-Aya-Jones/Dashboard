@@ -48,7 +48,7 @@ export function ConnectionsView({ data, update }: Props) {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="font-serif text-4xl text-brown">Connections</h1>
-          <p className="text-sand-dark mt-1">People who fill your cup 💛</p>
+          <p className="text-sand-dark mt-1">People who fill your cup</p>
         </div>
         <Button onClick={() => setLogOpen(true)}>
           <Plus size={14} className="mr-1.5 inline" /> Log Time Together
@@ -75,7 +75,7 @@ export function ConnectionsView({ data, update }: Props) {
 
       <Card title="Connection Log">
         {data.connectionLogs.length === 0 ? (
-          <p className="text-sand-dark text-sm">No connections logged yet. Life is better with people in it 🌸</p>
+          <p className="text-sand-dark text-sm">No connections logged yet. Life is better with people in it.</p>
         ) : (
           <div className="space-y-3">
             {[...data.connectionLogs].reverse().slice(0, 25).map((log) => (

@@ -97,7 +97,7 @@ export function TodayView({ data, update }: Props) {
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="font-serif text-4xl text-brown">
-            {greetingByTime()}, Aya 🌿
+            {greetingByTime()}, Aya
           </h1>
           <p className="text-sand-dark text-lg mt-1">
             {format(new Date(), "EEEE, MMMM d, yyyy")}
@@ -137,7 +137,7 @@ export function TodayView({ data, update }: Props) {
         </Card>
 
         {/* Yesterday's win reminder */}
-        <Card title="Yesterday's Win 🌟" subtitle="A reminder of something good">
+        <Card title="Yesterday's Win" subtitle="A reminder of something good">
           {yesterdayWin ? (
             <p className="text-brown italic text-sm leading-relaxed">&ldquo;{yesterdayWin.text}&rdquo;</p>
           ) : (
@@ -152,7 +152,7 @@ export function TodayView({ data, update }: Props) {
               onKeyDown={(e) => { if (e.key === "Enter") addWin(); }}
             />
             <Button onClick={addWin} size="sm" variant="secondary">
-              Add to Wins Jar ✨
+              Add to Wins Jar
             </Button>
           </div>
         </Card>
@@ -173,7 +173,7 @@ export function TodayView({ data, update }: Props) {
         </div>
       }>
         {todayTasks.length === 0 ? (
-          <p className="text-sand-dark text-sm">No tasks yet — add one above ☁️</p>
+          <p className="text-sand-dark text-sm">No tasks yet — add one above</p>
         ) : (
           <ul className="space-y-2">
             {todayTasks.map((task) => (
@@ -239,7 +239,7 @@ export function TodayView({ data, update }: Props) {
 
         {/* Exposure prompt */}
         <Card
-          title="Today's Brave Thing 🌱"
+          title="Today's Brave Thing"
           subtitle="Exposure therapy — one step at a time"
         >
           {data.exposureLog.filter((e) => e.date === t).length > 0 ? (
@@ -250,7 +250,7 @@ export function TodayView({ data, update }: Props) {
                   <span className="text-brown">{e.description}</span>
                 </div>
               ))}
-              <p className="text-xs text-sage mt-2">You showed up today. That matters. 💛</p>
+              <p className="text-xs text-sage mt-2">You showed up today. That matters.</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -264,7 +264,7 @@ export function TodayView({ data, update }: Props) {
                 onChange={(e) => setExposureNote(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") addExposure(); }}
               />
-              <Button onClick={addExposure} size="sm" variant="secondary">Log It 🌱</Button>
+              <Button onClick={addExposure} size="sm" variant="secondary">Log It</Button>
             </div>
           )}
           <div className="mt-4 pt-3 border-t border-cream-darker">

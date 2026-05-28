@@ -88,7 +88,7 @@ export function GoalsView({ data, update }: Props) {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="font-serif text-4xl text-brown">Goals</h1>
-          <p className="text-sand-dark mt-1">Quarterly & yearly vision — your future is being built right now 🌟</p>
+          <p className="text-sand-dark mt-1">Quarterly & yearly vision — your future is being built right now</p>
         </div>
         <Button onClick={() => setAddOpen(true)}>
           <Plus size={14} className="mr-1.5 inline" /> Add Goal
@@ -192,7 +192,7 @@ export function GoalsView({ data, update }: Props) {
 
       {goals.length === 0 && (
         <Card>
-          <p className="text-sand-dark text-sm text-center py-6">No goals set for {activeTab === "quarterly" ? "this quarter" : "this year"} yet. What do you want to create? 🌱</p>
+          <p className="text-sand-dark text-sm text-center py-6">No goals set for {activeTab === "quarterly" ? "this quarter" : "this year"} yet. Add one above.</p>
         </Card>
       )}
 

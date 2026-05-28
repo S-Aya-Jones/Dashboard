@@ -71,7 +71,7 @@ export function HabitsView({ data, update }: Props) {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-serif text-4xl text-brown">Habit Tracker</h1>
-          <p className="text-sand-dark mt-1">Small consistent steps 🌱</p>
+          <p className="text-sand-dark mt-1">Small consistent steps</p>
         </div>
         <Button variant="secondary" onClick={() => setManageOpen(true)}>
           <Settings size={14} className="mr-1.5 inline" />

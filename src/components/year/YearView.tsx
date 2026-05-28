@@ -63,7 +63,7 @@ export function YearView({ data, update }: Props) {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="font-serif text-4xl text-brown">Year View — {YEAR}</h1>
-          <p className="text-sand-dark mt-1">Your vision, your word, your year 🌟</p>
+          <p className="text-sand-dark mt-1">Your vision, your word, your year</p>
         </div>
         <Button onClick={save}>{saved ? "Saved ✓" : "Save Reflection"}</Button>
       </div>

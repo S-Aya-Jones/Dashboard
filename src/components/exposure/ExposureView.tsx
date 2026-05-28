@@ -86,7 +86,7 @@ export function ExposureView({ data, update }: Props) {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="font-serif text-4xl text-brown">Exposure Therapy</h1>
-          <p className="text-sand-dark mt-1">Every step forward counts, no matter how small 🌱</p>
+          <p className="text-sand-dark mt-1">Every step forward counts, no matter how small</p>
         </div>
         <div className="flex gap-2">
           <Button variant="secondary" onClick={() => setDriveOpen(true)}>
@@ -105,7 +105,7 @@ export function ExposureView({ data, update }: Props) {
             <span className="font-serif text-4xl text-brown">{streak}</span>
           </div>
           <p className="text-sm text-sand-dark">Day streak</p>
-          <p className="text-xs text-sand mt-1">Keep showing up 💛</p>
+          <p className="text-xs text-sand mt-1">Keep showing up</p>
         </Card>
         <Card className="text-center">
           <span className="font-serif text-4xl text-brown">{data.exposureLog.length}</span>
@@ -119,7 +119,7 @@ export function ExposureView({ data, update }: Props) {
 
       {/* Trend chart */}
       {chartData.length > 1 && (
-        <Card title="Anxiety Trends Over Time" subtitle="Weekly averages — watch it go down 📉">
+        <Card title="Anxiety Trends Over Time" subtitle="Weekly averages — watch the numbers drop">
           <div className="h-52 mt-2">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
@@ -147,7 +147,7 @@ export function ExposureView({ data, update }: Props) {
       {/* Recent exposures */}
       <Card title="Exposure Log" subtitle="Your recent bravery record">
         {data.exposureLog.length === 0 ? (
-          <p className="text-sand-dark text-sm">No exposures logged yet. Add your first one! 🌸</p>
+          <p className="text-sand-dark text-sm">No exposures logged yet. Add your first.</p>
         ) : (
           <div className="space-y-3">
             {[...data.exposureLog].reverse().slice(0, 20).map((entry) => (
@@ -187,7 +187,7 @@ export function ExposureView({ data, update }: Props) {
       </Card>
 
       {/* Driving log */}
-      <Card title="Driving Log 🚗" subtitle="Your specific driving phobia work">
+      <Card title="Driving Log" subtitle="Your specific driving phobia work">
         {data.drivingLog.length === 0 ? (
           <p className="text-sand-dark text-sm">No drives logged yet. Every drive is progress.</p>
         ) : (
@@ -236,7 +236,7 @@ export function ExposureView({ data, update }: Props) {
       </Modal>
 
       {/* Log Drive Modal */}
-      <Modal open={driveOpen} onClose={() => setDriveOpen(false)} title="Log a Drive 🚗">
+      <Modal open={driveOpen} onClose={() => setDriveOpen(false)} title="Log a Drive">
         <div className="space-y-4">
           <div>
             <label className="text-xs font-medium text-brown block mb-1">Where did you drive?</label>
