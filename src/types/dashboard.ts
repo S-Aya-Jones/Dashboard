@@ -428,6 +428,42 @@ export interface DashboardData {
 
   // Apple Health (via Health Auto Export)
   health?: HealthData;
+
+  // Workout program
+  workout?: WorkoutData;
+}
+
+// ── Workout ────────────────────────────────────────────────────────────────
+
+export interface WorkoutSetLog {
+  weight: number; // lbs, 0 for bodyweight
+  reps: number;
+}
+
+export interface ExerciseSessionLog {
+  exerciseId: string;
+  exerciseName: string;
+  sets: WorkoutSetLog[];
+}
+
+export interface WorkoutSessionLog {
+  id: string;
+  date: string; // YYYY-MM-DD
+  programDayId: string;
+  dayLabel: string;
+  exercises: ExerciseSessionLog[];
+  completedAt?: string; // ISO
+}
+
+export interface WalkingLog {
+  date: string; // YYYY-MM-DD
+  steps?: number;
+  miles?: number;
+}
+
+export interface WorkoutData {
+  sessionLogs: WorkoutSessionLog[];
+  walkingLogs: WalkingLog[];
 }
 
 export const defaultDashboardData = (): DashboardData => ({
@@ -500,4 +536,5 @@ export const defaultDashboardData = (): DashboardData => ({
   yearReflections: [],
   visionBoard: { items: [] },
   nutrition: { meals: [], recipes: [], groceryItems: [], pantryItems: [], shetritionImages: [] },
+  workout: { sessionLogs: [], walkingLogs: [] },
 });

@@ -19,6 +19,7 @@ const navItems = [
   { href: "/school", label: "School & Schedule", icon: Target },
   { href: "/shadowing", label: "Shadowing", icon: Activity },
   { href: "/fitness", label: "Fitness & Sleep", icon: Dumbbell },
+  { href: "/workout", label: "Workout", icon: Activity },
   { href: "/skincare", label: "Skincare", icon: Sparkles },
   { href: "/finances", label: "Finances", icon: DollarSign },
   { href: "/connections", label: "Connections", icon: Users },
