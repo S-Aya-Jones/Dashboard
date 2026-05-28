@@ -227,7 +227,7 @@ export function TodayView({ data, update }: Props) {
                   style={done ? { background: `${habit.color}15`, borderColor: `${habit.color}40` } : {}}
                 >
                   <span className="text-lg">{habit.icon}</span>
-                  <span className={`text-sm flex-1 ${done ? "line-through" : ""}`} style={done ? { color: habit.color } : { color: "#342A21" }}>
+                  <span className={`text-sm flex-1 ${done ? "line-through" : ""}`} style={done ? { color: habit.color } : { color: "#FFFFFF" }}>
                     {habit.name}
                   </span>
                   {done && <Check size={14} style={{ color: habit.color }} />}

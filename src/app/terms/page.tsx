@@ -9,10 +9,10 @@ export default function TermsPage() {
   return (
     <div
       style={{
-        background: "#F1E0C5",
+        background: "#111111",
         minHeight: "100vh",
         fontFamily: "'Inter', system-ui, sans-serif",
-        color: "#342A21",
+        color: "#FFFFFF",
       }}
     >
       <div style={{ maxWidth: "720px", margin: "0 auto", padding: "3rem 1.5rem 5rem" }}>
@@ -40,7 +40,7 @@ export default function TermsPage() {
               fontFamily: "'Cormorant Garamond', Georgia, serif",
               fontSize: "clamp(2rem, 5vw, 3rem)",
               fontWeight: 500,
-              color: "#342A21",
+              color: "#FFFFFF",
               margin: "0 0 0.5rem",
               lineHeight: 1.15,
             }}
@@ -219,15 +219,15 @@ function Section({ title, children }: { title: string; children: React.ReactNode
           fontFamily: "'Cormorant Garamond', Georgia, serif",
           fontSize: "1.35rem",
           fontWeight: 500,
-          color: "#342A21",
+          color: "#FFFFFF",
           margin: "0 0 0.75rem",
           paddingBottom: "0.35rem",
-          borderBottom: "1px solid rgba(201,183,156,0.3)",
+          borderBottom: "1px solid rgba(255,255,255,0.08)",
         }}
       >
         {title}
       </h2>
-      <div style={{ color: "#342A21" }}>
+      <div style={{ color: "#FFFFFF" }}>
         {children}
       </div>
     </div>

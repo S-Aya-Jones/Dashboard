@@ -123,10 +123,10 @@ export function ExposureView({ data, update }: Props) {
           <div className="h-52 mt-2">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#DAC9A8" />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                 <XAxis dataKey="week" tick={{ fontSize: 11, fill: "#A8967E" }} />
                 <YAxis domain={[0, 10]} tick={{ fontSize: 11, fill: "#A8967E" }} />
-                <Tooltip contentStyle={{ background: "#FAF3E8", border: "1px solid #DAC9A8", borderRadius: "8px", fontSize: "12px" }} />
+                <Tooltip contentStyle={{ background: "#141414", border: "1px solid #DAC9A8", borderRadius: "8px", fontSize: "12px" }} />
                 <Line type="monotone" dataKey="before" stroke="#C99A5C" name="Before" strokeWidth={2} dot={{ r: 3 }} />
                 <Line type="monotone" dataKey="peak" stroke="#DA667B" name="Peak" strokeWidth={2} dot={{ r: 3 }} strokeDasharray="4 2" />
                 <Line type="monotone" dataKey="after" stroke="#71816D" name="After" strokeWidth={2} dot={{ r: 3 }} />

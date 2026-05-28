@@ -1020,7 +1020,7 @@ export function FinancesView({ data, update }: Props) {
       </Modal>
 
       {/* ── Footer disclaimer ── */}
-      <p className="text-[11px] text-center pb-2" style={{ color: "rgba(52,42,33,0.5)" }}>
+      <p className="text-[11px] text-center pb-2" style={{ color: "rgba(255,255,255,0.45)" }}>
         Balances and transactions may lag your bank by a few hours. Tap Refresh to request the latest from your bank.
       </p>
 

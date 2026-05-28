@@ -11,7 +11,7 @@ interface SliderProps {
 }
 
 const levelColors: Record<number, string> = {
-  1: "#71816D", 2: "#8A9E87", 3: "#C9B79C",
+  1: "#71816D", 2: "#8A9E87", 3: "rgba(255,255,255,0.3)",
   4: "#C99A5C", 5: "#C97B5E", 6: "#C86070",
   7: "#DA667B", 8: "#C95070", 9: "#B84060", 10: "#A03050",
 };

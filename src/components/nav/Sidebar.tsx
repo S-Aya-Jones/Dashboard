@@ -42,22 +42,22 @@ export function Sidebar({ saving = false }: SidebarProps) {
     <aside
       className={`
         flex flex-col h-screen sticky top-0
-        border-r border-sand transition-all duration-300
+        border-r border-white/8 transition-all duration-300
         ${collapsed ? "w-16" : "w-56"}
       `}
-      style={{ background: "rgba(246, 239, 223, 0.95)", backdropFilter: "blur(8px)" }}
+      style={{ background: "#0D0D0D" }}
     >
       {/* Logo */}
       <div className={`px-4 pt-6 pb-4 flex items-center ${collapsed ? "justify-center" : "justify-between"}`}>
         {!collapsed && (
           <div>
-            <h1 className="font-serif text-2xl text-brown leading-tight">Aya&apos;s</h1>
-            <p className="text-xs text-terracotta font-medium tracking-wide">Dashboard</p>
+            <h1 className="font-serif text-2xl text-white leading-tight">Aya&apos;s</h1>
+            <p className="text-xs font-medium tracking-wide" style={{ color: "#C8FF00" }}>Dashboard</p>
           </div>
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="p-1.5 rounded-lg hover:bg-cream-darker text-sand-dark hover:text-brown transition-colors"
+          className="p-1.5 rounded-lg text-white/30 hover:text-white hover:bg-white/5 transition-colors"
         >
           {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </button>
@@ -75,11 +75,12 @@ export function Sidebar({ saving = false }: SidebarProps) {
                 flex items-center gap-3 px-3 py-2.5 rounded-xl
                 text-sm transition-all duration-150
                 ${active
-                  ? "bg-terracotta text-white shadow-soft"
-                  : "text-brown hover:bg-cream-darker"
+                  ? "shadow-soft"
+                  : "text-white/50 hover:text-white hover:bg-white/5"
                 }
                 ${collapsed ? "justify-center" : ""}
               `}
+              style={active ? { color: "#C8FF00", background: "rgba(200,255,0,0.1)" } : undefined}
               title={collapsed ? label : undefined}
             >
               <Icon size={17} className="flex-shrink-0" />

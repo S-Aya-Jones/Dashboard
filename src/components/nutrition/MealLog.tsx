@@ -9,8 +9,8 @@ const MEAL_TYPES = ["breakfast", "lunch", "dinner", "snack"] as const;
 const TYPE_COLORS: Record<string, string> = {
   breakfast: "#C99A5C",
   lunch:     "#71816D",
-  dinner:    "#342A21",
-  snack:     "#C9B79C",
+  dinner:    "#FFFFFF",
+  snack:     "rgba(255,255,255,0.3)",
 };
 
 function SerifRating({
@@ -31,7 +31,7 @@ function SerifRating({
           onClick={() => !readonly && onChange?.(n)}
           className="font-serif text-xl leading-none transition-colors"
           style={{
-            color: n <= value ? "#DA667B" : "#C9B79C",
+            color: n <= value ? "#DA667B" : "rgba(255,255,255,0.3)",
             cursor: readonly ? "default" : "pointer",
             fontFamily: "'Cormorant Garamond', Georgia, serif",
           }}
@@ -79,7 +79,7 @@ function MealDetail({ meal, onBack, onDelete }: { meal: MealEntry; onBack: () =>
 
       <div className="text-center mb-6 max-w-lg mx-auto">
         <h1 className="font-serif mb-3"
-          style={{ color: "#342A21", fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(2rem, 5vw, 3rem)", lineHeight: 1.1 }}>
+          style={{ color: "#FFFFFF", fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "clamp(2rem, 5vw, 3rem)", lineHeight: 1.1 }}>
           {meal.name}
         </h1>
         <div className="flex items-center justify-center gap-3 mb-3">
@@ -95,7 +95,7 @@ function MealDetail({ meal, onBack, onDelete }: { meal: MealEntry; onBack: () =>
       {meal.tags.length > 0 && (
         <div className="flex flex-wrap gap-2 justify-center mb-6">
           {meal.tags.map((t) => (
-            <span key={t} className="text-sm px-3 py-1 rounded-full" style={{ background: "rgba(201,183,156,0.2)", color: "#71816D" }}>
+            <span key={t} className="text-sm px-3 py-1 rounded-full" style={{ background: "rgba(255,255,255,0.06)", color: "#71816D" }}>
               #{t}
             </span>
           ))}
@@ -104,8 +104,8 @@ function MealDetail({ meal, onBack, onDelete }: { meal: MealEntry; onBack: () =>
 
       {meal.notes && (
         <div className="max-w-lg mx-auto rounded-2xl p-5 text-center"
-          style={{ background: "rgba(201,183,156,0.12)", border: "1px solid rgba(201,183,156,0.3)" }}>
-          <p className="text-sm italic leading-relaxed" style={{ color: "rgba(52,42,33,0.7)" }}>
+          style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+          <p className="text-sm italic leading-relaxed" style={{ color: "rgba(255,255,255,0.65)" }}>
             &ldquo;{meal.notes}&rdquo;
           </p>
         </div>
@@ -124,7 +124,7 @@ function MealCard({ meal, onClick, onDelete }: { meal: MealEntry; onClick: () =>
     <div
       className="group break-inside-avoid mb-4 rounded-2xl overflow-hidden cursor-pointer transition-all duration-200 hover:-translate-y-1"
       style={{
-        background: "#FAF3E8",
+        background: "#141414",
         border: "1px solid rgba(201,183,156,0.35)",
         boxShadow: "0 3px 14px rgba(52,42,33,0.09)",
       }}
@@ -146,7 +146,7 @@ function MealCard({ meal, onClick, onDelete }: { meal: MealEntry; onClick: () =>
           </span>
           {meal.photos.length > 1 && (
             <span className="absolute top-3 right-3 text-[10px] font-medium px-1.5 py-0.5 rounded-full"
-              style={{ background: "rgba(52,42,33,0.55)", color: "white" }}>
+              style={{ background: "rgba(255,255,255,0.5)", color: "white" }}>
               +{meal.photos.length - 1}
             </span>
           )}
@@ -160,7 +160,7 @@ function MealCard({ meal, onClick, onDelete }: { meal: MealEntry; onClick: () =>
           </button>
         </div>
       ) : (
-        <div className="w-full flex items-center justify-center relative" style={{ height: "100px", background: "rgba(201,183,156,0.18)" }}>
+        <div className="w-full flex items-center justify-center relative" style={{ height: "100px", background: "rgba(255,255,255,0.05)" }}>
           <span className="text-3xl">🍽️</span>
           <span className="absolute top-3 left-3 text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize"
             style={{ background: "rgba(250,243,232,0.9)", color: TYPE_COLORS[meal.mealType] }}>
@@ -179,7 +179,7 @@ function MealCard({ meal, onClick, onDelete }: { meal: MealEntry; onClick: () =>
       <div className="px-4 pt-3 pb-4">
         <div className="flex items-start justify-between gap-2 mb-1">
           <h3 className="font-serif text-lg leading-tight"
-            style={{ color: "#342A21", fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
+            style={{ color: "#FFFFFF", fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
             {meal.name}
           </h3>
           <span className="text-[11px] flex-shrink-0 mt-0.5" style={{ color: "#A8967E" }}>{fmt(meal.date)}</span>
@@ -199,7 +199,7 @@ function MealCard({ meal, onClick, onDelete }: { meal: MealEntry; onClick: () =>
         )}
 
         {meal.notes && (
-          <p className="text-xs mt-2 italic line-clamp-2" style={{ color: "rgba(52,42,33,0.55)" }}>
+          <p className="text-xs mt-2 italic line-clamp-2" style={{ color: "rgba(255,255,255,0.5)" }}>
             &ldquo;{meal.notes}&rdquo;
           </p>
         )}
@@ -254,10 +254,10 @@ function AddMealForm({
   }
 
   const inputStyle = {
-    background: "#F7EDD8",
-    border: "1px solid rgba(201,183,156,0.5)",
+    background: "#1C1C1C",
+    border: "1px solid rgba(255,255,255,0.12)",
     borderRadius: "10px",
-    color: "#342A21",
+    color: "#FFFFFF",
     padding: "8px 12px",
     fontSize: "14px",
     outline: "none",
@@ -266,8 +266,8 @@ function AddMealForm({
 
   return (
     <div className="rounded-2xl p-5 mb-6"
-      style={{ background: "#FAF3E8", border: "1px solid rgba(201,183,156,0.4)", boxShadow: "0 4px 20px rgba(52,42,33,0.10)" }}>
-      <h3 className="font-serif text-2xl mb-4" style={{ color: "#342A21", fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
+      style={{ background: "#141414", border: "1px solid rgba(201,183,156,0.4)", boxShadow: "0 4px 20px rgba(52,42,33,0.10)" }}>
+      <h3 className="font-serif text-2xl mb-4" style={{ color: "#FFFFFF", fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
         Log a Meal
       </h3>
 
@@ -297,7 +297,7 @@ function AddMealForm({
                 <button type="button"
                   onClick={() => setPhotos((arr) => arr.filter((_, j) => j !== i))}
                   className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full flex items-center justify-center"
-                  style={{ background: "rgba(52,42,33,0.7)" }}>
+                  style={{ background: "rgba(255,255,255,0.65)" }}>
                   <X size={9} color="white" />
                 </button>
               </div>
@@ -417,7 +417,7 @@ export function MealLog({
       {adding && <AddMealForm onSave={saveMeal} onCancel={() => setAdding(false)} />}
 
       {filtered.length === 0 ? (
-        <div className="text-center py-16" style={{ color: "rgba(52,42,33,0.4)" }}>
+        <div className="text-center py-16" style={{ color: "rgba(255,255,255,0.35)" }}>
           <p className="font-serif text-2xl mb-2" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
             Nothing logged yet
           </p>

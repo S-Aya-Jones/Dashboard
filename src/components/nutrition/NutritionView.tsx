@@ -49,11 +49,11 @@ export function NutritionView({
       <div className="mb-7">
         <h1
           className="font-serif text-4xl mb-1"
-          style={{ color: "#342A21", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+          style={{ color: "#FFFFFF", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
         >
           Food Journal
         </h1>
-        <p className="text-sm" style={{ color: "rgba(52,42,33,0.5)" }}>
+        <p className="text-sm" style={{ color: "rgba(255,255,255,0.45)" }}>
           Log meals, save recipes, and keep your kitchen in check.
         </p>
       </div>
@@ -61,7 +61,7 @@ export function NutritionView({
       {/* Tabs */}
       <div
         className="flex gap-1 p-1 rounded-2xl mb-8 overflow-x-auto"
-        style={{ background: "rgba(201,183,156,0.18)" }}
+        style={{ background: "rgba(255,255,255,0.05)" }}
       >
         {TABS.map(({ id, label }) => {
           const active = tab === id;
@@ -76,9 +76,9 @@ export function NutritionView({
               onClick={() => setTab(id)}
               className="relative flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-150 flex-shrink-0"
               style={{
-                background: active ? "#FAF3E8" : "transparent",
-                color:      active ? "#342A21" : "rgba(52,42,33,0.5)",
-                boxShadow:  active ? "0 2px 8px rgba(52,42,33,0.08)" : "none",
+                background: active ? "#141414" : "transparent",
+                color:      active ? "#FFFFFF" : "rgba(255,255,255,0.45)",
+                boxShadow:  active ? "0 2px 8px rgba(255,255,255,0.06)" : "none",
               }}
             >
               {label}

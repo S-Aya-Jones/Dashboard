@@ -1,16 +1,16 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Inter:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --cream: #F1E0C5;
-  --brown: #342A21;
-  --terracotta: #DA667B;
-  --sage: #71816D;
-  --rose: #DA667B;
-  --sand: #C9B79C;
+  --cream: #0A0A0A;
+  --brown: #FFFFFF;
+  --terracotta: #C8FF00;
+  --sage: #9B7FFF;
+  --rose: #FF6B9D;
+  --sand: rgba(255,255,255,0.35);
 }
 
 * {
@@ -22,22 +22,21 @@ html {
 }
 
 body {
-  background-color: var(--cream);
-  color: var(--brown);
+  background-color: #0A0A0A;
+  color: #FFFFFF;
   font-family: 'Inter', system-ui, sans-serif;
   min-height: 100vh;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
 }
 
 h1, h2, h3 {
-  font-family: 'Cormorant Garamond', Georgia, serif;
-  font-weight: 500;
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-weight: 600;
 }
 
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #F1E0C5; }
-::-webkit-scrollbar-thumb { background: #C9B79C; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #71816D; }
+::-webkit-scrollbar-track { background: #111111; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
 
 @keyframes checkPop {
   0% { transform: scale(0.8); }
@@ -45,20 +44,49 @@ h1, h2, h3 {
   100% { transform: scale(1); }
 }
 
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes slideUp {
+  0% { transform: translateY(10px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes gentleBounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+@keyframes pop {
+  0% { transform: scale(0.8); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  animation: marquee 50s linear infinite;
+}
+
 .checkbox-checked {
   animation: checkPop 0.25s ease-out;
 }
 
 .card {
-  background: #FAF3E8;
+  background: #141414;
   border-radius: 1rem;
-  box-shadow: 0 4px 20px rgba(52, 42, 33, 0.10);
-  border: 1px solid rgba(201, 183, 156, 0.3);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+  border: 1px solid rgba(255,255,255,0.06);
   transition: box-shadow 0.2s ease;
 }
 
 .card:hover {
-  box-shadow: 0 6px 25px rgba(52, 42, 33, 0.15);
+  box-shadow: 0 6px 32px rgba(0,0,0,0.5);
 }
 
 input[type="text"],
@@ -66,13 +94,13 @@ input[type="number"],
 input[type="date"],
 textarea,
 select {
-  background: #F7EDD8;
-  border: 1px solid rgba(201, 183, 156, 0.6);
+  background: #1C1C1C;
+  border: 1px solid rgba(255,255,255,0.1);
   border-radius: 0.5rem;
   padding: 0.5rem 0.75rem;
   font-family: 'Inter', sans-serif;
   font-size: 0.875rem;
-  color: #342A21;
+  color: #FFFFFF;
   transition: border-color 0.2s;
   outline: none;
   width: 100%;
@@ -83,12 +111,12 @@ input[type="number"]:focus,
 input[type="date"]:focus,
 textarea:focus,
 select:focus {
-  border-color: #71816D;
-  box-shadow: 0 0 0 3px rgba(113, 129, 109, 0.15);
+  border-color: #9B7FFF;
+  box-shadow: 0 0 0 3px rgba(155,127,255,0.15);
 }
 
 input::placeholder, textarea::placeholder {
-  color: #C9B79C;
+  color: rgba(255,255,255,0.3);
 }
 
 /* Vision Board masonry */

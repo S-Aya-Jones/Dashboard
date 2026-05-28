@@ -18,7 +18,7 @@ const SESSION_TYPES = [
   { value: "gym",    label: "Gym 🏋🏾‍♀️",          color: "#71816D" },
   { value: "tennis", label: "Tennis 🎾",           color: "#DA667B" },
   { value: "walk",   label: "Morning Walk 🚶🏾‍♀️",   color: "#8A9E87" },
-  { value: "other",  label: "Other",               color: "#C9B79C" },
+  { value: "other",  label: "Other",               color: "rgba(255,255,255,0.3)" },
 ];
 
 // ── Apple Health helpers ───────────────────────────────────────────────────
@@ -53,7 +53,7 @@ function workoutColor(type: string): string {
   for (const [key, color] of WORKOUT_COLORS) {
     if (t.includes(key)) return color;
   }
-  return "#C9B79C";
+  return "rgba(255,255,255,0.3)";
 }
 
 function dayColor(date: string, health: HealthData | undefined): string {
@@ -62,7 +62,7 @@ function dayColor(date: string, health: HealthData | undefined): string {
   const snap = health?.daily?.[date];
   if ((snap?.exerciseMinutes ?? 0) > 0) return "#8A9E87";
   if ((snap?.steps ?? 0) > 3000) return "#C99A5C";
-  return "#F1E0C5";
+  return "#111111";
 }
 
 function calcStreak(health: HealthData | undefined): number {
@@ -117,7 +117,7 @@ function BarChart({ values, maxVal, color, height = 48 }: BarChartProps) {
               }}
             />
           ) : (
-            <div style={{ height: 2, background: "rgba(201,183,156,0.2)" }} className="rounded-t-sm" />
+            <div style={{ height: 2, background: "rgba(255,255,255,0.06)" }} className="rounded-t-sm" />
           )}
         </div>
       ))}
@@ -135,19 +135,19 @@ function AppleHealthTab({ data }: { data: DashboardData }) {
     return (
       <div
         className="rounded-2xl p-8 text-center space-y-4"
-        style={{ background: "rgba(201,183,156,0.12)", border: "1.5px dashed rgba(201,183,156,0.5)" }}
+        style={{ background: "rgba(255,255,255,0.04)", border: "1.5px dashed rgba(255,255,255,0.12)" }}
       >
         <div className="text-4xl">📱</div>
-        <h3 className="font-serif text-xl" style={{ color: "#342A21" }}>Connect Apple Health</h3>
-        <p className="text-sm max-w-md mx-auto" style={{ color: "rgba(52,42,33,0.55)" }}>
+        <h3 className="font-serif text-xl" style={{ color: "#FFFFFF" }}>Connect Apple Health</h3>
+        <p className="text-sm max-w-md mx-auto" style={{ color: "rgba(255,255,255,0.5)" }}>
           Use the <strong>Health Auto Export</strong> app to sync your Apple Health data here automatically.
         </p>
         <div
           className="rounded-xl p-4 text-left text-sm space-y-2 max-w-md mx-auto"
-          style={{ background: "#FAF3E8" }}
+          style={{ background: "#141414" }}
         >
-          <p className="font-medium" style={{ color: "#342A21" }}>Setup steps:</p>
-          <ol className="space-y-1.5 list-decimal list-inside" style={{ color: "rgba(52,42,33,0.7)" }}>
+          <p className="font-medium" style={{ color: "#FFFFFF" }}>Setup steps:</p>
+          <ol className="space-y-1.5 list-decimal list-inside" style={{ color: "rgba(255,255,255,0.65)" }}>
             <li>Download <strong>Health Auto Export</strong> from the App Store</li>
             <li>Open the app → <strong>Automations</strong> tab → <strong>+</strong></li>
             <li>Choose <strong>REST API</strong> as the export type</li>
@@ -159,7 +159,7 @@ function AppleHealthTab({ data }: { data: DashboardData }) {
         </div>
         <div
           className="rounded-xl p-3 text-left max-w-md mx-auto font-mono text-xs space-y-1.5"
-          style={{ background: "rgba(52,42,33,0.06)", color: "#342A21" }}
+          style={{ background: "rgba(255,255,255,0.06)", color: "#FFFFFF" }}
         >
           <p><span style={{ color: "#71816D" }}>URL:</span> https://your-app.vercel.app/api/health/import</p>
           <p><span style={{ color: "#71816D" }}>Method:</span> POST</p>
@@ -188,7 +188,7 @@ function AppleHealthTab({ data }: { data: DashboardData }) {
       <div>
         <h2
           className="font-serif text-xl mb-3"
-          style={{ color: "#342A21", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+          style={{ color: "#FFFFFF", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
         >
           Today&apos;s Movement
         </h2>
@@ -232,13 +232,13 @@ function AppleHealthTab({ data }: { data: DashboardData }) {
               <div
                 key={item.label}
                 className="rounded-2xl p-4 flex flex-col gap-2"
-                style={{ background: "#FAF3E8" }}
+                style={{ background: "#141414" }}
               >
                 <div className="flex items-center justify-between">
                   <span style={{ color: item.color }}>{item.icon}</span>
                   <div
                     className="h-1.5 flex-1 mx-3 rounded-full overflow-hidden"
-                    style={{ background: "rgba(201,183,156,0.3)" }}
+                    style={{ background: "rgba(255,255,255,0.08)" }}
                   >
                     <div
                       className="h-full rounded-full transition-all"
@@ -246,10 +246,10 @@ function AppleHealthTab({ data }: { data: DashboardData }) {
                     />
                   </div>
                 </div>
-                <p className="font-serif text-2xl leading-none" style={{ color: "#342A21" }}>
+                <p className="font-serif text-2xl leading-none" style={{ color: "#FFFFFF" }}>
                   {item.value}
                 </p>
-                <p className="text-xs" style={{ color: "rgba(52,42,33,0.5)" }}>{item.label}</p>
+                <p className="text-xs" style={{ color: "rgba(255,255,255,0.45)" }}>{item.label}</p>
               </div>
             );
           })}
@@ -261,21 +261,21 @@ function AppleHealthTab({ data }: { data: DashboardData }) {
         {/* Streak */}
         <div
           className="rounded-2xl p-5 flex flex-col items-center justify-center text-center"
-          style={{ background: "#FAF3E8" }}
+          style={{ background: "#141414" }}
         >
-          <p className="font-serif text-5xl" style={{ color: "#342A21" }}>{streak}</p>
-          <p className="text-sm mt-1" style={{ color: "rgba(52,42,33,0.55)" }}>day streak 🔥</p>
+          <p className="font-serif text-5xl" style={{ color: "#FFFFFF" }}>{streak}</p>
+          <p className="text-sm mt-1" style={{ color: "rgba(255,255,255,0.5)" }}>day streak 🔥</p>
           {streak > 0 && (
-            <p className="text-xs mt-2" style={{ color: "rgba(52,42,33,0.4)" }}>keep it going!</p>
+            <p className="text-xs mt-2" style={{ color: "rgba(255,255,255,0.35)" }}>keep it going!</p>
           )}
         </div>
 
         {/* Weekly grid */}
         <div
           className="rounded-2xl p-5 col-span-1 sm:col-span-2"
-          style={{ background: "#FAF3E8" }}
+          style={{ background: "#141414" }}
         >
-          <p className="text-xs font-medium mb-3" style={{ color: "rgba(52,42,33,0.5)" }}>This Week</p>
+          <p className="text-xs font-medium mb-3" style={{ color: "rgba(255,255,255,0.45)" }}>This Week</p>
           <div className="grid grid-cols-7 gap-2">
             {week.map((d) => {
               const date = new Date(d + "T12:00:00");
@@ -290,7 +290,7 @@ function AppleHealthTab({ data }: { data: DashboardData }) {
                     className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-medium"
                     style={{
                       background: color,
-                      color: color === "#F1E0C5" ? "rgba(52,42,33,0.35)" : "#fff",
+                      color: color === "#111111" ? "rgba(255,255,255,0.3)" : "#fff",
                       boxShadow: isToday ? "0 0 0 2px #342A21" : "none",
                     }}
                   >
@@ -307,11 +307,11 @@ function AppleHealthTab({ data }: { data: DashboardData }) {
               ["#71816D", "Strength"],
               ["#C99A5C", "Walking"],
               ["#8A9E87", "Other"],
-              ["#F1E0C5", "Rest"],
+              ["#111111", "Rest"],
             ].map(([c, l]) => (
               <div key={l} className="flex items-center gap-1">
                 <div className="w-2 h-2 rounded-full" style={{ background: c }} />
-                <span className="text-[10px]" style={{ color: "rgba(52,42,33,0.5)" }}>{l}</span>
+                <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.45)" }}>{l}</span>
               </div>
             ))}
           </div>
@@ -320,8 +320,8 @@ function AppleHealthTab({ data }: { data: DashboardData }) {
 
       {/* Recent Workouts */}
       {recentWorkouts.length > 0 && (
-        <div className="rounded-2xl p-5" style={{ background: "#FAF3E8" }}>
-          <p className="text-xs font-medium mb-3" style={{ color: "rgba(52,42,33,0.5)" }}>Recent Workouts</p>
+        <div className="rounded-2xl p-5" style={{ background: "#141414" }}>
+          <p className="text-xs font-medium mb-3" style={{ color: "rgba(255,255,255,0.45)" }}>Recent Workouts</p>
           <div className="space-y-2">
             {recentWorkouts.map((w) => {
               const color = workoutColor(w.type);
@@ -330,17 +330,17 @@ function AppleHealthTab({ data }: { data: DashboardData }) {
                 <div
                   key={w.id}
                   className="flex items-center gap-3 py-2 border-b last:border-0"
-                  style={{ borderColor: "rgba(201,183,156,0.2)" }}
+                  style={{ borderColor: "rgba(255,255,255,0.06)" }}
                 >
                   <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: color }} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate" style={{ color: "#342A21" }}>{w.type}</p>
-                    <p className="text-xs" style={{ color: "rgba(52,42,33,0.5)" }}>{dateLabel}</p>
+                    <p className="text-sm font-medium truncate" style={{ color: "#FFFFFF" }}>{w.type}</p>
+                    <p className="text-xs" style={{ color: "rgba(255,255,255,0.45)" }}>{dateLabel}</p>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="text-sm" style={{ color: "#342A21" }}>{w.durationMin} min</p>
+                    <p className="text-sm" style={{ color: "#FFFFFF" }}>{w.durationMin} min</p>
                     {w.calories && (
-                      <p className="text-xs" style={{ color: "rgba(52,42,33,0.5)" }}>{w.calories} kcal</p>
+                      <p className="text-xs" style={{ color: "rgba(255,255,255,0.45)" }}>{w.calories} kcal</p>
                     )}
                   </div>
                 </div>
@@ -353,20 +353,20 @@ function AppleHealthTab({ data }: { data: DashboardData }) {
       {/* Trends row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Sleep trend */}
-        <div className="rounded-2xl p-5" style={{ background: "#FAF3E8" }}>
+        <div className="rounded-2xl p-5" style={{ background: "#141414" }}>
           <div className="flex items-center gap-2 mb-3">
             <Moon size={13} style={{ color: "#71816D" }} />
-            <p className="text-xs font-medium" style={{ color: "rgba(52,42,33,0.5)" }}>Sleep — 30 days</p>
+            <p className="text-xs font-medium" style={{ color: "rgba(255,255,255,0.45)" }}>Sleep — 30 days</p>
           </div>
           <BarChart values={sleep30} maxVal={10} color="#71816D" height={56} />
           <div className="flex justify-between mt-1">
-            <span className="text-[10px]" style={{ color: "rgba(52,42,33,0.35)" }}>30 days ago</span>
-            <span className="text-[10px]" style={{ color: "rgba(52,42,33,0.35)" }}>today</span>
+            <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.3)" }}>30 days ago</span>
+            <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.3)" }}>today</span>
           </div>
           {sleep30.some((v) => v !== null) && (
-            <p className="text-xs mt-2" style={{ color: "rgba(52,42,33,0.5)" }}>
+            <p className="text-xs mt-2" style={{ color: "rgba(255,255,255,0.45)" }}>
               Avg{" "}
-              <span style={{ color: "#342A21" }}>
+              <span style={{ color: "#FFFFFF" }}>
                 {(
                   sleep30.filter((v): v is number => v !== null).reduce((a, b) => a + b, 0) /
                   sleep30.filter((v) => v !== null).length
@@ -379,20 +379,20 @@ function AppleHealthTab({ data }: { data: DashboardData }) {
         </div>
 
         {/* Resting HR trend */}
-        <div className="rounded-2xl p-5" style={{ background: "#FAF3E8" }}>
+        <div className="rounded-2xl p-5" style={{ background: "#141414" }}>
           <div className="flex items-center gap-2 mb-3">
             <HeartPulse size={13} style={{ color: "#DA667B" }} />
-            <p className="text-xs font-medium" style={{ color: "rgba(52,42,33,0.5)" }}>Resting HR — 30 days</p>
+            <p className="text-xs font-medium" style={{ color: "rgba(255,255,255,0.45)" }}>Resting HR — 30 days</p>
           </div>
           <BarChart values={hr30} maxVal={100} color="#DA667B" height={56} />
           <div className="flex justify-between mt-1">
-            <span className="text-[10px]" style={{ color: "rgba(52,42,33,0.35)" }}>30 days ago</span>
-            <span className="text-[10px]" style={{ color: "rgba(52,42,33,0.35)" }}>today</span>
+            <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.3)" }}>30 days ago</span>
+            <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.3)" }}>today</span>
           </div>
           {hr30.some((v) => v !== null) && (
-            <p className="text-xs mt-2" style={{ color: "rgba(52,42,33,0.5)" }}>
+            <p className="text-xs mt-2" style={{ color: "rgba(255,255,255,0.45)" }}>
               Avg{" "}
-              <span style={{ color: "#342A21" }}>
+              <span style={{ color: "#FFFFFF" }}>
                 {Math.round(
                   hr30.filter((v): v is number => v !== null).reduce((a, b) => a + b, 0) /
                     hr30.filter((v) => v !== null).length
@@ -405,7 +405,7 @@ function AppleHealthTab({ data }: { data: DashboardData }) {
       </div>
 
       {/* Last sync */}
-      <p className="text-center text-xs" style={{ color: "rgba(52,42,33,0.35)" }}>
+      <p className="text-center text-xs" style={{ color: "rgba(255,255,255,0.3)" }}>
         Last sync: {timeAgo(health.lastImportAt)}
       </p>
     </div>
@@ -469,11 +469,11 @@ export function FitnessView({ data, update }: Props) {
         <div>
           <h1
             className="font-serif text-4xl"
-            style={{ color: "#342A21", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+            style={{ color: "#FFFFFF", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
           >
             Fitness & Sleep
           </h1>
-          <p className="text-sm mt-1" style={{ color: "rgba(52,42,33,0.5)" }}>
+          <p className="text-sm mt-1" style={{ color: "rgba(255,255,255,0.45)" }}>
             Movement that brings you joy, rest that restores you 🎾
           </p>
         </div>
@@ -492,7 +492,7 @@ export function FitnessView({ data, update }: Props) {
       {/* Tabs */}
       <div
         className="flex gap-1 p-1 rounded-2xl"
-        style={{ background: "rgba(201,183,156,0.18)" }}
+        style={{ background: "rgba(255,255,255,0.05)" }}
       >
         {TABS.map(({ id: tid, label }) => (
           <button
@@ -500,9 +500,9 @@ export function FitnessView({ data, update }: Props) {
             onClick={() => setTab(tid)}
             className="px-5 py-2 rounded-xl text-sm font-medium transition-all duration-150"
             style={{
-              background: tab === tid ? "#FAF3E8" : "transparent",
-              color: tab === tid ? "#342A21" : "rgba(52,42,33,0.5)",
-              boxShadow: tab === tid ? "0 2px 8px rgba(52,42,33,0.08)" : "none",
+              background: tab === tid ? "#141414" : "transparent",
+              color: tab === tid ? "#FFFFFF" : "rgba(255,255,255,0.45)",
+              boxShadow: tab === tid ? "0 2px 8px rgba(255,255,255,0.06)" : "none",
             }}
           >
             {label}
@@ -589,7 +589,7 @@ export function FitnessView({ data, update }: Props) {
                           <div
                             key={i}
                             className="w-2 h-2 rounded-full"
-                            style={{ background: i < s.quality ? "#71816D" : "#DAC9A8" }}
+                            style={{ background: i < s.quality ? "#71816D" : "rgba(255,255,255,0.1)" }}
                           />
                         ))}
                       </div>

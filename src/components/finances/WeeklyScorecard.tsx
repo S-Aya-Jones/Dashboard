@@ -209,7 +209,7 @@ export function WeeklyScorecard({ transactions, budgetCategories, merchantCatego
                   {/* Last week ghost bar */}
                   {r.prev > 0 && (
                     <div className="absolute top-0 h-full rounded-full opacity-30"
-                      style={{ width: `${prevPct}%`, background: "#C9B79C" }} />
+                      style={{ width: `${prevPct}%`, background: "rgba(255,255,255,0.3)" }} />
                   )}
                   {/* This week bar */}
                   <div className="h-full rounded-full transition-all"

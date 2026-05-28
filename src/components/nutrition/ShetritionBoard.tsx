@@ -61,10 +61,10 @@ export function ShetritionBoard({
   }
 
   const inputStyle = {
-    background: "#F7EDD8",
-    border: "1px solid rgba(201,183,156,0.5)",
+    background: "#1C1C1C",
+    border: "1px solid rgba(255,255,255,0.12)",
     borderRadius: "10px",
-    color: "#342A21",
+    color: "#FFFFFF",
     padding: "8px 12px",
     fontSize: "14px",
     outline: "none",
@@ -76,9 +76,9 @@ export function ShetritionBoard({
       {/* Upload controls */}
       <div
         className="rounded-2xl p-5 mb-6"
-        style={{ background: "#FAF3E8", border: "1px solid rgba(201,183,156,0.4)" }}
+        style={{ background: "#141414", border: "1px solid rgba(201,183,156,0.4)" }}
       >
-        <h3 className="font-serif text-lg mb-3" style={{ color: "#342A21", fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
+        <h3 className="font-serif text-lg mb-3" style={{ color: "#FFFFFF", fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
           Add Inspiration
         </h3>
         <div className="space-y-3">
@@ -127,7 +127,7 @@ export function ShetritionBoard({
       </div>
 
       {nutrition.shetritionImages.length === 0 ? (
-        <div className="text-center py-16" style={{ color: "rgba(52,42,33,0.4)" }}>
+        <div className="text-center py-16" style={{ color: "rgba(255,255,255,0.35)" }}>
           <p className="font-serif text-2xl mb-2" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
             Your board is blank
           </p>
@@ -140,7 +140,7 @@ export function ShetritionBoard({
               <div
                 className="rounded-2xl overflow-hidden transition-all duration-200"
                 style={{
-                  background: "#FAF3E8",
+                  background: "#141414",
                   border: "1px solid rgba(201,183,156,0.35)",
                   boxShadow: "0 3px 14px rgba(52,42,33,0.09)",
                 }}
@@ -158,7 +158,7 @@ export function ShetritionBoard({
                 <div className="px-3 py-2">
                   <input
                     className="w-full text-xs bg-transparent border-none outline-none italic"
-                    style={{ color: "rgba(52,42,33,0.55)" }}
+                    style={{ color: "rgba(255,255,255,0.5)" }}
                     placeholder="Add a caption…"
                     defaultValue={img.caption ?? ""}
                     onBlur={(e) => updateCaption(img.id, e.target.value)}

@@ -19,7 +19,7 @@ const SECTIONS = [
   { key: "cars" as const, label: "CARS", color: "#DA667B" },
   { key: "bioBiochem" as const, label: "Bio/Biochem", color: "#71816D" },
   { key: "chemPhys" as const, label: "Chem/Phys", color: "#C99A5C" },
-  { key: "psychSoc" as const, label: "Psych/Soc", color: "#C9B79C" },
+  { key: "psychSoc" as const, label: "Psych/Soc", color: "rgba(255,255,255,0.3)" },
 ];
 
 export function MCATView({ data, update }: Props) {
@@ -103,7 +103,7 @@ export function MCATView({ data, update }: Props) {
         <Card className="text-center">
           {daysUntilMCAT !== null ? (
             <>
-              <p className="font-serif text-3xl" style={{ color: daysUntilMCAT < 30 ? "#DA667B" : "#342A21" }}>{daysUntilMCAT}</p>
+              <p className="font-serif text-3xl" style={{ color: daysUntilMCAT < 30 ? "#DA667B" : "#FFFFFF" }}>{daysUntilMCAT}</p>
               <p className="text-xs text-sand-dark mt-1">Days until MCAT</p>
             </>
           ) : (
@@ -141,10 +141,10 @@ export function MCATView({ data, update }: Props) {
           <div className="h-48 mt-2">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={studyChartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#DAC9A8" />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                 <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#A8967E" }} />
                 <YAxis tick={{ fontSize: 11, fill: "#A8967E" }} />
-                <Tooltip contentStyle={{ background: "#FAF3E8", border: "1px solid #DAC9A8", borderRadius: "8px", fontSize: "12px" }} />
+                <Tooltip contentStyle={{ background: "#141414", border: "1px solid #DAC9A8", borderRadius: "8px", fontSize: "12px" }} />
                 {SECTIONS.map((s) => <Bar key={s.key} dataKey={s.label} stackId="a" fill={s.color} />)}
               </BarChart>
             </ResponsiveContainer>

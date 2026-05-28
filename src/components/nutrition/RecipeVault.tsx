@@ -154,7 +154,7 @@ function RecipeDetail({
           ) : (
             <div
               className="w-full rounded-3xl flex flex-col items-center justify-center gap-4"
-              style={{ minHeight: "300px", background: "rgba(201,183,156,0.15)", border: "2px dashed rgba(201,183,156,0.5)" }}
+              style={{ minHeight: "300px", background: "rgba(255,255,255,0.05)", border: "2px dashed rgba(255,255,255,0.12)" }}
             >
               <span className="text-5xl">🍳</span>
               <p className="text-sm font-medium" style={{ color: "#A8967E" }}>Add a photo</p>
@@ -169,7 +169,7 @@ function RecipeDetail({
                 </button>
                 <div className="flex gap-2">
                   <input
-                    style={{ flex: 1, background: "#F7EDD8", border: "1px solid rgba(201,183,156,0.5)", borderRadius: "10px", color: "#342A21", padding: "7px 10px", fontSize: "13px", outline: "none" }}
+                    style={{ flex: 1, background: "#1C1C1C", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "10px", color: "#FFFFFF", padding: "7px 10px", fontSize: "13px", outline: "none" }}
                     placeholder="Or paste image URL…"
                     value={photoUrlInput}
                     onChange={(e) => setPhotoUrlInput(e.target.value)}
@@ -192,7 +192,7 @@ function RecipeDetail({
           <h1
             className="font-serif leading-tight mb-3"
             style={{
-              color: "#342A21",
+              color: "#FFFFFF",
               fontFamily: "'Cormorant Garamond', Georgia, serif",
               fontSize: "clamp(1.75rem, 4vw, 2.75rem)",
             }}
@@ -224,25 +224,25 @@ function RecipeDetail({
           {/* Serving controls + calorie bar */}
           <div
             className="flex items-center justify-between py-3 px-4 rounded-2xl mb-6"
-            style={{ background: "rgba(201,183,156,0.15)", border: "1px solid rgba(201,183,156,0.3)" }}
+            style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
           >
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setServings((s) => Math.max(1, s - 1))}
                 className="w-7 h-7 rounded-full flex items-center justify-center transition-colors"
-                style={{ background: "rgba(52,42,33,0.08)", color: "#342A21" }}
+                style={{ background: "rgba(255,255,255,0.06)", color: "#FFFFFF" }}
               >
                 <Minus size={13} />
               </button>
               <div className="text-center">
-                <span className="text-sm font-medium" style={{ color: "#342A21" }}>
+                <span className="text-sm font-medium" style={{ color: "#FFFFFF" }}>
                   Makes {servings} {servings === 1 ? "portion" : "portions"}
                 </span>
               </div>
               <button
                 onClick={() => setServings((s) => s + 1)}
                 className="w-7 h-7 rounded-full flex items-center justify-center transition-colors"
-                style={{ background: "rgba(52,42,33,0.08)", color: "#342A21" }}
+                style={{ background: "rgba(255,255,255,0.06)", color: "#FFFFFF" }}
               >
                 <Plus size={13} />
               </button>
@@ -250,7 +250,7 @@ function RecipeDetail({
             {perCal && (
               <span className="text-sm" style={{ color: "#A8967E" }}>
                 Per portion:{" "}
-                <span className="font-semibold" style={{ color: "#342A21" }}>
+                <span className="font-semibold" style={{ color: "#FFFFFF" }}>
                   {perCal} kcal
                 </span>
               </span>
@@ -286,7 +286,7 @@ function RecipeDetail({
                       <div
                         key={i}
                         className="px-4 pt-3 pb-1.5"
-                        style={{ background: "rgba(201,183,156,0.12)" }}
+                        style={{ background: "rgba(255,255,255,0.04)" }}
                       >
                         <p
                           className="text-[10px] font-bold uppercase tracking-widest"
@@ -314,7 +314,7 @@ function RecipeDetail({
                       <div
                         className="flex-shrink-0 w-4 h-4 rounded flex items-center justify-center transition-all"
                         style={{
-                          border: `1.5px solid ${done ? "#71816D" : "#C9B79C"}`,
+                          border: `1.5px solid ${done ? "#71816D" : "rgba(255,255,255,0.3)"}`,
                           background: done ? "#71816D" : "transparent",
                         }}
                       >
@@ -327,7 +327,7 @@ function RecipeDetail({
                       <span
                         className="text-sm"
                         style={{
-                          color: done ? "rgba(52,42,33,0.38)" : "#342A21",
+                          color: done ? "rgba(52,42,33,0.38)" : "#FFFFFF",
                           textDecoration: done ? "line-through" : "none",
                         }}
                       >
@@ -355,7 +355,7 @@ function RecipeDetail({
                     >
                       {i + 1}
                     </div>
-                    <p className="text-sm leading-relaxed pt-0.5" style={{ color: "#342A21" }}>
+                    <p className="text-sm leading-relaxed pt-0.5" style={{ color: "#FFFFFF" }}>
                       {step}
                     </p>
                   </div>
@@ -369,7 +369,7 @@ function RecipeDetail({
             <div className="mb-6">
               <h2 className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "#A8967E" }}>
                 Nutrition
-                <span className="normal-case font-normal ml-1.5" style={{ color: "#C9B79C" }}>
+                <span className="normal-case font-normal ml-1.5" style={{ color: "rgba(255,255,255,0.3)" }}>
                   · {servings} {servings === 1 ? "portion" : "portions"} total
                 </span>
               </h2>
@@ -386,11 +386,11 @@ function RecipeDetail({
                   <div
                     key={label}
                     className="py-4 px-2 text-center"
-                    style={{ borderLeft: i > 0 ? "1px solid rgba(201,183,156,0.35)" : "none", background: "#FAF3E8" }}
+                    style={{ borderLeft: i > 0 ? "1px solid rgba(201,183,156,0.35)" : "none", background: "#141414" }}
                   >
                     <p
                       className="font-serif text-2xl leading-none mb-1"
-                      style={{ color: "#342A21", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+                      style={{ color: "#FFFFFF", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
                     >
                       {val}{unit !== "kcal" ? unit : ""}
                     </p>
@@ -408,7 +408,7 @@ function RecipeDetail({
                 <span
                   key={t}
                   className="text-xs px-2.5 py-1 rounded-full"
-                  style={{ background: "rgba(201,183,156,0.2)", color: "#71816D" }}
+                  style={{ background: "rgba(255,255,255,0.06)", color: "#71816D" }}
                 >
                   #{t}
                 </span>
@@ -436,7 +436,7 @@ function RecipeCard({
     <div
       className="group rounded-2xl overflow-hidden cursor-pointer transition-all duration-200 hover:-translate-y-1"
       style={{
-        background: "#FAF3E8",
+        background: "#141414",
         border: "1px solid rgba(201,183,156,0.35)",
         boxShadow: "0 3px 14px rgba(52,42,33,0.09)",
       }}
@@ -453,7 +453,7 @@ function RecipeCard({
       ) : (
         <div
           className="w-full flex items-center justify-center"
-          style={{ height: "120px", background: "rgba(201,183,156,0.18)" }}
+          style={{ height: "120px", background: "rgba(255,255,255,0.05)" }}
         >
           <span className="text-4xl">🍳</span>
         </div>
@@ -463,7 +463,7 @@ function RecipeCard({
         <div className="flex items-start justify-between gap-2 mb-2">
           <h3
             className="font-serif text-lg leading-tight flex-1"
-            style={{ color: "#342A21", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+            style={{ color: "#FFFFFF", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
           >
             {recipe.title}
           </h3>
@@ -523,7 +523,7 @@ function SerifRating({ value, onChange }: { value: number; onChange: (n: number)
           onClick={() => onChange(n)}
           className="font-serif text-xl leading-none transition-colors"
           style={{
-            color: n <= value ? "#DA667B" : "#C9B79C",
+            color: n <= value ? "#DA667B" : "rgba(255,255,255,0.3)",
             fontFamily: "'Cormorant Garamond', Georgia, serif",
           }}
         >
@@ -621,10 +621,10 @@ function AddRecipeForm({
   }
 
   const inp: React.CSSProperties = {
-    background: "#F7EDD8",
-    border: "1px solid rgba(201,183,156,0.5)",
+    background: "#1C1C1C",
+    border: "1px solid rgba(255,255,255,0.12)",
     borderRadius: "10px",
-    color: "#342A21",
+    color: "#FFFFFF",
     padding: "8px 12px",
     fontSize: "14px",
     outline: "none",
@@ -634,11 +634,11 @@ function AddRecipeForm({
   return (
     <div
       className="rounded-2xl p-6 mb-6"
-      style={{ background: "#FAF3E8", border: "1px solid rgba(201,183,156,0.4)", boxShadow: "0 4px 20px rgba(52,42,33,0.10)" }}
+      style={{ background: "#141414", border: "1px solid rgba(201,183,156,0.4)", boxShadow: "0 4px 20px rgba(52,42,33,0.10)" }}
     >
       <h3
         className="font-serif text-2xl mb-5"
-        style={{ color: "#342A21", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+        style={{ color: "#FFFFFF", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
       >
         Add Recipe
       </h3>
@@ -659,7 +659,7 @@ function AddRecipeForm({
                     type="button"
                     onClick={() => setPhotos((a) => a.filter((_, j) => j !== i))}
                     className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full flex items-center justify-center"
-                    style={{ background: "rgba(52,42,33,0.7)" }}
+                    style={{ background: "rgba(255,255,255,0.65)" }}
                   >
                     <X size={9} color="white" />
                   </button>
@@ -736,7 +736,7 @@ function AddRecipeForm({
         <div>
           <p className="text-xs font-medium mb-1.5" style={{ color: "#A8967E" }}>
             Ingredients{" "}
-            <span className="font-normal" style={{ color: "#C9B79C" }}>
+            <span className="font-normal" style={{ color: "rgba(255,255,255,0.3)" }}>
               — one per line. Write ALL CAPS or add a colon to create a section header (e.g. CHICKEN: or SOUP:)
             </span>
           </p>
@@ -751,7 +751,7 @@ function AddRecipeForm({
         {/* Steps */}
         <div>
           <p className="text-xs font-medium mb-1.5" style={{ color: "#A8967E" }}>
-            Instructions <span className="font-normal" style={{ color: "#C9B79C" }}>— one step per line</span>
+            Instructions <span className="font-normal" style={{ color: "rgba(255,255,255,0.3)" }}>— one step per line</span>
           </p>
           <textarea
             style={{ ...inp, resize: "none", minHeight: "110px" }}
@@ -999,7 +999,7 @@ export function RecipeVault({
 
       {/* Progress bar for mass import */}
       {extracting && extractProgress && extractProgress.total > 1 && (
-        <div className="mb-4 rounded-xl overflow-hidden" style={{ background: "rgba(201,183,156,0.2)", height: "6px" }}>
+        <div className="mb-4 rounded-xl overflow-hidden" style={{ background: "rgba(255,255,255,0.06)", height: "6px" }}>
           <div
             className="h-full rounded-xl transition-all duration-300"
             style={{ background: "#71816D", width: `${(extractProgress.current / extractProgress.total) * 100}%` }}
@@ -1036,7 +1036,7 @@ export function RecipeVault({
       )}
 
       {nutrition.recipes.length === 0 && !adding ? (
-        <div className="text-center py-16" style={{ color: "rgba(52,42,33,0.4)" }}>
+        <div className="text-center py-16" style={{ color: "rgba(255,255,255,0.35)" }}>
           <p
             className="font-serif text-2xl mb-2"
             style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}

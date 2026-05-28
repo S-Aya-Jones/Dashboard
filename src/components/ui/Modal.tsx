@@ -23,17 +23,17 @@ export function Modal({ open, onClose, title, children, width = "max-w-lg" }: Mo
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(52, 42, 33, 0.25)", backdropFilter: "blur(4px)" }}
+      style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
     >
       <div
         className={`card w-full ${width} max-h-[90vh] overflow-y-auto animate-slide-up`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-5 pb-0">
-          {title && <h2 className="font-serif text-2xl text-brown">{title}</h2>}
+          {title && <h2 className="font-serif text-2xl text-white">{title}</h2>}
           <button
             onClick={onClose}
-            className="ml-auto p-1.5 rounded-lg hover:bg-cream-dark text-sand-dark hover:text-brown transition-colors"
+            className="ml-auto p-1.5 rounded-lg hover:bg-white/10 text-white/50 hover:text-white transition-colors"
           >
             <X size={18} />
           </button>
