@@ -5,6 +5,23 @@ import { HealthDailySnapshot, HealthWorkout } from "@/types/dashboard";
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
+// Diagnostic: GET /api/health/import returns what's stored in DB
+export async function GET() {
+  try {
+    const data = await loadData("aya");
+    const h = data.health;
+    return NextResponse.json({
+      hasHealth: !!h,
+      lastImportAt: h?.lastImportAt ?? null,
+      dailyDates: Object.keys(h?.daily ?? {}).sort(),
+      workoutCount: h?.workouts?.length ?? 0,
+      sampleWorkout: h?.workouts?.[0] ?? null,
+    });
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 });
+  }
+}
+
 function parseDate(str: string): string {
   return typeof str === "string" ? str.slice(0, 10) : "";
 }
