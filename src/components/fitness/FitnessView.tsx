@@ -131,7 +131,7 @@ function AppleHealthTab({ data }: { data: DashboardData }) {
   const health = data.health;
   const today = todayStr();
 
-  if (!health || Object.keys(health.daily).length === 0) {
+  if (!health?.lastImportAt) {
     return (
       <div
         className="rounded-2xl p-8 text-center space-y-4"
