@@ -190,7 +190,7 @@ function AppleHealthTab({ data }: { data: DashboardData }) {
           className="font-serif text-xl mb-3"
           style={{ color: "#342A21", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
         >
-          Today's Movement
+          Today&apos;s Movement
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
