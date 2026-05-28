@@ -317,6 +317,32 @@ export interface NutritionData {
   shetritionImages: ShetritionImage[];
 }
 
+export interface HealthDailySnapshot {
+  steps?: number;
+  activeEnergy?: number; // kcal
+  exerciseMinutes?: number;
+  restingHR?: number; // bpm
+  sleepHours?: number;
+  weight?: number;
+  mindfulMinutes?: number;
+}
+
+export interface HealthWorkout {
+  id: string;
+  type: string;
+  startedAt: string; // ISO
+  durationMin: number;
+  calories?: number;
+  distance?: number;
+  source: "apple_health";
+}
+
+export interface HealthData {
+  lastImportAt: string;
+  daily: { [date: string]: HealthDailySnapshot };
+  workouts: HealthWorkout[];
+}
+
 export interface YearReflection {
   year: string;
   vision: string;
@@ -399,6 +425,9 @@ export interface DashboardData {
 
   // Nutrition & Food Journal
   nutrition?: NutritionData;
+
+  // Apple Health (via Health Auto Export)
+  health?: HealthData;
 }
 
 export const defaultDashboardData = (): DashboardData => ({
