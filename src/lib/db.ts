@@ -30,7 +30,9 @@ export async function loadData(userId = "aya"): Promise<DashboardData> {
     `;
     return fresh;
   }
-  return rows[0].data as DashboardData;
+  // Merge with defaults so any newly added fields are never undefined
+  const defaults = defaultDashboardData();
+  return { ...defaults, ...(rows[0].data as DashboardData) };
 }
 
 export async function saveData(data: DashboardData): Promise<void> {

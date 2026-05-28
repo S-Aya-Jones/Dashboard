@@ -168,11 +168,38 @@ export interface SavingsGoal {
   deadline?: string;
 }
 
+export interface BigMove {
+  id: string;
+  transactionId: string;
+  status: "intentional" | "oops";
+  note?: string;
+  taggedAt: string;
+}
+
+export interface MerchantCategoryOverride {
+  nameContains: string;
+  category:     string;
+}
+
+export interface FinancesConfig {
+  bigTicketThreshold:        number;
+  watchListMerchants:        string[];
+  bigMoves:                  BigMove[];
+  recurringHidden:           string[];
+  recurringFlagged:          string[];
+  merchantCategoryOverrides: MerchantCategoryOverride[];
+}
+
 export interface MonthlyFinance {
   month: string; // YYYY-MM
   income: number;
   expenses: number;
   notes?: string;
+}
+
+export interface BudgetCategory {
+  category: string; // Plaid category key e.g. FOOD_AND_DRINK
+  monthlyLimit: number;
 }
 
 export interface ConnectionLog {
@@ -199,6 +226,8 @@ export interface Goal {
   year?: string;
   done: boolean;
   notes?: string;
+  linkedPlaidAccountId?: string;
+  plaidLinkStartBalance?: number;
 }
 
 export interface BookEntry {
@@ -221,6 +250,97 @@ export interface VisionItem {
   caption?: string;
   category?: string;
   addedAt: string;
+}
+
+export interface MealEntry {
+  id: string;
+  date: string; // YYYY-MM-DD
+  name: string;
+  mealType: "breakfast" | "lunch" | "dinner" | "snack";
+  photos: string[];
+  rating: number; // 1–5
+  tags: string[];
+  notes?: string;
+  createdAt: string;
+}
+
+export interface RecipeIngredient {
+  text: string;
+}
+
+export interface Recipe {
+  id: string;
+  title: string;
+  description?: string;
+  ingredients: string[];
+  steps: string[];
+  photos: string[];
+  tags: string[];
+  dietaryTags: string[];
+  servings?: number;
+  caloriesPerServing?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+  rating?: number;
+  createdAt: string;
+}
+
+export interface GroceryItem {
+  id: string;
+  name: string;
+  section: string;
+  checked: boolean;
+  addedAt: string;
+  fromRecipeId?: string;
+}
+
+export interface PantryItem {
+  id: string;
+  name: string;
+  inStock: boolean;
+  updatedAt: string;
+}
+
+export interface ShetritionImage {
+  id: string;
+  src: string;
+  caption?: string;
+  addedAt: string;
+}
+
+export interface NutritionData {
+  meals: MealEntry[];
+  recipes: Recipe[];
+  groceryItems: GroceryItem[];
+  pantryItems: PantryItem[];
+  shetritionImages: ShetritionImage[];
+}
+
+export interface HealthDailySnapshot {
+  steps?: number;
+  activeEnergy?: number; // kcal
+  exerciseMinutes?: number;
+  restingHR?: number; // bpm
+  sleepHours?: number;
+  weight?: number;
+  mindfulMinutes?: number;
+}
+
+export interface HealthWorkout {
+  id: string;
+  type: string;
+  startedAt: string; // ISO
+  durationMin: number;
+  calories?: number;
+  distance?: number;
+  source: "apple_health";
+}
+
+export interface HealthData {
+  lastImportAt: string;
+  daily: { [date: string]: HealthDailySnapshot };
+  workouts: HealthWorkout[];
 }
 
 export interface YearReflection {
@@ -282,6 +402,8 @@ export interface DashboardData {
   creditCards: CreditCard[];
   savingsGoals: SavingsGoal[];
   monthlyFinances: MonthlyFinance[];
+  budgetCategories: BudgetCategory[];
+  financesConfig: FinancesConfig;
 
   // Connections
   connectionLogs: ConnectionLog[];
@@ -300,6 +422,12 @@ export interface DashboardData {
 
   // Vision Board
   visionBoard?: { items: VisionItem[] };
+
+  // Nutrition & Food Journal
+  nutrition?: NutritionData;
+
+  // Apple Health (via Health Auto Export)
+  health?: HealthData;
 }
 
 export const defaultDashboardData = (): DashboardData => ({
@@ -310,14 +438,14 @@ export const defaultDashboardData = (): DashboardData => ({
   exposureLog: [],
   drivingLog: [],
   habits: [
-    { id: "h1", name: "Morning Prayer", icon: "🙏", color: "#d68d84", section: "devotional", weeklyGoal: 7, order: 0 },
-    { id: "h2", name: "Bible Study", icon: "📖", color: "#c47a5e", section: "devotional", weeklyGoal: 5, order: 1 },
-    { id: "h3", name: "Morning Walk", icon: "🚶🏾‍♀️", color: "#7a816c", section: "daily", weeklyGoal: 5, order: 2 },
-    { id: "h4", name: "Skincare AM", icon: "✨", color: "#866a5b", section: "daily", weeklyGoal: 7, order: 3 },
-    { id: "h5", name: "Skincare PM", icon: "🌙", color: "#785b4e", section: "daily", weeklyGoal: 7, order: 4 },
-    { id: "h6", name: "Study / MCAT", icon: "📚", color: "#8e967d", section: "daily", weeklyGoal: 5, order: 5 },
-    { id: "h7", name: "Drink Water", icon: "💧", color: "#cfbb9f", section: "daily", weeklyGoal: 7, order: 6 },
-    { id: "h8", name: "No Phone First Hour", icon: "📵", color: "#c98a86", section: "daily", weeklyGoal: 5, order: 7 },
+    { id: "h1", name: "Morning Prayer", icon: "🙏", color: "#DA667B", section: "devotional", weeklyGoal: 7, order: 0 },
+    { id: "h2", name: "Bible Study", icon: "📖", color: "#71816D", section: "devotional", weeklyGoal: 5, order: 1 },
+    { id: "h3", name: "Morning Walk", icon: "🚶🏾‍♀️", color: "#71816D", section: "daily", weeklyGoal: 5, order: 2 },
+    { id: "h4", name: "Skincare AM", icon: "✨", color: "#8A9E87", section: "daily", weeklyGoal: 7, order: 3 },
+    { id: "h5", name: "Skincare PM", icon: "🌙", color: "#342A21", section: "daily", weeklyGoal: 7, order: 4 },
+    { id: "h6", name: "Study / MCAT", icon: "📚", color: "#71816D", section: "daily", weeklyGoal: 5, order: 5 },
+    { id: "h7", name: "Drink Water", icon: "💧", color: "#C9B79C", section: "daily", weeklyGoal: 7, order: 6 },
+    { id: "h8", name: "No Phone First Hour", icon: "📵", color: "#DA667B", section: "daily", weeklyGoal: 5, order: 7 },
   ],
   habitLogs: [],
   weeklyIntentions: [],
@@ -352,10 +480,24 @@ export const defaultDashboardData = (): DashboardData => ({
   creditCards: [],
   savingsGoals: [],
   monthlyFinances: [],
+  budgetCategories: [],
+  financesConfig: {
+    bigTicketThreshold: 100,
+    watchListMerchants: ["sephora", "ulta", "amazon", "starbucks", "coffee", "doordash", "ubereats", "grubhub", "uber", "lyft"],
+    bigMoves: [],
+    recurringHidden: [],
+    recurringFlagged: [],
+    merchantCategoryOverrides: [
+      { nameContains: "hos corp amer",  category: "FOOD_AND_DRINK" },
+      { nameContains: "midnight oil",   category: "FOOD_AND_DRINK" },
+      { nameContains: "ymca",           category: "PERSONAL_CARE"  },
+    ],
+  },
   connectionLogs: [],
   wins: [],
   goals: [],
   books: [],
   yearReflections: [],
   visionBoard: { items: [] },
+  nutrition: { meals: [], recipes: [], groceryItems: [], pantryItems: [], shetritionImages: [] },
 });

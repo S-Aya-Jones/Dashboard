@@ -12,7 +12,7 @@ export async function celebrate() {
     particleCount: 60,
     spread: 60,
     origin: { y: 0.6 },
-    colors: ["#c47a5e", "#d68d84", "#7a816c", "#cfbb9f", "#785b4e"],
+    colors: ["#DA667B", "#71816D", "#C9B79C", "#F1E0C5", "#342A21"],
     scalar: 0.8,
     gravity: 0.8,
   });

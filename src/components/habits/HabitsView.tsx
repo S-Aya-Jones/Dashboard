@@ -15,7 +15,7 @@ interface Props {
 }
 
 const ICON_OPTIONS = ["🙏", "📖", "🚶🏾‍♀️", "✨", "🌙", "📚", "💧", "📵", "🍎", "🏃🏾‍♀️", "🧘🏾‍♀️", "💊", "✍️", "🎾", "🌿", "🌸", "⭐", "🌅", "💤", "🫀"];
-const COLOR_OPTIONS = ["#c47a5e", "#d68d84", "#7a816c", "#8e967d", "#785b4e", "#cfbb9f", "#c98a86", "#866a5b"];
+const COLOR_OPTIONS = ["#71816D", "#DA667B", "#342A21", "#C9B79C", "#8A9E87", "#5A6E58", "#A8967E", "#C99A5C"];
 
 function getLast14Days(): string[] {
   const days: string[] = [];
@@ -27,7 +27,7 @@ function getLast14Days(): string[] {
 
 export function HabitsView({ data, update }: Props) {
   const [manageOpen, setManageOpen] = useState(false);
-  const [newHabit, setNewHabit] = useState<{ name: string; icon: string; color: string; section: "daily" | "devotional"; weeklyGoal: number }>({ name: "", icon: "⭐", color: "#c47a5e", section: "daily", weeklyGoal: 5 });
+  const [newHabit, setNewHabit] = useState<{ name: string; icon: string; color: string; section: "daily" | "devotional"; weeklyGoal: number }>({ name: "", icon: "⭐", color: "#71816D", section: "daily", weeklyGoal: 5 });
 
   const days = getLast14Days();
   const today = todayStr();
@@ -54,7 +54,7 @@ export function HabitsView({ data, update }: Props) {
       ...d,
       habits: [...d.habits, { ...newHabit, id: id(), order: d.habits.length }],
     }));
-    setNewHabit({ name: "", icon: "⭐", color: "#c47a5e", section: "daily", weeklyGoal: 5 });
+    setNewHabit({ name: "", icon: "⭐", color: "#71816D", section: "daily", weeklyGoal: 5 });
   };
 
   const deleteHabit = (habitId: string) => {
@@ -88,7 +88,7 @@ export function HabitsView({ data, update }: Props) {
         <div className="h-2.5 bg-cream-darker rounded-full overflow-hidden">
           <div
             className="h-full rounded-full transition-all duration-500"
-            style={{ width: `${completionPct}%`, background: "linear-gradient(90deg, #c47a5e, #d68d84)" }}
+            style={{ width: `${completionPct}%`, background: "linear-gradient(90deg, #71816D, #DA667B)" }}
           />
         </div>
         <p className="text-xs text-sand-dark mt-2">Based on your last 7 days</p>

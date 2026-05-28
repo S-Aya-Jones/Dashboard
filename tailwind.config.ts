@@ -10,34 +10,34 @@ const config: Config = {
     extend: {
       colors: {
         brown: {
-          DEFAULT: "#785b4e",
-          light: "#866a5b",
-          dark: "#5c4439",
+          DEFAULT: "#342A21",
+          light: "#4A3728",
+          dark: "#2A2018",
         },
         terracotta: {
-          DEFAULT: "#c47a5e",
-          light: "#d4927a",
-          dark: "#a8624a",
+          DEFAULT: "#DA667B",
+          light: "#E8899A",
+          dark: "#C24862",
         },
         sage: {
-          DEFAULT: "#7a816c",
-          light: "#8e967d",
-          dark: "#636b58",
+          DEFAULT: "#71816D",
+          light: "#8A9E87",
+          dark: "#5A6E58",
         },
         rose: {
-          DEFAULT: "#d68d84",
-          light: "#e0a89f",
-          muted: "#c98a86",
+          DEFAULT: "#DA667B",
+          light: "#E8899A",
+          muted: "#E07084",
         },
         sand: {
-          DEFAULT: "#cfbb9f",
-          light: "#ddd0b8",
-          dark: "#b8a280",
+          DEFAULT: "#C9B79C",
+          light: "#D9CDBB",
+          dark: "#A8967E",
         },
         cream: {
-          DEFAULT: "#f6efdf",
-          dark: "#ede3ce",
-          darker: "#e0d5c0",
+          DEFAULT: "#F1E0C5",
+          dark: "#E8D4B0",
+          darker: "#DAC9A8",
         },
       },
       fontFamily: {
@@ -45,9 +45,9 @@ const config: Config = {
         sans: ["Inter", "system-ui", "sans-serif"],
       },
       boxShadow: {
-        soft: "0 2px 15px rgba(120, 91, 78, 0.08)",
-        card: "0 4px 20px rgba(120, 91, 78, 0.10)",
-        "card-hover": "0 6px 25px rgba(120, 91, 78, 0.15)",
+        soft: "0 2px 15px rgba(52, 42, 33, 0.08)",
+        card: "0 4px 20px rgba(52, 42, 33, 0.10)",
+        "card-hover": "0 6px 25px rgba(52, 42, 33, 0.15)",
       },
       animation: {
         "fade-in": "fadeIn 0.4s ease-out",

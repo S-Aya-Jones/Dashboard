@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Check, Plus, Trash2 } from "lucide-react";
 import { DashboardData, Goal } from "@/types/dashboard";
 import { Card } from "@/components/ui/Card";
@@ -9,18 +9,27 @@ import { Modal } from "@/components/ui/Modal";
 import { id } from "@/lib/utils";
 import { celebrate } from "@/lib/confetti";
 
+interface PlaidAccount {
+  accountId: string;
+  name: string;
+  mask?: string | null;
+  type: string;
+  balances: { current?: number | null };
+  loginRequired?: boolean;
+}
+
 interface Props {
   data: DashboardData;
   update: (fn: (d: DashboardData) => DashboardData) => void;
 }
 
 const CATEGORIES = [
-  { key: "medical-school" as const, label: "Medical School", icon: "🩺", color: "#c47a5e" },
-  { key: "health-mental" as const, label: "Health & Mental Health", icon: "🧠", color: "#d68d84" },
-  { key: "career" as const, label: "Career", icon: "💼", color: "#7a816c" },
-  { key: "personal" as const, label: "Personal", icon: "🌸", color: "#8e967d" },
-  { key: "financial" as const, label: "Financial", icon: "💚", color: "#785b4e" },
-  { key: "spiritual" as const, label: "Spiritual", icon: "🙏", color: "#cfbb9f" },
+  { key: "medical-school" as const, label: "Medical School", icon: "🩺", color: "#DA667B" },
+  { key: "health-mental" as const, label: "Health & Mental Health", icon: "🧠", color: "#8A9E87" },
+  { key: "career" as const, label: "Career", icon: "💼", color: "#71816D" },
+  { key: "personal" as const, label: "Personal", icon: "🌸", color: "#C99A5C" },
+  { key: "financial" as const, label: "Financial", icon: "💚", color: "#342A21" },
+  { key: "spiritual" as const, label: "Spiritual", icon: "🙏", color: "#C9B79C" },
 ];
 
 const CURRENT_QUARTER = "Q2-2026";
@@ -30,6 +39,17 @@ export function GoalsView({ data, update }: Props) {
   const [addOpen, setAddOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"quarterly" | "yearly">("quarterly");
   const [form, setForm] = useState({ text: "", category: "medical-school" as Goal["category"], notes: "" });
+  const [plaidAccounts, setPlaidAccounts] = useState<PlaidAccount[]>([]);
+
+  // Fetch Plaid accounts once if any financial goals exist — uses server cache
+  useEffect(() => {
+    const hasLinked = data.goals.some((g) => g.category === "financial" && g.linkedPlaidAccountId);
+    if (!hasLinked) return;
+    fetch("/api/plaid/accounts")
+      .then((r) => r.json())
+      .then((j) => { if (!j.error) setPlaidAccounts((j.accounts ?? []).filter((a: PlaidAccount) => !a.loginRequired)); })
+      .catch(() => {});
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const goals = data.goals.filter((g) => {
     if (activeTab === "quarterly") return g.timeframe === "quarterly" && g.quarter === CURRENT_QUARTER;
@@ -95,7 +115,7 @@ export function GoalsView({ data, update }: Props) {
             <span className="text-sm text-terracotta font-semibold">{completedCount}/{goals.length}</span>
           </div>
           <div className="h-2 bg-cream-darker rounded-full overflow-hidden">
-            <div className="h-full rounded-full transition-all" style={{ width: `${goals.length ? (completedCount / goals.length) * 100 : 0}%`, background: "linear-gradient(90deg, #c47a5e, #d68d84)" }} />
+            <div className="h-full rounded-full transition-all" style={{ width: `${goals.length ? (completedCount / goals.length) * 100 : 0}%`, background: "linear-gradient(90deg, #71816D, #DA667B)" }} />
           </div>
         </Card>
       )}
@@ -110,24 +130,61 @@ export function GoalsView({ data, update }: Props) {
               <h3 className="font-serif text-lg text-brown">{label}</h3>
             </div>
             <div className="space-y-2">
-              {catGoals.map((goal) => (
-                <div key={goal.id} className="flex items-start gap-3 group">
-                  <button
-                    onClick={() => toggleGoal(goal.id)}
-                    className={`w-5 h-5 mt-0.5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${goal.done ? "border-transparent" : "border-sand hover:border-terracotta"}`}
-                    style={goal.done ? { background: color, borderColor: color } : {}}
-                  >
-                    {goal.done && <Check size={11} className="text-white" />}
-                  </button>
-                  <div className="flex-1">
-                    <p className={`text-sm ${goal.done ? "line-through text-sand-dark" : "text-brown"}`}>{goal.text}</p>
-                    {goal.notes && <p className="text-xs text-sand-dark italic">{goal.notes}</p>}
+              {catGoals.map((goal) => {
+                const linkedAcc = goal.linkedPlaidAccountId
+                  ? plaidAccounts.find((a) => a.accountId === goal.linkedPlaidAccountId)
+                  : undefined;
+                const currentBal = linkedAcc?.balances.current ?? null;
+                const startBal   = goal.plaidLinkStartBalance ?? null;
+                const paydownPct =
+                  startBal != null && startBal > 0 && currentBal != null
+                    ? Math.max(0, Math.min(100, Math.round(((startBal - currentBal) / startBal) * 100)))
+                    : null;
+
+                return (
+                  <div key={goal.id} className="flex items-start gap-3 group">
+                    <button
+                      onClick={() => toggleGoal(goal.id)}
+                      className={`w-5 h-5 mt-0.5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${goal.done ? "border-transparent" : "border-sand hover:border-terracotta"}`}
+                      style={goal.done ? { background: color, borderColor: color } : {}}
+                    >
+                      {goal.done && <Check size={11} className="text-white" />}
+                    </button>
+                    <div className="flex-1">
+                      <p className={`text-sm ${goal.done ? "line-through text-sand-dark" : "text-brown"}`}>{goal.text}</p>
+                      {goal.notes && <p className="text-xs text-sand-dark italic">{goal.notes}</p>}
+
+                      {/* Live Plaid balance for linked financial goals */}
+                      {linkedAcc && currentBal != null && (
+                        <div className="mt-1.5 space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] text-sand-dark">
+                              {linkedAcc.name}{linkedAcc.mask ? ` ···${linkedAcc.mask}` : ""}
+                            </span>
+                            <span className="text-[10px] font-medium text-terracotta">
+                              ${Math.abs(currentBal).toLocaleString("en-US", { minimumFractionDigits: 2 })} left
+                            </span>
+                          </div>
+                          {paydownPct != null && (
+                            <div className="h-1 bg-cream-darker rounded-full overflow-hidden">
+                              <div
+                                className="h-full rounded-full transition-all"
+                                style={{
+                                  width: `${paydownPct}%`,
+                                  background: paydownPct >= 70 ? "#71816D" : paydownPct >= 30 ? "#C99A5C" : "#DA667B",
+                                }}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <button onClick={() => deleteGoal(goal.id)} className="opacity-0 group-hover:opacity-100 text-sand hover:text-rose flex-shrink-0">
+                      <Trash2 size={13} />
+                    </button>
                   </div>
-                  <button onClick={() => deleteGoal(goal.id)} className="opacity-0 group-hover:opacity-100 text-sand hover:text-rose flex-shrink-0">
-                    <Trash2 size={13} />
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </Card>
         );

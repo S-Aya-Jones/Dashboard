@@ -15,10 +15,10 @@ interface Props {
 }
 
 const STATUS_COLORS: Record<LetterOfRec["status"], string> = {
-  "not asked": "#cfbb9f",
-  "asked": "#c47a5e",
-  "confirmed": "#7a816c",
-  "submitted": "#d68d84",
+  "not asked": "#A8967E",
+  "asked":     "#C99A5C",
+  "confirmed": "#71816D",
+  "submitted": "#DA667B",
 };
 
 export function ScheduleView({ data, update }: Props) {
