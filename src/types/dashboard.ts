@@ -461,9 +461,25 @@ export interface WalkingLog {
   miles?: number;
 }
 
+export interface MeasurementEntry {
+  date: string; // YYYY-MM-DD
+  waist: number; // inches
+  hips: number;  // inches
+  bust?: number; // inches
+}
+
+export interface BodyWeightEntry {
+  date: string; // YYYY-MM-DD
+  weight: number; // lbs
+}
+
 export interface WorkoutData {
   sessionLogs: WorkoutSessionLog[];
   walkingLogs: WalkingLog[];
+  measurements: MeasurementEntry[];
+  bodyWeight: BodyWeightEntry[];
+  goalWeight?: number;
+  programStartDate?: string; // YYYY-MM-DD
 }
 
 export const defaultDashboardData = (): DashboardData => ({
@@ -536,5 +552,5 @@ export const defaultDashboardData = (): DashboardData => ({
   yearReflections: [],
   visionBoard: { items: [] },
   nutrition: { meals: [], recipes: [], groceryItems: [], pantryItems: [], shetritionImages: [] },
-  workout: { sessionLogs: [], walkingLogs: [] },
+  workout: { sessionLogs: [], walkingLogs: [], measurements: [], bodyWeight: [] },
 });
