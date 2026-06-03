@@ -359,6 +359,30 @@ export interface WeeklyIntention {
   focus: string;
 }
 
+export interface SmsMessage {
+  id: string;
+  direction: "outbound" | "inbound";
+  body: string;
+  timestamp: string; // ISO
+  parsedAction?: string; // human-readable description of what was parsed
+}
+
+export interface SmsReminder {
+  id: string;
+  label: string;
+  message: string; // the text that gets sent
+  time: string;    // "HH:MM" 24-hour
+  enabled: boolean;
+  days: number[];  // 0=Mon…6=Sun (empty = all days)
+}
+
+export interface SmsData {
+  phoneNumber: string; // user's phone (the number to TEXT TO)
+  enabled: boolean;
+  messages: SmsMessage[];
+  reminders: SmsReminder[];
+}
+
 export interface DashboardData {
   userId: string;
   updatedAt: string;
@@ -431,6 +455,9 @@ export interface DashboardData {
 
   // Workout program
   workout?: WorkoutData;
+
+  // SMS / Texting
+  sms?: SmsData;
 }
 
 // ── Workout ────────────────────────────────────────────────────────────────
@@ -553,4 +580,14 @@ export const defaultDashboardData = (): DashboardData => ({
   visionBoard: { items: [] },
   nutrition: { meals: [], recipes: [], groceryItems: [], pantryItems: [], shetritionImages: [] },
   workout: { sessionLogs: [], walkingLogs: [], measurements: [], bodyWeight: [] },
+  sms: {
+    phoneNumber: "",
+    enabled: false,
+    messages: [],
+    reminders: [
+      { id: "sms-r1", label: "Workout Reminder", message: "Time to train! 💪 Reply DONE when you finish, or SKIP for a rest day.", time: "09:00", enabled: true, days: [0,1,2,3,4] },
+      { id: "sms-r2", label: "Evening Check-in", message: "Quick check-in! Reply with: weight in lbs (e.g. 130lbs) or steps (e.g. 8500 steps). How'd today go?", time: "20:00", enabled: false, days: [] },
+      { id: "sms-r3", label: "Motivation Boost", message: "You're building something incredible. One rep at a time. See you in the gym today?", time: "07:30", enabled: false, days: [0,2,4] },
+    ],
+  },
 });

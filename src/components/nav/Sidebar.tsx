@@ -5,7 +5,8 @@ import { usePathname } from "next/navigation";
 import {
   Sun, Calendar, CheckSquare, Brain, BookOpen, Activity,
   Heart, Sparkles, DollarSign, Users, Star, Target, BookMarked,
-  Globe, ChevronLeft, ChevronRight, Dumbbell, Gem, UtensilsCrossed
+  Globe, ChevronLeft, ChevronRight, Dumbbell, Gem, UtensilsCrossed,
+  MessageSquare
 } from "lucide-react";
 import { useState } from "react";
 import { SaveIndicator } from "@/components/ui/SaveIndicator";
@@ -23,6 +24,7 @@ const navItems = [
   { href: "/skincare", label: "Skincare", icon: Sparkles },
   { href: "/finances", label: "Finances", icon: DollarSign },
   { href: "/connections", label: "Connections", icon: Users },
+  { href: "/messages", label: "Messages", icon: MessageSquare },
   { href: "/wins", label: "Wins Jar", icon: Star },
   { href: "/goals", label: "Goals", icon: Heart },
   { href: "/books", label: "Books", icon: BookMarked },
