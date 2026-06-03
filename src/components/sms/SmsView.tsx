@@ -69,7 +69,6 @@ export function SmsView({ data, update }: SmsViewProps) {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [toast, setToast] = useState<{ text: string; type: "error" | "success" } | null>(null);
-  const [phoneInput, setPhoneInput] = useState(sms.phoneNumber);
   const [pushBusy, setPushBusy] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const pushEnabled = !!sms.pushSubscription;
@@ -192,14 +191,6 @@ export function SmsView({ data, update }: SmsViewProps) {
       e.preventDefault();
       handleSend();
     }
-  };
-
-  const savePhoneNumber = () => {
-    update(d => ({
-      ...d,
-      sms: { ...(d.sms ?? { phoneNumber: "", enabled: false, messages: [], reminders: [] }), phoneNumber: phoneInput },
-    }));
-    showToast("Phone number saved!", "success");
   };
 
   const toggleReminder = (remId: string) => {
