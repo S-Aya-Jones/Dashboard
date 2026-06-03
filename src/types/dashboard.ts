@@ -376,11 +376,18 @@ export interface SmsReminder {
   days: number[];  // 0=Mon…6=Sun (empty = all days)
 }
 
+export interface PushSubscriptionData {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+}
+
 export interface SmsData {
-  phoneNumber: string; // user's phone (the number to TEXT TO)
+  phoneNumber: string;
+  telegramChatId?: string; // auto-captured when user first messages the bot
   enabled: boolean;
   messages: SmsMessage[];
   reminders: SmsReminder[];
+  pushSubscription?: PushSubscriptionData;
 }
 
 export interface DashboardData {

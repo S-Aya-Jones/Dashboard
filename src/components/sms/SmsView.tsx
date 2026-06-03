@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { DashboardData, SmsMessage, SmsReminder } from "@/types/dashboard";
 import { id } from "@/lib/utils";
+import { subscribeToPush, unsubscribeFromPush } from "@/components/PwaRegistration";
 
 interface SmsViewProps {
   data: DashboardData;
@@ -69,7 +70,9 @@ export function SmsView({ data, update }: SmsViewProps) {
   const [sending, setSending] = useState(false);
   const [toast, setToast] = useState<{ text: string; type: "error" | "success" } | null>(null);
   const [phoneInput, setPhoneInput] = useState(sms.phoneNumber);
+  const [pushBusy, setPushBusy] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const pushEnabled = !!sms.pushSubscription;
 
   useEffect(() => {
     if (tab === "thread") {
@@ -82,16 +85,75 @@ export function SmsView({ data, update }: SmsViewProps) {
     setTimeout(() => setToast(null), 3500);
   };
 
+  const handleTogglePush = async () => {
+    setPushBusy(true);
+    try {
+      if (pushEnabled) {
+        await unsubscribeFromPush();
+        update(d => ({ ...d, sms: { ...d.sms!, pushSubscription: undefined } }));
+        showToast("Push notifications disabled", "success");
+      } else {
+        const ok = await subscribeToPush();
+        if (ok) {
+          // Reload data so the subscription stored server-side is reflected
+          showToast("Push notifications enabled!", "success");
+          // Force a refresh of the sms data from server via a small fetch
+          const freshRes = await fetch("/api/data");
+          if (freshRes.ok) {
+            const fresh = await freshRes.json();
+            if (fresh?.sms?.pushSubscription) {
+              update(d => ({ ...d, sms: { ...d.sms!, pushSubscription: fresh.sms.pushSubscription } }));
+            }
+          }
+        } else {
+          showToast("Permission denied or browser not supported", "error");
+        }
+      }
+    } catch {
+      showToast("Something went wrong", "error");
+    } finally {
+      setPushBusy(false);
+    }
+  };
+
+  const testPush = async () => {
+    setPushBusy(true);
+    try {
+      const res = await fetch("/api/push/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "Aya's Dashboard", message: "Push notifications are working! 🔔", url: "/messages" }),
+      });
+      const result = await res.json();
+      if (!res.ok) showToast(result.error ?? "Failed to send test", "error");
+      else showToast("Test notification sent!", "success");
+    } catch {
+      showToast("Network error", "error");
+    } finally {
+      setPushBusy(false);
+    }
+  };
+
+  const registerWebhook = async () => {
+    try {
+      const res = await fetch(`/api/telegram/setup?domain=${encodeURIComponent(window.location.origin)}`);
+      const data = await res.json();
+      if (data.ok) showToast("Webhook registered! Now message your bot to connect.", "success");
+      else showToast(data.description ?? "Setup failed", "error");
+    } catch {
+      showToast("Could not reach setup endpoint", "error");
+    }
+  };
+
   const sendMessage = async (message: string) => {
     if (!message.trim()) return;
-    if (!sms.phoneNumber) {
-      showToast("Add your phone number in Settings first", "error");
+    if (!sms.telegramChatId) {
+      showToast("Message your bot first — it will auto-connect", "error");
       return;
     }
 
     setSending(true);
 
-    // Optimistically add to thread
     const outbound: SmsMessage = {
       id: id(),
       direction: "outbound",
@@ -100,31 +162,24 @@ export function SmsView({ data, update }: SmsViewProps) {
     };
     update(d => ({
       ...d,
-      sms: {
-        ...d.sms!,
-        messages: [...(d.sms?.messages ?? []), outbound],
-      },
+      sms: { ...d.sms!, messages: [...(d.sms?.messages ?? []), outbound] },
     }));
     setInput("");
 
     try {
-      const res = await fetch("/api/sms/send", {
+      const res = await fetch("/api/telegram/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: message.trim(), to: sms.phoneNumber }),
+        body: JSON.stringify({ message: message.trim(), chatId: sms.telegramChatId }),
       });
       const result = await res.json();
       if (!res.ok) {
-        if (res.status === 503) {
-          showToast("Twilio not configured — message saved locally only", "error");
-        } else {
-          showToast(result.error ?? "Failed to send", "error");
-        }
+        showToast(res.status === 503 ? "Add TELEGRAM_BOT_TOKEN to .env" : (result.error ?? "Failed to send"), "error");
       } else {
         showToast("Sent!", "success");
       }
     } catch {
-      showToast("Network error — message saved locally only", "error");
+      showToast("Network error", "error");
     } finally {
       setSending(false);
     }
@@ -193,8 +248,8 @@ export function SmsView({ data, update }: SmsViewProps) {
           </div>
           <div>
             <h2 className="font-semibold text-white text-base">Messages</h2>
-            <p className="text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>
-              {sms.phoneNumber ? sms.phoneNumber : "No phone configured"}
+            <p className="text-xs" style={{ color: sms.telegramChatId ? "rgba(255,255,255,0.4)" : "#DA667B" }}>
+              {sms.telegramChatId ? `Telegram connected · ID ${sms.telegramChatId}` : "Not connected — see Setup"}
             </p>
           </div>
         </div>
@@ -222,21 +277,15 @@ export function SmsView({ data, update }: SmsViewProps) {
       </div>
 
       {/* Setup Banner */}
-      {!sms.phoneNumber && tab === "thread" && (
-        <div
-          className="flex items-center gap-3 px-5 py-3 text-sm font-medium"
-          style={{ background: "rgba(200,255,0,0.1)", borderBottom: `1px solid rgba(200,255,0,0.2)`, color: LIME }}
-        >
+      {!sms.telegramChatId && tab === "thread" && (
+        <div className="flex items-center gap-3 px-5 py-3 text-sm font-medium"
+          style={{ background: "rgba(200,255,0,0.08)", borderBottom: `1px solid rgba(200,255,0,0.18)`, color: LIME }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
             <circle cx="12" cy="12" r="10" stroke={LIME} strokeWidth="1.8" />
             <path d="M12 8v4M12 16h.01" stroke={LIME} strokeWidth="2" strokeLinecap="round" />
           </svg>
-          Add your phone number in Settings to enable SMS
-          <button
-            onClick={() => setTab("settings")}
-            className="ml-auto underline text-xs"
-            style={{ color: LIME }}
-          >
+          Connect your Telegram bot in Setup to send messages
+          <button onClick={() => setTab("settings")} className="ml-auto underline text-xs" style={{ color: LIME }}>
             Set up →
           </button>
         </div>
@@ -317,7 +366,7 @@ export function SmsView({ data, update }: SmsViewProps) {
               <button
                 key={q.label}
                 onClick={() => sendMessage(q.message)}
-                disabled={sending || !sms.phoneNumber}
+                disabled={sending || !sms.telegramChatId}
                 className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all disabled:opacity-40"
                 style={{
                   background: "rgba(200,255,0,0.1)",
@@ -402,108 +451,121 @@ export function SmsView({ data, update }: SmsViewProps) {
         </div>
       )}
 
-      {/* Settings Tab */}
+      {/* Settings Tab — Telegram setup */}
       {tab === "settings" && (
-        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-6">
-          {/* Phone Number */}
-          <div>
-            <label className="block text-sm font-medium text-white mb-2">
-              Your Phone Number
-            </label>
-            <p className="text-xs mb-3" style={{ color: "rgba(255,255,255,0.4)" }}>
-              Messages will be sent TO this number via Twilio.
-            </p>
-            <div className="flex gap-2">
-              <input
-                type="tel"
-                value={phoneInput}
-                onChange={e => setPhoneInput(e.target.value)}
-                placeholder="+1 (555) 000-0000"
-                className="flex-1 px-4 py-2.5 rounded-xl text-sm text-white outline-none"
-                style={{
-                  background: "rgba(255,255,255,0.06)",
-                  border: `1px solid ${BORDER}`,
-                }}
-              />
+        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4 no-scrollbar">
+
+          {/* Push Notifications */}
+          <div className="rounded-2xl p-4 space-y-3" style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${BORDER}` }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest" style={{ color: LIME }}>Push Notifications</p>
+                <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>
+                  {pushEnabled ? "Enabled — you'll receive alerts on this device" : "Get alerts when reminders fire or data updates"}
+                </p>
+              </div>
               <button
-                onClick={savePhoneNumber}
-                className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all"
-                style={{ background: LIME, color: "#000" }}
+                onClick={handleTogglePush}
+                disabled={pushBusy}
+                className="relative flex-shrink-0 w-12 h-7 rounded-full transition-all duration-200 disabled:opacity-40"
+                style={{ background: pushEnabled ? LIME : "rgba(255,255,255,0.12)" }}
               >
-                Save
+                <span
+                  className="absolute top-1.5 w-4 h-4 rounded-full transition-all duration-200"
+                  style={{
+                    background: pushEnabled ? "#000" : "rgba(255,255,255,0.6)",
+                    left: pushEnabled ? "calc(100% - 20px)" : 4,
+                  }}
+                />
               </button>
             </div>
+            {pushEnabled && (
+              <button
+                onClick={testPush}
+                disabled={pushBusy}
+                className="w-full py-2 rounded-xl text-xs font-medium transition-all disabled:opacity-40"
+                style={{ background: "rgba(200,255,0,0.1)", color: LIME, border: `1px solid rgba(200,255,0,0.2)` }}
+              >
+                Send Test Notification
+              </button>
+            )}
+            {!pushEnabled && (
+              <p className="text-xs" style={{ color: "rgba(255,255,255,0.3)" }}>
+                iOS: add to Home Screen first (Share → Add to Home Screen), then enable here.
+              </p>
+            )}
           </div>
 
-          {/* Twilio Setup Callout */}
-          <div
-            className="rounded-2xl p-5 space-y-3"
-            style={{
-              background: "rgba(255,255,255,0.04)",
-              border: `1px solid ${BORDER}`,
-            }}
-          >
-            <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke={LIME} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              Twilio Setup
-            </h3>
-            <p className="text-xs" style={{ color: "rgba(255,255,255,0.5)" }}>
-              Add these environment variables to your <code style={{ color: LIME }}>.env.local</code> to enable SMS sending:
-            </p>
-            <div
-              className="rounded-xl p-4 space-y-1.5 font-mono text-xs"
-              style={{ background: "#0A0A0A", border: `1px solid rgba(200,255,0,0.15)` }}
-            >
-              {[
-                "TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxx",
-                "TWILIO_AUTH_TOKEN=your_auth_token",
-                "TWILIO_PHONE_NUMBER=+1xxxxxxxxxx",
-              ].map(line => (
-                <p key={line} style={{ color: "rgba(200,255,0,0.8)" }}>
-                  {line}
-                </p>
-              ))}
-            </div>
-            <p className="text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>
-              Set your Twilio webhook URL to{" "}
-              <code style={{ color: LIME }}>https://yourdomain.com/api/sms/webhook</code>
-              {" "}to receive and parse replies.
+          {/* Status */}
+          <div className="rounded-2xl px-4 py-3 flex items-center gap-3"
+            style={{ background: sms.telegramChatId ? "rgba(200,255,0,0.08)" : "rgba(255,255,255,0.04)", border: `1px solid ${sms.telegramChatId ? "rgba(200,255,0,0.25)" : BORDER}` }}>
+            <div className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+              style={{ background: sms.telegramChatId ? LIME : "rgba(255,255,255,0.2)" }} />
+            <p className="text-sm flex-1" style={{ color: sms.telegramChatId ? LIME : "rgba(255,255,255,0.5)" }}>
+              {sms.telegramChatId ? `Connected · Chat ID ${sms.telegramChatId}` : "Not connected yet"}
             </p>
           </div>
 
-          {/* Webhook Info */}
-          <div
-            className="rounded-2xl p-5 space-y-2"
-            style={{
-              background: "rgba(255,255,255,0.04)",
-              border: `1px solid ${BORDER}`,
-            }}
-          >
-            <h3 className="text-sm font-semibold text-white">Reply Parsing</h3>
-            <p className="text-xs mb-3" style={{ color: "rgba(255,255,255,0.5)" }}>
-              When you reply to a message, the webhook auto-logs:
+          {/* Step 1 */}
+          <div className="rounded-2xl p-4 space-y-2" style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${BORDER}` }}>
+            <p className="text-xs font-bold uppercase tracking-widest" style={{ color: LIME }}>Step 1 — Create your bot</p>
+            <p className="text-sm text-white">Open Telegram and message <span style={{ color: LIME }}>@BotFather</span></p>
+            <p className="text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.45)" }}>
+              Send <code style={{ color: LIME }}>/newbot</code> → pick a name → pick a username ending in &ldquo;bot&rdquo;. BotFather gives you a token like <code style={{ color: "rgba(255,255,255,0.5)" }}>7123456789:AAF...</code>
             </p>
-            <div className="space-y-1.5">
-              {[
-                ["DONE / FINISHED", "Marks workout complete"],
-                ["SKIP / REST", "Logs rest day"],
-                ["130lbs", "Logs body weight"],
-                ["8500 steps", "Logs step count"],
-                ["HELP", "Shows command menu"],
-              ].map(([cmd, desc]) => (
-                <div key={cmd} className="flex items-center gap-3 text-xs">
-                  <code
-                    className="px-2 py-0.5 rounded-md font-mono"
-                    style={{ background: "rgba(200,255,0,0.1)", color: LIME, minWidth: 100, display: "inline-block" }}
-                  >
-                    {cmd}
-                  </code>
-                  <span style={{ color: "rgba(255,255,255,0.5)" }}>{desc}</span>
-                </div>
-              ))}
+          </div>
+
+          {/* Step 2 — env var */}
+          <div className="rounded-2xl p-4 space-y-2" style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${BORDER}` }}>
+            <p className="text-xs font-bold uppercase tracking-widest" style={{ color: LIME }}>Step 2 — Add token to environment</p>
+            <div className="rounded-xl px-3 py-2.5 font-mono text-xs" style={{ background: "#0A0A0A", border: `1px solid rgba(200,255,0,0.15)` }}>
+              <p style={{ color: "rgba(200,255,0,0.85)" }}>TELEGRAM_BOT_TOKEN=7123456789:AAF...</p>
             </div>
+            <p className="text-xs" style={{ color: "rgba(255,255,255,0.35)" }}>
+              Add to <code style={{ color: LIME }}>.env.local</code> locally and to Vercel → Settings → Environment Variables for production.
+            </p>
+          </div>
+
+          {/* Step 3 — register webhook */}
+          <div className="rounded-2xl p-4 space-y-3" style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${BORDER}` }}>
+            <p className="text-xs font-bold uppercase tracking-widest" style={{ color: LIME }}>Step 3 — Register webhook</p>
+            <p className="text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.45)" }}>
+              Tells Telegram to forward messages from your bot to this dashboard. Click once after deploying to Vercel.
+            </p>
+            <button onClick={registerWebhook}
+              className="w-full py-3 rounded-xl text-sm font-semibold active:scale-95 transition-transform"
+              style={{ background: LIME, color: "#000" }}>
+              Register Webhook
+            </button>
+          </div>
+
+          {/* Step 4 — connect */}
+          <div className="rounded-2xl p-4 space-y-2" style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${BORDER}` }}>
+            <p className="text-xs font-bold uppercase tracking-widest" style={{ color: LIME }}>Step 4 — Connect your account</p>
+            <p className="text-sm text-white">Message your bot anything — say &ldquo;hi&rdquo;</p>
+            <p className="text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.45)" }}>
+              The dashboard auto-captures your chat ID on the first message. Once connected, it will show your ID above and you can start sending reminders.
+            </p>
+          </div>
+
+          {/* Reply commands */}
+          <div className="rounded-2xl p-4 space-y-2" style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${BORDER}` }}>
+            <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: "rgba(255,255,255,0.4)" }}>Reply Commands</p>
+            {[
+              ["DONE", "Marks today's workout complete"],
+              ["SKIP", "Logs a rest day"],
+              ["130lbs", "Logs body weight"],
+              ["8500 steps", "Logs step count"],
+              ["HELP", "Shows command list"],
+            ].map(([cmd, desc]) => (
+              <div key={cmd} className="flex items-center gap-3 text-xs">
+                <code className="px-2 py-0.5 rounded-md font-mono flex-shrink-0"
+                  style={{ background: "rgba(200,255,0,0.1)", color: LIME, minWidth: 90, display: "inline-block" }}>
+                  {cmd}
+                </code>
+                <span style={{ color: "rgba(255,255,255,0.45)" }}>{desc}</span>
+              </div>
+            ))}
           </div>
         </div>
       )}
