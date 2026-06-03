@@ -407,7 +407,8 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
   const todayDone = isDone(todayDay);
   const theme = DAY_THEME[todayDay.id] ?? DAY_THEME["mon-heavy-glutes"];
 
-  const weekDone = PROGRAM.filter(isDone).length;
+  const weekDone       = PROGRAM.filter(isDone).length;
+  const totalCompleted = w.sessionLogs.length;
 
   const startProgram = () => {
     update((d) => {
@@ -428,15 +429,29 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
             </p>
             <h1 className="font-serif text-3xl text-white mt-0.5">Workout</h1>
           </div>
-          <div className="flex items-center gap-2">
-            {streak > 0 && (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
-                style={{ background: "rgba(200,255,0,0.1)", border: "1px solid rgba(200,255,0,0.2)" }}>
-                <Flame size={13} style={{ color: "#C8FF00" }} />
-                <span className="text-sm font-semibold" style={{ color: "#C8FF00" }}>{streak} day streak</span>
-              </div>
-            )}
-          </div>
+          {streak > 0 && (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
+              style={{ background: "rgba(200,255,0,0.1)", border: "1px solid rgba(200,255,0,0.2)" }}>
+              <Flame size={13} style={{ color: "#C8FF00" }} />
+              <span className="text-sm font-semibold" style={{ color: "#C8FF00" }}>{streak} day streak</span>
+            </div>
+          )}
+        </div>
+
+        {/* ── Stats tracker ── */}
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            { value: totalCompleted, label: "Sessions", color: "#C8FF00", sub: "all time" },
+            { value: weekDone,       label: "This Week", color: "#9B7FFF", sub: `of ${PROGRAM.length}` },
+            { value: streak,         label: "Streak",    color: "#DA667B", sub: streak === 1 ? "day" : "days" },
+          ].map(({ value, label, color, sub }) => (
+            <div key={label} className="rounded-2xl p-4 text-center flex flex-col items-center gap-0.5"
+              style={{ background: "#141414", border: `1px solid ${color}22` }}>
+              <p className="font-serif text-3xl leading-none" style={{ color }}>{value}</p>
+              <p className="text-xs font-semibold mt-1" style={{ color: "rgba(255,255,255,0.7)" }}>{label}</p>
+              <p className="text-[10px]" style={{ color: "rgba(255,255,255,0.3)" }}>{sub}</p>
+            </div>
+          ))}
         </div>
 
         {/* ── Week calendar strip ── */}
@@ -649,7 +664,8 @@ export function WorkoutView({ data, update }: Props) {
     return map;
   }, [w.sessionLogs]);
 
-  const streak = useMemo(() => calcStreak(w.sessionLogs), [w.sessionLogs]);
+  const streak         = useMemo(() => calcStreak(w.sessionLogs), [w.sessionLogs]);
+  const totalCompleted = w.sessionLogs.length;
 
   const startSession = (dayId: string) => {
     setSessionDayId(dayId);
@@ -686,6 +702,7 @@ export function WorkoutView({ data, update }: Props) {
           weekNum={weekNum}
           lastWeights={lastWeights}
           streak={streak}
+          totalCompleted={totalCompleted}
           isSunday={isSunday}
           prepTime={prepTime}
           onComplete={handleComplete}

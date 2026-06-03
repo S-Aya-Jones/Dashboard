@@ -10,6 +10,7 @@ interface Props {
   weekNum: number;
   lastWeights: Record<string, number>;
   streak: number;
+  totalCompleted: number;
   isSunday: boolean;
   prepTime: number;
   onComplete: (logs: ExerciseSessionLog[]) => void;
@@ -141,7 +142,7 @@ function VideoBlock({ ex, animKey }: { ex: ProgramExercise; animKey: number }) {
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
-export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepTime, onComplete, onExit }: Props) {
+export function SessionView({ day, weekNum, lastWeights, streak, totalCompleted, isSunday, prepTime, onComplete, onExit }: Props) {
   const [customExList, setCustomExList] = useState<ProgramExercise[]>([]);
 
   // ── Sections ─────────────────────────────────────────────────────────────────
@@ -441,10 +442,13 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
     setShowAddEx(false);
   };
 
-  const finishSession = () => {
-    onComplete(exercises.map((e) => ({
-      exerciseId: e.id, exerciseName: e.name, sets: loggedSets[e.id] ?? [],
-    })));
+  const finishSession = (partial = false) => {
+    // Only save exercises that have at least one set logged
+    const logs = exercises
+      .map((e) => ({ exerciseId: e.id, exerciseName: e.name, sets: loggedSets[e.id] ?? [] }))
+      .filter((l) => partial ? l.sets.length > 0 : true);
+    if (partial && logs.length === 0) { onExit(); return; }
+    onComplete(logs);
   };
 
   useEffect(() => () => clearTimer(), [clearTimer]);
@@ -462,25 +466,35 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
 
   // ── Done screen ───────────────────────────────────────────────────────────────
   if (done) {
+    const sessionNum = totalCompleted + 1;
     return (
       <div className="flex flex-col h-full items-center justify-center gap-6 p-8 text-center"
         style={{ animation: "popIn 0.35s ease-out" }}>
-        <div style={{ fontSize: "4rem", animation: "pulseGreen 1s ease-out", color: "#C8FF00" }}>✓</div>
+        {/* Session number badge */}
+        <div className="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest"
+          style={{ background: "rgba(200,255,0,0.1)", border: "1px solid rgba(200,255,0,0.25)", color: "#C8FF00" }}>
+          Session #{sessionNum}
+        </div>
+        <div style={{ fontSize: "3.5rem", animation: "pulseGreen 1s ease-out", color: "#C8FF00" }}>✓</div>
         <div className="space-y-1">
           <h2 className="font-serif text-3xl text-white">{day.label} complete</h2>
           <p className="text-sm" style={{ color: "rgba(255,255,255,0.45)" }}>You showed up. That&apos;s the whole game.</p>
         </div>
-        <div className="grid grid-cols-2 gap-3 w-full max-w-xs">
+        <div className="grid grid-cols-3 gap-3 w-full max-w-xs">
+          <div className="rounded-2xl p-4 text-center" style={{ background: "#1A1A1A" }}>
+            <p className="font-serif text-2xl text-white">{sessionNum}</p>
+            <p className="text-[10px] mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>sessions</p>
+          </div>
           {totalVolume > 0 && (
             <div className="rounded-2xl p-4 text-center" style={{ background: "#1A1A1A" }}>
-              <p className="font-serif text-2xl text-white">{totalVolume.toLocaleString()}</p>
-              <p className="text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>lbs lifted</p>
+              <p className="font-serif text-lg text-white">{totalVolume >= 1000 ? `${(totalVolume / 1000).toFixed(1)}k` : totalVolume}</p>
+              <p className="text-[10px] mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>lbs lifted</p>
             </div>
           )}
           {streak > 0 && (
             <div className="rounded-2xl p-4 text-center" style={{ background: "#1A1A1A" }}>
               <p className="font-serif text-2xl text-white">{streak + 1}</p>
-              <p className="text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>day streak</p>
+              <p className="text-[10px] mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>day streak</p>
             </div>
           )}
         </div>
@@ -490,7 +504,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
             Time to measure — track your hourglass progress
           </div>
         )}
-        <button onClick={finishSession}
+        <button onClick={() => finishSession()}
           className="px-10 py-4 rounded-2xl font-semibold text-black text-lg active:scale-95 transition-transform"
           style={{ background: "#C8FF00", animation: "pulseGreen 2s ease-out 0.5s" }}>
           Save Workout
@@ -830,21 +844,32 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
       {/* Exit confirmation */}
       {showExitConfirm && (
         <div className="absolute inset-0 flex items-center justify-center p-8"
-          style={{ background: "rgba(0,0,0,0.8)", zIndex: 70, animation: "fadeIn 0.15s ease-out" }}>
+          style={{ background: "rgba(0,0,0,0.85)", zIndex: 70, animation: "fadeIn 0.15s ease-out" }}>
           <div className="rounded-2xl p-6 w-full max-w-xs space-y-4 text-center"
             style={{ background: "#1A1A1A", animation: "popIn 0.2s ease-out" }}>
-            <p className="font-serif text-xl text-white">Leave workout?</p>
-            <p className="text-sm" style={{ color: "rgba(255,255,255,0.45)" }}>Your sets won&apos;t be saved.</p>
-            <div className="flex gap-3">
+            <p className="font-serif text-xl text-white">End this workout?</p>
+            <p className="text-sm" style={{ color: "rgba(255,255,255,0.45)" }}>
+              {completedSets > 0
+                ? `You've completed ${completedSets} set${completedSets === 1 ? "" : "s"}. Save your progress?`
+                : "No sets logged yet."}
+            </p>
+            <div className="flex flex-col gap-2">
               <button onClick={() => setShowExitConfirm(false)}
-                className="flex-1 py-3 rounded-xl text-sm font-semibold active:scale-95 transition-transform"
-                style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.6)" }}>
+                className="w-full py-3 rounded-xl text-sm font-semibold active:scale-95 transition-transform"
+                style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.7)" }}>
                 Keep going
               </button>
+              {completedSets > 0 && (
+                <button onClick={() => finishSession(true)}
+                  className="w-full py-3 rounded-xl text-sm font-semibold active:scale-95 transition-transform"
+                  style={{ background: "#C8FF00", color: "#000" }}>
+                  Save Progress &amp; Exit
+                </button>
+              )}
               <button onClick={onExit}
-                className="flex-1 py-3 rounded-xl text-sm font-semibold active:scale-95 transition-transform"
-                style={{ background: "#DA667B", color: "#fff" }}>
-                Leave
+                className="w-full py-3 rounded-xl text-sm font-semibold active:scale-95 transition-transform"
+                style={{ background: "rgba(218,102,123,0.15)", color: "#DA667B" }}>
+                Abandon Workout
               </button>
             </div>
           </div>
