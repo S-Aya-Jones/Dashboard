@@ -383,7 +383,8 @@ export interface PushSubscriptionData {
 
 export interface SmsData {
   phoneNumber: string;
-  telegramChatId?: string; // auto-captured when user first messages the bot
+  telegramChatId?: string;
+  telegramBotUsername?: string;
   enabled: boolean;
   messages: SmsMessage[];
   reminders: SmsReminder[];

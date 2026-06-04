@@ -531,12 +531,34 @@ export function SmsView({ data, update }: SmsViewProps) {
           </div>
 
           {/* Step 4 — connect */}
-          <div className="rounded-2xl p-4 space-y-2" style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${BORDER}` }}>
+          <div className="rounded-2xl p-4 space-y-3" style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${BORDER}` }}>
             <p className="text-xs font-bold uppercase tracking-widest" style={{ color: LIME }}>Step 4 — Connect your account</p>
-            <p className="text-sm text-white">Message your bot anything — say &ldquo;hi&rdquo;</p>
             <p className="text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.45)" }}>
-              The dashboard auto-captures your chat ID on the first message. Once connected, it will show your ID above and you can start sending reminders.
+              Enter your bot username, then tap Open to message it. The dashboard auto-captures your chat ID on the first message.
             </p>
+            <div className="flex gap-2">
+              <input
+                value={sms.telegramBotUsername ?? ""}
+                onChange={e => update(d => ({ ...d, sms: { ...d.sms!, telegramBotUsername: e.target.value.replace("@", "") } }))}
+                placeholder="Ayapapya_bot"
+                className="flex-1 rounded-xl px-3 py-2 text-sm text-white outline-none"
+                style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }}
+              />
+            </div>
+            {sms.telegramBotUsername && (
+              <a
+                href={`https://t.me/${sms.telegramBotUsername}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-semibold"
+                style={{ background: "#2AABEE", color: "#fff" }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.17 13.9l-2.97-.924c-.643-.204-.657-.643.136-.953l11.57-4.46c.537-.194 1.006.131.988.658z"/>
+                </svg>
+                Open @{sms.telegramBotUsername} in Telegram
+              </a>
+            )}
           </div>
 
           {/* Reply commands */}
