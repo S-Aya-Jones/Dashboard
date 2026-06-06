@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { usePlaidLink } from "react-plaid-link";
 import { RefreshCw, Unlink, Plus, Trash2, Check } from "lucide-react";
-import { DashboardData, PaycheckConfig, SelfCareItem, RecurringBill } from "@/types/dashboard";
+import { DashboardData, PaycheckConfig, SelfCareItem, RecurringBill, P2PTransfer, AccountTransfer } from "@/types/dashboard";
 import { id } from "@/lib/utils";
 import { parseISO, format, addDays, differenceInDays } from "date-fns";
 
@@ -100,9 +100,11 @@ export function FinancesView({ data, update }: Props) {
     fetchAccounts(true);
   };
 
-  const pc         = data.paycheckConfig;
-  const selfCare   = data.selfCareItems ?? [];
-  const bills      = data.recurringBills ?? [];
+  const pc              = data.paycheckConfig;
+  const selfCare        = data.selfCareItems ?? [];
+  const bills           = data.recurringBills ?? [];
+  const p2pTransfers    = data.p2pTransfers ?? [];
+  const accountTransfers = data.accountTransfers ?? [];
 
   // ── Setup flow ─────────────────────────────────────────────────────────────
   if (!pc) {
@@ -176,6 +178,15 @@ export function FinancesView({ data, update }: Props) {
             totalBills={totalBills} totalCarePerCheck={totalCarePerCheck}
             savingsAmt={savingsAmt} freeToSpend={freeToSpend}
             dueCareItems={dueCareItems} payday={payday} periodEnd={periodEnd}
+            p2pTransfers={p2pTransfers}
+            onMarkBillPaid={(billId) => update(d => ({
+              ...d,
+              recurringBills: (d.recurringBills ?? []).map(b =>
+                b.id === billId ? { ...b, lastPaidDate: format(new Date(), "yyyy-MM-dd") } : b
+              ),
+            }))}
+            onAddP2P={(t) => update(d => ({ ...d, p2pTransfers: [t, ...(d.p2pTransfers ?? [])] }))}
+            onRemoveP2P={(tid) => update(d => ({ ...d, p2pTransfers: (d.p2pTransfers ?? []).filter(t => t.id !== tid) }))}
           />
         )}
         {tab === "schedule" && (
@@ -195,8 +206,12 @@ export function FinancesView({ data, update }: Props) {
         )}
         {tab === "accounts" && (
           <AccountsTab accounts={accounts} loadingAccts={loadingAccts} refreshing={refreshing}
+            accountTransfers={accountTransfers}
             onRefresh={handleRefresh} onDisconnect={handleDisconnect}
-            onConnected={() => fetchAccounts(true)} />
+            onConnected={() => fetchAccounts(true)}
+            onAddTransfer={(t) => update(d => ({ ...d, accountTransfers: [t, ...(d.accountTransfers ?? [])] }))}
+            onRemoveTransfer={(tid) => update(d => ({ ...d, accountTransfers: (d.accountTransfers ?? []).filter(t => t.id !== tid) }))}
+          />
         )}
       </div>
 
@@ -288,11 +303,29 @@ function SetupFlow({ onDone }: { onDone: (config: PaycheckConfig, items: SelfCar
 }
 
 // ── Check Tab ─────────────────────────────────────────────────────────────────
-function CheckTab({ pc, selfCare, dueBills, bills, totalBills, totalCarePerCheck, savingsAmt, freeToSpend, dueCareItems, payday, periodEnd }: {
+function CheckTab({ pc, selfCare, dueBills, bills, totalBills, totalCarePerCheck, savingsAmt, freeToSpend, dueCareItems, payday, periodEnd, p2pTransfers, onMarkBillPaid, onAddP2P, onRemoveP2P }: {
   pc: PaycheckConfig; selfCare: SelfCareItem[]; dueBills: RecurringBill[]; bills: RecurringBill[];
   totalBills: number; totalCarePerCheck: number; savingsAmt: number; freeToSpend: number;
   dueCareItems: SelfCareItem[]; payday: Date; periodEnd: Date;
+  p2pTransfers: P2PTransfer[];
+  onMarkBillPaid: (billId: string) => void;
+  onAddP2P: (t: P2PTransfer) => void;
+  onRemoveP2P: (tid: string) => void;
 }) {
+  const [showP2PForm, setShowP2PForm] = useState(false);
+  const [p2pPerson, setP2pPerson] = useState(""); const [p2pAmount, setP2pAmount] = useState("");
+  const [p2pDir, setP2pDir] = useState<"sent"|"received">("sent");
+  const [p2pPlatform, setP2pPlatform] = useState<P2PTransfer["platform"]>("zelle");
+  const [p2pNote, setP2pNote] = useState("");
+
+  const addP2P = () => {
+    if (!p2pPerson || !p2pAmount) return;
+    onAddP2P({ id: id(), date: format(new Date(), "yyyy-MM-dd"), person: p2pPerson, amount: parseFloat(p2pAmount), direction: p2pDir, platform: p2pPlatform, note: p2pNote || undefined });
+    setP2pPerson(""); setP2pAmount(""); setP2pNote(""); setShowP2PForm(false);
+  };
+
+  const paydayStr = format(payday, "yyyy-MM-dd");
+  const isPaid = (b: RecurringBill) => !!(b.lastPaidDate && b.lastPaidDate >= paydayStr);
   const allocs = [
     { label: "Bills due",            amount: totalBills,         color: "#E8A87C", detail: dueBills.length > 0 ? dueBills.map(b => b.name).join(" · ") : "No bills this period 🎉" },
     { label: "Self-care set aside",  amount: totalCarePerCheck,  color: COLORS[1], detail: selfCare.length > 0 ? selfCare.map(i => `${i.emoji} ${fmt$(perCheck(i))}`).join("  ") : "No items set up" },
@@ -365,24 +398,60 @@ function CheckTab({ pc, selfCare, dueBills, bills, totalBills, totalCarePerCheck
         </div>
       </div>
 
-      {/* Bills list */}
+      {/* Action plan */}
+      <div className="rounded-2xl p-4" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${BORDER}` }}>
+        <p className="text-xs font-semibold mb-3" style={{ color: MUTED, letterSpacing: "0.08em" }}>WHEN YOUR CHECK HITS — DO THIS</p>
+        <div className="space-y-2.5">
+          {savingsAmt > 0 && (
+            <div className="flex items-center gap-3">
+              <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ background: "#6B8CAE", color: "#fff" }}>1</div>
+              <p className="text-sm text-white">Transfer <span className="font-bold" style={{ color: "#6B8CAE" }}>{fmt$(savingsAmt)}</span> to your savings account</p>
+            </div>
+          )}
+          {totalBills > 0 && (
+            <div className="flex items-center gap-3">
+              <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ background: "#E8A87C", color: "#fff" }}>{savingsAmt > 0 ? 2 : 1}</div>
+              <p className="text-sm text-white">Leave <span className="font-bold" style={{ color: "#E8A87C" }}>{fmt$(totalBills)}</span> in checking for bills this period</p>
+            </div>
+          )}
+          {totalCarePerCheck > 0 && (
+            <div className="flex items-center gap-3">
+              <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ background: COLORS[1], color: "#fff" }}>{[savingsAmt > 0, totalBills > 0].filter(Boolean).length + 1}</div>
+              <p className="text-sm text-white">Set aside <span className="font-bold" style={{ color: COLORS[1] }}>{fmt$(totalCarePerCheck)}</span> for self-care (cash or separate envelope)</p>
+            </div>
+          )}
+          <div className="flex items-center gap-3">
+            <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ background: LIME, color: "#000" }}>✓</div>
+            <p className="text-sm text-white">The rest — <span className="font-bold" style={{ color: LIME }}>{fmt$(Math.max(0, freeToSpend))}</span> — is yours, guilt-free</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Bills with mark-as-paid */}
       {bills.length > 0 && (
         <div className="rounded-2xl overflow-hidden" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
-          <p className="px-4 pt-4 pb-2 text-xs font-semibold" style={{ color: MUTED, letterSpacing: "0.08em" }}>
-            BILLS THIS PERIOD
-          </p>
+          <p className="px-4 pt-4 pb-2 text-xs font-semibold" style={{ color: MUTED, letterSpacing: "0.08em" }}>BILLS THIS PERIOD</p>
           {dueBills.length === 0 ? (
             <p className="px-4 pb-4 text-sm" style={{ color: MUTED }}>None due {fmtDate(payday)}–{fmtDate(periodEnd)} 🎉</p>
-          ) : dueBills.map((b) => (
-            <div key={b.id} className="flex items-center justify-between px-4 py-3"
-              style={{ borderTop: `1px solid ${BORDER}` }}>
-              <div>
-                <p className="text-sm text-white">{b.name}</p>
-                <p className="text-xs" style={{ color: MUTED }}>Due {b.dayOfMonth}{ordinal(b.dayOfMonth)} of the month</p>
+          ) : dueBills.map((b) => {
+            const paid = isPaid(b);
+            return (
+              <div key={b.id} className="flex items-center justify-between px-4 py-3" style={{ borderTop: `1px solid ${BORDER}` }}>
+                <div>
+                  <p className="text-sm font-medium" style={{ color: paid ? MUTED : "#fff", textDecoration: paid ? "line-through" : "none" }}>{b.name}</p>
+                  <p className="text-xs" style={{ color: MUTED }}>Due {b.dayOfMonth}{ordinal(b.dayOfMonth)}{paid ? " · ✓ paid" : ""}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <p className="text-sm font-semibold" style={{ color: paid ? MUTED : RED }}>{fmt$(b.amount)}</p>
+                  <button onClick={() => !paid && onMarkBillPaid(b.id)}
+                    className="w-7 h-7 rounded-lg flex items-center justify-center transition-all"
+                    style={{ background: paid ? "rgba(200,255,0,0.15)" : "rgba(255,255,255,0.07)", border: `1px solid ${paid ? "rgba(200,255,0,0.3)" : BORDER}` }}>
+                    {paid ? <Check size={13} style={{ color: LIME }} /> : <span style={{ fontSize: 11, color: MUTED }}>✓</span>}
+                  </button>
+                </div>
               </div>
-              <p className="text-sm font-semibold" style={{ color: RED }}>{fmt$(b.amount)}</p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -392,6 +461,91 @@ function CheckTab({ pc, selfCare, dueBills, bills, totalBills, totalCarePerCheck
           <p className="text-xs" style={{ color: MUTED }}>Add rent, phone, subscriptions in the Afford tab so this check knows what&apos;s coming out.</p>
         </div>
       )}
+
+      {/* P2P Transfers — Zelle / Venmo / CashApp */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-sm font-semibold text-white">Zelle · Venmo · CashApp</p>
+          <button onClick={() => setShowP2PForm(!showP2PForm)}
+            className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg"
+            style={{ background: "rgba(200,255,0,0.1)", color: LIME, border: `1px solid rgba(200,255,0,0.2)` }}>
+            <Plus size={12} /> Log transfer
+          </button>
+        </div>
+
+        {showP2PForm && (
+          <div className="rounded-2xl p-4 mb-3" style={{ background: CARD, border: `1px solid rgba(200,255,0,0.2)` }}>
+            <div className="space-y-2 mb-3">
+              <div className="grid grid-cols-2 gap-2">
+                <button onClick={() => setP2pDir("sent")}
+                  className="py-2.5 rounded-xl text-sm font-semibold"
+                  style={p2pDir === "sent" ? { background: RED, color: "#fff" } : { background: "rgba(255,255,255,0.07)", color: MUTED }}>
+                  ↑ Sent
+                </button>
+                <button onClick={() => setP2pDir("received")}
+                  className="py-2.5 rounded-xl text-sm font-semibold"
+                  style={p2pDir === "received" ? { background: LIME, color: "#000" } : { background: "rgba(255,255,255,0.07)", color: MUTED }}>
+                  ↓ Received
+                </button>
+              </div>
+              <input value={p2pPerson} onChange={e => setP2pPerson(e.target.value)} placeholder="Person (e.g. Mom, Jada)"
+                className="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none"
+                style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }} />
+              <div className="grid grid-cols-2 gap-2">
+                <input type="number" value={p2pAmount} onChange={e => setP2pAmount(e.target.value)} placeholder="Amount ($)"
+                  className="rounded-xl px-3 py-2.5 text-sm text-white outline-none"
+                  style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }} />
+                <select value={p2pPlatform} onChange={e => setP2pPlatform(e.target.value as P2PTransfer["platform"])}
+                  className="rounded-xl px-3 py-2.5 text-sm text-white outline-none"
+                  style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }}>
+                  <option value="zelle">Zelle</option>
+                  <option value="venmo">Venmo</option>
+                  <option value="cashapp">CashApp</option>
+                  <option value="cash">Cash</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <input value={p2pNote} onChange={e => setP2pNote(e.target.value)} placeholder="Note (optional — e.g. split dinner)"
+                className="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none"
+                style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }} />
+            </div>
+            <button onClick={addP2P} disabled={!p2pPerson || !p2pAmount}
+              className="w-full py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40"
+              style={{ background: LIME, color: "#000" }}>
+              Log It
+            </button>
+          </div>
+        )}
+
+        {p2pTransfers.slice(0, 20).length > 0 && (
+          <div className="rounded-2xl overflow-hidden" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+            {p2pTransfers.slice(0, 20).map((t, i) => (
+              <div key={t.id} className="flex items-center justify-between px-4 py-3"
+                style={{ borderBottom: i < Math.min(p2pTransfers.length, 20) - 1 ? `1px solid ${BORDER}` : undefined }}>
+                <div className="flex items-center gap-2.5">
+                  <span className="text-base">{t.direction === "sent" ? "↑" : "↓"}</span>
+                  <div>
+                    <p className="text-sm text-white">{t.person}</p>
+                    <p className="text-xs" style={{ color: MUTED }}>{t.date} · {t.platform}{t.note ? ` · ${t.note}` : ""}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-semibold" style={{ color: t.direction === "sent" ? RED : LIME }}>
+                    {t.direction === "sent" ? "-" : "+"}{fmt$(t.amount)}
+                  </p>
+                  <button onClick={() => onRemoveP2P(t.id)} className="p-1">
+                    <Trash2 size={11} style={{ color: MUTED }} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {p2pTransfers.length === 0 && !showP2PForm && (
+          <p className="text-xs text-center py-2" style={{ color: MUTED }}>No transfers logged yet</p>
+        )}
+      </div>
     </div>
   );
 }
@@ -802,10 +956,24 @@ function GoalsTab({ pc, bills, onUpdateBills, onUpdatePc, showToast }: {
 }
 
 // ── Accounts Tab ──────────────────────────────────────────────────────────────
-function AccountsTab({ accounts, loadingAccts, refreshing, onRefresh, onDisconnect, onConnected }: {
+function AccountsTab({ accounts, loadingAccts, refreshing, accountTransfers, onRefresh, onDisconnect, onConnected, onAddTransfer, onRemoveTransfer }: {
   accounts: PlaidAccount[]; loadingAccts: boolean; refreshing: boolean;
+  accountTransfers: AccountTransfer[];
   onRefresh: () => void; onDisconnect: (itemId?: string) => void; onConnected: () => void;
+  onAddTransfer: (t: AccountTransfer) => void; onRemoveTransfer: (tid: string) => void;
 }) {
+  const [showForm, setShowForm] = useState(false);
+  const [fromAcct, setFromAcct] = useState("Checking"); const [toAcct, setToAcct] = useState("Savings");
+  const [amount, setAmount] = useState(""); const [purpose, setPurpose] = useState("");
+
+  const knownAccounts = ["Checking", "Savings", "Emergency Fund", ...accounts.map(a => a.name)];
+  const uniqueAccounts = Array.from(new Set(knownAccounts));
+
+  const addTransfer = () => {
+    if (!amount) return;
+    onAddTransfer({ id: id(), date: format(new Date(), "yyyy-MM-dd"), fromAccount: fromAcct, toAccount: toAcct, amount: parseFloat(amount), purpose: purpose || undefined });
+    setAmount(""); setPurpose(""); setShowForm(false);
+  };
   const byInstitution: Record<string, PlaidAccount[]> = {};
   for (const a of accounts) {
     const key = a.institutionName ?? "Unknown Bank";
@@ -864,6 +1032,78 @@ function AccountsTab({ accounts, loadingAccts, refreshing, onRefresh, onDisconne
           </div>
         </>
       )}
+
+      {/* Account-to-account transfers */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-sm font-semibold text-white">Account Transfers</p>
+          <button onClick={() => setShowForm(!showForm)}
+            className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg"
+            style={{ background: "rgba(200,255,0,0.1)", color: LIME, border: `1px solid rgba(200,255,0,0.2)` }}>
+            <Plus size={12} /> Log move
+          </button>
+        </div>
+
+        {showForm && (
+          <div className="rounded-2xl p-4 mb-3" style={{ background: CARD, border: `1px solid rgba(200,255,0,0.2)` }}>
+            <div className="space-y-2 mb-3">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs mb-1 block" style={{ color: MUTED }}>From</label>
+                  <select value={fromAcct} onChange={e => setFromAcct(e.target.value)}
+                    className="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none"
+                    style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }}>
+                    {uniqueAccounts.map(a => <option key={a} value={a}>{a}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs mb-1 block" style={{ color: MUTED }}>To</label>
+                  <select value={toAcct} onChange={e => setToAcct(e.target.value)}
+                    className="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none"
+                    style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }}>
+                    {uniqueAccounts.map(a => <option key={a} value={a}>{a}</option>)}
+                  </select>
+                </div>
+              </div>
+              <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="Amount ($)"
+                className="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none"
+                style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }} />
+              <input value={purpose} onChange={e => setPurpose(e.target.value)} placeholder="Purpose (e.g. savings, self-care fund)"
+                className="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none"
+                style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }} />
+            </div>
+            <button onClick={addTransfer} disabled={!amount}
+              className="w-full py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40"
+              style={{ background: LIME, color: "#000" }}>
+              Log Transfer
+            </button>
+          </div>
+        )}
+
+        {accountTransfers.length > 0 && (
+          <div className="rounded-2xl overflow-hidden" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+            {accountTransfers.slice(0, 15).map((t, i) => (
+              <div key={t.id} className="flex items-center justify-between px-4 py-3"
+                style={{ borderBottom: i < Math.min(accountTransfers.length, 15) - 1 ? `1px solid ${BORDER}` : undefined }}>
+                <div>
+                  <p className="text-sm text-white">{t.fromAccount} → {t.toAccount}</p>
+                  <p className="text-xs" style={{ color: MUTED }}>{t.date}{t.purpose ? ` · ${t.purpose}` : ""}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-semibold" style={{ color: LIME }}>{fmt$(t.amount)}</p>
+                  <button onClick={() => onRemoveTransfer(t.id)} className="p-1">
+                    <Trash2 size={11} style={{ color: MUTED }} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {accountTransfers.length === 0 && !showForm && (
+          <p className="text-xs text-center py-2" style={{ color: MUTED }}>No account transfers logged</p>
+        )}
+      </div>
     </div>
   );
 }

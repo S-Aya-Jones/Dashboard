@@ -218,6 +218,26 @@ export interface RecurringBill {
   name: string;
   amount: number;
   dayOfMonth: number;       // 1–31
+  lastPaidDate?: string;    // YYYY-MM-DD — if >= current payday, bill is paid this period
+}
+
+export interface P2PTransfer {
+  id: string;
+  date: string;             // YYYY-MM-DD
+  person: string;
+  amount: number;
+  direction: "sent" | "received";
+  platform: "zelle" | "venmo" | "cashapp" | "cash" | "other";
+  note?: string;
+}
+
+export interface AccountTransfer {
+  id: string;
+  date: string;             // YYYY-MM-DD
+  fromAccount: string;
+  toAccount: string;
+  amount: number;
+  purpose?: string;         // e.g. "savings", "self-care fund"
 }
 
 export interface SinkingFund {
@@ -480,6 +500,8 @@ export interface DashboardData {
   paycheckConfig?: PaycheckConfig;
   selfCareItems?: SelfCareItem[];
   recurringBills?: RecurringBill[];
+  p2pTransfers?: P2PTransfer[];
+  accountTransfers?: AccountTransfer[];
   sinkingFunds?: SinkingFund[];
   affordGoals?: AffordGoal[];
   monthlyIncome?: number;
