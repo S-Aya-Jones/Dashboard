@@ -2,17 +2,16 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { usePlaidLink } from "react-plaid-link";
-import { RefreshCw, Unlink, AlertTriangle, SlidersHorizontal } from "lucide-react";
-import { DashboardData, MerchantCategoryOverride } from "@/types/dashboard";
-import { Button } from "@/components/ui/Button";
-import { Modal } from "@/components/ui/Modal";
+import { RefreshCw, Unlink, Plus, Trash2, TrendingUp, Target, Wallet, Calendar } from "lucide-react";
+import { DashboardData, BudgetCategory, SinkingFund, AffordGoal, MerchantCategoryOverride } from "@/types/dashboard";
 import { id } from "@/lib/utils";
-import {
-  format, parseISO, startOfMonth, isAfter, differenceInDays,
-  startOfWeek, addDays,
-} from "date-fns";
-import { detectRecurring } from "./RecurringPanel";
-import { SavingsQuests } from "./SavingsQuests";
+import { parseISO, startOfMonth, isAfter } from "date-fns";
+
+const LIME   = "#C8FF00";
+const BG     = "#0A0A0A";
+const CARD   = "#111111";
+const BORDER = "rgba(255,255,255,0.08)";
+const MUTED  = "rgba(255,255,255,0.4)";
 
 interface Props {
   data: DashboardData;
@@ -20,818 +19,732 @@ interface Props {
 }
 
 interface PlaidAccount {
-  accountId:        string;
-  name:             string;
-  officialName?:    string | null;
-  mask?:            string | null;
-  type:             string;
-  subtype?:         string | null;
-  balances:         { current?: number | null; available?: number | null; limit?: number | null };
-  institutionName?: string | null;
-  itemId?:          string;
-  loginRequired?:   boolean;
+  accountId: string; name: string; mask?: string | null; type: string; subtype?: string | null;
+  balances: { current?: number | null; available?: number | null; limit?: number | null };
+  institutionName?: string | null; itemId?: string; loginRequired?: boolean;
 }
-
 interface PlaidTxn {
-  id:                 string;
-  name:               string;
-  amount:             number;
-  date:               string;
-  category:           string;
-  accountId:          string;
-  institutionName?:   string | null;
-  isInternalTransfer: boolean;
-  transferPairId:     string | null;
-  itemId:             string;
+  id: string; name: string; amount: number; date: string; category: string;
+  accountId: string; isInternalTransfer: boolean; transferPairId: string | null; itemId: string;
 }
-
-// ── Category metadata ─────────────────────────────────────────────────────────
 
 const CAT_LABEL: Record<string, string> = {
-  FOOD_AND_DRINK:              "Eating Out",
-  GROCERIES:                   "Groceries",
-  TRANSPORTATION:              "Transport",
-  SHOPPING:                    "Shopping",
-  ENTERTAINMENT:               "Entertainment",
-  MEDICAL:                     "Healthcare",
-  GENERAL_SERVICES:            "Services",
-  HOME_IMPROVEMENT:            "Home",
-  RENT_AND_UTILITIES:          "Housing",
-  PERSONAL_CARE:               "Personal Care",
-  GENERAL_MERCHANDISE:         "Merchandise",
-  TRAVEL:                      "Travel",
-  LOAN_PAYMENTS:               "Loan Payments",
-  BANK_FEES:                   "Bank Fees",
-  INCOME:                      "Income",
-  TRANSFER_IN:                 "Transfer In",
-  TRANSFER_OUT:                "Bank Transfers",
-  GOVERNMENT_AND_NON_PROFIT:   "Gov & Non-Profit",
-  EDUCATION:                   "Education",
-  HOME_SERVICES:               "Home Services",
-  INSURANCE:                   "Insurance",
-  RECREATION:                  "Recreation",
-  PERSONAL_AND_FAMILY_CARE:    "Family Care",
-  FOOD_AND_DRINK_GROCERIES:    "Groceries",
+  FOOD_AND_DRINK: "Eating Out", GROCERIES: "Groceries", TRANSPORTATION: "Transport",
+  SHOPPING: "Shopping", ENTERTAINMENT: "Entertainment", MEDICAL: "Healthcare",
+  GENERAL_SERVICES: "Services", HOME_IMPROVEMENT: "Home", RENT_AND_UTILITIES: "Housing",
+  PERSONAL_CARE: "Personal Care", GENERAL_MERCHANDISE: "Merchandise", TRAVEL: "Travel",
+  LOAN_PAYMENTS: "Loan Payments", BANK_FEES: "Bank Fees", RECREATION: "Recreation",
+  INSURANCE: "Insurance", EDUCATION: "Education",
 };
-
-const BUDGET_CATS = [
-  "GROCERIES", "FOOD_AND_DRINK", "TRANSPORTATION", "SHOPPING", "ENTERTAINMENT",
-  "MEDICAL", "GENERAL_SERVICES", "HOME_IMPROVEMENT", "RENT_AND_UTILITIES",
-  "PERSONAL_CARE", "GENERAL_MERCHANDISE", "TRAVEL", "LOAN_PAYMENTS",
-];
-
-function catLabel(raw: string) {
-  return CAT_LABEL[raw] ?? raw.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
+const CAT_EMOJI: Record<string, string> = {
+  FOOD_AND_DRINK: "🍽️", GROCERIES: "🛒", TRANSPORTATION: "🚗", SHOPPING: "🛍️",
+  ENTERTAINMENT: "🎬", MEDICAL: "💊", GENERAL_SERVICES: "🔧", HOME_IMPROVEMENT: "🏠",
+  RENT_AND_UTILITIES: "⚡", PERSONAL_CARE: "✨", GENERAL_MERCHANDISE: "📦",
+  TRAVEL: "✈️", LOAN_PAYMENTS: "💳", BANK_FEES: "🏦", RECREATION: "🎾",
+  INSURANCE: "🛡️", EDUCATION: "📚",
+};
 const INCOME_CATS = new Set(["INCOME", "TRANSFER_IN"]);
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function fmt$(n: number | null | undefined) {
-  if (n == null) return "—";
-  return `$${Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
-function fmtN(n: number | null | undefined) {
-  if (n == null) return "—";
-  return `$${Math.abs(Math.round(n)).toLocaleString()}`;
-}
-
-function fmtBal(n: number | null | undefined): { text: string; negative: boolean } {
-  if (n == null) return { text: "—", negative: false };
-  const abs = Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  return { text: n < 0 ? `-$${abs}` : `$${abs}`, negative: n < 0 };
-}
-
-function cleanAcctName(raw: string, subtype?: string | null, type?: string): string {
-  if (!/^(depository|loan|credit|investment)\s/i.test(raw)) return raw;
-  const sub = (subtype ?? "").toLowerCase();
-  if (sub === "checking")      return "Checking";
-  if (sub === "savings")       return "Savings";
-  if (sub === "cd")            return "CD";
-  if (sub === "money market")  return "Money Market";
-  if (sub === "credit card")   return "Credit Card";
-  if (type === "loan")         return "Loan";
-  if (type === "investment")   return "Brokerage";
-  return "Account";
-}
-
-function effectiveBalance(acc: PlaidAccount): number {
-  if (acc.type === "credit") {
-    const limit = acc.balances.limit ?? 0;
-    const avail = acc.balances.available;
-    if (avail != null && limit > 0) return limit - avail;
-    return acc.balances.current ?? 0;
-  }
-  if (acc.type === "loan") return acc.balances.current ?? 0;
-  return acc.balances.available ?? acc.balances.current ?? 0;
-}
-
-function timeAgo(d: Date): string {
-  const mins = Math.round((Date.now() - d.getTime()) / 60_000);
-  if (mins < 1)  return "just now";
-  if (mins === 1) return "1 min ago";
-  if (mins < 60) return `${mins} min ago`;
-  const hrs = Math.round(mins / 60);
-  return hrs === 1 ? "1 hr ago" : `${hrs} hrs ago`;
-}
-
-// ── Plaid Connect ─────────────────────────────────────────────────────────────
-
-function PlaidConnectButton({ onConnected, compact = false }: { onConnected: () => void; compact?: boolean }) {
-  const [linkToken, setLinkToken] = useState<string | null>(null);
-  const [fetching,  setFetching]  = useState(false);
-
-  const { open, ready } = usePlaidLink({
-    token:     linkToken,
-    onSuccess: async (publicToken, metadata) => {
-      await fetch("/api/plaid/exchange-token", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ publicToken, metadata }),
-      });
-      onConnected();
-    },
-  });
-
-  useEffect(() => { if (linkToken && ready) open(); }, [linkToken, ready, open]);
-
-  const handleClick = async () => {
-    if (fetching) return;
-    setFetching(true);
-    try {
-      const res  = await fetch("/api/plaid/create-link-token", { method: "POST" });
-      const json = await res.json();
-      if (json.link_token) setLinkToken(json.link_token);
-    } finally { setFetching(false); }
-  };
-
-  if (compact) {
-    return (
-      <button onClick={handleClick} disabled={fetching}
-        className="text-[10px] text-sand-dark hover:text-white transition-colors">
-        {fetching ? "…" : "+ connect"}
-      </button>
-    );
-  }
-
-  return (
-    <Button onClick={handleClick} disabled={fetching}>
-      {fetching ? "Preparing…" : "+ Connect a bank"}
-    </Button>
-  );
-}
-
-// ── Config defaults ───────────────────────────────────────────────────────────
-
 const DEFAULT_FC = {
-  bigTicketThreshold:        100,
-  watchListMerchants:        ["sephora", "ulta", "amazon", "starbucks", "coffee", "doordash", "ubereats", "grubhub", "uber", "lyft"],
-  bigMoves:                  [],
-  recurringHidden:           [] as string[],
-  recurringFlagged:          [] as string[],
+  bigTicketThreshold: 100, watchListMerchants: [], bigMoves: [],
+  recurringHidden: [] as string[], recurringFlagged: [] as string[],
   merchantCategoryOverrides: [] as MerchantCategoryOverride[],
 };
 
+const CAT_COLORS = ["#C8FF00","#DA667B","#71816D","#C9B79C","#8A9E87","#A8967E","#6B8CAE","#E8A87C","#9B89B4","#5BAD92"];
 
-// ── Main component ────────────────────────────────────────────────────────────
+function fmt$(n: number) { return `$${Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`; }
+function catLabel(c: string) { return CAT_LABEL[c] ?? c.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase()); }
 
+// ── Plaid Connect ─────────────────────────────────────────────────────────────
+function PlaidConnectButton({ onConnected }: { onConnected: () => void }) {
+  const [linkToken, setLinkToken] = useState<string | null>(null);
+  const [fetching, setFetching] = useState(false);
+  const { open, ready } = usePlaidLink({ token: linkToken, onSuccess: async (pt, meta) => {
+    await fetch("/api/plaid/exchange-token", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ publicToken: pt, metadata: meta }) });
+    onConnected();
+  }});
+  useEffect(() => { if (linkToken && ready) open(); }, [linkToken, ready, open]);
+  const handleClick = async () => {
+    if (fetching) return; setFetching(true);
+    try { const r = await fetch("/api/plaid/create-link-token", { method: "POST" }); const j = await r.json(); if (j.link_token) setLinkToken(j.link_token); } finally { setFetching(false); }
+  };
+  return (
+    <button onClick={handleClick} disabled={fetching}
+      className="w-full py-3 rounded-xl text-sm font-semibold transition-all active:scale-95"
+      style={{ background: LIME, color: "#000" }}>
+      {fetching ? "Preparing…" : "+ Connect Bank Account"}
+    </button>
+  );
+}
+
+// ── Main ─────────────────────────────────────────────────────────────────────
 export function FinancesView({ data, update }: Props) {
-  const [accounts,        setAccounts]        = useState<PlaidAccount[]>([]);
-  const [transactions,    setTransactions]    = useState<PlaidTxn[]>([]);
-  const [, setTransferCount]   = useState(0);
-  const [refreshedAt,     setRefreshedAt]     = useState<string | null>(null);
-  const [loadingAccts,    setLoadingAccts]    = useState(true);
-  const [loadingTxns,     setLoadingTxns]     = useState(true);
-  const [refreshing,      setRefreshing]      = useState(false);
-  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
+  const [accounts, setAccounts] = useState<PlaidAccount[]>([]);
+  const [transactions, setTransactions] = useState<PlaidTxn[]>([]);
+  const [loadingAccts, setLoadingAccts] = useState(true);
+  const [loadingTxns, setLoadingTxns] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [tab, setTab] = useState<"overview" | "spending" | "planning" | "accounts">("overview");
+  const [toast, setToast] = useState<string | null>(null);
 
-  const [cardOpen,    setCardOpen]    = useState(false);
-  const [budgetOpen,  setBudgetOpen]  = useState(false);
-  const [savingsOpen, setSavingsOpen] = useState(false);
-  const [cardForm,    setCardForm]    = useState({ name: "", balance: 0, limit: 0, targetPayoff: "" });
-  const [budgetDraft, setBudgetDraft] = useState<Record<string, string>>({});
+  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
 
   const fetchAccounts = useCallback(async (bust = false) => {
     setLoadingAccts(true);
-    try {
-      const res = await fetch(bust ? "/api/plaid/accounts?refresh=1" : "/api/plaid/accounts");
-      const j   = await res.json();
-      if (!j.error) { setAccounts(j.accounts ?? []); setRefreshedAt(j.refreshedAt ?? null); }
-    } finally { setLoadingAccts(false); }
+    try { const r = await fetch(bust ? "/api/plaid/accounts?refresh=1" : "/api/plaid/accounts"); const j = await r.json(); if (!j.error) setAccounts(j.accounts ?? []); } finally { setLoadingAccts(false); }
   }, []);
 
   const fetchTransactions = useCallback(async (bust = false) => {
     setLoadingTxns(true);
-    try {
-      const res = await fetch(bust ? "/api/plaid/transactions?refresh=1" : "/api/plaid/transactions");
-      const j   = await res.json();
-      if (!j.error) {
-        setTransactions(j.transactions ?? []);
-        setTransferCount(j.transferCount ?? 0);
-      }
-    } finally { setLoadingTxns(false); }
+    try { const r = await fetch(bust ? "/api/plaid/transactions?refresh=1" : "/api/plaid/transactions"); const j = await r.json(); if (!j.error) setTransactions(j.transactions ?? []); } finally { setLoadingTxns(false); }
   }, []);
 
   useEffect(() => { fetchAccounts(); fetchTransactions(); }, [fetchAccounts, fetchTransactions]);
 
   const handleRefresh = async () => {
-    if (refreshing) return;
-    setRefreshing(true);
-    try {
-      const res  = await fetch("/api/plaid/refresh", { method: "POST" });
-      const json = await res.json();
-      const ts   = json.refreshedAt ? new Date(json.refreshedAt) : new Date();
-      setLastRefreshedAt(ts);
-      if (!json.skipped) await new Promise((r) => setTimeout(r, 3000));
-      await Promise.all([fetchAccounts(!json.skipped), fetchTransactions(!json.skipped)]);
-    } finally { setRefreshing(false); }
+    if (refreshing) return; setRefreshing(true);
+    try { await fetch("/api/plaid/refresh", { method: "POST" }); await new Promise(r => setTimeout(r, 3000)); await Promise.all([fetchAccounts(true), fetchTransactions(true)]); } finally { setRefreshing(false); }
   };
 
-  const handleConnected = () => { fetchAccounts(true); fetchTransactions(true); };
-
-  const handleDisconnect = async (itemId: string | undefined) => {
+  const handleDisconnect = async (itemId?: string) => {
     if (!itemId || !confirm("Remove this account connection?")) return;
-    await fetch("/api/plaid/disconnect", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ itemId }),
-    });
+    await fetch("/api/plaid/disconnect", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ itemId }) });
     fetchAccounts(true);
   };
 
-  // ── Config ─────────────────────────────────────────────────────────────────
-
-  const fc = {
-    ...DEFAULT_FC,
-    ...(data.financesConfig ?? {}),
-    merchantCategoryOverrides: data.financesConfig?.merchantCategoryOverrides ?? [],
-  };
-
+  // ── Derived data ───────────────────────────────────────────────────────────
+  const fc = { ...DEFAULT_FC, ...(data.financesConfig ?? {}), merchantCategoryOverrides: data.financesConfig?.merchantCategoryOverrides ?? [] };
   const resolvedCat = (t: PlaidTxn) => {
-    for (const o of fc.merchantCategoryOverrides) {
-      if (t.name.toLowerCase().includes(o.nameContains.toLowerCase())) return o.category;
-    }
+    for (const o of fc.merchantCategoryOverrides) if (t.name.toLowerCase().includes(o.nameContains.toLowerCase())) return o.category;
     return t.category;
   };
 
-  // ── Account totals ─────────────────────────────────────────────────────────
+  const now = new Date();
+  const monthStart = startOfMonth(now);
+  const dayOfMonth = now.getDate();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
 
-  const realAccounts = accounts.filter((a) => !a.loginRequired);
-  const totalCash    = realAccounts.filter((a) => a.type === "depository")
-    .reduce((s, a) => s + (a.balances.available ?? a.balances.current ?? 0), 0);
-  const totalCredit  = realAccounts.filter((a) => a.type === "credit")
-    .reduce((s, a) => s + effectiveBalance(a), 0);
-  const netWorth     = totalCash - totalCredit;
-
-  // ── Runway ─────────────────────────────────────────────────────────────────
-
-  const last30Spend = transactions
-    .filter((t) => {
-      if (t.isInternalTransfer) return false;
-      if (INCOME_CATS.has(t.category)) return false;
-      if (t.amount <= 0) return false;
-      return differenceInDays(new Date(), parseISO(t.date)) <= 30;
-    })
-    .reduce((s, t) => s + t.amount, 0);
-
-  const avgDailySpend = last30Spend / 30;
-  const runwayDays    = avgDailySpend > 0 && totalCash > 0 ? Math.round(totalCash / avgDailySpend) : null;
-  const runwayColor   = runwayDays == null ? "#ffffff"
-    : runwayDays > 90 ? "#9B7FFF"
-    : runwayDays > 30 ? "#C99A5C"
-    : "#DA667B";
-
-  // ── This-month spending ────────────────────────────────────────────────────
-
-  const monthStart = startOfMonth(new Date());
-
-  const thisMo = transactions.filter(
-    (t) => !t.isInternalTransfer && (isAfter(parseISO(t.date), monthStart) || parseISO(t.date) >= monthStart),
+  const thisMonthTxns = transactions.filter(t =>
+    !t.isInternalTransfer && !INCOME_CATS.has(resolvedCat(t)) && t.amount > 0 && isAfter(parseISO(t.date), monthStart)
   );
+  const totalSpentThisMonth = thisMonthTxns.reduce((s, t) => s + t.amount, 0);
 
-  const catActual = new Map<string, number>();
-  for (const t of thisMo) {
-    const cat = resolvedCat(t);
-    if (INCOME_CATS.has(cat)) continue;
-    catActual.set(cat, (catActual.get(cat) ?? 0) + t.amount);
+  const thisMonthIncome = transactions.filter(t =>
+    INCOME_CATS.has(resolvedCat(t)) && t.amount < 0 && isAfter(parseISO(t.date), monthStart)
+  ).reduce((s, t) => s + Math.abs(t.amount), 0);
+
+  const monthlyIncome = data.monthlyIncome ?? (thisMonthIncome > 0 ? thisMonthIncome : 0);
+
+  // Category breakdown this month
+  const catSpend: Record<string, number> = {};
+  for (const t of thisMonthTxns) {
+    const c = resolvedCat(t);
+    catSpend[c] = (catSpend[c] ?? 0) + t.amount;
   }
+  const sortedCats = Object.entries(catSpend).sort((a, b) => b[1] - a[1]);
 
-  const totalSpent = Math.max(0, Array.from(catActual.values()).reduce((s, v) => s + v, 0));
+  const totalBudget = (data.budgetCategories ?? []).reduce((s, b) => s + b.monthlyLimit, 0);
+  const budgetPct = totalBudget > 0 ? Math.min((totalSpentThisMonth / totalBudget) * 100, 100) : 0;
 
-  const budgetMap  = new Map(data.budgetCategories.map((b) => [b.category, b.monthlyLimit]));
-  const allCats    = Array.from(new Set([
-    ...Array.from(catActual.keys()),
-    ...Array.from(budgetMap.keys()),
-  ])).filter((c) => !INCOME_CATS.has(c));
+  // Spending grade
+  const expectedSpendByNow = totalBudget > 0 ? (totalBudget * dayOfMonth) / daysInMonth : 0;
+  const gradeRatio = expectedSpendByNow > 0 ? totalSpentThisMonth / expectedSpendByNow : 0;
+  const grade = gradeRatio <= 0.75 ? "A" : gradeRatio <= 0.9 ? "B" : gradeRatio <= 1.0 ? "C" : gradeRatio <= 1.15 ? "D" : "F";
+  const gradeColor = grade === "A" ? LIME : grade === "B" ? "#8A9E87" : grade === "C" ? "#C9B79C" : grade === "D" ? "#E8A87C" : "#DA667B";
 
-  const budgetRows = allCats
-    .map((cat) => {
-      const actual = catActual.get(cat) ?? 0;
-      const limit  = budgetMap.get(cat) ?? 0;
-      const diff   = limit > 0 ? actual - limit : 0;
-      const pct    = limit > 0 ? Math.min(Math.round((actual / limit) * 100), 999) : 0;
-      return { cat, actual, limit, diff, pct };
-    })
-    .filter((r) => r.actual > 0 || r.limit > 0)
-    .sort((a, b) => {
-      if (a.limit > 0 && b.limit > 0) return b.diff - a.diff;
-      return b.actual - a.actual;
-    });
-
-  const totalBudget = Array.from(budgetMap.values()).reduce((s, v) => s + v, 0);
-  const hasBudget   = budgetMap.size > 0;
-
-  // ── Weekly calculations ────────────────────────────────────────────────────
-
-  const today      = new Date();
-  const weekStart  = startOfWeek(today, { weekStartsOn: 1 });
-  const daysIntoWeek = Math.min(differenceInDays(today, weekStart) + 1, 7);
-  const weekFraction = daysIntoWeek / 7;
-
-  const thisWeekCatMap = new Map<string, number>();
-  for (const t of transactions) {
-    if (t.isInternalTransfer) continue;
-    const tDate = parseISO(t.date);
-    if (tDate < weekStart || tDate > today) continue;
-    const cat = resolvedCat(t);
-    if (INCOME_CATS.has(cat)) continue;
-    if (t.amount <= 0) continue;
-    thisWeekCatMap.set(cat, (thisWeekCatMap.get(cat) ?? 0) + t.amount);
-  }
-
-  const thisWeekTotal   = Array.from(thisWeekCatMap.values()).reduce((s, v) => s + v, 0);
-  const weeklyBudget    = totalBudget > 0 ? totalBudget / 4.3 : 0;
-  const weekPaceTarget  = weeklyBudget * weekFraction;
-  const weekAheadOfPace = weekPaceTarget > 0 && thisWeekTotal < weekPaceTarget;
-
-  const weekDayAmounts = Array.from({ length: 7 }, (_, i) => {
-    const day    = addDays(weekStart, i);
-    const dayStr = format(day, "yyyy-MM-dd");
-    const amt    = transactions
-      .filter((t) => !t.isInternalTransfer && t.date === dayStr && t.amount > 0 && !INCOME_CATS.has(resolvedCat(t)))
-      .reduce((s, t) => s + t.amount, 0);
-    return {
-      label:    format(day, "EEEEE"),
-      amount:   amt,
-      isToday:  dayStr === format(today, "yyyy-MM-dd"),
-      isFuture: day > today,
-    };
-  });
-
-  const thisWeekTopCats = Array.from(thisWeekCatMap.entries()).sort((a, b) => b[1] - a[1]);
-  const dayBarMax       = Math.max(...weekDayAmounts.map((d) => d.amount), 1);
-
-  // ── Recurring ─────────────────────────────────────────────────────────────
-
-  const allRecurring    = detectRecurring(transactions);
-  const recurringItems  = allRecurring.filter(
-    (r) => r.type === "expense" && !fc.recurringHidden.includes(r.key),
-  );
-  const monthlyRecurring = recurringItems.reduce((s, r) => {
-    const mult = r.cadence === "weekly" ? 4.3 : r.cadence === "biweekly" ? 2.15
-      : r.cadence === "monthly" ? 1 : r.cadence === "annual" ? 1 / 12 : 1;
-    return s + r.avgAmount * mult;
+  // Account totals
+  const realAccounts = accounts.filter(a => !a.loginRequired);
+  const totalCash = realAccounts.filter(a => a.type === "depository").reduce((s, a) => s + (a.balances.available ?? a.balances.current ?? 0), 0);
+  const totalDebt = realAccounts.filter(a => a.type === "credit").reduce((s, a) => {
+    const lim = a.balances.limit ?? 0; const avail = a.balances.available;
+    return s + (avail != null && lim > 0 ? lim - avail : a.balances.current ?? 0);
   }, 0);
 
-  // ── Modals ─────────────────────────────────────────────────────────────────
+  const monthlySavings = monthlyIncome - totalSpentThisMonth;
+  const sinkingFunds = data.sinkingFunds ?? [];
+  const affordGoals = data.affordGoals ?? [];
 
-  const openBudgetModal = () => {
-    const draft: Record<string, string> = {};
-    for (const b of data.budgetCategories) draft[b.category] = String(b.monthlyLimit);
-    for (const cat of Array.from(catActual.keys())) {
-      if (!(cat in draft)) draft[cat] = "";
-    }
-    setBudgetDraft(draft);
-    setBudgetOpen(true);
-  };
-
-  const saveBudget = () => {
-    const saved = Object.entries(budgetDraft)
-      .filter(([, v]) => v !== "" && Number(v) > 0)
-      .map(([category, v]) => ({ category, monthlyLimit: Number(v) }));
-    update((d) => ({ ...d, budgetCategories: saved }));
-    setBudgetOpen(false);
-  };
-
-  const addCard = () => {
-    if (!cardForm.name.trim()) return;
-    update((d) => ({ ...d, creditCards: [...d.creditCards, { ...cardForm, id: id() }] }));
-    setCardForm({ name: "", balance: 0, limit: 0, targetPayoff: "" });
-    setCardOpen(false);
-  };
-
-  // ── Render ─────────────────────────────────────────────────────────────────
+  const TABS = [
+    { key: "overview", label: "Overview", icon: TrendingUp },
+    { key: "spending", label: "Spending", icon: Wallet },
+    { key: "planning", label: "Planning", icon: Target },
+    { key: "accounts", label: "Accounts", icon: Calendar },
+  ] as const;
 
   return (
-    <div className="h-full flex flex-col p-4 gap-3 overflow-hidden">
-
-      {/* ── Header ── */}
-      <div className="flex items-center justify-between flex-shrink-0">
-        <h1 className="font-serif text-2xl text-white">Finances</h1>
-        <div className="flex items-center gap-2">
-          {(loadingAccts || loadingTxns) && (
-            <span className="text-xs text-sand-dark animate-pulse">Loading…</span>
-          )}
-          <PlaidConnectButton onConnected={handleConnected} />
-          <Button variant="secondary" onClick={openBudgetModal}>
-            <SlidersHorizontal size={12} className="mr-1 inline" />Budget
-          </Button>
-          <button
-            onClick={handleRefresh} disabled={refreshing}
-            className="flex items-center gap-1.5 text-xs text-sand-dark hover:text-white transition-colors px-3 py-1.5 rounded-lg border border-white/10 hover:border-white/20"
-          >
-            <RefreshCw size={12} className={refreshing ? "animate-spin" : ""} />
-            {refreshing ? "Refreshing…" : "Refresh"}
+    <div style={{ background: BG, minHeight: "100%", color: "#fff", fontFamily: "inherit" }}>
+      {/* Header */}
+      <div className="px-6 pt-6 pb-4">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-semibold text-white">Finances</h1>
+            <p className="text-sm" style={{ color: MUTED }}>{now.toLocaleDateString("en-US", { month: "long", year: "numeric" })}</p>
+          </div>
+          <button onClick={handleRefresh} disabled={refreshing}
+            className="p-2 rounded-xl transition-all"
+            style={{ background: "rgba(255,255,255,0.06)", border: `1px solid ${BORDER}` }}>
+            <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} style={{ color: MUTED }} />
           </button>
-          {lastRefreshedAt && (
-            <span className="text-[10px] text-sand-dark">{timeAgo(lastRefreshedAt)}</span>
-          )}
-        </div>
-      </div>
-
-      {/* ── Hero: 4 stat cards ── */}
-      <div className="grid grid-cols-4 gap-3 flex-shrink-0">
-
-        <div className="card p-4 flex flex-col justify-between" style={{ minHeight: 90 }}>
-          <p className="text-[10px] font-medium text-sand-dark uppercase tracking-widest">Net Worth</p>
-          <p className={`font-serif text-3xl leading-none mt-1 ${netWorth < 0 ? "text-rose" : "text-white"}`}>
-            {netWorth < 0 && "−"}{fmtN(netWorth)}
-          </p>
-          <p className="text-[10px] text-sand-dark mt-1.5">
-            {fmtN(totalCash)} cash · {fmtN(totalCredit)} owed
-          </p>
         </div>
 
-        <div className="card p-4 flex flex-col justify-between" style={{ minHeight: 90 }}>
-          <p className="text-[10px] font-medium text-sand-dark uppercase tracking-widest">Cash Runway</p>
-          <p className="font-serif text-3xl leading-none mt-1" style={{ color: runwayColor }}>
-            {runwayDays != null ? `${runwayDays}d` : "—"}
-          </p>
-          <p className="text-[10px] text-sand-dark mt-1.5">
-            {avgDailySpend > 0 ? `~$${Math.round(avgDailySpend)}/day avg` : "loading…"}
-          </p>
-        </div>
-
-        <div className="card p-4 flex flex-col justify-between" style={{ minHeight: 90 }}>
-          <p className="text-[10px] font-medium text-sand-dark uppercase tracking-widest">
-            {format(today, "MMMM")}
-          </p>
-          {hasBudget && totalBudget > 0 ? (
-            <>
-              <p className={`font-serif text-3xl leading-none mt-1 ${totalSpent > totalBudget ? "text-rose" : "text-sage"}`}>
-                {totalSpent > totalBudget
-                  ? `${fmtN(totalSpent - totalBudget)} over`
-                  : `${fmtN(totalBudget - totalSpent)} left`}
-              </p>
-              <p className="text-[10px] text-sand-dark mt-1.5">
-                {fmtN(totalSpent)} of {fmtN(totalBudget)}
-              </p>
-            </>
-          ) : (
-            <>
-              <p className="font-serif text-3xl text-white leading-none mt-1">{fmtN(totalSpent)}</p>
-              <p className="text-[10px] text-sand-dark mt-1.5">spent this month</p>
-            </>
-          )}
-        </div>
-
-        <div className="card p-4 flex flex-col justify-between" style={{ minHeight: 90 }}>
-          <p className="text-[10px] font-medium text-sand-dark uppercase tracking-widest">This Week</p>
-          <p className="font-serif text-3xl leading-none mt-1" style={{ color: "#C8FF00" }}>
-            {fmtN(thisWeekTotal)}
-          </p>
-          <p className="text-[10px] text-sand-dark mt-1.5">
-            {weekAheadOfPace
-              ? `${fmtN(weekPaceTarget - thisWeekTotal)} under pace`
-              : weeklyBudget > 0
-              ? `${fmtN(thisWeekTotal - weekPaceTarget)} over pace`
-              : `day ${daysIntoWeek} of 7`}
-          </p>
-        </div>
-
-      </div>
-
-      {/* ── Middle Row: Budget · This Week · Recurring ── */}
-      <div className="grid grid-cols-3 gap-3 flex-1 min-h-0">
-
-        {/* Budget Categories */}
-        <div className="card p-4 overflow-hidden flex flex-col">
-          <div className="flex items-center justify-between mb-2 flex-shrink-0">
-            <h3 className="font-serif text-base text-white">Budget</h3>
-            <button onClick={openBudgetModal} className="text-[10px] text-sand-dark hover:text-white transition-colors">
-              edit
-            </button>
-          </div>
-          {hasBudget && totalBudget > 0 && (
-            <div className="flex items-center gap-2 mb-2 flex-shrink-0">
-              <div className="flex-1 h-0.5 bg-cream-darker rounded-full overflow-hidden">
-                <div className="h-full rounded-full transition-all"
-                  style={{
-                    width: `${Math.min(100, (totalSpent / totalBudget) * 100)}%`,
-                    background: totalSpent > totalBudget ? "#DA667B" : "#9B7FFF",
-                  }} />
-              </div>
-              <span className="text-[10px] text-sand-dark flex-shrink-0">
-                {Math.round((totalSpent / totalBudget) * 100)}%
-              </span>
-            </div>
-          )}
-          <div className="space-y-2 overflow-hidden flex-1">
-            {budgetRows.slice(0, 6).map((r) => {
-              const isOver = r.limit > 0 && r.diff > 0;
-              const isWarn = r.limit > 0 && r.pct >= 80 && !isOver;
-              const dotColor = isOver ? "#DA667B" : isWarn ? "#C99A5C" : "#9B7FFF";
-              const barPct   = r.limit > 0 ? Math.min(100, r.pct) : 60;
-              return (
-                <div key={r.cat} className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: dotColor }} />
-                  <span className="text-xs text-white flex-1 truncate min-w-0">{catLabel(r.cat)}</span>
-                  <div className="w-14 h-0.5 bg-cream-darker rounded-full overflow-hidden flex-shrink-0">
-                    <div className="h-full rounded-full" style={{ width: `${barPct}%`, background: dotColor }} />
-                  </div>
-                  <span className={`text-[11px] font-medium flex-shrink-0 ${isOver ? "text-rose" : "text-white"}`}>
-                    {fmtN(r.actual)}
-                  </span>
-                </div>
-              );
-            })}
-            {budgetRows.length > 6 && (
-              <p className="text-[10px] text-sand-dark">+{budgetRows.length - 6} more categories</p>
-            )}
-            {budgetRows.length === 0 && !loadingTxns && (
-              <p className="text-xs text-sand-dark">No spending this month yet.</p>
-            )}
-          </div>
-        </div>
-
-        {/* This Week */}
-        <div className="card p-4 overflow-hidden flex flex-col">
-          <div className="flex items-center justify-between mb-1 flex-shrink-0">
-            <h3 className="font-serif text-base text-white">This Week</h3>
-            {weeklyBudget > 0 && (
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${weekAheadOfPace ? "bg-sage/15 text-sage" : "bg-rose/10 text-rose"}`}>
-                {weekAheadOfPace ? "on track" : "over pace"}
-              </span>
-            )}
-          </div>
-          <div className="flex items-baseline gap-2 mb-3 flex-shrink-0">
-            <p className="font-serif text-2xl text-white leading-none">{fmtN(thisWeekTotal)}</p>
-            <span className="text-xs text-sand-dark">day {daysIntoWeek}/7</span>
-          </div>
-
-          {/* Day bars */}
-          <div className="flex items-end gap-1 mb-3 flex-shrink-0" style={{ height: 40 }}>
-            {weekDayAmounts.map((d, i) => {
-              const barH = d.isFuture ? 2 : Math.max(2, Math.round((d.amount / dayBarMax) * 32));
-              return (
-                <div key={i} className="flex flex-col items-center gap-0.5 flex-1">
-                  <div className="w-full rounded-sm" style={{
-                    height: barH,
-                    background: d.isToday ? "#C8FF00" : d.isFuture ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.18)",
-                    alignSelf: "flex-end",
-                  }} />
-                  <span className="text-[9px]" style={{ color: d.isToday ? "#C8FF00" : "rgba(255,255,255,0.35)" }}>
-                    {d.label}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Top categories */}
-          <div className="space-y-1.5 overflow-hidden flex-1">
-            {thisWeekTopCats.slice(0, 4).map(([cat, amt]) => {
-              const pct = thisWeekTotal > 0 ? (amt / thisWeekTotal) * 100 : 0;
-              return (
-                <div key={cat} className="flex items-center gap-2">
-                  <span className="text-[11px] text-white flex-1 truncate">{catLabel(cat)}</span>
-                  <div className="w-14 h-0.5 bg-cream-darker rounded-full overflow-hidden flex-shrink-0">
-                    <div className="h-full rounded-full" style={{ width: `${pct}%`, background: "rgba(155,127,255,0.6)" }} />
-                  </div>
-                  <span className="text-[11px] text-sand-dark flex-shrink-0">{fmtN(amt)}</span>
-                </div>
-              );
-            })}
-            {thisWeekTopCats.length === 0 && (
-              <p className="text-xs text-sand-dark">No spending yet this week.</p>
-            )}
-          </div>
-        </div>
-
-        {/* Recurring */}
-        <div className="card p-4 overflow-hidden flex flex-col">
-          <div className="mb-2 flex-shrink-0">
-            <h3 className="font-serif text-base text-white">Recurring</h3>
-            {monthlyRecurring > 0 && (
-              <p className="text-[10px] text-sand-dark mt-0.5">{fmt$(monthlyRecurring)}/month in bills</p>
-            )}
-          </div>
-          <div className="space-y-2 overflow-hidden flex-1">
-            {recurringItems.slice(0, 7).map((r) => {
-              const daysUntil = r.nextEstimated
-                ? differenceInDays(parseISO(r.nextEstimated), today)
-                : null;
-              const dueSoon = daysUntil !== null && daysUntil <= 3 && daysUntil >= 0;
-              return (
-                <div key={r.key} className="flex items-center gap-2">
-                  <span className="text-[11px] text-white truncate flex-1 min-w-0">{r.merchant}</span>
-                  <span className="text-[10px] text-sand-dark flex-shrink-0">{fmt$(r.avgAmount)}</span>
-                  {daysUntil !== null && (
-                    <span className="text-[10px] flex-shrink-0 font-medium"
-                      style={{ color: dueSoon ? "#C8FF00" : "rgba(255,255,255,0.35)" }}>
-                      {daysUntil <= 0 ? "due" : daysUntil === 1 ? "tmrw" : `${daysUntil}d`}
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-            {recurringItems.length > 7 && (
-              <p className="text-[10px] text-sand-dark">+{recurringItems.length - 7} more</p>
-            )}
-            {recurringItems.length === 0 && !loadingTxns && (
-              <p className="text-xs text-sand-dark">No recurring detected yet.</p>
-            )}
-          </div>
-        </div>
-
-      </div>
-
-      {/* ── Bottom Row: Accounts · Savings ── */}
-      <div className="grid grid-cols-2 gap-3 flex-shrink-0" style={{ height: 168 }}>
-
-        {/* Connected Accounts */}
-        <div className="card p-4 overflow-hidden flex flex-col">
-          <div className="flex items-center justify-between mb-2 flex-shrink-0">
-            <h3 className="font-serif text-base text-white">Accounts</h3>
-            <div className="flex items-center gap-3">
-              {refreshedAt && (
-                <span className="text-[10px] text-sand-dark">as of {format(parseISO(refreshedAt), "h:mm a")}</span>
-              )}
-              <PlaidConnectButton onConnected={handleConnected} compact />
-              <button onClick={() => setCardOpen(true)} className="text-[10px] text-sand-dark hover:text-white transition-colors">
-                + manual
-              </button>
-            </div>
-          </div>
-          <div className="space-y-1.5 overflow-hidden flex-1">
-            {loadingAccts && accounts.length === 0 && (
-              <p className="text-xs text-sand-dark animate-pulse">Loading accounts…</p>
-            )}
-            {accounts.slice(0, 5).map((acc) => {
-              if (acc.loginRequired) {
-                return (
-                  <div key={acc.itemId ?? acc.accountId} className="flex items-center gap-2">
-                    <AlertTriangle size={10} className="text-rose flex-shrink-0" />
-                    <span className="text-xs text-rose truncate flex-1">
-                      {acc.institutionName ?? "Bank"} — reconnect needed
-                    </span>
-                  </div>
-                );
-              }
-              const dotColor = acc.type === "credit" ? "#DA667B" : acc.type === "loan" ? "#FF6B9D" : "#9B7FFF";
-              const { text, negative } = fmtBal(effectiveBalance(acc));
-              return (
-                <div key={acc.accountId} className="group flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: dotColor }} />
-                  <span className="text-xs text-white truncate flex-1 min-w-0">
-                    {acc.institutionName ?? cleanAcctName(acc.name, acc.subtype, acc.type)}
-                    {acc.mask ? ` ···${acc.mask}` : ""}
-                  </span>
-                  <span className={`text-xs font-medium flex-shrink-0 ${negative ? "text-rose" : "text-white"}`}>
-                    {text}
-                  </span>
-                  <button onClick={() => handleDisconnect(acc.itemId)}
-                    className="opacity-0 group-hover:opacity-100 text-sand hover:text-rose transition-all flex-shrink-0"
-                    title="Disconnect">
-                    <Unlink size={10} />
-                  </button>
-                </div>
-              );
-            })}
-            {accounts.length > 5 && (
-              <p className="text-[10px] text-sand-dark">+{accounts.length - 5} more accounts</p>
-            )}
-            {!loadingAccts && accounts.length === 0 && (
-              <p className="text-xs text-sand-dark">No accounts connected yet.</p>
-            )}
-          </div>
-        </div>
-
-        {/* Savings Quests */}
-        <div className="card p-4 overflow-hidden flex flex-col">
-          <div className="flex items-center justify-between mb-2 flex-shrink-0">
-            <h3 className="font-serif text-base text-white">Savings Quests</h3>
-            <button onClick={() => setSavingsOpen(true)} className="text-[10px] text-sand-dark hover:text-white transition-colors">
-              manage
-            </button>
-          </div>
-          {data.savingsGoals.length === 0 ? (
-            <button onClick={() => setSavingsOpen(true)}
-              className="text-xs text-sand-dark hover:text-white transition-colors flex-1 flex items-start pt-1">
-              + Add a savings goal
-            </button>
-          ) : (
-            <div className="space-y-2 overflow-hidden flex-1">
-              {data.savingsGoals.slice(0, 4).map((goal, i) => {
-                const pct = goal.target > 0 ? Math.min(100, (goal.current / goal.target) * 100) : 0;
-                const barColors = ["#DA667B", "#9B7FFF", "#C8FF00", "#C99A5C"];
-                const barColor  = barColors[i % barColors.length];
-                return (
-                  <div key={goal.id}>
-                    <div className="flex items-center justify-between mb-0.5">
-                      <span className="text-[11px] text-white truncate flex-1 min-w-0">{goal.name}</span>
-                      <span className="text-[10px] text-sand-dark ml-2 flex-shrink-0">
-                        {fmtN(goal.current)} / {fmtN(goal.target)}
-                      </span>
-                    </div>
-                    <div className="h-1 bg-cream-darker rounded-full overflow-hidden">
-                      <div className="h-full rounded-full transition-all"
-                        style={{ width: `${pct}%`, background: barColor }} />
-                    </div>
-                  </div>
-                );
-              })}
-              {data.savingsGoals.length > 4 && (
-                <p className="text-[10px] text-sand-dark">+{data.savingsGoals.length - 4} more</p>
-              )}
-            </div>
-          )}
-        </div>
-
-      </div>
-
-      {/* ── Budget Modal ── */}
-      <Modal open={budgetOpen} onClose={() => setBudgetOpen(false)} title={`Monthly Budget · ${format(today, "MMMM yyyy")}`}>
-        <div className="space-y-1 max-h-[60vh] overflow-y-auto pr-1">
-          <p className="text-xs text-sand-dark mb-3">
-            Set a monthly limit for each category. Leave blank to skip tracking.
-          </p>
-          {Array.from(new Set([
-            ...Object.keys(budgetDraft),
-            ...BUDGET_CATS.filter((c) => !(c in budgetDraft)),
-          ])).map((cat) => (
-            <div key={cat} className="flex items-center gap-3 py-2 border-b border-sand/20 last:border-0">
-              <label className="text-sm text-brown flex-1">{catLabel(cat)}</label>
-              <div className="relative w-28">
-                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-sand-dark text-xs">$</span>
-                <input
-                  type="number" min={0} placeholder="—"
-                  value={budgetDraft[cat] ?? ""}
-                  onChange={(e) => setBudgetDraft((d) => ({ ...d, [cat]: e.target.value }))}
-                  className="pl-5 text-right text-xs"
-                />
-              </div>
-              {catActual.get(cat) != null && (
-                <span className="text-[10px] text-sand-dark w-16 text-right flex-shrink-0">
-                  spent {fmtN(catActual.get(cat))}
-                </span>
-              )}
+        {/* Top stat cards */}
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          {[
+            { label: "Spent this month", value: fmt$(totalSpentThisMonth), sub: totalBudget > 0 ? `of ${fmt$(totalBudget)} budget` : "no budget set", color: budgetPct > 90 ? "#DA667B" : LIME },
+            { label: "Cash on hand", value: fmt$(totalCash), sub: totalDebt > 0 ? `${fmt$(totalDebt)} in debt` : "no debt tracked", color: "rgba(255,255,255,0.9)" },
+            { label: "Spending grade", value: grade, sub: `Day ${dayOfMonth} of ${daysInMonth}`, color: gradeColor },
+          ].map(s => (
+            <div key={s.label} className="rounded-2xl p-4" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+              <p className="text-xs mb-2" style={{ color: MUTED }}>{s.label}</p>
+              <p className="text-2xl font-bold" style={{ color: s.color }}>{s.value}</p>
+              <p className="text-xs mt-1" style={{ color: MUTED }}>{s.sub}</p>
             </div>
           ))}
         </div>
-        <div className="flex gap-2 justify-end mt-4">
-          <Button variant="secondary" onClick={() => setBudgetOpen(false)}>Cancel</Button>
-          <Button onClick={saveBudget}>Save Budget</Button>
-        </div>
-      </Modal>
 
-      {/* ── Manual Card Modal ── */}
-      <Modal open={cardOpen} onClose={() => setCardOpen(false)} title="Add Manual Card">
-        <div className="space-y-4">
-          <div>
-            <label className="text-xs font-medium text-brown block mb-1">Card Name</label>
-            <input type="text" placeholder="e.g. Chase Sapphire" value={cardForm.name}
-              onChange={(e) => setCardForm({ ...cardForm, name: e.target.value })} />
+        {/* Tabs */}
+        <div className="flex gap-1 rounded-xl p-1" style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${BORDER}` }}>
+          {TABS.map(({ key, label, icon: Icon }) => (
+            <button key={key} onClick={() => setTab(key)}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all"
+              style={tab === key ? { background: LIME, color: "#000" } : { color: MUTED }}>
+              <Icon size={13} />{label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Tab content */}
+      <div className="px-6 pb-8">
+
+        {/* ── OVERVIEW ─────────────────────────────────────────────────── */}
+        {tab === "overview" && (
+          <div className="space-y-4">
+            {/* Budget progress bar */}
+            {totalBudget > 0 && (
+              <div className="rounded-2xl p-4" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+                <div className="flex justify-between items-center mb-3">
+                  <p className="text-sm font-medium text-white">Monthly Budget</p>
+                  <p className="text-sm font-bold" style={{ color: budgetPct > 90 ? "#DA667B" : LIME }}>{Math.round(budgetPct)}%</p>
+                </div>
+                <div className="rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.08)", height: 8 }}>
+                  <div className="h-full rounded-full transition-all duration-500"
+                    style={{ width: `${budgetPct}%`, background: budgetPct > 90 ? "#DA667B" : budgetPct > 75 ? "#C9B79C" : LIME }} />
+                </div>
+                <div className="flex justify-between mt-2 text-xs" style={{ color: MUTED }}>
+                  <span>{fmt$(totalSpentThisMonth)} spent</span>
+                  <span>{fmt$(Math.max(0, totalBudget - totalSpentThisMonth))} left</span>
+                </div>
+              </div>
+            )}
+
+            {/* Top categories */}
+            {sortedCats.length > 0 ? (
+              <div className="rounded-2xl p-4" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+                <p className="text-sm font-medium text-white mb-4">Where your money went</p>
+                <div className="space-y-3">
+                  {sortedCats.slice(0, 7).map(([cat, amt], i) => {
+                    const pct = totalSpentThisMonth > 0 ? (amt / totalSpentThisMonth) * 100 : 0;
+                    const color = CAT_COLORS[i % CAT_COLORS.length];
+                    return (
+                      <div key={cat}>
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base">{CAT_EMOJI[cat] ?? "💰"}</span>
+                            <span className="text-sm text-white">{catLabel(cat)}</span>
+                          </div>
+                          <span className="text-sm font-semibold" style={{ color }}>{fmt$(amt)}</span>
+                        </div>
+                        <div className="rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)", height: 5 }}>
+                          <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-2xl p-8 text-center" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+                <p className="text-sm" style={{ color: MUTED }}>No transactions yet — connect a bank in Accounts</p>
+              </div>
+            )}
+
+            {/* Income input */}
+            <IncomeCard monthlyIncome={data.monthlyIncome} monthlySavings={monthlySavings} onSave={(v) => update(d => ({ ...d, monthlyIncome: v }))} />
           </div>
+        )}
+
+        {/* ── SPENDING ─────────────────────────────────────────────────── */}
+        {tab === "spending" && (
+          <SpendingTab
+            catSpend={catSpend}
+            budgetCategories={data.budgetCategories ?? []}
+            recentTxns={thisMonthTxns.slice(0, 30)}
+            onUpdateBudgets={(cats) => update(d => ({ ...d, budgetCategories: cats }))}
+          />
+        )}
+
+        {/* ── PLANNING ─────────────────────────────────────────────────── */}
+        {tab === "planning" && (
+          <PlanningTab
+            sinkingFunds={sinkingFunds}
+            affordGoals={affordGoals}
+            monthlyIncome={monthlyIncome}
+            totalSpentThisMonth={totalSpentThisMonth}
+            onUpdateFunds={(funds) => update(d => ({ ...d, sinkingFunds: funds }))}
+            onUpdateGoals={(goals) => update(d => ({ ...d, affordGoals: goals }))}
+            showToast={showToast}
+          />
+        )}
+
+        {/* ── ACCOUNTS ─────────────────────────────────────────────────── */}
+        {tab === "accounts" && (
+          <AccountsTab
+            accounts={accounts}
+            loadingAccts={loadingAccts}
+            loadingTxns={loadingTxns}
+            onRefresh={handleRefresh}
+            onDisconnect={handleDisconnect}
+            onConnected={() => { fetchAccounts(true); fetchTransactions(true); }}
+            refreshing={refreshing}
+          />
+        )}
+      </div>
+
+      {/* Toast */}
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2.5 rounded-xl text-sm font-medium shadow-lg pointer-events-none z-50"
+          style={{ background: "rgba(200,255,0,0.15)", color: LIME, border: `1px solid rgba(200,255,0,0.3)` }}>
+          {toast}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Income Card ───────────────────────────────────────────────────────────────
+function IncomeCard({ monthlyIncome, monthlySavings, onSave }: { monthlyIncome?: number; monthlySavings: number; onSave: (v: number) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState(String(monthlyIncome ?? ""));
+  return (
+    <div className="rounded-2xl p-4" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+      <p className="text-sm font-medium text-white mb-3">Monthly Income</p>
+      {editing ? (
+        <div className="flex gap-2">
+          <input type="number" value={val} onChange={e => setVal(e.target.value)} placeholder="e.g. 3500"
+            className="flex-1 rounded-xl px-3 py-2 text-sm text-white outline-none"
+            style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }} />
+          <button onClick={() => { onSave(parseFloat(val) || 0); setEditing(false); }}
+            className="px-4 py-2 rounded-xl text-sm font-semibold" style={{ background: LIME, color: "#000" }}>Save</button>
+        </div>
+      ) : (
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-2xl font-bold text-white">{monthlyIncome ? `$${monthlyIncome.toLocaleString()}` : "—"}</p>
+            {monthlyIncome != null && (
+              <p className="text-xs mt-1" style={{ color: monthlySavings >= 0 ? LIME : "#DA667B" }}>
+                {monthlySavings >= 0 ? `+$${Math.round(monthlySavings).toLocaleString()} saved this month` : `$${Math.abs(Math.round(monthlySavings)).toLocaleString()} over budget`}
+              </p>
+            )}
+          </div>
+          <button onClick={() => setEditing(true)} className="text-xs px-3 py-1.5 rounded-lg"
+            style={{ background: "rgba(255,255,255,0.07)", color: MUTED }}>Edit</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Spending Tab ──────────────────────────────────────────────────────────────
+function SpendingTab({ catSpend, budgetCategories, recentTxns, onUpdateBudgets }: {
+  catSpend: Record<string, number>; budgetCategories: BudgetCategory[];
+  recentTxns: { id: string; name: string; amount: number; date: string; category: string }[];
+  onUpdateBudgets: (c: BudgetCategory[]) => void;
+}) {
+  const [editingCat, setEditingCat] = useState<string | null>(null);
+  const [limitVal, setLimitVal] = useState("");
+  const [showTxns, setShowTxns] = useState(false);
+
+  const allCats = Array.from(new Set([...Object.keys(catSpend), ...budgetCategories.map(b => b.category)]));
+  const getLimit = (cat: string) => budgetCategories.find(b => b.category === cat)?.monthlyLimit ?? 0;
+  const setLimit = (cat: string, limit: number) => {
+    const existing = budgetCategories.filter(b => b.category !== cat);
+    onUpdateBudgets(limit > 0 ? [...existing, { category: cat, monthlyLimit: limit }] : existing);
+  };
+
+  return (
+    <div className="space-y-4">
+      {allCats.length === 0 && (
+        <div className="rounded-2xl p-8 text-center" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+          <p className="text-sm" style={{ color: MUTED }}>No spending data — connect a bank in Accounts</p>
+        </div>
+      )}
+
+      {allCats.map((cat, i) => {
+        const spent = catSpend[cat] ?? 0;
+        const limit = getLimit(cat);
+        const pct = limit > 0 ? Math.min((spent / limit) * 100, 100) : 0;
+        const over = limit > 0 && spent > limit;
+        const color = CAT_COLORS[i % CAT_COLORS.length];
+        const isEditing = editingCat === cat;
+
+        return (
+          <div key={cat} className="rounded-2xl p-4" style={{ background: CARD, border: `1px solid ${over ? "rgba(218,102,123,0.4)" : BORDER}` }}>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">{CAT_EMOJI[cat] ?? "💰"}</span>
+                <div>
+                  <p className="text-sm font-medium text-white">{catLabel(cat)}</p>
+                  {limit > 0 && <p className="text-xs" style={{ color: over ? "#DA667B" : MUTED }}>{over ? `$${Math.round(spent - limit)} over budget` : `$${Math.round(limit - spent)} left`}</p>}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-bold" style={{ color: over ? "#DA667B" : "#fff" }}>${Math.round(spent).toLocaleString()}</p>
+                <button onClick={() => { setEditingCat(isEditing ? null : cat); setLimitVal(String(limit || "")); }}
+                  className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(255,255,255,0.07)", color: MUTED }}>
+                  {limit > 0 ? `/ $${limit.toLocaleString()}` : "+ limit"}
+                </button>
+              </div>
+            </div>
+
+            {limit > 0 && (
+              <div className="rounded-full overflow-hidden mb-2" style={{ background: "rgba(255,255,255,0.06)", height: 6 }}>
+                <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: over ? "#DA667B" : color }} />
+              </div>
+            )}
+
+            {isEditing && (
+              <div className="flex gap-2 mt-3">
+                <input type="number" value={limitVal} onChange={e => setLimitVal(e.target.value)} placeholder="Monthly limit"
+                  className="flex-1 rounded-xl px-3 py-2 text-sm text-white outline-none"
+                  style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }} />
+                <button onClick={() => { setLimit(cat, parseFloat(limitVal) || 0); setEditingCat(null); }}
+                  className="px-4 rounded-xl text-sm font-semibold" style={{ background: LIME, color: "#000" }}>Save</button>
+                {limit > 0 && <button onClick={() => { setLimit(cat, 0); setEditingCat(null); }}
+                  className="px-3 rounded-xl" style={{ background: "rgba(218,102,123,0.15)", color: "#DA667B" }}>Remove</button>}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* Recent transactions toggle */}
+      {recentTxns.length > 0 && (
+        <div>
+          <button onClick={() => setShowTxns(!showTxns)}
+            className="w-full py-3 rounded-2xl text-sm font-medium transition-all"
+            style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${BORDER}`, color: MUTED }}>
+            {showTxns ? "Hide" : "Show"} recent transactions ({recentTxns.length})
+          </button>
+          {showTxns && (
+            <div className="mt-3 rounded-2xl overflow-hidden" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+              {recentTxns.map((t, i) => (
+                <div key={t.id} className="flex items-center justify-between px-4 py-3"
+                  style={{ borderBottom: i < recentTxns.length - 1 ? `1px solid ${BORDER}` : undefined }}>
+                  <div>
+                    <p className="text-sm text-white truncate" style={{ maxWidth: 220 }}>{t.name}</p>
+                    <p className="text-xs" style={{ color: MUTED }}>{t.date} · {catLabel(t.category)}</p>
+                  </div>
+                  <p className="text-sm font-semibold" style={{ color: "#DA667B" }}>${t.amount.toFixed(2)}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Planning Tab ──────────────────────────────────────────────────────────────
+function PlanningTab({ sinkingFunds, affordGoals, monthlyIncome, totalSpentThisMonth, onUpdateFunds, onUpdateGoals, showToast }: {
+  sinkingFunds: SinkingFund[]; affordGoals: AffordGoal[];
+  monthlyIncome: number; totalSpentThisMonth: number;
+  onUpdateFunds: (f: SinkingFund[]) => void; onUpdateGoals: (g: AffordGoal[]) => void;
+  showToast: (m: string) => void;
+}) {
+  const monthlySavings = monthlyIncome > 0 ? monthlyIncome - totalSpentThisMonth : 0;
+
+  // Afford-by state
+  const [affordName, setAffordName] = useState("");
+  const [affordPrice, setAffordPrice] = useState("");
+  const [affordSaved, setAffordSaved] = useState("");
+
+  // Sinking fund state
+  const [showFundForm, setShowFundForm] = useState(false);
+  const [fundName, setFundName] = useState("");
+  const [fundAmount, setFundAmount] = useState("");
+  const [fundFreq, setFundFreq] = useState("3");
+
+  const addAffordGoal = () => {
+    if (!affordName || !affordPrice) return;
+    const price = parseFloat(affordPrice);
+    const saved = parseFloat(affordSaved) || 0;
+    onUpdateGoals([...affordGoals, { id: id(), name: affordName, price, savedSoFar: saved, createdAt: new Date().toISOString() }]);
+    setAffordName(""); setAffordPrice(""); setAffordSaved("");
+    showToast("Goal added!");
+  };
+
+  const removeAffordGoal = (gid: string) => onUpdateGoals(affordGoals.filter(g => g.id !== gid));
+
+  const addFund = () => {
+    if (!fundName || !fundAmount) return;
+    const newFund: SinkingFund = { id: id(), name: fundName, targetAmount: parseFloat(fundAmount), frequencyMonths: parseInt(fundFreq), saved: 0, color: CAT_COLORS[sinkingFunds.length % CAT_COLORS.length] };
+    onUpdateFunds([...sinkingFunds, newFund]);
+    setFundName(""); setFundAmount(""); setFundFreq("3"); setShowFundForm(false);
+    showToast("Sinking fund added!");
+  };
+
+  const updateFundSaved = (fid: string, saved: number) => onUpdateFunds(sinkingFunds.map(f => f.id === fid ? { ...f, saved } : f));
+  const removeFund = (fid: string) => onUpdateFunds(sinkingFunds.filter(f => f.id !== fid));
+
+  function affordByDate(price: number, saved: number, monthlySav: number): { months: number; date: string } | null {
+    const remaining = price - saved;
+    if (remaining <= 0) return { months: 0, date: "Now!" };
+    if (monthlySav <= 0) return null;
+    const months = Math.ceil(remaining / monthlySav);
+    const d = new Date(); d.setMonth(d.getMonth() + months);
+    return { months, date: d.toLocaleDateString("en-US", { month: "long", year: "numeric" }) };
+  }
+
+  const totalSinkingPerMonth = sinkingFunds.reduce((s, f) => s + f.targetAmount / f.frequencyMonths, 0);
+
+  return (
+    <div className="space-y-5">
+
+      {/* Savings summary */}
+      {monthlyIncome > 0 && (
+        <div className="rounded-2xl p-4" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+          <p className="text-sm font-medium text-white mb-3">Your savings power</p>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-brown block mb-1">Balance ($)</label>
-              <input type="number" min={0} value={cardForm.balance}
-                onChange={(e) => setCardForm({ ...cardForm, balance: Number(e.target.value) })} />
+              <p className="text-xs mb-1" style={{ color: MUTED }}>Available to save / mo</p>
+              <p className="text-xl font-bold" style={{ color: monthlySavings > 0 ? LIME : "#DA667B" }}>
+                {monthlySavings > 0 ? `$${Math.round(monthlySavings).toLocaleString()}` : "Over budget"}
+              </p>
             </div>
             <div>
-              <label className="text-xs font-medium text-brown block mb-1">Limit ($)</label>
-              <input type="number" min={0} value={cardForm.limit}
-                onChange={(e) => setCardForm({ ...cardForm, limit: Number(e.target.value) })} />
+              <p className="text-xs mb-1" style={{ color: MUTED }}>Committed to sinking funds</p>
+              <p className="text-xl font-bold text-white">${Math.round(totalSinkingPerMonth).toLocaleString()}<span className="text-sm font-normal" style={{ color: MUTED }}>/mo</span></p>
             </div>
           </div>
-          <div className="flex gap-2 justify-end">
-            <Button variant="secondary" onClick={() => setCardOpen(false)}>Cancel</Button>
-            <Button onClick={addCard}>Add Card</Button>
+        </div>
+      )}
+
+      {/* ── Afford-by calculator ── */}
+      <div>
+        <p className="text-sm font-semibold text-white mb-3">When can I afford this?</p>
+
+        {/* Add goal form */}
+        <div className="rounded-2xl p-4 mb-3" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+          <div className="space-y-2 mb-3">
+            <input value={affordName} onChange={e => setAffordName(e.target.value)} placeholder="What do you want? (e.g. MacBook, vacation)"
+              className="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none"
+              style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }} />
+            <div className="grid grid-cols-2 gap-2">
+              <input type="number" value={affordPrice} onChange={e => setAffordPrice(e.target.value)} placeholder="Total price ($)"
+                className="rounded-xl px-3 py-2.5 text-sm text-white outline-none"
+                style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }} />
+              <input type="number" value={affordSaved} onChange={e => setAffordSaved(e.target.value)} placeholder="Saved so far ($)"
+                className="rounded-xl px-3 py-2.5 text-sm text-white outline-none"
+                style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }} />
+            </div>
           </div>
+          <button onClick={addAffordGoal} disabled={!affordName || !affordPrice}
+            className="w-full py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40"
+            style={{ background: LIME, color: "#000" }}>
+            Calculate
+          </button>
         </div>
-      </Modal>
 
-      {/* ── Savings Quests Modal ── */}
-      <Modal open={savingsOpen} onClose={() => setSavingsOpen(false)} title="Savings Quests">
-        <div className="max-h-[70vh] overflow-y-auto -mx-1">
-          <SavingsQuests
-            goals={data.savingsGoals}
-            onUpdate={(goals) => update((d) => ({ ...d, savingsGoals: goals }))}
-          />
+        {/* Goal cards */}
+        {affordGoals.map(g => {
+          const result = affordByDate(g.price, g.savedSoFar, monthlySavings);
+          const pct = Math.min((g.savedSoFar / g.price) * 100, 100);
+          return (
+            <div key={g.id} className="rounded-2xl p-4 mb-3" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <p className="text-sm font-semibold text-white">{g.name}</p>
+                  <p className="text-xs" style={{ color: MUTED }}>${g.price.toLocaleString()} total · ${g.savedSoFar.toLocaleString()} saved</p>
+                </div>
+                <button onClick={() => removeAffordGoal(g.id)}><Trash2 size={14} style={{ color: MUTED }} /></button>
+              </div>
+              <div className="rounded-full overflow-hidden mb-3" style={{ background: "rgba(255,255,255,0.06)", height: 6 }}>
+                <div className="h-full rounded-full" style={{ width: `${pct}%`, background: LIME }} />
+              </div>
+              {result ? (
+                <div className="rounded-xl p-3" style={{ background: result.months === 0 ? "rgba(200,255,0,0.08)" : "rgba(255,255,255,0.04)" }}>
+                  {result.months === 0 ? (
+                    <p className="text-sm font-bold" style={{ color: LIME }}>You can afford this now! 🎉</p>
+                  ) : (
+                    <>
+                      <p className="text-lg font-bold text-white">{result.date}</p>
+                      <p className="text-xs" style={{ color: MUTED }}>{result.months} month{result.months !== 1 ? "s" : ""} away at ${Math.round(monthlySavings).toLocaleString()}/mo savings</p>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div className="rounded-xl p-3" style={{ background: "rgba(218,102,123,0.08)" }}>
+                  <p className="text-sm" style={{ color: "#DA667B" }}>Set your monthly income above to calculate a date</p>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ── Sinking Funds ── */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-sm font-semibold text-white">Sinking Funds</p>
+          <button onClick={() => setShowFundForm(!showFundForm)}
+            className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg"
+            style={{ background: "rgba(200,255,0,0.1)", color: LIME, border: `1px solid rgba(200,255,0,0.2)` }}>
+            <Plus size={12} /> Add fund
+          </button>
         </div>
-      </Modal>
+        <p className="text-xs mb-4" style={{ color: MUTED }}>Save a little each month for things you buy every few months — car maintenance, haircuts, clothes, etc.</p>
 
+        {showFundForm && (
+          <div className="rounded-2xl p-4 mb-3" style={{ background: CARD, border: `1px solid rgba(200,255,0,0.2)` }}>
+            <div className="space-y-2 mb-3">
+              <input value={fundName} onChange={e => setFundName(e.target.value)} placeholder="What is it? (e.g. Car maintenance)"
+                className="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none"
+                style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }} />
+              <div className="grid grid-cols-2 gap-2">
+                <input type="number" value={fundAmount} onChange={e => setFundAmount(e.target.value)} placeholder="Cost when due ($)"
+                  className="rounded-xl px-3 py-2.5 text-sm text-white outline-none"
+                  style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }} />
+                <select value={fundFreq} onChange={e => setFundFreq(e.target.value)}
+                  className="rounded-xl px-3 py-2.5 text-sm text-white outline-none"
+                  style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }}>
+                  <option value="1">Monthly</option>
+                  <option value="2">Every 2 months</option>
+                  <option value="3">Quarterly</option>
+                  <option value="4">Every 4 months</option>
+                  <option value="6">Every 6 months</option>
+                  <option value="12">Yearly</option>
+                </select>
+              </div>
+            </div>
+            {fundAmount && (
+              <p className="text-xs mb-3" style={{ color: LIME }}>
+                Save ${Math.ceil(parseFloat(fundAmount) / parseInt(fundFreq)).toLocaleString()}/month
+              </p>
+            )}
+            <button onClick={addFund} disabled={!fundName || !fundAmount}
+              className="w-full py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40"
+              style={{ background: LIME, color: "#000" }}>Create Fund</button>
+          </div>
+        )}
+
+        {sinkingFunds.map(f => {
+          const perMonth = f.targetAmount / f.frequencyMonths;
+          const pct = Math.min((f.saved / f.targetAmount) * 100, 100);
+          const monthsLeft = perMonth > 0 ? Math.ceil((f.targetAmount - f.saved) / perMonth) : 0;
+          return (
+            <div key={f.id} className="rounded-2xl p-4 mb-3" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+              <div className="flex items-start justify-between mb-2">
+                <div>
+                  <p className="text-sm font-semibold text-white">{f.name}</p>
+                  <p className="text-xs" style={{ color: MUTED }}>
+                    ${Math.ceil(perMonth).toLocaleString()}/mo · ${f.targetAmount.toLocaleString()} every {f.frequencyMonths === 1 ? "month" : f.frequencyMonths === 12 ? "year" : `${f.frequencyMonths} months`}
+                  </p>
+                </div>
+                <button onClick={() => removeFund(f.id)}><Trash2 size={14} style={{ color: MUTED }} /></button>
+              </div>
+              <div className="rounded-full overflow-hidden mb-2" style={{ background: "rgba(255,255,255,0.06)", height: 6 }}>
+                <div className="h-full rounded-full" style={{ width: `${pct}%`, background: f.color ?? LIME }} />
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="text-xs" style={{ color: MUTED }}>${f.saved.toLocaleString()} of ${f.targetAmount.toLocaleString()} · {monthsLeft > 0 ? `${monthsLeft} mo left` : "Ready!"}</p>
+                <div className="flex gap-2">
+                  <button onClick={() => updateFundSaved(f.id, Math.max(0, f.saved - Math.ceil(perMonth)))}
+                    className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(255,255,255,0.07)", color: MUTED }}>−</button>
+                  <button onClick={() => updateFundSaved(f.id, Math.min(f.targetAmount, f.saved + Math.ceil(perMonth)))}
+                    className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(200,255,0,0.1)", color: LIME }}>+{Math.ceil(perMonth)}</button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+
+        {sinkingFunds.length === 0 && !showFundForm && (
+          <div className="rounded-2xl p-6 text-center" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+            <p className="text-sm" style={{ color: MUTED }}>No sinking funds yet. Add your first one — haircut every 6 weeks, car oil change quarterly, etc.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Accounts Tab ──────────────────────────────────────────────────────────────
+function AccountsTab({ accounts, loadingAccts, loadingTxns, onRefresh, onDisconnect, onConnected, refreshing }: {
+  accounts: PlaidAccount[]; loadingAccts: boolean; loadingTxns: boolean;
+  onRefresh: () => void; onDisconnect: (itemId?: string) => void;
+  onConnected: () => void; refreshing: boolean;
+}) {
+  const byInstitution: Record<string, PlaidAccount[]> = {};
+  for (const a of accounts) {
+    const key = a.institutionName ?? "Unknown Bank";
+    if (!byInstitution[key]) byInstitution[key] = [];
+    byInstitution[key].push(a);
+  }
+  const loading = loadingAccts || loadingTxns;
+
+  return (
+    <div className="space-y-4">
+      {loading && accounts.length === 0 ? (
+        <div className="rounded-2xl p-8 text-center" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+          <div className="w-6 h-6 border-2 rounded-full animate-spin mx-auto mb-3" style={{ borderColor: LIME, borderTopColor: "transparent" }} />
+          <p className="text-sm" style={{ color: MUTED }}>Loading accounts…</p>
+        </div>
+      ) : accounts.length === 0 ? (
+        <div className="rounded-2xl p-6 space-y-4" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+          <p className="text-sm" style={{ color: MUTED }}>Connect your bank to automatically track transactions and spending.</p>
+          <PlaidConnectButton onConnected={onConnected} />
+        </div>
+      ) : (
+        <>
+          {Object.entries(byInstitution).map(([inst, accts]) => (
+            <div key={inst} className="rounded-2xl overflow-hidden" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+              <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}` }}>
+                <p className="text-sm font-semibold text-white">{inst}</p>
+                <button onClick={() => onDisconnect(accts[0].itemId)} className="p-1.5 rounded-lg" style={{ background: "rgba(218,102,123,0.1)" }}>
+                  <Unlink size={12} style={{ color: "#DA667B" }} />
+                </button>
+              </div>
+              {accts.map((a, i) => {
+                const bal = a.type === "credit"
+                  ? ((a.balances.limit ?? 0) - (a.balances.available ?? 0))
+                  : (a.balances.available ?? a.balances.current ?? 0);
+                return (
+                  <div key={a.accountId} className="flex items-center justify-between px-4 py-3"
+                    style={{ borderBottom: i < accts.length - 1 ? `1px solid ${BORDER}` : undefined }}>
+                    <div>
+                      <p className="text-sm text-white">{a.name}{a.mask ? ` ···${a.mask}` : ""}</p>
+                      <p className="text-xs capitalize" style={{ color: MUTED }}>{a.subtype ?? a.type}</p>
+                    </div>
+                    <p className="text-sm font-semibold" style={{ color: a.type === "credit" ? "#DA667B" : LIME }}>
+                      {a.type === "credit" ? "-" : ""}${Math.abs(bal).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+          <div className="flex gap-3">
+            <button onClick={onRefresh} disabled={refreshing}
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium"
+              style={{ background: "rgba(255,255,255,0.06)", border: `1px solid ${BORDER}`, color: MUTED }}>
+              <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} /> {refreshing ? "Refreshing…" : "Refresh"}
+            </button>
+            <div className="flex-1"><PlaidConnectButton onConnected={onConnected} /></div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

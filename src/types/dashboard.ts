@@ -197,6 +197,24 @@ export interface MonthlyFinance {
   notes?: string;
 }
 
+export interface SinkingFund {
+  id: string;
+  name: string;
+  targetAmount: number;    // total cost of the thing
+  frequencyMonths: number; // 3 = quarterly, 6 = semi-annual, 12 = yearly
+  saved: number;           // amount saved so far
+  color?: string;
+  notes?: string;
+}
+
+export interface AffordGoal {
+  id: string;
+  name: string;
+  price: number;
+  savedSoFar: number;
+  createdAt: string;
+}
+
 export interface BudgetCategory {
   category: string; // Plaid category key e.g. FOOD_AND_DRINK
   monthlyLimit: number;
@@ -436,6 +454,9 @@ export interface DashboardData {
   monthlyFinances: MonthlyFinance[];
   budgetCategories: BudgetCategory[];
   financesConfig: FinancesConfig;
+  sinkingFunds?: SinkingFund[];
+  affordGoals?: AffordGoal[];
+  monthlyIncome?: number;
 
   // Connections
   connectionLogs: ConnectionLog[];
