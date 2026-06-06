@@ -20,7 +20,7 @@ export default function Page() {
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: "#0A0A0A" }}>
       <Sidebar saving={saving} />
-      <main className="flex-1 overflow-hidden min-h-0">
+      <main className="flex-1 overflow-y-auto min-h-0">
         <FinancesView data={data} update={update} />
       </main>
     </div>
