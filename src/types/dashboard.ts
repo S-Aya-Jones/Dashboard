@@ -197,6 +197,29 @@ export interface MonthlyFinance {
   notes?: string;
 }
 
+export interface PaycheckConfig {
+  takeHomePerCheck: number;
+  savingsPercent: number;   // 0–100
+  nextPayday: string;       // YYYY-MM-DD
+}
+
+export interface SelfCareItem {
+  id: string;
+  name: string;
+  emoji: string;
+  cost: number;             // cost per appointment
+  frequencyWeeks: number;   // every N weeks
+  lastDone?: string;        // YYYY-MM-DD
+  color?: string;
+}
+
+export interface RecurringBill {
+  id: string;
+  name: string;
+  amount: number;
+  dayOfMonth: number;       // 1–31
+}
+
 export interface SinkingFund {
   id: string;
   name: string;
@@ -454,6 +477,9 @@ export interface DashboardData {
   monthlyFinances: MonthlyFinance[];
   budgetCategories: BudgetCategory[];
   financesConfig: FinancesConfig;
+  paycheckConfig?: PaycheckConfig;
+  selfCareItems?: SelfCareItem[];
+  recurringBills?: RecurringBill[];
   sinkingFunds?: SinkingFund[];
   affordGoals?: AffordGoal[];
   monthlyIncome?: number;

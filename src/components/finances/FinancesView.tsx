@@ -1,61 +1,52 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { usePlaidLink } from "react-plaid-link";
-import { RefreshCw, Unlink, Plus, Trash2, TrendingUp, Target, Wallet, Calendar, ChevronDown, ArrowRight } from "lucide-react";
-import { DashboardData, BudgetCategory, SinkingFund, AffordGoal, MerchantCategoryOverride } from "@/types/dashboard";
+import { RefreshCw, Unlink, Plus, Trash2, Check } from "lucide-react";
+import { DashboardData, PaycheckConfig, SelfCareItem, RecurringBill } from "@/types/dashboard";
 import { id } from "@/lib/utils";
-import { parseISO, startOfMonth, isAfter } from "date-fns";
+import { parseISO, format, addDays, differenceInDays } from "date-fns";
 
 const LIME   = "#C8FF00";
 const BG     = "#0A0A0A";
 const CARD   = "#111111";
 const BORDER = "rgba(255,255,255,0.08)";
 const MUTED  = "rgba(255,255,255,0.4)";
+const RED    = "#DA667B";
+const COLORS = ["#C8FF00","#DA667B","#71816D","#C9B79C","#8A9E87","#A8967E","#6B8CAE","#E8A87C"];
 
-interface Props {
-  data: DashboardData;
-  update: (fn: (d: DashboardData) => DashboardData) => void;
+const DEFAULT_CARE: Omit<SelfCareItem, "id">[] = [
+  { name: "Hair",           emoji: "💇🏾‍♀️", cost: 150, frequencyWeeks: 12, color: COLORS[0] },
+  { name: "Nails",          emoji: "💅🏾",   cost: 50,  frequencyWeeks: 3,  color: COLORS[1] },
+  { name: "Facial / Skin",  emoji: "🧖🏾‍♀️", cost: 80,  frequencyWeeks: 6,  color: COLORS[2] },
+];
+
+function fmt$(n: number) { return `$${Math.abs(n).toLocaleString("en-US", { maximumFractionDigits: 0 })}`; }
+function fmtDate(d: Date) { return format(d, "MMM d"); }
+function ordinal(n: number) { const s = ["th","st","nd","rd"]; const v = n % 100; return s[(v-20)%10] || s[v] || s[0]; }
+function nextDue(item: SelfCareItem): Date {
+  if (!item.lastDone) return new Date();
+  return addDays(parseISO(item.lastDone), item.frequencyWeeks * 7);
+}
+function daysUntil(d: Date) { return differenceInDays(d, new Date()); }
+function perCheck(item: SelfCareItem) { return Math.ceil((item.cost / item.frequencyWeeks) * 2); }
+
+function dueBillsInPeriod(bills: RecurringBill[], payday: Date): RecurringBill[] {
+  const end = addDays(payday, 13);
+  return bills.filter(b => {
+    const d = new Date(payday);
+    while (d <= end) { if (d.getDate() === b.dayOfMonth) return true; d.setDate(d.getDate() + 1); }
+    return false;
+  });
 }
 
+// ── Plaid helpers ─────────────────────────────────────────────────────────────
 interface PlaidAccount {
   accountId: string; name: string; mask?: string | null; type: string; subtype?: string | null;
   balances: { current?: number | null; available?: number | null; limit?: number | null };
   institutionName?: string | null; itemId?: string; loginRequired?: boolean;
 }
-interface PlaidTxn {
-  id: string; name: string; amount: number; date: string; category: string;
-  accountId: string; isInternalTransfer: boolean; transferPairId: string | null; itemId: string;
-}
 
-const CAT_LABEL: Record<string, string> = {
-  FOOD_AND_DRINK: "Eating Out", GROCERIES: "Groceries", TRANSPORTATION: "Transport",
-  SHOPPING: "Shopping", ENTERTAINMENT: "Entertainment", MEDICAL: "Healthcare",
-  GENERAL_SERVICES: "Services", HOME_IMPROVEMENT: "Home", RENT_AND_UTILITIES: "Housing",
-  PERSONAL_CARE: "Personal Care", GENERAL_MERCHANDISE: "Merchandise", TRAVEL: "Travel",
-  LOAN_PAYMENTS: "Loan Payments", BANK_FEES: "Bank Fees", RECREATION: "Recreation",
-  INSURANCE: "Insurance", EDUCATION: "Education",
-};
-const CAT_EMOJI: Record<string, string> = {
-  FOOD_AND_DRINK: "🍽️", GROCERIES: "🛒", TRANSPORTATION: "🚗", SHOPPING: "🛍️",
-  ENTERTAINMENT: "🎬", MEDICAL: "💊", GENERAL_SERVICES: "🔧", HOME_IMPROVEMENT: "🏠",
-  RENT_AND_UTILITIES: "⚡", PERSONAL_CARE: "✨", GENERAL_MERCHANDISE: "📦",
-  TRAVEL: "✈️", LOAN_PAYMENTS: "💳", BANK_FEES: "🏦", RECREATION: "🎾",
-  INSURANCE: "🛡️", EDUCATION: "📚",
-};
-const INCOME_CATS = new Set(["INCOME", "TRANSFER_IN"]);
-const DEFAULT_FC = {
-  bigTicketThreshold: 100, watchListMerchants: [], bigMoves: [],
-  recurringHidden: [] as string[], recurringFlagged: [] as string[],
-  merchantCategoryOverrides: [] as MerchantCategoryOverride[],
-};
-
-const CAT_COLORS = ["#C8FF00","#DA667B","#71816D","#C9B79C","#8A9E87","#A8967E","#6B8CAE","#E8A87C","#9B89B4","#5BAD92"];
-
-function fmt$(n: number) { return `$${Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`; }
-function catLabel(c: string) { return CAT_LABEL[c] ?? c.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase()); }
-
-// ── Plaid Connect ─────────────────────────────────────────────────────────────
 function PlaidConnectButton({ onConnected }: { onConnected: () => void }) {
   const [linkToken, setLinkToken] = useState<string | null>(null);
   const [fetching, setFetching] = useState(false);
@@ -78,32 +69,29 @@ function PlaidConnectButton({ onConnected }: { onConnected: () => void }) {
 }
 
 // ── Main ─────────────────────────────────────────────────────────────────────
+interface Props { data: DashboardData; update: (fn: (d: DashboardData) => DashboardData) => void; }
+
 export function FinancesView({ data, update }: Props) {
   const [accounts, setAccounts] = useState<PlaidAccount[]>([]);
-  const [transactions, setTransactions] = useState<PlaidTxn[]>([]);
   const [loadingAccts, setLoadingAccts] = useState(true);
-  const [loadingTxns, setLoadingTxns] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [tab, setTab] = useState<"overview" | "spending" | "planning" | "accounts">("overview");
+  const [tab, setTab] = useState<"check" | "schedule" | "goals" | "accounts">("check");
   const [toast, setToast] = useState<string | null>(null);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
 
   const fetchAccounts = useCallback(async (bust = false) => {
     setLoadingAccts(true);
-    try { const r = await fetch(bust ? "/api/plaid/accounts?refresh=1" : "/api/plaid/accounts"); const j = await r.json(); if (!j.error) setAccounts(j.accounts ?? []); } finally { setLoadingAccts(false); }
+    try { const r = await fetch(bust ? "/api/plaid/accounts?refresh=1" : "/api/plaid/accounts"); const j = await r.json(); if (!j.error) setAccounts(j.accounts ?? []); }
+    finally { setLoadingAccts(false); }
   }, []);
 
-  const fetchTransactions = useCallback(async (bust = false) => {
-    setLoadingTxns(true);
-    try { const r = await fetch(bust ? "/api/plaid/transactions?refresh=1" : "/api/plaid/transactions"); const j = await r.json(); if (!j.error) setTransactions(j.transactions ?? []); } finally { setLoadingTxns(false); }
-  }, []);
-
-  useEffect(() => { fetchAccounts(); fetchTransactions(); }, [fetchAccounts, fetchTransactions]);
+  useEffect(() => { fetchAccounts(); }, [fetchAccounts]);
 
   const handleRefresh = async () => {
     if (refreshing) return; setRefreshing(true);
-    try { await fetch("/api/plaid/refresh", { method: "POST" }); await new Promise(r => setTimeout(r, 3000)); await Promise.all([fetchAccounts(true), fetchTransactions(true)]); } finally { setRefreshing(false); }
+    try { await fetch("/api/plaid/refresh", { method: "POST" }); await new Promise(r => setTimeout(r, 3000)); await fetchAccounts(true); }
+    finally { setRefreshing(false); }
   };
 
   const handleDisconnect = async (itemId?: string) => {
@@ -112,208 +100,106 @@ export function FinancesView({ data, update }: Props) {
     fetchAccounts(true);
   };
 
-  // ── Derived data ───────────────────────────────────────────────────────────
-  const fc = { ...DEFAULT_FC, ...(data.financesConfig ?? {}), merchantCategoryOverrides: data.financesConfig?.merchantCategoryOverrides ?? [] };
-  const resolvedCat = (t: PlaidTxn) => {
-    for (const o of fc.merchantCategoryOverrides) if (t.name.toLowerCase().includes(o.nameContains.toLowerCase())) return o.category;
-    return t.category;
-  };
+  const pc         = data.paycheckConfig;
+  const selfCare   = data.selfCareItems ?? [];
+  const bills      = data.recurringBills ?? [];
 
-  const now = new Date();
-  const monthStart = startOfMonth(now);
-  const dayOfMonth = now.getDate();
-  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-
-  const thisMonthTxns = transactions.filter(t =>
-    !t.isInternalTransfer && !INCOME_CATS.has(resolvedCat(t)) && t.amount > 0 && isAfter(parseISO(t.date), monthStart)
-  );
-  const totalSpentThisMonth = thisMonthTxns.reduce((s, t) => s + t.amount, 0);
-
-  const thisMonthIncome = transactions.filter(t =>
-    INCOME_CATS.has(resolvedCat(t)) && t.amount < 0 && isAfter(parseISO(t.date), monthStart)
-  ).reduce((s, t) => s + Math.abs(t.amount), 0);
-
-  const monthlyIncome = data.monthlyIncome ?? (thisMonthIncome > 0 ? thisMonthIncome : 0);
-
-  // Category breakdown this month
-  const catSpend: Record<string, number> = {};
-  for (const t of thisMonthTxns) {
-    const c = resolvedCat(t);
-    catSpend[c] = (catSpend[c] ?? 0) + t.amount;
+  // ── Setup flow ─────────────────────────────────────────────────────────────
+  if (!pc) {
+    return (
+      <SetupFlow onDone={(config, items) => update(d => ({
+        ...d,
+        paycheckConfig: config,
+        selfCareItems: items,
+        recurringBills: [],
+        budgetCategories: [],
+        sinkingFunds: [],
+        affordGoals: [],
+      }))} />
+    );
   }
-  const sortedCats = Object.entries(catSpend).sort((a, b) => b[1] - a[1]);
 
-  const totalBudget = (data.budgetCategories ?? []).reduce((s, b) => s + b.monthlyLimit, 0);
-  const budgetPct = totalBudget > 0 ? Math.min((totalSpentThisMonth / totalBudget) * 100, 100) : 0;
-
-  // Spending grade
-  const expectedSpendByNow = totalBudget > 0 ? (totalBudget * dayOfMonth) / daysInMonth : 0;
-  const gradeRatio = expectedSpendByNow > 0 ? totalSpentThisMonth / expectedSpendByNow : 0;
-  const grade = gradeRatio <= 0.75 ? "A" : gradeRatio <= 0.9 ? "B" : gradeRatio <= 1.0 ? "C" : gradeRatio <= 1.15 ? "D" : "F";
-  const gradeColor = grade === "A" ? LIME : grade === "B" ? "#8A9E87" : grade === "C" ? "#C9B79C" : grade === "D" ? "#E8A87C" : "#DA667B";
-
-  // Account totals
-  const realAccounts = accounts.filter(a => !a.loginRequired);
-  const totalCash = realAccounts.filter(a => a.type === "depository").reduce((s, a) => s + (a.balances.available ?? a.balances.current ?? 0), 0);
-  const totalDebt = realAccounts.filter(a => a.type === "credit").reduce((s, a) => {
-    const lim = a.balances.limit ?? 0; const avail = a.balances.available;
-    return s + (avail != null && lim > 0 ? lim - avail : a.balances.current ?? 0);
-  }, 0);
-
-  const monthlySavings = monthlyIncome - totalSpentThisMonth;
-  const sinkingFunds = data.sinkingFunds ?? [];
-  const affordGoals = data.affordGoals ?? [];
+  const payday     = parseISO(pc.nextPayday);
+  const periodEnd  = addDays(payday, 13);
+  const dueBills   = dueBillsInPeriod(bills, payday);
+  const totalBills = dueBills.reduce((s, b) => s + b.amount, 0);
+  const totalCarePerCheck = selfCare.reduce((s, i) => s + perCheck(i), 0);
+  const savingsAmt = Math.round(pc.takeHomePerCheck * (pc.savingsPercent / 100));
+  const freeToSpend = pc.takeHomePerCheck - totalBills - totalCarePerCheck - savingsAmt;
+  const dueCareItems = selfCare.filter(i => { const d = daysUntil(nextDue(i)); return d <= 14 && d >= -7; });
 
   const TABS = [
-    { key: "overview", label: "Overview", icon: TrendingUp },
-    { key: "spending", label: "Spending", icon: Wallet },
-    { key: "planning", label: "Planning", icon: Target },
-    { key: "accounts", label: "Accounts", icon: Calendar },
-  ] as const;
+    { key: "check"    as const, label: "This Check", emoji: "💸" },
+    { key: "schedule" as const, label: "Schedule",   emoji: "📅" },
+    { key: "goals"    as const, label: "Afford",     emoji: "🏠" },
+    { key: "accounts" as const, label: "Accounts",   emoji: "🏦" },
+  ];
 
   return (
-    <div style={{ background: BG, minHeight: "100%", color: "#fff", fontFamily: "inherit" }}>
+    <div style={{ background: BG, minHeight: "100%", color: "#fff" }}>
       {/* Header */}
-      <div className="px-6 pt-6 pb-4">
-        <div className="flex items-center justify-between mb-6">
+      <div className="px-5 pt-6 pb-4">
+        <div className="flex items-start justify-between mb-4">
           <div>
-            <h1 className="text-2xl font-semibold text-white">Finances</h1>
-            <p className="text-sm" style={{ color: MUTED }}>{now.toLocaleDateString("en-US", { month: "long", year: "numeric" })}</p>
+            <h1 className="text-xl font-semibold text-white">Finances</h1>
+            <p className="text-xs" style={{ color: MUTED }}>{fmtDate(payday)} – {fmtDate(periodEnd)} · {fmt$(pc.takeHomePerCheck)}/check</p>
           </div>
-          <button onClick={handleRefresh} disabled={refreshing}
-            className="p-2 rounded-xl transition-all"
-            style={{ background: "rgba(255,255,255,0.06)", border: `1px solid ${BORDER}` }}>
-            <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} style={{ color: MUTED }} />
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => update(d => ({ ...d, paycheckConfig: { ...pc, nextPayday: format(addDays(payday, 14), "yyyy-MM-dd") } }))}
+              className="text-xs px-3 py-1.5 rounded-xl font-medium"
+              style={{ background: "rgba(200,255,0,0.1)", color: LIME, border: `1px solid rgba(200,255,0,0.2)` }}>
+              Received ✓
+            </button>
+            <button onClick={handleRefresh} disabled={refreshing}
+              className="p-2 rounded-xl" style={{ background: "rgba(255,255,255,0.06)", border: `1px solid ${BORDER}` }}>
+              <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} style={{ color: MUTED }} />
+            </button>
+          </div>
         </div>
 
-        {/* Top stat cards */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          {[
-            { label: "Spent this month", value: fmt$(totalSpentThisMonth), sub: totalBudget > 0 ? `of ${fmt$(totalBudget)} budget` : "no budget set", color: budgetPct > 90 ? "#DA667B" : LIME },
-            { label: "Cash on hand", value: fmt$(totalCash), sub: totalDebt > 0 ? `${fmt$(totalDebt)} in debt` : "no debt tracked", color: "rgba(255,255,255,0.9)" },
-            { label: "Spending grade", value: grade, sub: `Day ${dayOfMonth} of ${daysInMonth}`, color: gradeColor },
-          ].map(s => (
-            <div key={s.label} className="rounded-2xl p-4" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
-              <p className="text-xs mb-2" style={{ color: MUTED }}>{s.label}</p>
-              <p className="text-2xl font-bold" style={{ color: s.color }}>{s.value}</p>
-              <p className="text-xs mt-1" style={{ color: MUTED }}>{s.sub}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Tabs */}
         <div className="flex gap-1 rounded-xl p-1" style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${BORDER}` }}>
-          {TABS.map(({ key, label, icon: Icon }) => (
+          {TABS.map(({ key, label, emoji }) => (
             <button key={key} onClick={() => setTab(key)}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all"
+              className="flex-1 py-2 rounded-lg text-xs font-medium transition-all"
               style={tab === key ? { background: LIME, color: "#000" } : { color: MUTED }}>
-              <Icon size={13} />{label}
+              {emoji} {label}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Tab content */}
-      <div className="px-6 pb-8">
-
-        {/* ── OVERVIEW ─────────────────────────────────────────────────── */}
-        {tab === "overview" && (
-          <div className="space-y-4">
-            {/* Budget progress bar */}
-            {totalBudget > 0 && (
-              <div className="rounded-2xl p-4" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
-                <div className="flex justify-between items-center mb-3">
-                  <p className="text-sm font-medium text-white">Monthly Budget</p>
-                  <p className="text-sm font-bold" style={{ color: budgetPct > 90 ? "#DA667B" : LIME }}>{Math.round(budgetPct)}%</p>
-                </div>
-                <div className="rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.08)", height: 8 }}>
-                  <div className="h-full rounded-full transition-all duration-500"
-                    style={{ width: `${budgetPct}%`, background: budgetPct > 90 ? "#DA667B" : budgetPct > 75 ? "#C9B79C" : LIME }} />
-                </div>
-                <div className="flex justify-between mt-2 text-xs" style={{ color: MUTED }}>
-                  <span>{fmt$(totalSpentThisMonth)} spent</span>
-                  <span>{fmt$(Math.max(0, totalBudget - totalSpentThisMonth))} left</span>
-                </div>
-              </div>
-            )}
-
-            {/* Top categories */}
-            {sortedCats.length > 0 ? (
-              <div className="rounded-2xl p-4" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
-                <p className="text-sm font-medium text-white mb-4">Where your money went</p>
-                <div className="space-y-3">
-                  {sortedCats.slice(0, 7).map(([cat, amt], i) => {
-                    const pct = totalSpentThisMonth > 0 ? (amt / totalSpentThisMonth) * 100 : 0;
-                    const color = CAT_COLORS[i % CAT_COLORS.length];
-                    return (
-                      <div key={cat}>
-                        <div className="flex items-center justify-between mb-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-base">{CAT_EMOJI[cat] ?? "💰"}</span>
-                            <span className="text-sm text-white">{catLabel(cat)}</span>
-                          </div>
-                          <span className="text-sm font-semibold" style={{ color }}>{fmt$(amt)}</span>
-                        </div>
-                        <div className="rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)", height: 5 }}>
-                          <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : (
-              <div className="rounded-2xl p-8 text-center" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
-                <p className="text-sm" style={{ color: MUTED }}>No transactions yet — connect a bank in Accounts</p>
-              </div>
-            )}
-
-            {/* Income input */}
-            <IncomeCard monthlyIncome={data.monthlyIncome} monthlySavings={monthlySavings} onSave={(v) => update(d => ({ ...d, monthlyIncome: v }))} />
-          </div>
-        )}
-
-        {/* ── SPENDING ─────────────────────────────────────────────────── */}
-        {tab === "spending" && (
-          <SpendingTab
-            catSpend={catSpend}
-            budgetCategories={data.budgetCategories ?? []}
-            allTxns={thisMonthTxns.map(t => ({ id: t.id, name: t.name, amount: t.amount, date: t.date, resolvedCategory: resolvedCat(t) }))}
-            merchantCategoryOverrides={fc.merchantCategoryOverrides}
-            onUpdateBudgets={(cats) => update(d => ({ ...d, budgetCategories: cats }))}
-            onUpdateOverrides={(overrides) => update(d => ({ ...d, financesConfig: { ...(d.financesConfig ?? DEFAULT_FC), merchantCategoryOverrides: overrides } }))}
+      <div className="px-5 pb-12">
+        {tab === "check" && (
+          <CheckTab
+            pc={pc} selfCare={selfCare} dueBills={dueBills} bills={bills}
+            totalBills={totalBills} totalCarePerCheck={totalCarePerCheck}
+            savingsAmt={savingsAmt} freeToSpend={freeToSpend}
+            dueCareItems={dueCareItems} payday={payday} periodEnd={periodEnd}
           />
         )}
-
-        {/* ── PLANNING ─────────────────────────────────────────────────── */}
-        {tab === "planning" && (
-          <PlanningTab
-            sinkingFunds={sinkingFunds}
-            affordGoals={affordGoals}
-            monthlyIncome={monthlyIncome}
-            totalSpentThisMonth={totalSpentThisMonth}
-            onUpdateFunds={(funds) => update(d => ({ ...d, sinkingFunds: funds }))}
-            onUpdateGoals={(goals) => update(d => ({ ...d, affordGoals: goals }))}
+        {tab === "schedule" && (
+          <ScheduleTab
+            selfCare={selfCare}
+            onUpdate={(items) => update(d => ({ ...d, selfCareItems: items }))}
             showToast={showToast}
           />
         )}
-
-        {/* ── ACCOUNTS ─────────────────────────────────────────────────── */}
-        {tab === "accounts" && (
-          <AccountsTab
-            accounts={accounts}
-            loadingAccts={loadingAccts}
-            loadingTxns={loadingTxns}
-            onRefresh={handleRefresh}
-            onDisconnect={handleDisconnect}
-            onConnected={() => { fetchAccounts(true); fetchTransactions(true); }}
-            refreshing={refreshing}
+        {tab === "goals" && (
+          <GoalsTab
+            pc={pc} bills={bills}
+            onUpdateBills={(b) => update(d => ({ ...d, recurringBills: b }))}
+            onUpdatePc={(p) => update(d => ({ ...d, paycheckConfig: p }))}
+            showToast={showToast}
           />
+        )}
+        {tab === "accounts" && (
+          <AccountsTab accounts={accounts} loadingAccts={loadingAccts} refreshing={refreshing}
+            onRefresh={handleRefresh} onDisconnect={handleDisconnect}
+            onConnected={() => fetchAccounts(true)} />
         )}
       </div>
 
-      {/* Toast */}
       {toast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2.5 rounded-xl text-sm font-medium shadow-lg pointer-events-none z-50"
           style={{ background: "rgba(200,255,0,0.15)", color: LIME, border: `1px solid rgba(200,255,0,0.3)` }}>
@@ -324,410 +210,590 @@ export function FinancesView({ data, update }: Props) {
   );
 }
 
-// ── Income Card ───────────────────────────────────────────────────────────────
-function IncomeCard({ monthlyIncome, monthlySavings, onSave }: { monthlyIncome?: number; monthlySavings: number; onSave: (v: number) => void }) {
-  const [editing, setEditing] = useState(false);
-  const [val, setVal] = useState(String(monthlyIncome ?? ""));
+// ── Setup Flow ────────────────────────────────────────────────────────────────
+function SetupFlow({ onDone }: { onDone: (config: PaycheckConfig, items: SelfCareItem[]) => void }) {
+  const [takeHome, setTakeHome] = useState("");
+  const [nextPayday, setNextPayday] = useState("");
+  const [savingsPct, setSavingsPct] = useState("10");
+
+  const handleStart = () => {
+    const config: PaycheckConfig = {
+      takeHomePerCheck: parseFloat(takeHome) || 0,
+      savingsPercent: parseFloat(savingsPct) || 10,
+      nextPayday,
+    };
+    const items: SelfCareItem[] = DEFAULT_CARE.map(c => ({ ...c, id: id() }));
+    onDone(config, items);
+  };
+
   return (
-    <div className="rounded-2xl p-4" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
-      <p className="text-sm font-medium text-white mb-3">Monthly Income</p>
-      {editing ? (
-        <div className="flex gap-2">
-          <input type="number" value={val} onChange={e => setVal(e.target.value)} placeholder="e.g. 3500"
-            className="flex-1 rounded-xl px-3 py-2 text-sm text-white outline-none"
-            style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }} />
-          <button onClick={() => { onSave(parseFloat(val) || 0); setEditing(false); }}
-            className="px-4 py-2 rounded-xl text-sm font-semibold" style={{ background: LIME, color: "#000" }}>Save</button>
-        </div>
-      ) : (
-        <div className="flex items-center justify-between">
+    <div style={{ background: BG, minHeight: "100vh", color: "#fff" }}>
+      <div style={{ maxWidth: 480, margin: "0 auto", padding: "3rem 1.5rem" }}>
+        <p className="text-xs font-semibold mb-1" style={{ color: LIME, letterSpacing: "0.1em" }}>BUDGET SETUP</p>
+        <h1 className="text-2xl font-semibold text-white mb-1">Fresh start.</h1>
+        <p className="text-sm mb-8" style={{ color: MUTED }}>Let&apos;s set up your paycheck plan. Takes 30 seconds.</p>
+
+        <div className="space-y-4 mb-6">
           <div>
-            <p className="text-2xl font-bold text-white">{monthlyIncome ? `$${monthlyIncome.toLocaleString()}` : "—"}</p>
-            {monthlyIncome != null && (
-              <p className="text-xs mt-1" style={{ color: monthlySavings >= 0 ? LIME : "#DA667B" }}>
-                {monthlySavings >= 0 ? `+$${Math.round(monthlySavings).toLocaleString()} saved this month` : `$${Math.abs(Math.round(monthlySavings)).toLocaleString()} over budget`}
-              </p>
-            )}
+            <label className="text-xs mb-1.5 block" style={{ color: MUTED }}>Take-home per check (after taxes)</label>
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-white">$</span>
+              <input type="number" value={takeHome} onChange={e => setTakeHome(e.target.value)} placeholder="e.g. 1800"
+                className="w-full rounded-2xl pl-8 pr-4 py-3.5 text-sm text-white outline-none"
+                style={{ background: CARD, border: `1px solid ${BORDER}` }} />
+            </div>
           </div>
-          <button onClick={() => setEditing(true)} className="text-xs px-3 py-1.5 rounded-lg"
-            style={{ background: "rgba(255,255,255,0.07)", color: MUTED }}>Edit</button>
+
+          <div>
+            <label className="text-xs mb-1.5 block" style={{ color: MUTED }}>Your next payday</label>
+            <input type="date" value={nextPayday} onChange={e => setNextPayday(e.target.value)}
+              className="w-full rounded-2xl px-4 py-3.5 text-sm text-white outline-none"
+              style={{ background: CARD, border: `1px solid ${BORDER}`, colorScheme: "dark" }} />
+          </div>
+
+          <div>
+            <label className="text-xs mb-2 block" style={{ color: MUTED }}>Save per check (%)</label>
+            <div className="grid grid-cols-4 gap-2">
+              {["5","10","15","20"].map(p => (
+                <button key={p} onClick={() => setSavingsPct(p)}
+                  className="py-3 rounded-2xl text-sm font-semibold transition-all"
+                  style={savingsPct === p ? { background: LIME, color: "#000" } : { background: CARD, color: MUTED, border: `1px solid ${BORDER}` }}>
+                  {p}%
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl p-4 mb-6" style={{ background: "rgba(200,255,0,0.05)", border: `1px solid rgba(200,255,0,0.15)` }}>
+          <p className="text-xs font-semibold mb-2" style={{ color: LIME }}>I&apos;ll pre-load your self-care schedule:</p>
+          <div className="space-y-1.5">
+            {DEFAULT_CARE.map(c => (
+              <p key={c.name} className="text-sm" style={{ color: "rgba(255,255,255,0.7)" }}>
+                {c.emoji} {c.name} · {fmt$(c.cost)} every {c.frequencyWeeks} weeks
+              </p>
+            ))}
+          </div>
+          <p className="text-xs mt-2" style={{ color: MUTED }}>You can edit costs, frequency, or add your own after setup.</p>
+        </div>
+
+        <button onClick={handleStart} disabled={!takeHome || !nextPayday}
+          className="w-full py-4 rounded-2xl text-base font-bold disabled:opacity-40 transition-all active:scale-95"
+          style={{ background: LIME, color: "#000" }}>
+          Start Budgeting →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Check Tab ─────────────────────────────────────────────────────────────────
+function CheckTab({ pc, selfCare, dueBills, bills, totalBills, totalCarePerCheck, savingsAmt, freeToSpend, dueCareItems, payday, periodEnd }: {
+  pc: PaycheckConfig; selfCare: SelfCareItem[]; dueBills: RecurringBill[]; bills: RecurringBill[];
+  totalBills: number; totalCarePerCheck: number; savingsAmt: number; freeToSpend: number;
+  dueCareItems: SelfCareItem[]; payday: Date; periodEnd: Date;
+}) {
+  const allocs = [
+    { label: "Bills due",            amount: totalBills,         color: "#E8A87C", detail: dueBills.length > 0 ? dueBills.map(b => b.name).join(" · ") : "No bills this period 🎉" },
+    { label: "Self-care set aside",  amount: totalCarePerCheck,  color: COLORS[1], detail: selfCare.length > 0 ? selfCare.map(i => `${i.emoji} ${fmt$(perCheck(i))}`).join("  ") : "No items set up" },
+    { label: `Savings (${pc.savingsPercent}%)`, amount: savingsAmt, color: "#6B8CAE", detail: "your safety net, building quietly" },
+  ];
+
+  return (
+    <div className="space-y-4">
+      {/* Due this check alerts */}
+      {dueCareItems.length > 0 && (
+        <div className="rounded-2xl p-4" style={{ background: "rgba(200,255,0,0.05)", border: `1px solid rgba(200,255,0,0.2)` }}>
+          <p className="text-xs font-semibold mb-3" style={{ color: LIME, letterSpacing: "0.08em" }}>DUE THIS CHECK</p>
+          <div className="space-y-3">
+            {dueCareItems.map(item => {
+              const days = daysUntil(nextDue(item));
+              return (
+                <div key={item.id} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-xl">{item.emoji}</span>
+                    <div>
+                      <p className="text-sm font-semibold text-white">{item.name}</p>
+                      <p className="text-xs" style={{ color: MUTED }}>
+                        {days < 0 ? `${Math.abs(days)} days overdue` : days === 0 ? "Due today" : `Due in ${days} days`} · {fmtDate(nextDue(item))}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-sm font-bold text-white">{fmt$(item.cost)}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Allocation breakdown */}
+      <div className="rounded-2xl p-4" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+        <p className="text-xs font-semibold mb-4" style={{ color: MUTED, letterSpacing: "0.08em" }}>
+          {fmtDate(payday).toUpperCase()} – {fmtDate(periodEnd).toUpperCase()} · {fmt$(pc.takeHomePerCheck)} CHECK
+        </p>
+
+        {allocs.map(a => {
+          const pct = pc.takeHomePerCheck > 0 ? (a.amount / pc.takeHomePerCheck) * 100 : 0;
+          return (
+            <div key={a.label} className="mb-5">
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="text-sm text-white">{a.label}</p>
+                <p className="text-sm font-bold text-white">{fmt$(a.amount)}</p>
+              </div>
+              <div className="rounded-full overflow-hidden mb-1.5" style={{ background: "rgba(255,255,255,0.06)", height: 5 }}>
+                <div className="h-full rounded-full" style={{ width: `${Math.min(pct, 100)}%`, background: a.color }} />
+              </div>
+              <p className="text-xs" style={{ color: MUTED }}>{a.detail}</p>
+            </div>
+          );
+        })}
+
+        <div className="rounded-2xl p-4 mt-1" style={{
+          background: freeToSpend >= 0 ? "rgba(200,255,0,0.07)" : "rgba(218,102,123,0.08)",
+          border: `1px solid ${freeToSpend >= 0 ? "rgba(200,255,0,0.2)" : "rgba(218,102,123,0.2)"}`,
+        }}>
+          <p className="text-xs mb-1" style={{ color: MUTED }}>Free to spend</p>
+          <p className="text-4xl font-bold" style={{ color: freeToSpend >= 0 ? LIME : RED }}>
+            {fmt$(Math.abs(freeToSpend))}{freeToSpend < 0 ? " over" : ""}
+          </p>
+          <p className="text-xs mt-1" style={{ color: MUTED }}>
+            {freeToSpend >= 0
+              ? "This is yours — guilt-free spending money."
+              : "You're over budget this check. Review your bills or self-care amounts."}
+          </p>
+        </div>
+      </div>
+
+      {/* Bills list */}
+      {bills.length > 0 && (
+        <div className="rounded-2xl overflow-hidden" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+          <p className="px-4 pt-4 pb-2 text-xs font-semibold" style={{ color: MUTED, letterSpacing: "0.08em" }}>
+            BILLS THIS PERIOD
+          </p>
+          {dueBills.length === 0 ? (
+            <p className="px-4 pb-4 text-sm" style={{ color: MUTED }}>None due {fmtDate(payday)}–{fmtDate(periodEnd)} 🎉</p>
+          ) : dueBills.map((b) => (
+            <div key={b.id} className="flex items-center justify-between px-4 py-3"
+              style={{ borderTop: `1px solid ${BORDER}` }}>
+              <div>
+                <p className="text-sm text-white">{b.name}</p>
+                <p className="text-xs" style={{ color: MUTED }}>Due {b.dayOfMonth}{ordinal(b.dayOfMonth)} of the month</p>
+              </div>
+              <p className="text-sm font-semibold" style={{ color: RED }}>{fmt$(b.amount)}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {bills.length === 0 && (
+        <div className="rounded-2xl p-5 text-center" style={{ background: CARD, border: `1px dashed ${BORDER}` }}>
+          <p className="text-sm mb-1 text-white">No bills set up yet</p>
+          <p className="text-xs" style={{ color: MUTED }}>Add rent, phone, subscriptions in the Afford tab so this check knows what&apos;s coming out.</p>
         </div>
       )}
     </div>
   );
 }
 
-// ── Spending Tab ──────────────────────────────────────────────────────────────
-interface ResolvedTxn { id: string; name: string; amount: number; date: string; resolvedCategory: string; }
-
-function SpendingTab({ catSpend, budgetCategories, allTxns, merchantCategoryOverrides, onUpdateBudgets, onUpdateOverrides }: {
-  catSpend: Record<string, number>;
-  budgetCategories: BudgetCategory[];
-  allTxns: ResolvedTxn[];
-  merchantCategoryOverrides: MerchantCategoryOverride[];
-  onUpdateBudgets: (c: BudgetCategory[]) => void;
-  onUpdateOverrides: (o: MerchantCategoryOverride[]) => void;
+// ── Schedule Tab ──────────────────────────────────────────────────────────────
+function ScheduleTab({ selfCare, onUpdate, showToast }: {
+  selfCare: SelfCareItem[]; onUpdate: (items: SelfCareItem[]) => void; showToast: (m: string) => void;
 }) {
-  const [editingCat, setEditingCat] = useState<string | null>(null);
-  const [limitVal, setLimitVal] = useState("");
-  const [expandedCat, setExpandedCat] = useState<string | null>(null);
-  const [reassigning, setReassigning] = useState<string | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [name, setName] = useState(""); const [emoji, setEmoji] = useState("💄");
+  const [cost, setCost] = useState(""); const [freqWeeks, setFreqWeeks] = useState("4");
+  const [editId, setEditId] = useState<string | null>(null);
 
-  const allCats = Array.from(new Set([...Object.keys(catSpend), ...budgetCategories.map(b => b.category)]));
-  const allKnownCats = Array.from(new Set([...Object.keys(CAT_LABEL), ...allCats])).sort();
-
-  const getLimit = (cat: string) => budgetCategories.find(b => b.category === cat)?.monthlyLimit ?? 0;
-  const setLimit = (cat: string, limit: number) => {
-    const existing = budgetCategories.filter(b => b.category !== cat);
-    onUpdateBudgets(limit > 0 ? [...existing, { category: cat, monthlyLimit: limit }] : existing);
+  const markDone = (item: SelfCareItem) => {
+    const today = format(new Date(), "yyyy-MM-dd");
+    onUpdate(selfCare.map(i => i.id === item.id ? { ...i, lastDone: today } : i));
+    showToast(`${item.emoji} ${item.name} — marked done today!`);
   };
 
-  const reassignTxn = (t: ResolvedTxn, newCat: string) => {
-    // Remove any existing override for this exact merchant name, then add the new one
-    const existing = merchantCategoryOverrides.filter(o => o.nameContains.toLowerCase() !== t.name.toLowerCase());
-    onUpdateOverrides([...existing, { nameContains: t.name, category: newCat }]);
-    setReassigning(null);
+  const removeItem = (itemId: string) => onUpdate(selfCare.filter(i => i.id !== itemId));
+
+  const addItem = () => {
+    if (!name || !cost) return;
+    const newItem: SelfCareItem = {
+      id: id(), name, emoji, cost: parseFloat(cost),
+      frequencyWeeks: parseInt(freqWeeks),
+      color: COLORS[selfCare.length % COLORS.length],
+    };
+    onUpdate([...selfCare, newItem]);
+    setName(""); setCost(""); setFreqWeeks("4"); setEmoji("💄"); setShowForm(false);
+    showToast("Added to your schedule!");
   };
+
+  const sorted = [...selfCare].sort((a, b) => daysUntil(nextDue(a)) - daysUntil(nextDue(b)));
+
+  // Build upcoming calendar — next 4 occurrences of each item
+  const upcoming: { date: Date; item: SelfCareItem }[] = [];
+  for (const item of selfCare) {
+    let due = nextDue(item);
+    for (let i = 0; i < 4; i++) {
+      if (daysUntil(due) >= -1) upcoming.push({ date: new Date(due), item });
+      due = addDays(due, item.frequencyWeeks * 7);
+    }
+  }
+  upcoming.sort((a, b) => a.date.getTime() - b.date.getTime());
+  const futureUpcoming = upcoming.filter(u => daysUntil(u.date) >= 0).slice(0, 10);
 
   return (
-    <div className="space-y-3">
-      {allCats.length === 0 && (
-        <div className="rounded-2xl p-8 text-center" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
-          <p className="text-sm" style={{ color: MUTED }}>No spending data — connect a bank in Accounts</p>
+    <div className="space-y-4">
+      {sorted.length === 0 && !showForm && (
+        <div className="rounded-2xl p-6 text-center" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+          <p className="text-sm text-white mb-1">No self-care items yet</p>
+          <p className="text-xs" style={{ color: MUTED }}>Add your hair, nails, facials, waxing — anything you do on a schedule.</p>
         </div>
       )}
 
-      {allCats.map((cat, i) => {
-        const spent = catSpend[cat] ?? 0;
-        const limit = getLimit(cat);
-        const pct = limit > 0 ? Math.min((spent / limit) * 100, 100) : 0;
-        const over = limit > 0 && spent > limit;
-        const color = CAT_COLORS[i % CAT_COLORS.length];
-        const isEditing = editingCat === cat;
-        const isExpanded = expandedCat === cat;
-        const catTxns = allTxns.filter(t => t.resolvedCategory === cat).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      {sorted.map(item => {
+        const due   = nextDue(item);
+        const days  = daysUntil(due);
+        const over  = days < 0;
+        const soon  = days <= 7 && !over;
+        const freqDays = item.frequencyWeeks * 7;
+        const elapsed = item.lastDone ? freqDays - Math.max(days, 0) : freqDays;
+        const pct = Math.min((elapsed / freqDays) * 100, 100);
+        const isEditing = editId === item.id;
 
         return (
-          <div key={cat} className="rounded-2xl overflow-hidden" style={{ background: CARD, border: `1px solid ${over ? "rgba(218,102,123,0.4)" : BORDER}` }}>
-            {/* Category header — click to expand */}
-            <button
-              className="w-full p-4 text-left"
-              onClick={() => { setExpandedCat(isExpanded ? null : cat); setEditingCat(null); setReassigning(null); }}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">{CAT_EMOJI[cat] ?? "💰"}</span>
-                  <div className="text-left">
-                    <p className="text-sm font-medium text-white">{catLabel(cat)}</p>
-                    {limit > 0 && <p className="text-xs" style={{ color: over ? "#DA667B" : MUTED }}>{over ? `$${Math.round(spent - limit)} over` : `$${Math.round(limit - spent)} left`}</p>}
-                    {!limit && catTxns.length > 0 && <p className="text-xs" style={{ color: MUTED }}>{catTxns.length} transaction{catTxns.length !== 1 ? "s" : ""}</p>}
+          <div key={item.id} className="rounded-2xl overflow-hidden"
+            style={{ background: CARD, border: `1px solid ${over || soon ? "rgba(218,102,123,0.3)" : BORDER}` }}>
+            <div className="p-4">
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl flex items-center justify-center text-2xl"
+                    style={{ background: "rgba(255,255,255,0.05)" }}>
+                    {item.emoji}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-white">{item.name}</p>
+                    <p className="text-xs" style={{ color: MUTED }}>
+                      {fmt$(item.cost)} · every {item.frequencyWeeks} week{item.frequencyWeeks !== 1 ? "s" : ""} · {fmt$(perCheck(item))}/check
+                    </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-bold" style={{ color: over ? "#DA667B" : "#fff" }}>${Math.round(spent).toLocaleString()}</p>
-                  <ChevronDown size={14} style={{ color: MUTED, transform: isExpanded ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+                <div className="flex gap-2">
+                  <button onClick={() => setEditId(isEditing ? null : item.id)}
+                    className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(255,255,255,0.07)", color: MUTED }}>
+                    Edit
+                  </button>
+                  <button onClick={() => removeItem(item.id)} className="p-1">
+                    <Trash2 size={13} style={{ color: MUTED }} />
+                  </button>
                 </div>
               </div>
 
-              {limit > 0 && (
-                <div className="rounded-full overflow-hidden mt-2" style={{ background: "rgba(255,255,255,0.06)", height: 5 }}>
-                  <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: over ? "#DA667B" : color }} />
-                </div>
-              )}
-            </button>
+              <div className="rounded-full overflow-hidden mb-3" style={{ background: "rgba(255,255,255,0.06)", height: 5 }}>
+                <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: item.color ?? LIME }} />
+              </div>
 
-            {/* Expanded: transactions + limit editor */}
-            {isExpanded && (
-              <div style={{ borderTop: `1px solid ${BORDER}` }}>
-                {/* Set/edit limit row */}
-                <div className="px-4 py-3" style={{ borderBottom: catTxns.length > 0 ? `1px solid ${BORDER}` : undefined }}>
-                  {isEditing ? (
-                    <div className="flex gap-2">
-                      <input type="number" value={limitVal} onChange={e => setLimitVal(e.target.value)} placeholder="Monthly limit ($)"
-                        autoFocus
-                        className="flex-1 rounded-xl px-3 py-2 text-sm text-white outline-none"
-                        style={{ background: "rgba(255,255,255,0.07)", border: `1px solid rgba(200,255,0,0.3)` }} />
-                      <button onClick={() => { setLimit(cat, parseFloat(limitVal) || 0); setEditingCat(null); }}
-                        className="px-4 py-2 rounded-xl text-sm font-semibold" style={{ background: LIME, color: "#000" }}>Save</button>
-                      {limit > 0 && <button onClick={() => { setLimit(cat, 0); setEditingCat(null); }}
-                        className="px-3 py-2 rounded-xl text-sm" style={{ background: "rgba(218,102,123,0.12)", color: "#DA667B" }}>Remove</button>}
-                    </div>
-                  ) : (
-                    <button onClick={(e) => { e.stopPropagation(); setEditingCat(cat); setLimitVal(String(limit || "")); }}
-                      className="text-xs px-3 py-1.5 rounded-lg"
-                      style={{ background: "rgba(255,255,255,0.07)", color: MUTED }}>
-                      {limit > 0 ? `✏ Edit limit ($${limit.toLocaleString()}/mo)` : "+ Set monthly limit"}
-                    </button>
-                  )}
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold" style={{ color: over ? RED : soon ? "#E8A87C" : "rgba(255,255,255,0.85)" }}>
+                    {over ? `${Math.abs(days)} days overdue` : days === 0 ? "Due today!" : `Due in ${days} days`}
+                  </p>
+                  <p className="text-xs" style={{ color: MUTED }}>
+                    {fmtDate(due)}
+                    {item.lastDone ? ` · last done ${format(parseISO(item.lastDone), "MMM d")}` : " · never tracked"}
+                  </p>
                 </div>
+                <button onClick={() => markDone(item)}
+                  className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl font-semibold transition-all"
+                  style={{ background: "rgba(200,255,0,0.12)", color: LIME, border: `1px solid rgba(200,255,0,0.25)` }}>
+                  <Check size={12} /> Done!
+                </button>
+              </div>
+            </div>
 
-                {/* Transaction list */}
-                {catTxns.length === 0 ? (
-                  <p className="px-4 py-3 text-xs" style={{ color: MUTED }}>No transactions this month</p>
-                ) : catTxns.map((t, idx) => (
-                  <div key={t.id}>
-                    <div className="flex items-center justify-between px-4 py-3"
-                      style={{ borderTop: idx > 0 ? `1px solid ${BORDER}` : undefined }}>
-                      <div className="min-w-0 flex-1 mr-3">
-                        <p className="text-sm text-white truncate">{t.name}</p>
-                        <p className="text-xs" style={{ color: MUTED }}>{t.date}</p>
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <p className="text-sm font-semibold text-white">${t.amount.toFixed(2)}</p>
-                        <button
-                          onClick={() => setReassigning(reassigning === t.id ? null : t.id)}
-                          className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition-all"
-                          style={reassigning === t.id
-                            ? { background: "rgba(200,255,0,0.12)", color: LIME, border: `1px solid rgba(200,255,0,0.25)` }
-                            : { background: "rgba(255,255,255,0.06)", color: MUTED }}>
-                          Move <ArrowRight size={10} />
-                        </button>
-                      </div>
-                    </div>
-                    {/* Inline reassign picker */}
-                    {reassigning === t.id && (
-                      <div className="px-4 pb-3">
-                        <p className="text-xs mb-2" style={{ color: MUTED }}>Move <strong style={{ color: "#fff" }}>{t.name}</strong> to…</p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {allKnownCats.filter(c => c !== cat).map(c => (
-                            <button key={c} onClick={() => reassignTxn(t, c)}
-                              className="text-xs px-2.5 py-1 rounded-full transition-all"
-                              style={{ background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.7)", border: `1px solid ${BORDER}` }}>
-                              {CAT_EMOJI[c] ?? "💰"} {catLabel(c)}
-                            </button>
-                          ))}
-                        </div>
-                        <p className="text-xs mt-2" style={{ color: MUTED }}>All future &quot;{t.name}&quot; charges will go here automatically.</p>
-                      </div>
-                    )}
+            {/* Inline edit */}
+            {isEditing && (
+              <div className="px-4 pb-4 pt-3" style={{ borderTop: `1px solid ${BORDER}` }}>
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  <div>
+                    <label className="text-xs mb-1 block" style={{ color: MUTED }}>Cost ($)</label>
+                    <input type="number" defaultValue={item.cost}
+                      id={`cost-${item.id}`}
+                      className="w-full rounded-xl px-3 py-2 text-sm text-white outline-none"
+                      style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }} />
                   </div>
-                ))}
+                  <div>
+                    <label className="text-xs mb-1 block" style={{ color: MUTED }}>Every N weeks</label>
+                    <input type="number" defaultValue={item.frequencyWeeks}
+                      id={`freq-${item.id}`}
+                      className="w-full rounded-xl px-3 py-2 text-sm text-white outline-none"
+                      style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }} />
+                  </div>
+                </div>
+                <button onClick={() => {
+                  const newCost = parseFloat((document.getElementById(`cost-${item.id}`) as HTMLInputElement)?.value) || item.cost;
+                  const newFreq = parseInt((document.getElementById(`freq-${item.id}`) as HTMLInputElement)?.value) || item.frequencyWeeks;
+                  onUpdate(selfCare.map(i => i.id === item.id ? { ...i, cost: newCost, frequencyWeeks: newFreq } : i));
+                  setEditId(null);
+                  showToast("Updated!");
+                }} className="w-full py-2 rounded-xl text-sm font-semibold" style={{ background: LIME, color: "#000" }}>
+                  Save
+                </button>
               </div>
             )}
           </div>
         );
       })}
+
+      {/* Add button */}
+      <button onClick={() => setShowForm(!showForm)}
+        className="w-full py-3 rounded-2xl text-sm font-medium flex items-center justify-center gap-2"
+        style={{ background: "rgba(255,255,255,0.04)", border: `1px dashed ${BORDER}`, color: MUTED }}>
+        <Plus size={14} /> Add self-care item
+      </button>
+
+      {showForm && (
+        <div className="rounded-2xl p-4" style={{ background: CARD, border: `1px solid rgba(200,255,0,0.2)` }}>
+          <div className="space-y-3 mb-3">
+            <div className="flex gap-2">
+              <input value={emoji} onChange={e => setEmoji(e.target.value)} maxLength={2}
+                className="w-14 rounded-xl px-2 py-3 text-xl text-center text-white outline-none"
+                style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }} />
+              <input value={name} onChange={e => setName(e.target.value)} placeholder="What is it? (e.g. Waxing)"
+                className="flex-1 rounded-xl px-3 py-3 text-sm text-white outline-none"
+                style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }} />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <input type="number" value={cost} onChange={e => setCost(e.target.value)} placeholder="Cost ($)"
+                className="rounded-xl px-3 py-2.5 text-sm text-white outline-none"
+                style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }} />
+              <select value={freqWeeks} onChange={e => setFreqWeeks(e.target.value)}
+                className="rounded-xl px-3 py-2.5 text-sm text-white outline-none"
+                style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }}>
+                {[["1","Every week"],["2","Every 2 wks"],["3","Every 3 wks"],["4","Every 4 wks"],["6","Every 6 wks"],["8","Every 8 wks"],["12","Every 12 wks"]].map(([v, l]) => (
+                  <option key={v} value={v}>{l}</option>
+                ))}
+              </select>
+            </div>
+            {cost && <p className="text-xs" style={{ color: LIME }}>Put aside {fmt$(Math.ceil((parseFloat(cost) / parseInt(freqWeeks)) * 2))}/check</p>}
+          </div>
+          <button onClick={addItem} disabled={!name || !cost}
+            className="w-full py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40"
+            style={{ background: LIME, color: "#000" }}>
+            Add to Schedule
+          </button>
+        </div>
+      )}
+
+      {/* Upcoming calendar */}
+      {futureUpcoming.length > 0 && (
+        <div className="rounded-2xl overflow-hidden" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+          <p className="px-4 pt-4 pb-2 text-xs font-semibold" style={{ color: MUTED, letterSpacing: "0.08em" }}>COMING UP</p>
+          {futureUpcoming.map((u, i) => (
+            <div key={`${u.item.id}-${i}`} className="flex items-center justify-between px-4 py-3"
+              style={{ borderTop: `1px solid ${BORDER}` }}>
+              <div className="flex items-center gap-3">
+                <span className="text-base">{u.item.emoji}</span>
+                <div>
+                  <p className="text-sm text-white">{u.item.name}</p>
+                  <p className="text-xs" style={{ color: MUTED }}>{format(u.date, "EEEE, MMM d")}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-semibold text-white">{fmt$(u.item.cost)}</p>
+                <p className="text-xs" style={{ color: MUTED }}>in {daysUntil(u.date)} days</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-// ── Planning Tab ──────────────────────────────────────────────────────────────
-function PlanningTab({ sinkingFunds, affordGoals, monthlyIncome, totalSpentThisMonth, onUpdateFunds, onUpdateGoals, showToast }: {
-  sinkingFunds: SinkingFund[]; affordGoals: AffordGoal[];
-  monthlyIncome: number; totalSpentThisMonth: number;
-  onUpdateFunds: (f: SinkingFund[]) => void; onUpdateGoals: (g: AffordGoal[]) => void;
+// ── Goals / Afford Tab ────────────────────────────────────────────────────────
+function GoalsTab({ pc, bills, onUpdateBills, onUpdatePc, showToast }: {
+  pc: PaycheckConfig; bills: RecurringBill[];
+  onUpdateBills: (b: RecurringBill[]) => void;
+  onUpdatePc: (p: PaycheckConfig) => void;
   showToast: (m: string) => void;
 }) {
-  const monthlySavings = monthlyIncome > 0 ? monthlyIncome - totalSpentThisMonth : 0;
+  const [targetRent, setTargetRent] = useState("");
+  const [showBillForm, setShowBillForm] = useState(false);
+  const [billName, setBillName] = useState(""); const [billAmt, setBillAmt] = useState(""); const [billDay, setBillDay] = useState("1");
+  const [editSavings, setEditSavings] = useState(false); const [savingsPct, setSavingsPct] = useState(String(pc.savingsPercent));
+  const [editPay, setEditPay] = useState(false); const [payInput, setPayInput] = useState(String(pc.takeHomePerCheck));
 
-  // Afford-by state
-  const [affordName, setAffordName] = useState("");
-  const [affordPrice, setAffordPrice] = useState("");
-  const [affordSaved, setAffordSaved] = useState("");
+  const monthlyIncome = (pc.takeHomePerCheck * 26) / 12;
+  const comfortable   = Math.round(monthlyIncome * 0.25);
+  const standard      = Math.round(monthlyIncome * 0.30);
+  const stretch       = Math.round(monthlyIncome * 0.35);
+  const rentPct       = targetRent ? (parseFloat(targetRent) / monthlyIncome) * 100 : 0;
+  const rentVerdict   = rentPct === 0 ? null
+    : rentPct <= 25 ? { text: "Comfortable — you&apos;re good!", color: LIME }
+    : rentPct <= 30 ? { text: "Standard — manageable.",         color: "#8A9E87" }
+    : rentPct <= 35 ? { text: "Stretching it — tight but doable.", color: "#E8A87C" }
+    :                 { text: "Too much — financial stress risk.",  color: RED };
 
-  // Sinking fund state
-  const [showFundForm, setShowFundForm] = useState(false);
-  const [fundName, setFundName] = useState("");
-  const [fundAmount, setFundAmount] = useState("");
-  const [fundFreq, setFundFreq] = useState("3");
-
-  const addAffordGoal = () => {
-    if (!affordName || !affordPrice) return;
-    const price = parseFloat(affordPrice);
-    const saved = parseFloat(affordSaved) || 0;
-    onUpdateGoals([...affordGoals, { id: id(), name: affordName, price, savedSoFar: saved, createdAt: new Date().toISOString() }]);
-    setAffordName(""); setAffordPrice(""); setAffordSaved("");
-    showToast("Goal added!");
+  const addBill = () => {
+    if (!billName || !billAmt) return;
+    onUpdateBills([...bills, { id: id(), name: billName, amount: parseFloat(billAmt), dayOfMonth: parseInt(billDay) }]);
+    setBillName(""); setBillAmt(""); setBillDay("1"); setShowBillForm(false);
+    showToast("Bill added!");
   };
 
-  const removeAffordGoal = (gid: string) => onUpdateGoals(affordGoals.filter(g => g.id !== gid));
-
-  const addFund = () => {
-    if (!fundName || !fundAmount) return;
-    const newFund: SinkingFund = { id: id(), name: fundName, targetAmount: parseFloat(fundAmount), frequencyMonths: parseInt(fundFreq), saved: 0, color: CAT_COLORS[sinkingFunds.length % CAT_COLORS.length] };
-    onUpdateFunds([...sinkingFunds, newFund]);
-    setFundName(""); setFundAmount(""); setFundFreq("3"); setShowFundForm(false);
-    showToast("Sinking fund added!");
-  };
-
-  const updateFundSaved = (fid: string, saved: number) => onUpdateFunds(sinkingFunds.map(f => f.id === fid ? { ...f, saved } : f));
-  const removeFund = (fid: string) => onUpdateFunds(sinkingFunds.filter(f => f.id !== fid));
-
-  function affordByDate(price: number, saved: number, monthlySav: number): { months: number; date: string } | null {
-    const remaining = price - saved;
-    if (remaining <= 0) return { months: 0, date: "Now!" };
-    if (monthlySav <= 0) return null;
-    const months = Math.ceil(remaining / monthlySav);
-    const d = new Date(); d.setMonth(d.getMonth() + months);
-    return { months, date: d.toLocaleDateString("en-US", { month: "long", year: "numeric" }) };
-  }
-
-  const totalSinkingPerMonth = sinkingFunds.reduce((s, f) => s + f.targetAmount / f.frequencyMonths, 0);
+  const monthlyBills = bills.reduce((s, b) => s + b.amount, 0);
 
   return (
     <div className="space-y-5">
-
-      {/* Savings summary */}
-      {monthlyIncome > 0 && (
-        <div className="rounded-2xl p-4" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
-          <p className="text-sm font-medium text-white mb-3">Your savings power</p>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <p className="text-xs mb-1" style={{ color: MUTED }}>Available to save / mo</p>
-              <p className="text-xl font-bold" style={{ color: monthlySavings > 0 ? LIME : "#DA667B" }}>
-                {monthlySavings > 0 ? `$${Math.round(monthlySavings).toLocaleString()}` : "Over budget"}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs mb-1" style={{ color: MUTED }}>Committed to sinking funds</p>
-              <p className="text-xl font-bold text-white">${Math.round(totalSinkingPerMonth).toLocaleString()}<span className="text-sm font-normal" style={{ color: MUTED }}>/mo</span></p>
-            </div>
-          </div>
+      {/* Paycheck editor */}
+      <div className="rounded-2xl p-4" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-sm font-semibold text-white">Take-home per check</p>
+          <button onClick={() => setEditPay(!editPay)}
+            className="text-xs px-3 py-1 rounded-lg" style={{ background: "rgba(255,255,255,0.07)", color: MUTED }}>Edit</button>
         </div>
-      )}
-
-      {/* ── Afford-by calculator ── */}
-      <div>
-        <p className="text-sm font-semibold text-white mb-3">When can I afford this?</p>
-
-        {/* Add goal form */}
-        <div className="rounded-2xl p-4 mb-3" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
-          <div className="space-y-2 mb-3">
-            <input value={affordName} onChange={e => setAffordName(e.target.value)} placeholder="What do you want? (e.g. MacBook, vacation)"
-              className="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none"
-              style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }} />
-            <div className="grid grid-cols-2 gap-2">
-              <input type="number" value={affordPrice} onChange={e => setAffordPrice(e.target.value)} placeholder="Total price ($)"
-                className="rounded-xl px-3 py-2.5 text-sm text-white outline-none"
-                style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }} />
-              <input type="number" value={affordSaved} onChange={e => setAffordSaved(e.target.value)} placeholder="Saved so far ($)"
-                className="rounded-xl px-3 py-2.5 text-sm text-white outline-none"
+        {editPay ? (
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-white">$</span>
+              <input type="number" value={payInput} onChange={e => setPayInput(e.target.value)}
+                className="w-full rounded-xl pl-7 pr-3 py-2.5 text-sm text-white outline-none"
                 style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }} />
             </div>
+            <button onClick={() => { onUpdatePc({ ...pc, takeHomePerCheck: parseFloat(payInput) || pc.takeHomePerCheck }); setEditPay(false); showToast("Updated!"); }}
+              className="px-4 rounded-xl text-sm font-semibold" style={{ background: LIME, color: "#000" }}>Save</button>
           </div>
-          <button onClick={addAffordGoal} disabled={!affordName || !affordPrice}
-            className="w-full py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40"
-            style={{ background: LIME, color: "#000" }}>
-            Calculate
-          </button>
-        </div>
-
-        {/* Goal cards */}
-        {affordGoals.map(g => {
-          const result = affordByDate(g.price, g.savedSoFar, monthlySavings);
-          const pct = Math.min((g.savedSoFar / g.price) * 100, 100);
-          return (
-            <div key={g.id} className="rounded-2xl p-4 mb-3" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <p className="text-sm font-semibold text-white">{g.name}</p>
-                  <p className="text-xs" style={{ color: MUTED }}>${g.price.toLocaleString()} total · ${g.savedSoFar.toLocaleString()} saved</p>
-                </div>
-                <button onClick={() => removeAffordGoal(g.id)}><Trash2 size={14} style={{ color: MUTED }} /></button>
-              </div>
-              <div className="rounded-full overflow-hidden mb-3" style={{ background: "rgba(255,255,255,0.06)", height: 6 }}>
-                <div className="h-full rounded-full" style={{ width: `${pct}%`, background: LIME }} />
-              </div>
-              {result ? (
-                <div className="rounded-xl p-3" style={{ background: result.months === 0 ? "rgba(200,255,0,0.08)" : "rgba(255,255,255,0.04)" }}>
-                  {result.months === 0 ? (
-                    <p className="text-sm font-bold" style={{ color: LIME }}>You can afford this now! 🎉</p>
-                  ) : (
-                    <>
-                      <p className="text-lg font-bold text-white">{result.date}</p>
-                      <p className="text-xs" style={{ color: MUTED }}>{result.months} month{result.months !== 1 ? "s" : ""} away at ${Math.round(monthlySavings).toLocaleString()}/mo savings</p>
-                    </>
-                  )}
-                </div>
-              ) : (
-                <div className="rounded-xl p-3" style={{ background: "rgba(218,102,123,0.08)" }}>
-                  <p className="text-sm" style={{ color: "#DA667B" }}>Set your monthly income above to calculate a date</p>
-                </div>
-              )}
-            </div>
-          );
-        })}
+        ) : (
+          <p className="text-2xl font-bold text-white">{fmt$(pc.takeHomePerCheck)}<span className="text-sm font-normal ml-1" style={{ color: MUTED }}>biweekly · {fmt$(Math.round(monthlyIncome))}/mo</span></p>
+        )}
       </div>
 
-      {/* ── Sinking Funds ── */}
+      {/* Savings rate */}
+      <div className="rounded-2xl p-4" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-sm font-semibold text-white">Savings per check</p>
+          <button onClick={() => setEditSavings(!editSavings)}
+            className="text-xs px-3 py-1 rounded-lg" style={{ background: "rgba(255,255,255,0.07)", color: MUTED }}>Edit</button>
+        </div>
+        {editSavings ? (
+          <div className="space-y-3">
+            <div className="grid grid-cols-4 gap-2">
+              {["5","10","15","20"].map(p => (
+                <button key={p} onClick={() => setSavingsPct(p)}
+                  className="py-2.5 rounded-xl text-sm font-semibold"
+                  style={savingsPct === p ? { background: LIME, color: "#000" } : { background: "rgba(255,255,255,0.07)", color: MUTED }}>
+                  {p}%
+                </button>
+              ))}
+            </div>
+            <button onClick={() => { onUpdatePc({ ...pc, savingsPercent: parseInt(savingsPct) }); setEditSavings(false); showToast("Savings rate updated!"); }}
+              className="w-full py-2.5 rounded-xl text-sm font-semibold" style={{ background: LIME, color: "#000" }}>
+              Save
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-baseline gap-2">
+            <p className="text-2xl font-bold" style={{ color: LIME }}>{fmt$(Math.round(pc.takeHomePerCheck * pc.savingsPercent / 100))}</p>
+            <p className="text-sm" style={{ color: MUTED }}>per check ({pc.savingsPercent}%)</p>
+          </div>
+        )}
+      </div>
+
+      {/* Rent affordability */}
+      <div>
+        <p className="text-sm font-semibold text-white mb-3">What rent can I afford?</p>
+        <div className="rounded-2xl p-4" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+          <p className="text-xs mb-3" style={{ color: MUTED }}>Based on {fmt$(Math.round(monthlyIncome))}/month take-home:</p>
+          <div className="space-y-2 mb-4">
+            {[{ label: "Comfortable (25%)", amount: comfortable, color: LIME },
+              { label: "Standard (30%)",    amount: standard,    color: "#8A9E87" },
+              { label: "Max (35%)",         amount: stretch,     color: RED }].map(r => (
+              <div key={r.label} className="flex items-center justify-between py-2 px-3 rounded-xl"
+                style={{ background: "rgba(255,255,255,0.04)" }}>
+                <p className="text-sm" style={{ color: MUTED }}>{r.label}</p>
+                <p className="text-sm font-bold" style={{ color: r.color }}>{fmt$(r.amount)}/mo</p>
+              </div>
+            ))}
+          </div>
+          <div className="relative">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-white">$</span>
+            <input type="number" value={targetRent} onChange={e => setTargetRent(e.target.value)} placeholder="Enter a rent to check"
+              className="w-full rounded-xl pl-8 pr-4 py-3 text-sm text-white outline-none"
+              style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }} />
+          </div>
+          {rentVerdict && targetRent && (
+            <div className="mt-3 rounded-xl p-3" style={{ background: "rgba(255,255,255,0.04)" }}>
+              <p className="text-sm font-semibold" style={{ color: rentVerdict.color }}
+                dangerouslySetInnerHTML={{ __html: rentVerdict.text }} />
+              <p className="text-xs mt-0.5" style={{ color: MUTED }}>
+                That&apos;s {Math.round(rentPct)}% of your monthly take-home.
+                {rentPct > 25 ? ` You&apos;d have ${fmt$(Math.round(monthlyIncome - parseFloat(targetRent)))} left for everything else each month.` : ""}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Bills manager */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <p className="text-sm font-semibold text-white">Sinking Funds</p>
-          <button onClick={() => setShowFundForm(!showFundForm)}
+          <p className="text-sm font-semibold text-white">Recurring Bills</p>
+          <button onClick={() => setShowBillForm(!showBillForm)}
             className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg"
             style={{ background: "rgba(200,255,0,0.1)", color: LIME, border: `1px solid rgba(200,255,0,0.2)` }}>
-            <Plus size={12} /> Add fund
+            <Plus size={12} /> Add bill
           </button>
         </div>
-        <p className="text-xs mb-4" style={{ color: MUTED }}>Save a little each month for things you buy every few months — car maintenance, haircuts, clothes, etc.</p>
 
-        {showFundForm && (
-          <div className="rounded-2xl p-4 mb-3" style={{ background: CARD, border: `1px solid rgba(200,255,0,0.2)` }}>
-            <div className="space-y-2 mb-3">
-              <input value={fundName} onChange={e => setFundName(e.target.value)} placeholder="What is it? (e.g. Car maintenance)"
-                className="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none"
-                style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }} />
-              <div className="grid grid-cols-2 gap-2">
-                <input type="number" value={fundAmount} onChange={e => setFundAmount(e.target.value)} placeholder="Cost when due ($)"
-                  className="rounded-xl px-3 py-2.5 text-sm text-white outline-none"
-                  style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }} />
-                <select value={fundFreq} onChange={e => setFundFreq(e.target.value)}
-                  className="rounded-xl px-3 py-2.5 text-sm text-white outline-none"
-                  style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }}>
-                  <option value="1">Monthly</option>
-                  <option value="2">Every 2 months</option>
-                  <option value="3">Quarterly</option>
-                  <option value="4">Every 4 months</option>
-                  <option value="6">Every 6 months</option>
-                  <option value="12">Yearly</option>
-                </select>
+        {bills.length > 0 && (
+          <div className="rounded-2xl overflow-hidden mb-3" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+            {bills.map((b, i) => (
+              <div key={b.id} className="flex items-center justify-between px-4 py-3"
+                style={{ borderBottom: i < bills.length - 1 ? `1px solid ${BORDER}` : undefined }}>
+                <div>
+                  <p className="text-sm text-white">{b.name}</p>
+                  <p className="text-xs" style={{ color: MUTED }}>Due {b.dayOfMonth}{ordinal(b.dayOfMonth)} of month</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <p className="text-sm font-semibold" style={{ color: RED }}>{fmt$(b.amount)}</p>
+                  <button onClick={() => { onUpdateBills(bills.filter(x => x.id !== b.id)); showToast("Removed"); }}>
+                    <Trash2 size={12} style={{ color: MUTED }} />
+                  </button>
+                </div>
               </div>
+            ))}
+            <div className="flex items-center justify-between px-4 py-3"
+              style={{ background: "rgba(255,255,255,0.03)", borderTop: `1px solid ${BORDER}` }}>
+              <p className="text-xs font-semibold" style={{ color: MUTED }}>Monthly total</p>
+              <p className="text-sm font-bold text-white">{fmt$(monthlyBills)}/mo · {fmt$(Math.round(monthlyBills / 2))}/check</p>
             </div>
-            {fundAmount && (
-              <p className="text-xs mb-3" style={{ color: LIME }}>
-                Save ${Math.ceil(parseFloat(fundAmount) / parseInt(fundFreq)).toLocaleString()}/month
-              </p>
-            )}
-            <button onClick={addFund} disabled={!fundName || !fundAmount}
-              className="w-full py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40"
-              style={{ background: LIME, color: "#000" }}>Create Fund</button>
           </div>
         )}
 
-        {sinkingFunds.map(f => {
-          const perMonth = f.targetAmount / f.frequencyMonths;
-          const pct = Math.min((f.saved / f.targetAmount) * 100, 100);
-          const monthsLeft = perMonth > 0 ? Math.ceil((f.targetAmount - f.saved) / perMonth) : 0;
-          return (
-            <div key={f.id} className="rounded-2xl p-4 mb-3" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
-              <div className="flex items-start justify-between mb-2">
-                <div>
-                  <p className="text-sm font-semibold text-white">{f.name}</p>
-                  <p className="text-xs" style={{ color: MUTED }}>
-                    ${Math.ceil(perMonth).toLocaleString()}/mo · ${f.targetAmount.toLocaleString()} every {f.frequencyMonths === 1 ? "month" : f.frequencyMonths === 12 ? "year" : `${f.frequencyMonths} months`}
-                  </p>
-                </div>
-                <button onClick={() => removeFund(f.id)}><Trash2 size={14} style={{ color: MUTED }} /></button>
-              </div>
-              <div className="rounded-full overflow-hidden mb-2" style={{ background: "rgba(255,255,255,0.06)", height: 6 }}>
-                <div className="h-full rounded-full" style={{ width: `${pct}%`, background: f.color ?? LIME }} />
-              </div>
-              <div className="flex items-center justify-between">
-                <p className="text-xs" style={{ color: MUTED }}>${f.saved.toLocaleString()} of ${f.targetAmount.toLocaleString()} · {monthsLeft > 0 ? `${monthsLeft} mo left` : "Ready!"}</p>
-                <div className="flex gap-2">
-                  <button onClick={() => updateFundSaved(f.id, Math.max(0, f.saved - Math.ceil(perMonth)))}
-                    className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(255,255,255,0.07)", color: MUTED }}>−</button>
-                  <button onClick={() => updateFundSaved(f.id, Math.min(f.targetAmount, f.saved + Math.ceil(perMonth)))}
-                    className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(200,255,0,0.1)", color: LIME }}>+{Math.ceil(perMonth)}</button>
-                </div>
+        {showBillForm && (
+          <div className="rounded-2xl p-4 mb-3" style={{ background: CARD, border: `1px solid rgba(200,255,0,0.2)` }}>
+            <div className="space-y-2 mb-3">
+              <input value={billName} onChange={e => setBillName(e.target.value)} placeholder="Name (e.g. Rent, Phone, Hulu)"
+                className="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none"
+                style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }} />
+              <div className="grid grid-cols-2 gap-2">
+                <input type="number" value={billAmt} onChange={e => setBillAmt(e.target.value)} placeholder="Amount ($)"
+                  className="rounded-xl px-3 py-2.5 text-sm text-white outline-none"
+                  style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }} />
+                <input type="number" min="1" max="31" value={billDay} onChange={e => setBillDay(e.target.value)} placeholder="Day due (1–31)"
+                  className="rounded-xl px-3 py-2.5 text-sm text-white outline-none"
+                  style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }} />
               </div>
             </div>
-          );
-        })}
+            <button onClick={addBill} disabled={!billName || !billAmt}
+              className="w-full py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40"
+              style={{ background: LIME, color: "#000" }}>
+              Add Bill
+            </button>
+          </div>
+        )}
 
-        {sinkingFunds.length === 0 && !showFundForm && (
-          <div className="rounded-2xl p-6 text-center" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
-            <p className="text-sm" style={{ color: MUTED }}>No sinking funds yet. Add your first one — haircut every 6 weeks, car oil change quarterly, etc.</p>
+        {bills.length === 0 && !showBillForm && (
+          <div className="rounded-2xl p-5 text-center" style={{ background: CARD, border: `1px dashed ${BORDER}` }}>
+            <p className="text-sm" style={{ color: MUTED }}>Add rent, subscriptions, utilities — anything that hits on the same day each month.</p>
           </div>
         )}
       </div>
@@ -736,10 +802,9 @@ function PlanningTab({ sinkingFunds, affordGoals, monthlyIncome, totalSpentThisM
 }
 
 // ── Accounts Tab ──────────────────────────────────────────────────────────────
-function AccountsTab({ accounts, loadingAccts, loadingTxns, onRefresh, onDisconnect, onConnected, refreshing }: {
-  accounts: PlaidAccount[]; loadingAccts: boolean; loadingTxns: boolean;
-  onRefresh: () => void; onDisconnect: (itemId?: string) => void;
-  onConnected: () => void; refreshing: boolean;
+function AccountsTab({ accounts, loadingAccts, refreshing, onRefresh, onDisconnect, onConnected }: {
+  accounts: PlaidAccount[]; loadingAccts: boolean; refreshing: boolean;
+  onRefresh: () => void; onDisconnect: (itemId?: string) => void; onConnected: () => void;
 }) {
   const byInstitution: Record<string, PlaidAccount[]> = {};
   for (const a of accounts) {
@@ -747,18 +812,17 @@ function AccountsTab({ accounts, loadingAccts, loadingTxns, onRefresh, onDisconn
     if (!byInstitution[key]) byInstitution[key] = [];
     byInstitution[key].push(a);
   }
-  const loading = loadingAccts || loadingTxns;
 
   return (
     <div className="space-y-4">
-      {loading && accounts.length === 0 ? (
+      {loadingAccts && accounts.length === 0 ? (
         <div className="rounded-2xl p-8 text-center" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
           <div className="w-6 h-6 border-2 rounded-full animate-spin mx-auto mb-3" style={{ borderColor: LIME, borderTopColor: "transparent" }} />
           <p className="text-sm" style={{ color: MUTED }}>Loading accounts…</p>
         </div>
       ) : accounts.length === 0 ? (
         <div className="rounded-2xl p-6 space-y-4" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
-          <p className="text-sm" style={{ color: MUTED }}>Connect your bank to automatically track transactions and spending.</p>
+          <p className="text-sm" style={{ color: MUTED }}>Connect your bank to see live account balances.</p>
           <PlaidConnectButton onConnected={onConnected} />
         </div>
       ) : (
@@ -768,7 +832,7 @@ function AccountsTab({ accounts, loadingAccts, loadingTxns, onRefresh, onDisconn
               <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}` }}>
                 <p className="text-sm font-semibold text-white">{inst}</p>
                 <button onClick={() => onDisconnect(accts[0].itemId)} className="p-1.5 rounded-lg" style={{ background: "rgba(218,102,123,0.1)" }}>
-                  <Unlink size={12} style={{ color: "#DA667B" }} />
+                  <Unlink size={12} style={{ color: RED }} />
                 </button>
               </div>
               {accts.map((a, i) => {
@@ -782,7 +846,7 @@ function AccountsTab({ accounts, loadingAccts, loadingTxns, onRefresh, onDisconn
                       <p className="text-sm text-white">{a.name}{a.mask ? ` ···${a.mask}` : ""}</p>
                       <p className="text-xs capitalize" style={{ color: MUTED }}>{a.subtype ?? a.type}</p>
                     </div>
-                    <p className="text-sm font-semibold" style={{ color: a.type === "credit" ? "#DA667B" : LIME }}>
+                    <p className="text-sm font-semibold" style={{ color: a.type === "credit" ? RED : LIME }}>
                       {a.type === "credit" ? "-" : ""}${Math.abs(bal).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                   </div>
@@ -792,7 +856,7 @@ function AccountsTab({ accounts, loadingAccts, loadingTxns, onRefresh, onDisconn
           ))}
           <div className="flex gap-3">
             <button onClick={onRefresh} disabled={refreshing}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium"
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm"
               style={{ background: "rgba(255,255,255,0.06)", border: `1px solid ${BORDER}`, color: MUTED }}>
               <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} /> {refreshing ? "Refreshing…" : "Refresh"}
             </button>
