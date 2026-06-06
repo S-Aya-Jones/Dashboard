@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { usePlaidLink } from "react-plaid-link";
-import { RefreshCw, Unlink, Plus, Trash2, TrendingUp, Target, Wallet, Calendar } from "lucide-react";
+import { RefreshCw, Unlink, Plus, Trash2, TrendingUp, Target, Wallet, Calendar, ChevronDown, ArrowRight } from "lucide-react";
 import { DashboardData, BudgetCategory, SinkingFund, AffordGoal, MerchantCategoryOverride } from "@/types/dashboard";
 import { id } from "@/lib/utils";
 import { parseISO, startOfMonth, isAfter } from "date-fns";
@@ -279,8 +279,10 @@ export function FinancesView({ data, update }: Props) {
           <SpendingTab
             catSpend={catSpend}
             budgetCategories={data.budgetCategories ?? []}
-            recentTxns={thisMonthTxns.slice(0, 30)}
+            allTxns={thisMonthTxns.map(t => ({ id: t.id, name: t.name, amount: t.amount, date: t.date, resolvedCategory: resolvedCat(t) }))}
+            merchantCategoryOverrides={fc.merchantCategoryOverrides}
             onUpdateBudgets={(cats) => update(d => ({ ...d, budgetCategories: cats }))}
+            onUpdateOverrides={(overrides) => update(d => ({ ...d, financesConfig: { ...(d.financesConfig ?? DEFAULT_FC), merchantCategoryOverrides: overrides } }))}
           />
         )}
 
@@ -356,24 +358,39 @@ function IncomeCard({ monthlyIncome, monthlySavings, onSave }: { monthlyIncome?:
 }
 
 // ── Spending Tab ──────────────────────────────────────────────────────────────
-function SpendingTab({ catSpend, budgetCategories, recentTxns, onUpdateBudgets }: {
-  catSpend: Record<string, number>; budgetCategories: BudgetCategory[];
-  recentTxns: { id: string; name: string; amount: number; date: string; category: string }[];
+interface ResolvedTxn { id: string; name: string; amount: number; date: string; resolvedCategory: string; }
+
+function SpendingTab({ catSpend, budgetCategories, allTxns, merchantCategoryOverrides, onUpdateBudgets, onUpdateOverrides }: {
+  catSpend: Record<string, number>;
+  budgetCategories: BudgetCategory[];
+  allTxns: ResolvedTxn[];
+  merchantCategoryOverrides: MerchantCategoryOverride[];
   onUpdateBudgets: (c: BudgetCategory[]) => void;
+  onUpdateOverrides: (o: MerchantCategoryOverride[]) => void;
 }) {
   const [editingCat, setEditingCat] = useState<string | null>(null);
   const [limitVal, setLimitVal] = useState("");
-  const [showTxns, setShowTxns] = useState(false);
+  const [expandedCat, setExpandedCat] = useState<string | null>(null);
+  const [reassigning, setReassigning] = useState<string | null>(null);
 
   const allCats = Array.from(new Set([...Object.keys(catSpend), ...budgetCategories.map(b => b.category)]));
+  const allKnownCats = Array.from(new Set([...Object.keys(CAT_LABEL), ...allCats])).sort();
+
   const getLimit = (cat: string) => budgetCategories.find(b => b.category === cat)?.monthlyLimit ?? 0;
   const setLimit = (cat: string, limit: number) => {
     const existing = budgetCategories.filter(b => b.category !== cat);
     onUpdateBudgets(limit > 0 ? [...existing, { category: cat, monthlyLimit: limit }] : existing);
   };
 
+  const reassignTxn = (t: ResolvedTxn, newCat: string) => {
+    // Remove any existing override for this exact merchant name, then add the new one
+    const existing = merchantCategoryOverrides.filter(o => o.nameContains.toLowerCase() !== t.name.toLowerCase());
+    onUpdateOverrides([...existing, { nameContains: t.name, category: newCat }]);
+    setReassigning(null);
+  };
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {allCats.length === 0 && (
         <div className="rounded-2xl p-8 text-center" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
           <p className="text-sm" style={{ color: MUTED }}>No spending data — connect a bank in Accounts</p>
@@ -387,71 +404,109 @@ function SpendingTab({ catSpend, budgetCategories, recentTxns, onUpdateBudgets }
         const over = limit > 0 && spent > limit;
         const color = CAT_COLORS[i % CAT_COLORS.length];
         const isEditing = editingCat === cat;
+        const isExpanded = expandedCat === cat;
+        const catTxns = allTxns.filter(t => t.resolvedCategory === cat).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
         return (
-          <div key={cat} className="rounded-2xl p-4" style={{ background: CARD, border: `1px solid ${over ? "rgba(218,102,123,0.4)" : BORDER}` }}>
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <span className="text-lg">{CAT_EMOJI[cat] ?? "💰"}</span>
-                <div>
-                  <p className="text-sm font-medium text-white">{catLabel(cat)}</p>
-                  {limit > 0 && <p className="text-xs" style={{ color: over ? "#DA667B" : MUTED }}>{over ? `$${Math.round(spent - limit)} over budget` : `$${Math.round(limit - spent)} left`}</p>}
+          <div key={cat} className="rounded-2xl overflow-hidden" style={{ background: CARD, border: `1px solid ${over ? "rgba(218,102,123,0.4)" : BORDER}` }}>
+            {/* Category header — click to expand */}
+            <button
+              className="w-full p-4 text-left"
+              onClick={() => { setExpandedCat(isExpanded ? null : cat); setEditingCat(null); setReassigning(null); }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">{CAT_EMOJI[cat] ?? "💰"}</span>
+                  <div className="text-left">
+                    <p className="text-sm font-medium text-white">{catLabel(cat)}</p>
+                    {limit > 0 && <p className="text-xs" style={{ color: over ? "#DA667B" : MUTED }}>{over ? `$${Math.round(spent - limit)} over` : `$${Math.round(limit - spent)} left`}</p>}
+                    {!limit && catTxns.length > 0 && <p className="text-xs" style={{ color: MUTED }}>{catTxns.length} transaction{catTxns.length !== 1 ? "s" : ""}</p>}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-bold" style={{ color: over ? "#DA667B" : "#fff" }}>${Math.round(spent).toLocaleString()}</p>
+                  <ChevronDown size={14} style={{ color: MUTED, transform: isExpanded ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <p className="text-sm font-bold" style={{ color: over ? "#DA667B" : "#fff" }}>${Math.round(spent).toLocaleString()}</p>
-                <button onClick={() => { setEditingCat(isEditing ? null : cat); setLimitVal(String(limit || "")); }}
-                  className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(255,255,255,0.07)", color: MUTED }}>
-                  {limit > 0 ? `/ $${limit.toLocaleString()}` : "+ limit"}
-                </button>
-              </div>
-            </div>
 
-            {limit > 0 && (
-              <div className="rounded-full overflow-hidden mb-2" style={{ background: "rgba(255,255,255,0.06)", height: 6 }}>
-                <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: over ? "#DA667B" : color }} />
-              </div>
-            )}
+              {limit > 0 && (
+                <div className="rounded-full overflow-hidden mt-2" style={{ background: "rgba(255,255,255,0.06)", height: 5 }}>
+                  <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: over ? "#DA667B" : color }} />
+                </div>
+              )}
+            </button>
 
-            {isEditing && (
-              <div className="flex gap-2 mt-3">
-                <input type="number" value={limitVal} onChange={e => setLimitVal(e.target.value)} placeholder="Monthly limit"
-                  className="flex-1 rounded-xl px-3 py-2 text-sm text-white outline-none"
-                  style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }} />
-                <button onClick={() => { setLimit(cat, parseFloat(limitVal) || 0); setEditingCat(null); }}
-                  className="px-4 rounded-xl text-sm font-semibold" style={{ background: LIME, color: "#000" }}>Save</button>
-                {limit > 0 && <button onClick={() => { setLimit(cat, 0); setEditingCat(null); }}
-                  className="px-3 rounded-xl" style={{ background: "rgba(218,102,123,0.15)", color: "#DA667B" }}>Remove</button>}
+            {/* Expanded: transactions + limit editor */}
+            {isExpanded && (
+              <div style={{ borderTop: `1px solid ${BORDER}` }}>
+                {/* Set/edit limit row */}
+                <div className="px-4 py-3" style={{ borderBottom: catTxns.length > 0 ? `1px solid ${BORDER}` : undefined }}>
+                  {isEditing ? (
+                    <div className="flex gap-2">
+                      <input type="number" value={limitVal} onChange={e => setLimitVal(e.target.value)} placeholder="Monthly limit ($)"
+                        autoFocus
+                        className="flex-1 rounded-xl px-3 py-2 text-sm text-white outline-none"
+                        style={{ background: "rgba(255,255,255,0.07)", border: `1px solid rgba(200,255,0,0.3)` }} />
+                      <button onClick={() => { setLimit(cat, parseFloat(limitVal) || 0); setEditingCat(null); }}
+                        className="px-4 py-2 rounded-xl text-sm font-semibold" style={{ background: LIME, color: "#000" }}>Save</button>
+                      {limit > 0 && <button onClick={() => { setLimit(cat, 0); setEditingCat(null); }}
+                        className="px-3 py-2 rounded-xl text-sm" style={{ background: "rgba(218,102,123,0.12)", color: "#DA667B" }}>Remove</button>}
+                    </div>
+                  ) : (
+                    <button onClick={(e) => { e.stopPropagation(); setEditingCat(cat); setLimitVal(String(limit || "")); }}
+                      className="text-xs px-3 py-1.5 rounded-lg"
+                      style={{ background: "rgba(255,255,255,0.07)", color: MUTED }}>
+                      {limit > 0 ? `✏ Edit limit ($${limit.toLocaleString()}/mo)` : "+ Set monthly limit"}
+                    </button>
+                  )}
+                </div>
+
+                {/* Transaction list */}
+                {catTxns.length === 0 ? (
+                  <p className="px-4 py-3 text-xs" style={{ color: MUTED }}>No transactions this month</p>
+                ) : catTxns.map((t, idx) => (
+                  <div key={t.id}>
+                    <div className="flex items-center justify-between px-4 py-3"
+                      style={{ borderTop: idx > 0 ? `1px solid ${BORDER}` : undefined }}>
+                      <div className="min-w-0 flex-1 mr-3">
+                        <p className="text-sm text-white truncate">{t.name}</p>
+                        <p className="text-xs" style={{ color: MUTED }}>{t.date}</p>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <p className="text-sm font-semibold text-white">${t.amount.toFixed(2)}</p>
+                        <button
+                          onClick={() => setReassigning(reassigning === t.id ? null : t.id)}
+                          className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition-all"
+                          style={reassigning === t.id
+                            ? { background: "rgba(200,255,0,0.12)", color: LIME, border: `1px solid rgba(200,255,0,0.25)` }
+                            : { background: "rgba(255,255,255,0.06)", color: MUTED }}>
+                          Move <ArrowRight size={10} />
+                        </button>
+                      </div>
+                    </div>
+                    {/* Inline reassign picker */}
+                    {reassigning === t.id && (
+                      <div className="px-4 pb-3">
+                        <p className="text-xs mb-2" style={{ color: MUTED }}>Move <strong style={{ color: "#fff" }}>{t.name}</strong> to…</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {allKnownCats.filter(c => c !== cat).map(c => (
+                            <button key={c} onClick={() => reassignTxn(t, c)}
+                              className="text-xs px-2.5 py-1 rounded-full transition-all"
+                              style={{ background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.7)", border: `1px solid ${BORDER}` }}>
+                              {CAT_EMOJI[c] ?? "💰"} {catLabel(c)}
+                            </button>
+                          ))}
+                        </div>
+                        <p className="text-xs mt-2" style={{ color: MUTED }}>All future &quot;{t.name}&quot; charges will go here automatically.</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </div>
         );
       })}
-
-      {/* Recent transactions toggle */}
-      {recentTxns.length > 0 && (
-        <div>
-          <button onClick={() => setShowTxns(!showTxns)}
-            className="w-full py-3 rounded-2xl text-sm font-medium transition-all"
-            style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${BORDER}`, color: MUTED }}>
-            {showTxns ? "Hide" : "Show"} recent transactions ({recentTxns.length})
-          </button>
-          {showTxns && (
-            <div className="mt-3 rounded-2xl overflow-hidden" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
-              {recentTxns.map((t, i) => (
-                <div key={t.id} className="flex items-center justify-between px-4 py-3"
-                  style={{ borderBottom: i < recentTxns.length - 1 ? `1px solid ${BORDER}` : undefined }}>
-                  <div>
-                    <p className="text-sm text-white truncate" style={{ maxWidth: 220 }}>{t.name}</p>
-                    <p className="text-xs" style={{ color: MUTED }}>{t.date} · {catLabel(t.category)}</p>
-                  </div>
-                  <p className="text-sm font-semibold" style={{ color: "#DA667B" }}>${t.amount.toFixed(2)}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }
