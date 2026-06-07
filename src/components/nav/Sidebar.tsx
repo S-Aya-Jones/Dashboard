@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Sun, Calendar, CheckSquare, Brain, BookOpen,
-  Heart, Sparkles, DollarSign, Users, Star, BookMarked,
-  Globe, ChevronLeft, ChevronRight, Dumbbell, Gem, UtensilsCrossed,
+  Sun, Calendar, Brain, BookOpen,
+  Sparkles, DollarSign,
+  ChevronLeft, ChevronRight, Dumbbell, Gem, UtensilsCrossed,
   MessageSquare
 } from "lucide-react";
 import { useState } from "react";
@@ -14,18 +14,12 @@ import { SaveIndicator } from "@/components/ui/SaveIndicator";
 const navItems = [
   { href: "/",          label: "Today",            icon: Sun },
   { href: "/week",      label: "This Week",        icon: Calendar },
-  { href: "/habits",    label: "Habits",           icon: CheckSquare },
   { href: "/exposure",  label: "Exposure Therapy", icon: Brain },
   { href: "/mcat",      label: "Med School",       icon: BookOpen },
   { href: "/fitness",   label: "Fitness",          icon: Dumbbell },
   { href: "/skincare",  label: "Skincare",         icon: Sparkles },
   { href: "/finances",  label: "Finances",         icon: DollarSign },
-  { href: "/connections",label:"Connections",      icon: Users },
   { href: "/messages",  label: "Messages",         icon: MessageSquare },
-  { href: "/wins",      label: "Wins Jar",         icon: Star },
-  { href: "/goals",     label: "Goals",            icon: Heart },
-  { href: "/books",     label: "Books",            icon: BookMarked },
-  { href: "/year",      label: "Year View",        icon: Globe },
   { href: "/vision",    label: "Vision",           icon: Gem },
   { href: "/nutrition", label: "Food Journal",     icon: UtensilsCrossed },
 ];
