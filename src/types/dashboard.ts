@@ -201,6 +201,8 @@ export interface PaycheckConfig {
   takeHomePerCheck: number;
   savingsPercent: number;   // 0–100
   nextPayday: string;       // YYYY-MM-DD
+  employer?: string;           // e.g. "HCA Healthcare"
+  projectedTakeHome?: number;  // user's manually-set expected amount
 }
 
 export interface SelfCareItem {

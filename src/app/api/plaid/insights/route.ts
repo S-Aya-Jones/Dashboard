@@ -36,7 +36,7 @@ function matchKw(name: string, kw: string[]) {
 
 // ── Paycheck detection ────────────────────────────────────────────────────────
 function detectPaychecks(txns: RawTxn[]) {
-  const PAYROLL_KW = ["direct dep", "payroll", "adp", "gusto", "paychex", "workday", "paycheck", "salary"];
+  const PAYROLL_KW = ["direct dep", "payroll", "adp", "gusto", "paychex", "workday", "paycheck", "salary", "hca", "hca healthcare", "hca inc"];
 
   // Plaid: negative amount = deposit (money IN)
   const deposits = txns.filter(t =>
