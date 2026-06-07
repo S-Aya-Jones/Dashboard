@@ -71,6 +71,29 @@ interface LiabilitiesData {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+const FREQ_OPTIONS: [string, string][] = [
+  ["1",  "Weekly"],
+  ["2",  "Bi-weekly"],
+  ["3",  "Every 3 wks"],
+  ["4",  "Every 4 wks / Monthly"],
+  ["6",  "Every 6 wks"],
+  ["8",  "Every 8 wks"],
+  ["13", "Quarterly"],
+  ["26", "Semi-annual"],
+  ["52", "Annual"],
+];
+
+function freqLabel(weeks: number, label?: string): string {
+  if (label) return label;
+  if (weeks === 1) return "weekly";
+  if (weeks === 2) return "bi-weekly";
+  if (weeks === 4) return "monthly";
+  if (weeks === 13) return "quarterly";
+  if (weeks === 26) return "semi-annual";
+  if (weeks === 52) return "annual";
+  return `every ${weeks} wks`;
+}
+
 function fmt$(n: number) { return `$${Math.abs(n).toLocaleString("en-US", { maximumFractionDigits: 0 })}`; }
 function fmtDate(d: Date) { return format(d, "MMM d"); }
 function ordinal(n: number) { const s = ["th","st","nd","rd"]; const v = n % 100; return s[(v-20)%10] || s[v] || s[0]; }
@@ -116,7 +139,11 @@ function buildYearPlan(
       const daysSince = differenceInDays(date, lastDate);
       const urgency = daysSince / (item.frequencyWeeks * 7);
       return { item, urgency };
-    }).filter(s => s.urgency >= 0.8).sort((a, b) => b.urgency - a.urgency);
+    }).filter(s => s.urgency >= 0.8).sort((a, b) => {
+      const urgencyDiff = b.urgency - a.urgency;
+      if (Math.abs(urgencyDiff) > 0.05) return urgencyDiff;
+      return (a.item.priority ?? 999) - (b.item.priority ?? 999);
+    });
 
     let focusItem: SelfCareItem | null = null;
     let pushedItem: SelfCareItem | null = null;
@@ -781,6 +808,39 @@ function HealthTab({ health, accounts, loadingAccts, refreshing, accountTransfer
   );
 }
 
+// ── Edit Care Inline ──────────────────────────────────────────────────────────
+function EditCareInline({ item, onSave }: { item: SelfCareItem; onSave: (cost: number, freqWeeks: number, freqLabel: string) => void }) {
+  const [cost, setCost]   = useState(String(item.cost));
+  const opt = FREQ_OPTIONS.find(([v]) => v === String(item.frequencyWeeks));
+  const [freqW, setFreqW] = useState(opt ? opt[0] : "4");
+  return (
+    <div className="px-4 pb-3 pt-2" style={{ borderTop: `1px solid ${BORDER}` }}>
+      <div className="grid grid-cols-2 gap-2 mb-2">
+        <div>
+          <label className="text-xs mb-1 block" style={{ color: MUTED }}>Cost ($)</label>
+          <input type="number" value={cost} onChange={e => setCost(e.target.value)}
+            className="w-full rounded-xl px-3 py-2 text-sm outline-none"
+            style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+        </div>
+        <div>
+          <label className="text-xs mb-1 block" style={{ color: MUTED }}>Frequency</label>
+          <select value={freqW} onChange={e => setFreqW(e.target.value)}
+            className="w-full rounded-xl px-3 py-2 text-sm outline-none"
+            style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }}>
+            {FREQ_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
+        </div>
+      </div>
+      <button onClick={() => {
+        const c = parseFloat(cost) || item.cost;
+        const fw = parseInt(freqW) || item.frequencyWeeks;
+        const fl = FREQ_OPTIONS.find(([v]) => v === freqW)?.[1] ?? freqLabel(fw);
+        onSave(c, fw, fl);
+      }} className="w-full py-2 rounded-xl text-sm font-semibold" style={{ background: LIME, color: "#fff" }}>Save</button>
+    </div>
+  );
+}
+
 // ── Flow Tab ──────────────────────────────────────────────────────────────────
 function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, budgetLines, bills, selfCare, insights, p2pTransfers, liabilities, creditScores, onMarkBillPaid, onMarkFocusDone, onAddP2P, onRemoveP2P, onUpdateCare, onUpdateBills, onUpdateBudgetLines, onUpdatePc, showToast }: {
   yearPlan: CheckSlot[]; savingsAlerts: SavingsAlert[];
@@ -837,8 +897,23 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, budgetLines, 
 
   const addCare = () => {
     if (!name || !cost) return;
-    onUpdateCare([...selfCare, { id: id(), name, emoji, cost: parseFloat(cost), frequencyWeeks: parseInt(freqWeeks), color: COLORS[selfCare.length % COLORS.length] }]);
+    const fwOpt = FREQ_OPTIONS.find(([v]) => v === freqWeeks);
+    const fl = fwOpt ? fwOpt[1] : undefined;
+    onUpdateCare([...selfCare, { id: id(), name, emoji, cost: parseFloat(cost), frequencyWeeks: parseInt(freqWeeks), frequencyLabel: fl, color: COLORS[selfCare.length % COLORS.length], priority: selfCare.length }]);
     setName(""); setCost(""); setFreqWeeks("4"); setEmoji("💄"); setShowCareForm(false); showToast("Added!");
+  };
+
+  const moveCare = (itemId: string, dir: -1 | 1) => {
+    const sorted = [...selfCare].sort((a, b) => (a.priority ?? 999) - (b.priority ?? 999));
+    const idx = sorted.findIndex(i => i.id === itemId);
+    const newIdx = idx + dir;
+    if (newIdx < 0 || newIdx >= sorted.length) return;
+    const updated = sorted.map((item, i) => {
+      if (i === idx) return { ...item, priority: newIdx };
+      if (i === newIdx) return { ...item, priority: idx };
+      return item;
+    });
+    onUpdateCare(updated);
   };
   const addBill = () => {
     if (!billName || !billAmt) return;
@@ -878,22 +953,28 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, budgetLines, 
         background: focus ? (current.canAfford ? "rgba(200,255,0,0.04)" : "rgba(218,102,123,0.04)") : CARD,
         border: `1px solid ${focus ? (current.canAfford ? "rgba(200,255,0,0.2)" : "rgba(218,102,123,0.2)") : BORDER}`,
       }}>
-        <p className="text-xs font-semibold mb-4" style={{ color: MUTED, letterSpacing: "0.1em" }}>
-          THIS CHECK · {fmtDate(current.checkDate).toUpperCase()}{pc.employer ? ` · ${pc.employer.toUpperCase()}` : ""}
+        <p className="text-xs font-semibold mb-1" style={{ color: MUTED, letterSpacing: "0.1em" }}>
+          WHAT YOU&apos;RE BUYING THIS PAYCHECK
+        </p>
+        <p className="text-xs mb-4" style={{ color: "var(--text-light)" }}>
+          {fmtDate(current.checkDate)}{pc.employer ? ` · ${pc.employer}` : ""}
         </p>
         {focus ? (
           <>
             <div className="flex items-start justify-between mb-5">
               <div>
                 <p className="text-5xl mb-2">{focus.emoji}</p>
-                <h2 className="text-2xl font-bold text-white">{focus.name}</h2>
+                <h2 className="text-2xl font-bold" style={{ color: "var(--text)" }}>{focus.name}</h2>
                 <p className="text-sm mt-1 font-semibold" style={{ color: current.canAfford ? LIME : RED }}>
-                  {fmt$(focus.cost)} · {current.canAfford ? "you can swing it" : "tight this check"}
+                  {fmt$(focus.cost)} · {current.canAfford ? "you can swing it ✓" : "tight this check ⚠️"}
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: MUTED }}>
+                  {freqLabel(focus.frequencyWeeks, focus.frequencyLabel)}{focus.lastDone ? ` · last ${format(parseISO(focus.lastDone), "MMM d")}` : ""}
                 </p>
               </div>
               <button onClick={() => onMarkFocusDone(focus.id)}
                 className="px-4 py-2 rounded-xl text-sm font-semibold"
-                style={{ background: "rgba(124,92,252,0.12)", color: LIME, border: `1px solid rgba(200,255,0,0.3)` }}>Done ✓</button>
+                style={{ background: "rgba(124,92,252,0.12)", color: LIME, border: `1px solid rgba(124,92,252,0.3)` }}>Done ✓</button>
             </div>
             <div className="space-y-2 pt-4" style={{ borderTop: `1px solid ${BORDER}` }}>
               {[
@@ -918,9 +999,10 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, budgetLines, 
           </>
         ) : (
           <div>
+            <p className="text-xs mb-3" style={{ color: MUTED }}>No self-care scheduled — free cash after savings &amp; bills</p>
             <p className="text-4xl font-bold mb-2" style={{ color: LIME }}>{fmt$(current.free)}</p>
-            <p className="text-sm" style={{ color: MUTED }}>free this check — after savings &amp; bills</p>
-            {!focus && <p className="text-xs mt-2" style={{ color: MUTED }}>Add self-care items below to see your rotation.</p>}
+            <p className="text-sm" style={{ color: MUTED }}>yours to keep this check</p>
+            {!focus && selfCare.length === 0 && <p className="text-xs mt-2" style={{ color: "var(--text-light)" }}>Add self-care items below to see your rotation.</p>}
           </div>
         )}
       </div>
@@ -1189,37 +1271,38 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, budgetLines, 
             </div>
           )}
           <div className="space-y-2">
-            {selfCare.map(item => {
+            {[...selfCare].sort((a, b) => (a.priority ?? 999) - (b.priority ?? 999)).map((item, listIdx, sortedArr) => {
               const isEditing = editId === item.id;
               return (
                 <div key={item.id} className="rounded-2xl overflow-hidden" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
                   <div className="flex items-center justify-between px-4 py-3">
                     <div className="flex items-center gap-3">
+                      {/* Priority arrows */}
+                      <div className="flex flex-col gap-0.5">
+                        <button onClick={() => moveCare(item.id, -1)} disabled={listIdx === 0}
+                          className="w-5 h-4 flex items-center justify-center rounded disabled:opacity-20"
+                          style={{ color: MUTED, fontSize: 9 }}>▲</button>
+                        <button onClick={() => moveCare(item.id, 1)} disabled={listIdx === sortedArr.length - 1}
+                          className="w-5 h-4 flex items-center justify-center rounded disabled:opacity-20"
+                          style={{ color: MUTED, fontSize: 9 }}>▼</button>
+                      </div>
                       <span className="text-xl">{item.emoji}</span>
                       <div>
-                        <p className="text-sm font-semibold text-white">{item.name}</p>
-                        <p className="text-xs" style={{ color: MUTED }}>{fmt$(item.cost)} · every {item.frequencyWeeks} wk{item.frequencyWeeks !== 1 ? "s" : ""}{item.lastDone ? ` · last ${format(parseISO(item.lastDone), "MMM d")}` : ""}</p>
+                        <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>{item.name}</p>
+                        <p className="text-xs" style={{ color: MUTED }}>{fmt$(item.cost)} · {freqLabel(item.frequencyWeeks, item.frequencyLabel)}{item.lastDone ? ` · last ${format(parseISO(item.lastDone), "MMM d")}` : ""}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button onClick={() => { onUpdateCare(selfCare.map(i => i.id === item.id ? { ...i, lastDone: format(new Date(), "yyyy-MM-dd") } : i)); showToast(`${item.name} — done!`); }} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(200,255,0,0.1)", color: LIME }}>Done</button>
+                      <button onClick={() => { onUpdateCare(selfCare.map(i => i.id === item.id ? { ...i, lastDone: format(new Date(), "yyyy-MM-dd") } : i)); showToast(`${item.name} — done!`); }} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(124,92,252,0.1)", color: LIME }}>Done</button>
                       <button onClick={() => setEditId(isEditing ? null : item.id)} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Edit</button>
                       <button onClick={() => onUpdateCare(selfCare.filter(i => i.id !== item.id))}><Trash2 size={13} style={{ color: MUTED }} /></button>
                     </div>
                   </div>
                   {isEditing && (
-                    <div className="px-4 pb-3 pt-2" style={{ borderTop: `1px solid ${BORDER}` }}>
-                      <div className="grid grid-cols-2 gap-2 mb-2">
-                        <div><label className="text-xs mb-1 block" style={{ color: MUTED }}>Cost ($)</label><input type="number" defaultValue={item.cost} id={`cost-${item.id}`} className="w-full rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} /></div>
-                        <div><label className="text-xs mb-1 block" style={{ color: MUTED }}>Every N weeks</label><input type="number" defaultValue={item.frequencyWeeks} id={`freq-${item.id}`} className="w-full rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} /></div>
-                      </div>
-                      <button onClick={() => {
-                        const c = parseFloat((document.getElementById(`cost-${item.id}`) as HTMLInputElement)?.value) || item.cost;
-                        const f = parseInt((document.getElementById(`freq-${item.id}`) as HTMLInputElement)?.value) || item.frequencyWeeks;
-                        onUpdateCare(selfCare.map(i => i.id === item.id ? { ...i, cost: c, frequencyWeeks: f } : i));
-                        setEditId(null); showToast("Updated!");
-                      }} className="w-full py-2 rounded-xl text-sm font-semibold" style={{ background: LIME, color: "#fff"}}>Save</button>
-                    </div>
+                    <EditCareInline item={item} onSave={(c, fw, fl) => {
+                      onUpdateCare(selfCare.map(i => i.id === item.id ? { ...i, cost: c, frequencyWeeks: fw, frequencyLabel: fl } : i));
+                      setEditId(null); showToast("Updated!");
+                    }} />
                   )}
                 </div>
               );
@@ -1235,7 +1318,7 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, budgetLines, 
                 <div className="grid grid-cols-2 gap-2">
                   <input type="number" value={cost} onChange={e => setCost(e.target.value)} placeholder="Cost ($)" className="rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
                   <select value={freqWeeks} onChange={e => setFreqWeeks(e.target.value)} className="rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }}>
-                    {[["1","Weekly"],["2","Every 2 wks"],["3","Every 3 wks"],["4","Every 4 wks"],["6","Every 6 wks"],["8","Every 8 wks"],["12","Every 12 wks"]].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
+                    {FREQ_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                   </select>
                 </div>
               </div>
@@ -1247,14 +1330,30 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, budgetLines, 
         {/* Recurring bills management */}
         <div className="mb-5">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-semibold" style={{ color: MUTED, letterSpacing: "0.08em" }}>RECURRING BILLS</p>
-            <button onClick={() => setShowBillForm(!showBillForm)} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg" style={{ background: "rgba(200,255,0,0.1)", color: LIME, border: `1px solid rgba(200,255,0,0.2)` }}><Plus size={12} /> Add</button>
+            <p className="text-xs font-semibold" style={{ color: MUTED, letterSpacing: "0.08em" }}>RECURRING BILLS &amp; SUBSCRIPTIONS</p>
+            <button onClick={() => setShowBillForm(!showBillForm)} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg" style={{ background: "rgba(124,92,252,0.1)", color: LIME, border: `1px solid rgba(124,92,252,0.2)` }}><Plus size={12} /> Add</button>
           </div>
+          {/* Detected subscriptions from Plaid not yet added */}
+          {(insights?.bills ?? []).filter(b => !bills.some(rb => rb.name.toLowerCase().includes(b.name.toLowerCase().slice(0, 6)) || b.name.toLowerCase().includes(rb.name.toLowerCase().slice(0, 6)))).length > 0 && (
+            <div className="rounded-2xl px-4 py-3 mb-3" style={{ background: "rgba(124,92,252,0.04)", border: `1px solid ${BORDER}` }}>
+              <p className="text-xs font-semibold mb-2" style={{ color: LIME }}>Detected from your bank:</p>
+              {(insights!.bills!).filter(b => !bills.some(rb => rb.name.toLowerCase().includes(b.name.toLowerCase().slice(0, 6)) || b.name.toLowerCase().includes(rb.name.toLowerCase().slice(0, 6)))).map((b, i) => (
+                <div key={i} className="flex items-center justify-between py-1.5">
+                  <div>
+                    <p className="text-sm" style={{ color: "var(--text)" }}>🧾 {b.name}</p>
+                    <p className="text-xs" style={{ color: MUTED }}>{fmt$(b.amount)} · due {b.dayOfMonth}{ordinal(b.dayOfMonth)}</p>
+                  </div>
+                  <button onClick={() => { onUpdateBills([...bills, { id: id(), name: b.name, amount: b.amount, dayOfMonth: b.dayOfMonth }]); showToast("Bill added!"); }}
+                    className="text-xs px-3 py-1.5 rounded-lg font-semibold" style={{ background: LIME, color: "#fff" }}>Add</button>
+                </div>
+              ))}
+            </div>
+          )}
           {bills.length > 0 && (
             <div className="rounded-2xl overflow-hidden mb-2" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
               {bills.map((b, i) => (
                 <div key={b.id} className="flex items-center justify-between px-4 py-3" style={{ borderBottom: i < bills.length - 1 ? `1px solid ${BORDER}` : undefined }}>
-                  <div><p className="text-sm text-white">{b.name}</p><p className="text-xs" style={{ color: MUTED }}>Due {b.dayOfMonth}{ordinal(b.dayOfMonth)}</p></div>
+                  <div><p className="text-sm" style={{ color: "var(--text)" }}>{b.name}</p><p className="text-xs" style={{ color: MUTED }}>Due {b.dayOfMonth}{ordinal(b.dayOfMonth)}</p></div>
                   <div className="flex items-center gap-3">
                     <p className="text-sm font-semibold" style={{ color: RED }}>{fmt$(b.amount)}</p>
                     <button onClick={() => { onUpdateBills(bills.filter(x => x.id !== b.id)); showToast("Removed"); }}><Trash2 size={12} style={{ color: MUTED }} /></button>
@@ -1263,7 +1362,7 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, budgetLines, 
               ))}
               <div className="flex items-center justify-between px-4 py-3" style={{ background: "rgba(124,92,252,0.03)", borderTop: `1px solid ${BORDER}` }}>
                 <p className="text-xs" style={{ color: MUTED }}>Monthly total</p>
-                <p className="text-sm font-bold text-white">{fmt$(bills.reduce((s, b) => s + b.amount, 0))}/mo</p>
+                <p className="text-sm font-bold" style={{ color: "var(--text)" }}>{fmt$(bills.reduce((s, b) => s + b.amount, 0))}/mo</p>
               </div>
             </div>
           )}

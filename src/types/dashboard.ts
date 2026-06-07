@@ -229,8 +229,10 @@ export interface SelfCareItem {
   emoji: string;
   cost: number;             // cost per appointment
   frequencyWeeks: number;   // every N weeks
+  frequencyLabel?: string;  // human-readable label e.g. "Monthly", "Quarterly"
   lastDone?: string;        // YYYY-MM-DD
   color?: string;
+  priority?: number;        // 0 = highest priority; controls tie-breaking in scheduling
 }
 
 export interface RecurringBill {
