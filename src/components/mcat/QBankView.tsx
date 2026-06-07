@@ -357,7 +357,13 @@ export function QBankView({ data, update }: Props) {
         totalImported += fresh.length;
         totalSkipped  += ((j.count ?? j.questions.length) - fresh.length);
       }
-      setUploadError(`✓ Imported ${totalImported} question${totalImported !== 1 ? "s" : ""}${totalSkipped > 0 ? ` (${totalSkipped} duplicates skipped)` : ""}`);
+      if (totalImported === 0 && totalSkipped === 0) {
+        setUploadError("No questions were extracted — the file may be empty or in an unsupported format. Try a .docx with study notes or questions.");
+      } else if (totalImported === 0 && totalSkipped > 0) {
+        setUploadError(`All ${totalSkipped} questions already exist in your bank — no new ones added.`);
+      } else {
+        setUploadError(`✓ Imported ${totalImported} question${totalImported !== 1 ? "s" : ""}${totalSkipped > 0 ? ` (${totalSkipped} duplicates skipped)` : ""}`);
+      }
     } catch (e) {
       setUploadError(`Upload failed: ${e instanceof Error ? e.message : String(e)}`);
     } finally {

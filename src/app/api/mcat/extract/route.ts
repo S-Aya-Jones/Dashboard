@@ -226,6 +226,13 @@ export async function POST(req: Request) {
         createdAt: new Date().toISOString(),
       }));
 
+    if (questions.length === 0) {
+      return NextResponse.json(
+        { error: "The AI couldn't extract valid questions from this file. Try a different file or make sure it contains study material with clear concepts." },
+        { status: 422 }
+      );
+    }
+
     return NextResponse.json({ questions, count: questions.length, hadImages: hasImages });
   } catch (e) {
     console.error("Extract error:", e);
