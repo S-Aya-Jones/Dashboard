@@ -207,7 +207,7 @@ export function TodayView({ data, update }: Props) {
         </div>
       </Card>
 
-      <SmartInsights data={data} today={t} />
+      <SmartInsights data={data} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {/* Today's Habits */}
@@ -282,7 +282,7 @@ export function TodayView({ data, update }: Props) {
 }
 
 // ── Smart Insights ────────────────────────────────────────────────────────────
-function SmartInsights({ data, today }: { data: DashboardData; today: string }) {
+function SmartInsights({ data }: { data: DashboardData }) {
   const widgets: { key: string; node: React.ReactNode }[] = [];
 
   // 1. Shadowing countdown
