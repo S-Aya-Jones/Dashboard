@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { usePlaidLink } from "react-plaid-link";
-import { RefreshCw, Unlink, Plus, Trash2, Check, ChevronDown, ChevronUp } from "lucide-react";
+import { RefreshCw, Unlink, Plus, Trash2, Check, ChevronDown, ChevronUp, RotateCcw } from "lucide-react";
 import { DashboardData, PaycheckConfig, SelfCareItem, RecurringBill, P2PTransfer, AccountTransfer } from "@/types/dashboard";
 import { id } from "@/lib/utils";
 import { parseISO, format, addDays, differenceInDays } from "date-fns";
@@ -13,6 +13,7 @@ const CARD   = "#111111";
 const BORDER = "rgba(255,255,255,0.08)";
 const MUTED  = "rgba(255,255,255,0.4)";
 const RED    = "#DA667B";
+const AMBER  = "#E8A87C";
 const COLORS = ["#C8FF00","#DA667B","#71816D","#C9B79C","#8A9E87","#A8967E","#6B8CAE","#E8A87C"];
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -29,6 +30,8 @@ interface InsightsData {
 interface CheckSlot {
   checkDate: Date;
   focusItem: SelfCareItem | null;
+  pushedItem: SelfCareItem | null;   // item skipped because unaffordable
+  pushedTo: Date | null;              // when pushed item will next be affordable
   canAfford: boolean;
   savings: number;
   billsTotal: number;
@@ -79,6 +82,7 @@ function buildYearPlan(
     const billsTotal = due.reduce((s, b) => s + b.amount, 0);
     const free       = takeHome - savings - billsTotal;
 
+    // Score all items by urgency
     const scored = items.map(item => {
       const ld = lastDoneMap[item.id];
       const lastDate = ld ? parseISO(ld) : addDays(date, -(item.frequencyWeeks * 7 + 1));
@@ -87,10 +91,46 @@ function buildYearPlan(
       return { item, urgency };
     }).filter(s => s.urgency >= 0.8).sort((a, b) => b.urgency - a.urgency);
 
-    const winner = scored[0] ?? null;
-    if (winner) lastDoneMap[winner.item.id] = format(date, "yyyy-MM-dd");
+    let focusItem: SelfCareItem | null = null;
+    let pushedItem: SelfCareItem | null = null;
+    let pushedTo: Date | null = null;
 
-    slots.push({ checkDate: new Date(date), focusItem: winner?.item ?? null, canAfford: winner ? winner.item.cost <= free : false, savings, billsTotal, dueBills: due, free });
+    if (scored.length > 0) {
+      // Try to find most urgent affordable item
+      const affordable = scored.find(s => s.item.cost <= free);
+      if (affordable) {
+        focusItem = affordable.item;
+        // Update lastDone only when actually affordable and assigned
+        lastDoneMap[focusItem.id] = format(date, "yyyy-MM-dd");
+      } else {
+        // Most urgent item can't be afforded — mark as pushed
+        pushedItem = scored[0].item;
+        // Find the first future check where it will be affordable
+        let futureDate = addDays(date, 14);
+        for (let attempt = 0; attempt < 26; attempt++) {
+          const futureDue = dueBillsInPeriod(bills, futureDate);
+          const futureBills = futureDue.reduce((s, b) => s + b.amount, 0);
+          const futureFree = takeHome - Math.round(takeHome * savingsPct / 100) - futureBills;
+          if (pushedItem.cost <= futureFree) {
+            pushedTo = new Date(futureDate);
+            break;
+          }
+          futureDate = addDays(futureDate, 14);
+        }
+      }
+    }
+
+    slots.push({
+      checkDate: new Date(date),
+      focusItem,
+      pushedItem,
+      pushedTo,
+      canAfford: focusItem ? focusItem.cost <= free : false,
+      savings,
+      billsTotal,
+      dueBills: due,
+      free,
+    });
     date = addDays(date, 14);
   }
   return slots;
@@ -99,12 +139,26 @@ function buildYearPlan(
 function computeSavingsAlerts(slots: CheckSlot[]): SavingsAlert[] {
   const seen = new Set<string>();
   return slots.slice(1).reduce<SavingsAlert[]>((out, slot, idx) => {
-    if (!slot.focusItem || slot.canAfford || seen.has(slot.focusItem.id)) return out;
-    seen.add(slot.focusItem.id);
-    const shortfall = slot.focusItem.cost - slot.free;
+    if (!slot.pushedItem || seen.has(slot.pushedItem.id)) return out;
+    seen.add(slot.pushedItem.id);
+    const shortfall = slot.pushedItem.cost - slot.free;
     const checksUntil = idx + 1;
-    return [...out, { item: slot.focusItem, checkDate: slot.checkDate, shortfall, savePerCheck: Math.ceil(shortfall / checksUntil), checksUntil }];
+    return [...out, {
+      item: slot.pushedItem,
+      checkDate: slot.checkDate,
+      shortfall,
+      savePerCheck: Math.ceil(shortfall / checksUntil),
+      checksUntil,
+    }];
   }, []).slice(0, 3);
+}
+
+function yearSummary(yearPlan: CheckSlot[], takeHome: number) {
+  const totalChecks = yearPlan.length;
+  const totalIncome = totalChecks * takeHome;
+  const totalTreatments = yearPlan.reduce((s, slot) => s + (slot.focusItem?.cost ?? 0), 0);
+  const totalSavings = yearPlan.reduce((s, slot) => s + slot.savings, 0);
+  return { totalChecks, totalIncome, totalTreatments, totalSavings };
 }
 
 // ── Plaid Connect ─────────────────────────────────────────────────────────────
@@ -148,11 +202,7 @@ export function FinancesView({ data, update }: Props) {
     fetch("/api/plaid/insights").then(r => r.json()).then((d: InsightsData) => {
       setInsights(d);
       if (!d.hasData || !d.selfCare?.length) return;
-
-      // Show banner if no items configured yet
       if (!data.selfCareItems?.length) { setShowBanner(true); return; }
-
-      // Auto-sync lastDone from Plaid for any items missing it
       const missing = data.selfCareItems.filter(i => !i.lastDone);
       if (missing.length > 0) {
         const detectedMap = new Map(d.selfCare.map(c => [c.label.toLowerCase(), c]));
@@ -208,9 +258,11 @@ export function FinancesView({ data, update }: Props) {
     );
   }
 
+  const effectiveTakeHome = pc.projectedTakeHome ?? pc.takeHomePerCheck;
   const payday   = parseISO(pc.nextPayday);
-  const yearPlan = buildYearPlan(payday, pc.takeHomePerCheck, pc.savingsPercent, selfCare, bills);
+  const yearPlan = buildYearPlan(payday, effectiveTakeHome, pc.savingsPercent, selfCare, bills);
   const savingsAlerts = computeSavingsAlerts(yearPlan);
+  const summary = yearSummary(yearPlan, effectiveTakeHome);
 
   return (
     <div style={{ background: BG, minHeight: "100%", color: "#fff" }}>
@@ -219,8 +271,13 @@ export function FinancesView({ data, update }: Props) {
         <div className="flex items-start justify-between mb-6">
           <div>
             <p className="text-xs font-semibold mb-1" style={{ color: LIME, letterSpacing: "0.1em" }}>FINANCES</p>
-            <h1 className="text-3xl font-bold text-white">{fmt$(pc.takeHomePerCheck)}</h1>
-            <p className="text-sm mt-0.5" style={{ color: MUTED }}>biweekly · next payday {fmtDate(payday)}</p>
+            <h1 className="text-3xl font-bold text-white">{fmt$(effectiveTakeHome)}</h1>
+            <p className="text-sm mt-0.5" style={{ color: MUTED }}>
+              biweekly{pc.employer ? ` · ${pc.employer}` : ""} · next payday {fmtDate(payday)}
+            </p>
+            {pc.projectedTakeHome && (
+              <p className="text-xs mt-0.5" style={{ color: AMBER }}>Using projected amount</p>
+            )}
           </div>
           <div className="flex gap-2">
             <button
@@ -268,7 +325,12 @@ export function FinancesView({ data, update }: Props) {
       <div className="px-5 pb-16">
         {tab === "plan" && (
           <PlanTab
-            yearPlan={yearPlan} savingsAlerts={savingsAlerts} pc={pc} p2pTransfers={p2pTransfers}
+            yearPlan={yearPlan}
+            savingsAlerts={savingsAlerts}
+            summary={summary}
+            pc={pc}
+            effectiveTakeHome={effectiveTakeHome}
+            p2pTransfers={p2pTransfers}
             onMarkBillPaid={(billId) => update(d => ({
               ...d, recurringBills: (d.recurringBills ?? []).map(b =>
                 b.id === billId ? { ...b, lastPaidDate: format(new Date(), "yyyy-MM-dd") } : b),
@@ -281,6 +343,7 @@ export function FinancesView({ data, update }: Props) {
               }));
               showToast("Done! Check advanced.");
             }}
+            onUpdateSavings={(pct) => update(d => ({ ...d, paycheckConfig: { ...pc, savingsPercent: pct } }))}
             onAddP2P={(t) => update(d => ({ ...d, p2pTransfers: [t, ...(d.p2pTransfers ?? [])] }))}
             onRemoveP2P={(tid) => update(d => ({ ...d, p2pTransfers: (d.p2pTransfers ?? []).filter(t => t.id !== tid) }))}
           />
@@ -288,6 +351,7 @@ export function FinancesView({ data, update }: Props) {
         {tab === "schedule" && (
           <ScheduleTab
             selfCare={selfCare} bills={bills} pc={pc}
+            insights={insights}
             onUpdateCare={(items) => update(d => ({ ...d, selfCareItems: items }))}
             onUpdateBills={(b) => update(d => ({ ...d, recurringBills: b }))}
             onUpdatePc={(p) => update(d => ({ ...d, paycheckConfig: p }))}
@@ -337,8 +401,8 @@ function InsightsBanner({ detected, detectedBills, paycheckAmount, onAccept, onD
       color: d.color ?? COLORS[i % COLORS.length],
       lastDone: d.lastDate || undefined,
     }));
-    const bills = detectedBills.filter(b => bSel.has(b.name)).map(b => ({ id: id(), name: b.name, amount: b.amount, dayOfMonth: b.dayOfMonth }));
-    onAccept(items, bills);
+    const newBills = detectedBills.filter(b => bSel.has(b.name)).map(b => ({ id: id(), name: b.name, amount: b.amount, dayOfMonth: b.dayOfMonth }));
+    onAccept(items, newBills);
   };
 
   return (
@@ -409,18 +473,29 @@ function SetupFlow({ insights, insightsLoading, onDone }: {
   insightsLoading: boolean;
   onDone: (config: PaycheckConfig, items: SelfCareItem[], bills: RecurringBill[]) => void;
 }) {
-  const [takeHome, setTakeHome]     = useState("");
-  const [nextPayday, setNextPayday] = useState("");
-  const [savingsPct, setSavingsPct] = useState("10");
+  const [takeHome, setTakeHome]         = useState("");
+  const [nextPayday, setNextPayday]     = useState("");
+  const [savingsPct, setSavingsPct]     = useState("10");
+  const [employer, setEmployer]         = useState("");
+  const [projectedAmt, setProjectedAmt] = useState("");
 
   useEffect(() => {
-    if (insights?.paycheck) { setTakeHome(String(insights.paycheck.amount)); }
+    if (insights?.paycheck) {
+      setTakeHome(String(insights.paycheck.amount));
+      setProjectedAmt(String(insights.paycheck.amount));
+    }
     if (insights?.paycheck?.nextEstimatedDate) setNextPayday(insights.paycheck.nextEstimatedDate);
   }, [insights]);
 
   const handleStart = () => {
-    const config: PaycheckConfig = { takeHomePerCheck: parseFloat(takeHome) || 0, savingsPercent: parseFloat(savingsPct) || 10, nextPayday };
-    const items: SelfCareItem[]  = (insights?.selfCare ?? []).slice(0, 5).map((d, i) => ({
+    const config: PaycheckConfig = {
+      takeHomePerCheck: parseFloat(takeHome) || 0,
+      savingsPercent: parseFloat(savingsPct) || 10,
+      nextPayday,
+      employer: employer.trim() || undefined,
+      projectedTakeHome: projectedAmt && parseFloat(projectedAmt) !== parseFloat(takeHome) ? parseFloat(projectedAmt) : undefined,
+    };
+    const items: SelfCareItem[] = (insights?.selfCare ?? []).slice(0, 5).map((d, i) => ({
       id: id(), name: d.label, emoji: d.emoji, cost: d.avgCost,
       frequencyWeeks: Math.max(1, Math.round(d.avgFreqDays / 7)),
       color: d.color ?? COLORS[i % COLORS.length],
@@ -452,10 +527,25 @@ function SetupFlow({ insights, insightsLoading, onDone }: {
 
             <div className="space-y-4 mb-6">
               <div>
-                <label className="text-xs mb-1.5 block" style={{ color: MUTED }}>Take-home per check (after taxes)</label>
+                <label className="text-xs mb-1.5 block" style={{ color: MUTED }}>Where do you work? (optional)</label>
+                <input value={employer} onChange={e => setEmployer(e.target.value)} placeholder="e.g. HCA Healthcare"
+                  className="w-full rounded-2xl px-4 py-3.5 text-sm text-white outline-none"
+                  style={{ background: CARD, border: `1px solid ${BORDER}` }} />
+              </div>
+              <div>
+                <label className="text-xs mb-1.5 block" style={{ color: MUTED }}>Take-home per check (detected from Plaid)</label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-white">$</span>
                   <input type="number" value={takeHome} onChange={e => setTakeHome(e.target.value)} placeholder="e.g. 1800"
+                    className="w-full rounded-2xl pl-8 pr-4 py-3.5 text-sm text-white outline-none"
+                    style={{ background: CARD, border: `1px solid ${BORDER}` }} />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs mb-1.5 block" style={{ color: MUTED }}>Projected take-home per check (your expected amount)</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-white">$</span>
+                  <input type="number" value={projectedAmt} onChange={e => setProjectedAmt(e.target.value)} placeholder="Override if different"
                     className="w-full rounded-2xl pl-8 pr-4 py-3.5 text-sm text-white outline-none"
                     style={{ background: CARD, border: `1px solid ${BORDER}` }} />
                 </div>
@@ -506,15 +596,112 @@ function SetupFlow({ insights, insightsLoading, onDone }: {
   );
 }
 
+// ── AI Advisor Card ───────────────────────────────────────────────────────────
+function AIAdvisorCard({ pc, currentSlot, yearChecksRemaining, totalYearTreatmentCost }: {
+  pc: PaycheckConfig;
+  currentSlot: CheckSlot;
+  yearChecksRemaining: number;
+  totalYearTreatmentCost: number;
+}) {
+  const [advice, setAdvice]   = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const fetchedRef = useRef(false);
+
+  const fetchAdvice = useCallback(async () => {
+    setLoading(true);
+    try {
+      const ctx = {
+        employer: pc.employer,
+        checkDate: format(currentSlot.checkDate, "MMMM d, yyyy"),
+        takeHome: pc.takeHomePerCheck,
+        projectedTakeHome: pc.projectedTakeHome,
+        savings: currentSlot.savings,
+        bills: currentSlot.billsTotal,
+        focusItem: currentSlot.focusItem ? {
+          name: currentSlot.focusItem.name,
+          cost: currentSlot.focusItem.cost,
+          lastDone: currentSlot.focusItem.lastDone,
+          canAfford: currentSlot.canAfford,
+        } : undefined,
+        pushedItem: currentSlot.pushedItem && currentSlot.pushedTo ? {
+          name: currentSlot.pushedItem.name,
+          cost: currentSlot.pushedItem.cost,
+          nextDate: format(currentSlot.pushedTo, "MMM d"),
+        } : undefined,
+        freeAfterAll: currentSlot.focusItem
+          ? Math.max(0, currentSlot.free - currentSlot.focusItem.cost)
+          : currentSlot.free,
+        yearChecksRemaining,
+        totalYearTreatmentCost,
+        savingsPercent: pc.savingsPercent,
+      };
+      const res = await fetch("/api/ai/budget-advice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(ctx),
+      });
+      const j = await res.json();
+      setAdvice(j.advice || null);
+    } catch {
+      setAdvice(null);
+    } finally {
+      setLoading(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pc, currentSlot, yearChecksRemaining, totalYearTreatmentCost]);
+
+  useEffect(() => {
+    if (!fetchedRef.current) {
+      fetchedRef.current = true;
+      fetchAdvice();
+    }
+  }, [fetchAdvice]);
+
+  return (
+    <div className="rounded-2xl p-4" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-xs font-semibold" style={{ color: MUTED, letterSpacing: "0.08em" }}>SMART ADVISOR</p>
+        <button onClick={fetchAdvice} disabled={loading}
+          className="p-1.5 rounded-lg transition-all"
+          style={{ background: "rgba(255,255,255,0.06)", border: `1px solid ${BORDER}` }}>
+          <RotateCcw size={12} className={loading ? "animate-spin" : ""} style={{ color: MUTED }} />
+        </button>
+      </div>
+      {loading ? (
+        <div className="space-y-2">
+          <div className="h-3 rounded animate-pulse" style={{ background: "rgba(255,255,255,0.08)", width: "90%" }} />
+          <div className="h-3 rounded animate-pulse" style={{ background: "rgba(255,255,255,0.08)", width: "70%" }} />
+        </div>
+      ) : advice ? (
+        <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.85)" }}>{advice}</p>
+      ) : (
+        <p className="text-sm" style={{ color: MUTED }}>Tap refresh for personalized advice.</p>
+      )}
+      <div className="flex justify-end mt-3">
+        <p className="text-xs" style={{ color: "rgba(255,255,255,0.2)" }}>powered by Claude</p>
+      </div>
+    </div>
+  );
+}
+
 // ── Plan Tab ──────────────────────────────────────────────────────────────────
-function PlanTab({ yearPlan, savingsAlerts, pc, p2pTransfers, onMarkBillPaid, onMarkFocusDone, onAddP2P, onRemoveP2P }: {
-  yearPlan: CheckSlot[]; savingsAlerts: SavingsAlert[]; pc: PaycheckConfig; p2pTransfers: P2PTransfer[];
-  onMarkBillPaid: (id: string) => void; onMarkFocusDone: (itemId: string) => void;
-  onAddP2P: (t: P2PTransfer) => void; onRemoveP2P: (tid: string) => void;
+function PlanTab({ yearPlan, savingsAlerts, summary, pc, effectiveTakeHome, p2pTransfers, onMarkBillPaid, onMarkFocusDone, onUpdateSavings, onAddP2P, onRemoveP2P }: {
+  yearPlan: CheckSlot[];
+  savingsAlerts: SavingsAlert[];
+  summary: { totalChecks: number; totalIncome: number; totalTreatments: number; totalSavings: number };
+  pc: PaycheckConfig;
+  effectiveTakeHome: number;
+  p2pTransfers: P2PTransfer[];
+  onMarkBillPaid: (id: string) => void;
+  onMarkFocusDone: (itemId: string) => void;
+  onUpdateSavings: (pct: number) => void;
+  onAddP2P: (t: P2PTransfer) => void;
+  onRemoveP2P: (tid: string) => void;
 }) {
   const [expanded, setExpanded]       = useState<number | null>(null);
   const [showAllYear, setShowAllYear] = useState(false);
   const [showP2P, setShowP2P]         = useState(false);
+  const [showMidYear, setShowMidYear] = useState(true);
   const [p2pPerson, setP2pPerson]     = useState("");
   const [p2pAmount, setP2pAmount]     = useState("");
   const [p2pDir, setP2pDir]           = useState<"sent"|"received">("sent");
@@ -523,16 +710,21 @@ function PlanTab({ yearPlan, savingsAlerts, pc, p2pTransfers, onMarkBillPaid, on
 
   const current   = yearPlan[0];
   const focus     = current.focusItem;
+  const pushed    = current.pushedItem;
   const paydayStr = format(parseISO(pc.nextPayday), "yyyy-MM-dd");
   const isPaid    = (b: RecurringBill) => !!(b.lastPaidDate && b.lastPaidDate >= paydayStr);
+  const currentMonth = new Date().getMonth(); // 0-based, June = 5
+  const showMidYearCtx = currentMonth >= 5 || true; // show when June or later
 
-  // Group remaining checks by month for the year view
-  const upcomingSlots = yearPlan.slice(1);
+  // Priority list = all slots with focusItem or pushedItem
+  const prioritySlots = yearPlan.slice(1).filter(s => s.focusItem || s.pushedItem);
+
+  // Group by month
   const byMonth: { month: string; slots: { slot: CheckSlot; idx: number }[] }[] = [];
-  for (let i = 0; i < upcomingSlots.length; i++) {
-    const slot  = upcomingSlots[i];
+  for (let i = 0; i < prioritySlots.length; i++) {
+    const slot = prioritySlots[i];
     const month = format(slot.checkDate, "MMMM yyyy");
-    const last  = byMonth[byMonth.length - 1];
+    const last = byMonth[byMonth.length - 1];
     if (last?.month === month) last.slots.push({ slot, idx: i });
     else byMonth.push({ month, slots: [{ slot, idx: i }] });
   }
@@ -546,13 +738,36 @@ function PlanTab({ yearPlan, savingsAlerts, pc, p2pTransfers, onMarkBillPaid, on
 
   return (
     <div className="space-y-5">
-      {/* Hero card */}
+      {/* Mid-year context card */}
+      {showMidYearCtx && showMidYear && (
+        <div className="rounded-2xl px-4 py-3" style={{ background: "rgba(232,168,124,0.08)", border: `1px solid rgba(232,168,124,0.2)` }}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold" style={{ color: AMBER, letterSpacing: "0.08em" }}>
+                STARTING MID-YEAR · {new Date().getFullYear()}
+              </p>
+              <p className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.6)" }}>
+                {summary.totalChecks} checks left · {fmt$(summary.totalIncome)} projected income · {fmt$(summary.totalTreatments)} in treatments planned
+              </p>
+            </div>
+            <button onClick={() => setShowMidYear(false)} className="text-xs px-2 py-1 rounded-lg ml-3 flex-shrink-0"
+              style={{ background: "rgba(255,255,255,0.07)", color: MUTED }}>
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* THIS CHECK hero card */}
       <div className="rounded-3xl p-6" style={{
-        background: focus ? "rgba(200,255,0,0.04)" : CARD,
-        border: `1px solid ${focus ? "rgba(200,255,0,0.2)" : BORDER}`,
+        background: focus
+          ? (current.canAfford ? "rgba(200,255,0,0.04)" : "rgba(218,102,123,0.04)")
+          : CARD,
+        border: `1px solid ${focus ? (current.canAfford ? "rgba(200,255,0,0.2)" : "rgba(218,102,123,0.2)") : BORDER}`,
       }}>
         <p className="text-xs font-semibold mb-4" style={{ color: MUTED, letterSpacing: "0.1em" }}>
           THIS CHECK · {fmtDate(current.checkDate).toUpperCase()}
+          {pc.employer ? ` · ${pc.employer.toUpperCase()}` : ""}
         </p>
 
         {focus ? (
@@ -573,9 +788,9 @@ function PlanTab({ yearPlan, savingsAlerts, pc, p2pTransfers, onMarkBillPaid, on
             </div>
             <div className="space-y-2 pt-4" style={{ borderTop: `1px solid ${BORDER}` }}>
               {[
-                { label: "Savings", amount: current.savings,    color: "#6B8CAE" },
-                { label: "Bills",   amount: current.billsTotal,  color: "#E8A87C" },
-                { label: focus.name, amount: focus.cost,         color: LIME },
+                { label: "Savings",    amount: current.savings,    color: "#6B8CAE" },
+                { label: "Bills",      amount: current.billsTotal,  color: AMBER },
+                { label: focus.name,   amount: focus.cost,          color: current.canAfford ? LIME : RED },
               ].filter(r => r.amount > 0).map(r => (
                 <div key={r.label} className="flex items-center justify-between text-sm">
                   <span style={{ color: MUTED }}>{r.label}</span>
@@ -597,42 +812,49 @@ function PlanTab({ yearPlan, savingsAlerts, pc, p2pTransfers, onMarkBillPaid, on
             {current.savings > 0 && (
               <p className="text-xs mt-3" style={{ color: MUTED }}>Transfer {fmt$(current.savings)} to savings first.</p>
             )}
-            <p className="text-xs mt-2" style={{ color: MUTED }}>Add self-care items in Schedule to see your rotation.</p>
+            {!focus && <p className="text-xs mt-2" style={{ color: MUTED }}>Add self-care items in Schedule to see your rotation.</p>}
           </div>
         )}
       </div>
 
-      {/* Savings alerts */}
-      {savingsAlerts.length > 0 && (
-        <div className="space-y-2">
-          {savingsAlerts.map(a => (
-            <div key={a.item.id} className="rounded-2xl px-4 py-3 flex items-center justify-between"
-              style={{ background: "rgba(232,168,124,0.08)", border: `1px solid rgba(232,168,124,0.25)` }}>
-              <div>
-                <p className="text-sm font-semibold text-white">
-                  {a.item.emoji} {a.item.name} — {fmtDate(a.checkDate)}
-                </p>
-                <p className="text-xs mt-0.5" style={{ color: "#E8A87C" }}>
-                  {fmt$(a.shortfall)} short · set aside {fmt$(a.savePerCheck)}/check for {a.checksUntil} check{a.checksUntil !== 1 ? "s" : ""}
-                </p>
-              </div>
-              <p className="text-lg font-bold" style={{ color: "#E8A87C" }}>{fmt$(a.savePerCheck)}</p>
-            </div>
-          ))}
+      {/* Pushed item card */}
+      {pushed && (
+        <div className="rounded-2xl px-4 py-3 flex items-center gap-3"
+          style={{ background: "rgba(232,168,124,0.07)", border: `1px solid rgba(232,168,124,0.2)` }}>
+          <span className="text-xl flex-shrink-0">{pushed.emoji}</span>
+          <div>
+            <p className="text-sm font-semibold text-white">{pushed.name} is pushed</p>
+            <p className="text-xs" style={{ color: AMBER }}>
+              {fmt$(pushed.cost)} — affordable on {current.pushedTo ? fmtDate(current.pushedTo) : "a future check"}
+            </p>
+          </div>
         </div>
       )}
 
-      {/* Year plan — rest of the year */}
-      {upcomingSlots.length > 0 && (
+      {/* AI Advisor */}
+      <AIAdvisorCard
+        pc={pc}
+        currentSlot={current}
+        yearChecksRemaining={yearPlan.length}
+        totalYearTreatmentCost={yearPlan.reduce((s, slot) => s + (slot.focusItem?.cost ?? 0), 0)}
+      />
+
+      {/* Priority List — REST OF YEAR */}
+      {prioritySlots.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-semibold" style={{ color: MUTED, letterSpacing: "0.08em" }}>
-              REST OF {new Date().getFullYear()} — {upcomingSlots.length} CHECKS
-            </p>
+            <div>
+              <p className="text-xs font-semibold" style={{ color: MUTED, letterSpacing: "0.08em" }}>
+                PRIORITY LIST — REST OF {new Date().getFullYear()}
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.3)" }}>
+                {yearPlan.length - 1} CHECKS LEFT · {fmt$(summary.totalIncome - effectiveTakeHome)} INCOME · {fmt$(summary.totalTreatments)} PLANNED
+              </p>
+            </div>
             {byMonth.length > 3 && (
               <button onClick={() => setShowAllYear(!showAllYear)}
-                className="text-xs flex items-center gap-1" style={{ color: MUTED }}>
-                {showAllYear ? "Show less" : `Show all`}
+                className="text-xs flex items-center gap-1 flex-shrink-0" style={{ color: MUTED }}>
+                {showAllYear ? "Show less" : "Show all"}
                 {showAllYear ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
               </button>
             )}
@@ -647,29 +869,33 @@ function PlanTab({ yearPlan, savingsAlerts, pc, p2pTransfers, onMarkBillPaid, on
                 <div className="rounded-2xl overflow-hidden" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
                   {monthSlots.map(({ slot, idx }, si) => {
                     const open = expanded === idx;
+                    const item = slot.focusItem ?? slot.pushedItem;
+                    const isAffordable = slot.focusItem ? slot.canAfford : false;
+                    const isPushed = !slot.focusItem && !!slot.pushedItem;
+                    const pillColor = isAffordable ? LIME : isPushed ? AMBER : RED;
+                    const pillBg   = isAffordable ? "rgba(200,255,0,0.1)" : isPushed ? "rgba(232,168,124,0.1)" : "rgba(218,102,123,0.1)";
+
                     return (
                       <div key={idx} style={{ borderBottom: si < monthSlots.length - 1 ? `1px solid ${BORDER}` : undefined }}>
                         <button className="w-full flex items-center justify-between px-4 py-3"
                           onClick={() => setExpanded(open ? null : idx)}>
                           <div className="flex items-center gap-3">
                             <div className="w-8 text-center">
-                              <p className="text-base leading-none">{slot.focusItem ? slot.focusItem.emoji : "·"}</p>
+                              <p className="text-base leading-none">{item?.emoji ?? "·"}</p>
                             </div>
                             <div className="text-left">
                               <p className="text-sm font-medium text-white">
-                                {slot.focusItem ? slot.focusItem.name : "Free check"}
+                                {item?.name ?? "Free check"}
+                                {isPushed && <span className="ml-1.5 text-xs" style={{ color: AMBER }}>pushed</span>}
                               </p>
                               <p className="text-xs" style={{ color: MUTED }}>{format(slot.checkDate, "EEE, MMM d")}</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-2.5">
-                            {slot.focusItem ? (
+                            {item ? (
                               <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                                style={{
-                                  background: slot.canAfford ? "rgba(200,255,0,0.1)" : "rgba(218,102,123,0.1)",
-                                  color: slot.canAfford ? LIME : RED,
-                                }}>
-                                {fmt$(slot.focusItem.cost)}
+                                style={{ background: pillBg, color: pillColor }}>
+                                {fmt$(item.cost)}
                               </span>
                             ) : (
                               <span className="text-xs" style={{ color: MUTED }}>{fmt$(slot.free)} free</span>
@@ -680,10 +906,11 @@ function PlanTab({ yearPlan, savingsAlerts, pc, p2pTransfers, onMarkBillPaid, on
                         {open && (
                           <div className="px-4 pb-3 pt-2 space-y-1.5" style={{ borderTop: `1px solid ${BORDER}` }}>
                             {[
-                              { label: "Take-home", amount: pc.takeHomePerCheck, color: "#fff" },
-                              { label: "Savings",   amount: slot.savings,         color: "#6B8CAE" },
-                              { label: "Bills",     amount: slot.billsTotal,      color: "#E8A87C" },
+                              { label: "Take-home", amount: effectiveTakeHome,  color: "#fff" },
+                              { label: "Savings",   amount: slot.savings,       color: "#6B8CAE" },
+                              { label: "Bills",     amount: slot.billsTotal,    color: AMBER },
                               ...(slot.focusItem ? [{ label: slot.focusItem.name, amount: slot.focusItem.cost, color: LIME }] : []),
+                              ...(slot.pushedItem ? [{ label: `${slot.pushedItem.name} (pushed)`, amount: slot.pushedItem.cost, color: AMBER }] : []),
                               { label: "Yours after", amount: slot.focusItem ? slot.free - slot.focusItem.cost : slot.free, color: "#fff" },
                             ].map(r => (
                               <div key={r.label} className="flex justify-between text-xs">
@@ -694,9 +921,9 @@ function PlanTab({ yearPlan, savingsAlerts, pc, p2pTransfers, onMarkBillPaid, on
                             {slot.dueBills.length > 0 && (
                               <p className="text-xs pt-1" style={{ color: MUTED }}>Bills: {slot.dueBills.map(b => b.name).join(", ")}</p>
                             )}
-                            {!slot.canAfford && slot.focusItem && (
-                              <p className="text-xs pt-1" style={{ color: "#E8A87C" }}>
-                                {fmt$(slot.focusItem.cost - slot.free)} short — start saving ahead
+                            {isPushed && slot.pushedTo && (
+                              <p className="text-xs pt-1" style={{ color: AMBER }}>
+                                Pushed → affordable on {fmtDate(slot.pushedTo)}
                               </p>
                             )}
                           </div>
@@ -708,6 +935,50 @@ function PlanTab({ yearPlan, savingsAlerts, pc, p2pTransfers, onMarkBillPaid, on
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Quick savings adjustment */}
+      <div className="rounded-2xl px-4 py-3" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+        <p className="text-xs font-semibold mb-2" style={{ color: MUTED, letterSpacing: "0.08em" }}>SAVINGS RATE</p>
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-white">
+            Saving <span style={{ color: LIME }}>{pc.savingsPercent}%</span> · {fmt$(Math.round(effectiveTakeHome * pc.savingsPercent / 100))}/check
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => onUpdateSavings(Math.max(0, pc.savingsPercent - 5))}
+              className="text-xs px-3 py-1.5 rounded-lg font-semibold"
+              style={{ background: "rgba(255,255,255,0.07)", color: MUTED, border: `1px solid ${BORDER}` }}>
+              -5%
+            </button>
+            <button
+              onClick={() => onUpdateSavings(Math.min(50, pc.savingsPercent + 5))}
+              className="text-xs px-3 py-1.5 rounded-lg font-semibold"
+              style={{ background: "rgba(200,255,0,0.1)", color: LIME, border: `1px solid rgba(200,255,0,0.2)` }}>
+              +5%
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Savings alerts */}
+      {savingsAlerts.length > 0 && (
+        <div className="space-y-2">
+          {savingsAlerts.map(a => (
+            <div key={a.item.id} className="rounded-2xl px-4 py-3 flex items-center justify-between"
+              style={{ background: "rgba(232,168,124,0.08)", border: `1px solid rgba(232,168,124,0.25)` }}>
+              <div>
+                <p className="text-sm font-semibold text-white">
+                  {a.item.emoji} {a.item.name} — {fmtDate(a.checkDate)}
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: AMBER }}>
+                  {fmt$(a.shortfall)} short · set aside {fmt$(a.savePerCheck)}/check for {a.checksUntil} check{a.checksUntil !== 1 ? "s" : ""}
+                </p>
+              </div>
+              <p className="text-lg font-bold" style={{ color: AMBER }}>{fmt$(a.savePerCheck)}</p>
+            </div>
+          ))}
         </div>
       )}
 
@@ -810,8 +1081,9 @@ function PlanTab({ yearPlan, savingsAlerts, pc, p2pTransfers, onMarkBillPaid, on
 }
 
 // ── Schedule Tab ──────────────────────────────────────────────────────────────
-function ScheduleTab({ selfCare, bills, pc, onUpdateCare, onUpdateBills, onUpdatePc, showToast }: {
+function ScheduleTab({ selfCare, bills, pc, insights, onUpdateCare, onUpdateBills, onUpdatePc, showToast }: {
   selfCare: SelfCareItem[]; bills: RecurringBill[]; pc: PaycheckConfig;
+  insights: InsightsData | null;
   onUpdateCare: (i: SelfCareItem[]) => void; onUpdateBills: (b: RecurringBill[]) => void;
   onUpdatePc: (p: PaycheckConfig) => void; showToast: (m: string) => void;
 }) {
@@ -829,6 +1101,10 @@ function ScheduleTab({ selfCare, bills, pc, onUpdateCare, onUpdateBills, onUpdat
   const [payInput, setPayInput]         = useState(String(pc.takeHomePerCheck));
   const [editSavings, setEditSavings]   = useState(false);
   const [savingsPct, setSavingsPct]     = useState(String(pc.savingsPercent));
+  const [editEmployer, setEditEmployer] = useState(false);
+  const [employerInput, setEmployerInput] = useState(pc.employer ?? "");
+  const [editProjected, setEditProjected] = useState(false);
+  const [projectedInput, setProjectedInput] = useState(String(pc.projectedTakeHome ?? pc.takeHomePerCheck));
 
   const markDone = (item: SelfCareItem) => {
     onUpdateCare(selfCare.map(i => i.id === item.id ? { ...i, lastDone: format(new Date(), "yyyy-MM-dd") } : i));
@@ -850,16 +1126,52 @@ function ScheduleTab({ selfCare, bills, pc, onUpdateCare, onUpdateBills, onUpdat
   };
 
   const monthlyBills = bills.reduce((s, b) => s + b.amount, 0);
+  const detectedAmount = insights?.paycheck?.amount;
 
   return (
     <div className="space-y-6">
-      {/* Paycheck settings */}
+      {/* Income section */}
       <div>
-        <p className="text-xs font-semibold mb-3" style={{ color: MUTED, letterSpacing: "0.08em" }}>PAYCHECK SETTINGS</p>
+        <p className="text-xs font-semibold mb-3" style={{ color: MUTED, letterSpacing: "0.08em" }}>YOUR INCOME</p>
         <div className="rounded-2xl overflow-hidden" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+          {/* Employer */}
           <div className="px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}` }}>
             <div className="flex items-center justify-between gap-2">
-              <p className="text-sm text-white flex-shrink-0">Take-home</p>
+              <p className="text-sm text-white flex-shrink-0">Employer</p>
+              {editEmployer ? (
+                <div className="flex items-center gap-2 flex-1 justify-end">
+                  <input value={employerInput} onChange={e => setEmployerInput(e.target.value)}
+                    placeholder="e.g. HCA Healthcare"
+                    className="rounded-lg px-3 py-1.5 text-sm text-white outline-none w-40"
+                    style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }} />
+                  <button onClick={() => {
+                    onUpdatePc({ ...pc, employer: employerInput.trim() || undefined });
+                    setEditEmployer(false); showToast("Updated!");
+                  }} className="text-xs px-3 py-1.5 rounded-lg font-semibold" style={{ background: LIME, color: "#000" }}>Save</button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-bold text-white">{pc.employer || <span style={{ color: MUTED }}>Not set</span>}</p>
+                  <button onClick={() => setEditEmployer(true)} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(255,255,255,0.07)", color: MUTED }}>Edit</button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Detected amount */}
+          {detectedAmount && (
+            <div className="px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}` }}>
+              <div className="flex items-center justify-between">
+                <p className="text-sm" style={{ color: MUTED }}>Detected (Plaid)</p>
+                <p className="text-sm font-semibold text-white">{fmt$(detectedAmount)}</p>
+              </div>
+            </div>
+          )}
+
+          {/* This check (detected) */}
+          <div className="px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}` }}>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm text-white flex-shrink-0">This check</p>
               {editPay ? (
                 <div className="flex items-center gap-2">
                   <div className="relative">
@@ -873,12 +1185,60 @@ function ScheduleTab({ selfCare, bills, pc, onUpdateCare, onUpdateBills, onUpdat
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-bold text-white">{fmt$(pc.takeHomePerCheck)}</p>
+                  <p className="text-sm font-bold text-white">
+                    {fmt$(pc.takeHomePerCheck)}
+                    {detectedAmount && <span className="ml-1 text-xs font-normal" style={{ color: MUTED }}>(detected)</span>}
+                  </p>
                   <button onClick={() => setEditPay(true)} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(255,255,255,0.07)", color: MUTED }}>Edit</button>
                 </div>
               )}
             </div>
           </div>
+
+          {/* Projected take-home */}
+          <div className="px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}` }}>
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <p className="text-sm text-white flex-shrink-0">Projected</p>
+                {pc.projectedTakeHome && (
+                  <p className="text-xs" style={{ color: AMBER }}>Used for calculations</p>
+                )}
+              </div>
+              {editProjected ? (
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-white">$</span>
+                    <input type="number" value={projectedInput} onChange={e => setProjectedInput(e.target.value)}
+                      placeholder="Expected amount"
+                      className="w-28 rounded-lg pl-7 pr-3 py-1.5 text-sm text-white outline-none"
+                      style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }} />
+                  </div>
+                  <button onClick={() => {
+                    const val = parseFloat(projectedInput);
+                    onUpdatePc({ ...pc, projectedTakeHome: val && val !== pc.takeHomePerCheck ? val : undefined });
+                    setEditProjected(false); showToast("Updated!");
+                  }} className="text-xs px-3 py-1.5 rounded-lg font-semibold" style={{ background: LIME, color: "#000" }}>Save</button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-bold text-white">
+                    {pc.projectedTakeHome ? fmt$(pc.projectedTakeHome) : <span style={{ color: MUTED }}>Not set</span>}
+                  </p>
+                  <button onClick={() => setEditProjected(true)} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(255,255,255,0.07)", color: MUTED }}>
+                    {pc.projectedTakeHome ? "Edit" : "Set"}
+                  </button>
+                  {pc.projectedTakeHome && (
+                    <button onClick={() => { onUpdatePc({ ...pc, projectedTakeHome: undefined }); showToast("Cleared."); }}
+                      className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(218,102,123,0.1)", color: RED }}>
+                      Clear
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Savings */}
           <div className="px-4 py-3">
             <div className="flex items-center justify-between gap-2">
               <p className="text-sm text-white flex-shrink-0">Savings</p>
@@ -1075,12 +1435,13 @@ function ScheduleTab({ selfCare, bills, pc, onUpdateCare, onUpdateBills, onUpdat
 // ── Rent Affordability ────────────────────────────────────────────────────────
 function RentAfford({ pc }: { pc: PaycheckConfig }) {
   const [targetRent, setTargetRent] = useState("");
-  const monthlyIncome = (pc.takeHomePerCheck * 26) / 12;
+  const effectiveTakeHome = pc.projectedTakeHome ?? pc.takeHomePerCheck;
+  const monthlyIncome = (effectiveTakeHome * 26) / 12;
   const rentPct = targetRent ? (parseFloat(targetRent) / monthlyIncome) * 100 : 0;
   const verdict = rentPct === 0 ? null
     : rentPct <= 25 ? { text: "Comfortable", color: LIME }
     : rentPct <= 30 ? { text: "Manageable", color: "#8A9E87" }
-    : rentPct <= 35 ? { text: "Stretching it", color: "#E8A87C" }
+    : rentPct <= 35 ? { text: "Stretching it", color: AMBER }
     :                 { text: "Too much", color: RED };
 
   return (
