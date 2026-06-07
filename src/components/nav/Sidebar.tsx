@@ -42,11 +42,9 @@ export function Sidebar({ saving = false }: SidebarProps) {
     <aside
       className={`flex flex-col h-screen sticky top-0 transition-all duration-300 ${collapsed ? "w-16" : "w-56"}`}
       style={{
-        background: "rgba(255,255,255,0.75)",
-        backdropFilter: "blur(20px)",
-        WebkitBackdropFilter: "blur(20px)",
-        borderRight: "1.5px solid rgba(255,255,255,0.6)",
-        boxShadow: "4px 0 32px rgba(124,92,252,0.10)",
+        background: "var(--surface)",
+        borderRight: "1.5px solid var(--border)",
+        boxShadow: "4px 0 24px rgba(124,92,252,0.08)",
       }}
     >
       {/* Logo */}

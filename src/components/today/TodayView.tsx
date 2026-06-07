@@ -110,7 +110,7 @@ export function TodayView({ data, update }: Props) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {/* Anxiety check-in */}
-        <Card bubble="lavender" title="How are you feeling?" subtitle="Your anxiety check-in for today">
+        <Card title="How are you feeling?" subtitle="Your anxiety check-in for today">
           {todayCheckIn ? (
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm text-sage">
@@ -137,7 +137,7 @@ export function TodayView({ data, update }: Props) {
         </Card>
 
         {/* Yesterday's win reminder */}
-        <Card bubble="lemon" title="Yesterday's Win" subtitle="A reminder of something good">
+        <Card title="Yesterday's Win" subtitle="A reminder of something good">
           {yesterdayWin ? (
             <p className="text-brown italic text-sm leading-relaxed">&ldquo;{yesterdayWin.text}&rdquo;</p>
           ) : (
@@ -159,7 +159,7 @@ export function TodayView({ data, update }: Props) {
       </div>
 
       {/* Tasks */}
-      <Card bubble="sky" title="Today's Tasks" action={
+      <Card title="Today's Tasks" action={
         <div className="flex gap-2">
           <input
             type="text"
@@ -209,7 +209,7 @@ export function TodayView({ data, update }: Props) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {/* Today's Habits */}
-        <Card bubble="mint" title="Today's Habits">
+        <Card title="Today's Habits">
           <div className="space-y-2">
             {todayHabits.map((habit) => {
               const log = data.habitLogs.find((l) => l.habitId === habit.id && l.date === t);
@@ -239,7 +239,6 @@ export function TodayView({ data, update }: Props) {
 
         {/* Exposure prompt */}
         <Card
-          bubble="peach"
           title="Today's Brave Thing"
           subtitle="Exposure therapy — one step at a time"
         >
