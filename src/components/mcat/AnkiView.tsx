@@ -8,6 +8,7 @@ import {
 import { Flashcard, FlashcardReviewLog, DashboardData } from "@/types/dashboard";
 import { id } from "@/lib/utils";
 import { format, addDays, parseISO } from "date-fns";
+import { parseApkgInBrowser } from "@/lib/ankiParser";
 
 // ── Miles Down / Anki SM-2 Algorithm ────────────────────────────────────────
 // Matches MilesDown MCAT deck settings exactly:
@@ -305,27 +306,37 @@ export function AnkiView({ data, update }: Props) {
     setImportResult(null);
     setImportError(null);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      let res: Response;
-      try {
-        res = await fetch("/api/mcat/import-anki", { method: "POST", body: formData });
-      } catch (netErr) {
-        setImportError(`Network error — ${netErr instanceof Error ? netErr.message : String(netErr)}`);
-        return;
+      let incoming: Flashcard[] = [];
+
+      if (file.name.toLowerCase().endsWith(".apkg")) {
+        // Parse entirely in the browser — avoids uploading hundreds of MB
+        incoming = await parseApkgInBrowser(file, msg => setImportError(msg));
+        setImportError(null);
+      } else {
+        // txt / tsv / csv — small files, send to server
+        const formData = new FormData();
+        formData.append("file", file);
+        let res: Response;
+        try {
+          res = await fetch("/api/mcat/import-anki", { method: "POST", body: formData });
+        } catch (netErr) {
+          setImportError(`Network error — ${netErr instanceof Error ? netErr.message : String(netErr)}`);
+          return;
+        }
+        let data2: { cards?: Flashcard[]; error?: string; detail?: string };
+        try {
+          data2 = await res.json();
+        } catch {
+          setImportError(`Server error (HTTP ${res.status}) — open browser console for details`);
+          return;
+        }
+        if (!res.ok || data2.error) {
+          setImportError(data2.detail || data2.error || `Import failed (HTTP ${res.status})`);
+          return;
+        }
+        incoming = data2.cards ?? [];
       }
-      let data2: { cards?: Flashcard[]; error?: string; detail?: string };
-      try {
-        data2 = await res.json();
-      } catch {
-        setImportError(`Server error (HTTP ${res.status}) — open browser console for details`);
-        return;
-      }
-      if (!res.ok || data2.error) {
-        setImportError(data2.detail || data2.error || `Import failed (HTTP ${res.status})`);
-        return;
-      }
-      const incoming: Flashcard[] = data2.cards ?? [];
+
       let dupes = 0;
       update(d => {
         const existing = new Set((d.flashcards ?? []).map(c => `${c.front}||${c.back}`));
