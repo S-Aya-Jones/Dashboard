@@ -7,6 +7,8 @@ import { ScheduleView } from "@/components/schedule/ScheduleView";
 import { ShadowingView } from "@/components/shadowing/ShadowingView";
 import { QBankView } from "@/components/mcat/QBankView";
 import { AnkiView } from "@/components/mcat/AnkiView";
+import { StudyTimerView } from "@/components/mcat/StudyTimerView";
+import { DiagnosticView } from "@/components/mcat/DiagnosticView";
 
 const TABS = [
   { id: "mcat",       label: "MCAT Prep" },
@@ -14,6 +16,8 @@ const TABS = [
   { id: "shadowing",  label: "Shadowing" },
   { id: "qbank",      label: "Q Bank" },
   { id: "flashcards", label: "Flashcards" },
+  { id: "timer",      label: "Study Timer" },
+  { id: "diagnostic", label: "Diagnostic" },
 ] as const;
 
 type TabId = typeof TABS[number]["id"];
@@ -45,11 +49,13 @@ export default function Page() {
             ))}
           </div>
 
-          {tab === "mcat"      && <MCATView      data={data} update={update} />}
-          {tab === "schedule"  && <ScheduleView  data={data} update={update} />}
-          {tab === "shadowing" && <ShadowingView data={data} update={update} />}
-          {tab === "qbank"      && <QBankView     data={data} update={update} />}
-          {tab === "flashcards" && <AnkiView      data={data} update={update} />}
+          {tab === "mcat"       && <MCATView       data={data} update={update} />}
+          {tab === "schedule"   && <ScheduleView   data={data} update={update} />}
+          {tab === "shadowing"  && <ShadowingView  data={data} update={update} />}
+          {tab === "qbank"      && <QBankView      data={data} update={update} />}
+          {tab === "flashcards" && <AnkiView       data={data} update={update} />}
+          {tab === "timer"      && <StudyTimerView data={data} update={update} />}
+          {tab === "diagnostic" && <DiagnosticView data={data} update={update} />}
         </div>
       )}
     </DashboardShell>
