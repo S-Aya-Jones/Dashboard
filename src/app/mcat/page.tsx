@@ -6,12 +6,14 @@ import { MCATView } from "@/components/mcat/MCATView";
 import { ScheduleView } from "@/components/schedule/ScheduleView";
 import { ShadowingView } from "@/components/shadowing/ShadowingView";
 import { QBankView } from "@/components/mcat/QBankView";
+import { AnkiView } from "@/components/mcat/AnkiView";
 
 const TABS = [
-  { id: "mcat",      label: "MCAT Prep" },
-  { id: "schedule",  label: "School & Schedule" },
-  { id: "shadowing", label: "Shadowing" },
-  { id: "qbank",     label: "Q Bank" },
+  { id: "mcat",       label: "MCAT Prep" },
+  { id: "schedule",   label: "School & Schedule" },
+  { id: "shadowing",  label: "Shadowing" },
+  { id: "qbank",      label: "Q Bank" },
+  { id: "flashcards", label: "Flashcards" },
 ] as const;
 
 type TabId = typeof TABS[number]["id"];
@@ -46,7 +48,8 @@ export default function Page() {
           {tab === "mcat"      && <MCATView      data={data} update={update} />}
           {tab === "schedule"  && <ScheduleView  data={data} update={update} />}
           {tab === "shadowing" && <ShadowingView data={data} update={update} />}
-          {tab === "qbank"     && <QBankView     data={data} update={update} />}
+          {tab === "qbank"      && <QBankView     data={data} update={update} />}
+          {tab === "flashcards" && <AnkiView      data={data} update={update} />}
         </div>
       )}
     </DashboardShell>
