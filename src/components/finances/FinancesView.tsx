@@ -35,6 +35,13 @@ interface CheckSlot {
   dueBills: RecurringBill[];
   free: number;
 }
+interface SavingsAlert {
+  item: SelfCareItem;
+  checkDate: Date;
+  shortfall: number;
+  savePerCheck: number;
+  checksUntil: number;
+}
 interface PlaidAccount {
   accountId: string; name: string; mask?: string | null; type: string; subtype?: string | null;
   balances: { current?: number | null; available?: number | null; limit?: number | null };
@@ -55,33 +62,49 @@ function dueBillsInPeriod(bills: RecurringBill[], payday: Date): RecurringBill[]
   });
 }
 
-function buildRotation(
+function buildYearPlan(
   payday: Date, takeHome: number, savingsPct: number,
-  items: SelfCareItem[], bills: RecurringBill[], numChecks = 8
+  items: SelfCareItem[], bills: RecurringBill[]
 ): CheckSlot[] {
+  const endOfYear = new Date(new Date().getFullYear(), 11, 31);
   const lastDoneMap: Record<string, string | undefined> = {};
   for (const item of items) lastDoneMap[item.id] = item.lastDone;
 
-  return Array.from({ length: numChecks }, (_, i) => {
-    const checkDate = addDays(payday, i * 14);
-    const savings   = Math.round(takeHome * savingsPct / 100);
-    const due       = dueBillsInPeriod(bills, checkDate);
+  const slots: CheckSlot[] = [];
+  let date = new Date(payday);
+
+  while (date <= endOfYear) {
+    const savings    = Math.round(takeHome * savingsPct / 100);
+    const due        = dueBillsInPeriod(bills, date);
     const billsTotal = due.reduce((s, b) => s + b.amount, 0);
-    const free      = takeHome - savings - billsTotal;
+    const free       = takeHome - savings - billsTotal;
 
     const scored = items.map(item => {
       const ld = lastDoneMap[item.id];
-      const lastDate = ld ? parseISO(ld) : addDays(checkDate, -(item.frequencyWeeks * 7 + 1));
-      const daysSince = differenceInDays(checkDate, lastDate);
+      const lastDate = ld ? parseISO(ld) : addDays(date, -(item.frequencyWeeks * 7 + 1));
+      const daysSince = differenceInDays(date, lastDate);
       const urgency = daysSince / (item.frequencyWeeks * 7);
       return { item, urgency };
     }).filter(s => s.urgency >= 0.8).sort((a, b) => b.urgency - a.urgency);
 
     const winner = scored[0] ?? null;
-    if (winner) lastDoneMap[winner.item.id] = format(checkDate, "yyyy-MM-dd");
+    if (winner) lastDoneMap[winner.item.id] = format(date, "yyyy-MM-dd");
 
-    return { checkDate, focusItem: winner?.item ?? null, canAfford: winner ? winner.item.cost <= free : false, savings, billsTotal, dueBills: due, free };
-  });
+    slots.push({ checkDate: new Date(date), focusItem: winner?.item ?? null, canAfford: winner ? winner.item.cost <= free : false, savings, billsTotal, dueBills: due, free });
+    date = addDays(date, 14);
+  }
+  return slots;
+}
+
+function computeSavingsAlerts(slots: CheckSlot[]): SavingsAlert[] {
+  const seen = new Set<string>();
+  return slots.slice(1).reduce<SavingsAlert[]>((out, slot, idx) => {
+    if (!slot.focusItem || slot.canAfford || seen.has(slot.focusItem.id)) return out;
+    seen.add(slot.focusItem.id);
+    const shortfall = slot.focusItem.cost - slot.free;
+    const checksUntil = idx + 1;
+    return [...out, { item: slot.focusItem, checkDate: slot.checkDate, shortfall, savePerCheck: Math.ceil(shortfall / checksUntil), checksUntil }];
+  }, []).slice(0, 3);
 }
 
 // ── Plaid Connect ─────────────────────────────────────────────────────────────
@@ -124,8 +147,24 @@ export function FinancesView({ data, update }: Props) {
   useEffect(() => {
     fetch("/api/plaid/insights").then(r => r.json()).then((d: InsightsData) => {
       setInsights(d);
-      if (d.hasData && d.selfCare && d.selfCare.length > 0 && (!data.selfCareItems || data.selfCareItems.length === 0))
-        setShowBanner(true);
+      if (!d.hasData || !d.selfCare?.length) return;
+
+      // Show banner if no items configured yet
+      if (!data.selfCareItems?.length) { setShowBanner(true); return; }
+
+      // Auto-sync lastDone from Plaid for any items missing it
+      const missing = data.selfCareItems.filter(i => !i.lastDone);
+      if (missing.length > 0) {
+        const detectedMap = new Map(d.selfCare.map(c => [c.label.toLowerCase(), c]));
+        update(prev => ({
+          ...prev,
+          selfCareItems: (prev.selfCareItems ?? []).map(item => {
+            if (item.lastDone) return item;
+            const hit = detectedMap.get(item.name.toLowerCase());
+            return hit ? { ...item, lastDone: hit.lastDate } : item;
+          }),
+        }));
+      }
     }).catch(() => {}).finally(() => setInsightsLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -170,7 +209,8 @@ export function FinancesView({ data, update }: Props) {
   }
 
   const payday   = parseISO(pc.nextPayday);
-  const rotation = buildRotation(payday, pc.takeHomePerCheck, pc.savingsPercent, selfCare, bills);
+  const yearPlan = buildYearPlan(payday, pc.takeHomePerCheck, pc.savingsPercent, selfCare, bills);
+  const savingsAlerts = computeSavingsAlerts(yearPlan);
 
   return (
     <div style={{ background: BG, minHeight: "100%", color: "#fff" }}>
@@ -228,7 +268,7 @@ export function FinancesView({ data, update }: Props) {
       <div className="px-5 pb-16">
         {tab === "plan" && (
           <PlanTab
-            rotation={rotation} pc={pc} p2pTransfers={p2pTransfers}
+            yearPlan={yearPlan} savingsAlerts={savingsAlerts} pc={pc} p2pTransfers={p2pTransfers}
             onMarkBillPaid={(billId) => update(d => ({
               ...d, recurringBills: (d.recurringBills ?? []).map(b =>
                 b.id === billId ? { ...b, lastPaidDate: format(new Date(), "yyyy-MM-dd") } : b),
@@ -295,6 +335,7 @@ function InsightsBanner({ detected, detectedBills, paycheckAmount, onAccept, onD
       id: id(), name: d.label, emoji: d.emoji, cost: d.avgCost,
       frequencyWeeks: Math.max(1, Math.round(d.avgFreqDays / 7)),
       color: d.color ?? COLORS[i % COLORS.length],
+      lastDone: d.lastDate || undefined,
     }));
     const bills = detectedBills.filter(b => bSel.has(b.name)).map(b => ({ id: id(), name: b.name, amount: b.amount, dayOfMonth: b.dayOfMonth }));
     onAccept(items, bills);
@@ -383,6 +424,7 @@ function SetupFlow({ insights, insightsLoading, onDone }: {
       id: id(), name: d.label, emoji: d.emoji, cost: d.avgCost,
       frequencyWeeks: Math.max(1, Math.round(d.avgFreqDays / 7)),
       color: d.color ?? COLORS[i % COLORS.length],
+      lastDone: d.lastDate || undefined,
     }));
     const bills: RecurringBill[] = (insights?.bills ?? []).map(b => ({ id: id(), name: b.name, amount: b.amount, dayOfMonth: b.dayOfMonth }));
     onDone(config, items, bills);
@@ -465,23 +507,36 @@ function SetupFlow({ insights, insightsLoading, onDone }: {
 }
 
 // ── Plan Tab ──────────────────────────────────────────────────────────────────
-function PlanTab({ rotation, pc, p2pTransfers, onMarkBillPaid, onMarkFocusDone, onAddP2P, onRemoveP2P }: {
-  rotation: CheckSlot[]; pc: PaycheckConfig; p2pTransfers: P2PTransfer[];
+function PlanTab({ yearPlan, savingsAlerts, pc, p2pTransfers, onMarkBillPaid, onMarkFocusDone, onAddP2P, onRemoveP2P }: {
+  yearPlan: CheckSlot[]; savingsAlerts: SavingsAlert[]; pc: PaycheckConfig; p2pTransfers: P2PTransfer[];
   onMarkBillPaid: (id: string) => void; onMarkFocusDone: (itemId: string) => void;
   onAddP2P: (t: P2PTransfer) => void; onRemoveP2P: (tid: string) => void;
 }) {
-  const [expanded, setExpanded]   = useState<number | null>(null);
-  const [showP2P, setShowP2P]     = useState(false);
-  const [p2pPerson, setP2pPerson] = useState("");
-  const [p2pAmount, setP2pAmount] = useState("");
-  const [p2pDir, setP2pDir]       = useState<"sent"|"received">("sent");
+  const [expanded, setExpanded]       = useState<number | null>(null);
+  const [showAllYear, setShowAllYear] = useState(false);
+  const [showP2P, setShowP2P]         = useState(false);
+  const [p2pPerson, setP2pPerson]     = useState("");
+  const [p2pAmount, setP2pAmount]     = useState("");
+  const [p2pDir, setP2pDir]           = useState<"sent"|"received">("sent");
   const [p2pPlatform, setP2pPlatform] = useState<P2PTransfer["platform"]>("zelle");
-  const [p2pNote, setP2pNote]     = useState("");
+  const [p2pNote, setP2pNote]         = useState("");
 
-  const current    = rotation[0];
-  const focus      = current.focusItem;
-  const paydayStr  = format(parseISO(pc.nextPayday), "yyyy-MM-dd");
-  const isPaid     = (b: RecurringBill) => !!(b.lastPaidDate && b.lastPaidDate >= paydayStr);
+  const current   = yearPlan[0];
+  const focus     = current.focusItem;
+  const paydayStr = format(parseISO(pc.nextPayday), "yyyy-MM-dd");
+  const isPaid    = (b: RecurringBill) => !!(b.lastPaidDate && b.lastPaidDate >= paydayStr);
+
+  // Group remaining checks by month for the year view
+  const upcomingSlots = yearPlan.slice(1);
+  const byMonth: { month: string; slots: { slot: CheckSlot; idx: number }[] }[] = [];
+  for (let i = 0; i < upcomingSlots.length; i++) {
+    const slot  = upcomingSlots[i];
+    const month = format(slot.checkDate, "MMMM yyyy");
+    const last  = byMonth[byMonth.length - 1];
+    if (last?.month === month) last.slots.push({ slot, idx: i });
+    else byMonth.push({ month, slots: [{ slot, idx: i }] });
+  }
+  const visibleMonths = showAllYear ? byMonth : byMonth.slice(0, 3);
 
   const addP2P = () => {
     if (!p2pPerson || !p2pAmount) return;
@@ -518,9 +573,9 @@ function PlanTab({ rotation, pc, p2pTransfers, onMarkBillPaid, onMarkFocusDone, 
             </div>
             <div className="space-y-2 pt-4" style={{ borderTop: `1px solid ${BORDER}` }}>
               {[
-                { label: "Savings", amount: current.savings, color: "#6B8CAE" },
-                { label: "Bills",   amount: current.billsTotal, color: "#E8A87C" },
-                { label: focus.name, amount: focus.cost, color: LIME },
+                { label: "Savings", amount: current.savings,    color: "#6B8CAE" },
+                { label: "Bills",   amount: current.billsTotal,  color: "#E8A87C" },
+                { label: focus.name, amount: focus.cost,         color: LIME },
               ].filter(r => r.amount > 0).map(r => (
                 <div key={r.label} className="flex items-center justify-between text-sm">
                   <span style={{ color: MUTED }}>{r.label}</span>
@@ -540,67 +595,118 @@ function PlanTab({ rotation, pc, p2pTransfers, onMarkBillPaid, onMarkFocusDone, 
             <p className="text-4xl font-bold text-white mb-2">{fmt$(current.free)}</p>
             <p className="text-sm" style={{ color: MUTED }}>free this check — after savings &amp; bills</p>
             {current.savings > 0 && (
-              <p className="text-xs mt-3" style={{ color: MUTED }}>
-                Transfer {fmt$(current.savings)} to savings first.
-              </p>
+              <p className="text-xs mt-3" style={{ color: MUTED }}>Transfer {fmt$(current.savings)} to savings first.</p>
             )}
-            <p className="text-xs mt-2" style={{ color: MUTED }}>
-              Add self-care items in Schedule to see your rotation.
-            </p>
+            <p className="text-xs mt-2" style={{ color: MUTED }}>Add self-care items in Schedule to see your rotation.</p>
           </div>
         )}
       </div>
 
-      {/* Upcoming rotation */}
-      {rotation.length > 1 && (
+      {/* Savings alerts */}
+      {savingsAlerts.length > 0 && (
+        <div className="space-y-2">
+          {savingsAlerts.map(a => (
+            <div key={a.item.id} className="rounded-2xl px-4 py-3 flex items-center justify-between"
+              style={{ background: "rgba(232,168,124,0.08)", border: `1px solid rgba(232,168,124,0.25)` }}>
+              <div>
+                <p className="text-sm font-semibold text-white">
+                  {a.item.emoji} {a.item.name} — {fmtDate(a.checkDate)}
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: "#E8A87C" }}>
+                  {fmt$(a.shortfall)} short · set aside {fmt$(a.savePerCheck)}/check for {a.checksUntil} check{a.checksUntil !== 1 ? "s" : ""}
+                </p>
+              </div>
+              <p className="text-lg font-bold" style={{ color: "#E8A87C" }}>{fmt$(a.savePerCheck)}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Year plan — rest of the year */}
+      {upcomingSlots.length > 0 && (
         <div>
-          <p className="text-xs font-semibold mb-3" style={{ color: MUTED, letterSpacing: "0.08em" }}>UPCOMING CHECKS</p>
-          <div className="rounded-2xl overflow-hidden" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
-            {rotation.slice(1, 7).map((slot, i) => {
-              const open = expanded === i;
-              return (
-                <div key={i} style={{ borderBottom: i < 5 ? `1px solid ${BORDER}` : undefined }}>
-                  <button className="w-full flex items-center justify-between px-4 py-3.5"
-                    onClick={() => setExpanded(open ? null : i)}>
-                    <div className="text-left">
-                      <p className="text-xs mb-0.5" style={{ color: MUTED }}>{fmtDate(slot.checkDate)}</p>
-                      <p className="text-sm font-semibold text-white">
-                        {slot.focusItem ? `${slot.focusItem.emoji} ${slot.focusItem.name}` : "Free check"}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        {slot.focusItem && (
-                          <p className="text-xs font-semibold" style={{ color: slot.canAfford ? LIME : RED }}>
-                            {fmt$(slot.focusItem.cost)}
-                          </p>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-semibold" style={{ color: MUTED, letterSpacing: "0.08em" }}>
+              REST OF {new Date().getFullYear()} — {upcomingSlots.length} CHECKS
+            </p>
+            {byMonth.length > 3 && (
+              <button onClick={() => setShowAllYear(!showAllYear)}
+                className="text-xs flex items-center gap-1" style={{ color: MUTED }}>
+                {showAllYear ? "Show less" : `Show all`}
+                {showAllYear ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+              </button>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            {visibleMonths.map(({ month, slots: monthSlots }) => (
+              <div key={month}>
+                <p className="text-xs font-semibold mb-2 px-1" style={{ color: MUTED, letterSpacing: "0.06em" }}>
+                  {month.toUpperCase()}
+                </p>
+                <div className="rounded-2xl overflow-hidden" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+                  {monthSlots.map(({ slot, idx }, si) => {
+                    const open = expanded === idx;
+                    return (
+                      <div key={idx} style={{ borderBottom: si < monthSlots.length - 1 ? `1px solid ${BORDER}` : undefined }}>
+                        <button className="w-full flex items-center justify-between px-4 py-3"
+                          onClick={() => setExpanded(open ? null : idx)}>
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 text-center">
+                              <p className="text-base leading-none">{slot.focusItem ? slot.focusItem.emoji : "·"}</p>
+                            </div>
+                            <div className="text-left">
+                              <p className="text-sm font-medium text-white">
+                                {slot.focusItem ? slot.focusItem.name : "Free check"}
+                              </p>
+                              <p className="text-xs" style={{ color: MUTED }}>{format(slot.checkDate, "EEE, MMM d")}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2.5">
+                            {slot.focusItem ? (
+                              <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                                style={{
+                                  background: slot.canAfford ? "rgba(200,255,0,0.1)" : "rgba(218,102,123,0.1)",
+                                  color: slot.canAfford ? LIME : RED,
+                                }}>
+                                {fmt$(slot.focusItem.cost)}
+                              </span>
+                            ) : (
+                              <span className="text-xs" style={{ color: MUTED }}>{fmt$(slot.free)} free</span>
+                            )}
+                            {open ? <ChevronUp size={12} style={{ color: MUTED }} /> : <ChevronDown size={12} style={{ color: MUTED }} />}
+                          </div>
+                        </button>
+                        {open && (
+                          <div className="px-4 pb-3 pt-2 space-y-1.5" style={{ borderTop: `1px solid ${BORDER}` }}>
+                            {[
+                              { label: "Take-home", amount: pc.takeHomePerCheck, color: "#fff" },
+                              { label: "Savings",   amount: slot.savings,         color: "#6B8CAE" },
+                              { label: "Bills",     amount: slot.billsTotal,      color: "#E8A87C" },
+                              ...(slot.focusItem ? [{ label: slot.focusItem.name, amount: slot.focusItem.cost, color: LIME }] : []),
+                              { label: "Yours after", amount: slot.focusItem ? slot.free - slot.focusItem.cost : slot.free, color: "#fff" },
+                            ].map(r => (
+                              <div key={r.label} className="flex justify-between text-xs">
+                                <span style={{ color: MUTED }}>{r.label}</span>
+                                <span style={{ color: r.color }}>{fmt$(r.amount)}</span>
+                              </div>
+                            ))}
+                            {slot.dueBills.length > 0 && (
+                              <p className="text-xs pt-1" style={{ color: MUTED }}>Bills: {slot.dueBills.map(b => b.name).join(", ")}</p>
+                            )}
+                            {!slot.canAfford && slot.focusItem && (
+                              <p className="text-xs pt-1" style={{ color: "#E8A87C" }}>
+                                {fmt$(slot.focusItem.cost - slot.free)} short — start saving ahead
+                              </p>
+                            )}
+                          </div>
                         )}
-                        <p className="text-xs" style={{ color: MUTED }}>{fmt$(slot.free)} free</p>
                       </div>
-                      {open ? <ChevronUp size={14} style={{ color: MUTED }} /> : <ChevronDown size={14} style={{ color: MUTED }} />}
-                    </div>
-                  </button>
-                  {open && (
-                    <div className="px-4 pb-3 pt-1 space-y-1.5" style={{ borderTop: `1px solid ${BORDER}` }}>
-                      {[
-                        { label: "Take-home", amount: pc.takeHomePerCheck, color: "#fff" },
-                        { label: "Savings",   amount: slot.savings,         color: "#6B8CAE" },
-                        { label: "Bills",     amount: slot.billsTotal,      color: "#E8A87C" },
-                        ...(slot.focusItem ? [{ label: slot.focusItem.name, amount: slot.focusItem.cost, color: LIME }] : []),
-                      ].map(r => (
-                        <div key={r.label} className="flex justify-between text-xs">
-                          <span style={{ color: MUTED }}>{r.label}</span>
-                          <span style={{ color: r.color }}>{fmt$(r.amount)}</span>
-                        </div>
-                      ))}
-                      {slot.dueBills.length > 0 && (
-                        <p className="text-xs pt-1" style={{ color: MUTED }}>Bills: {slot.dueBills.map(b => b.name).join(", ")}</p>
-                      )}
-                    </div>
-                  )}
+                    );
+                  })}
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         </div>
       )}
