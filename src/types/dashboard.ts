@@ -205,6 +205,16 @@ export interface PaycheckConfig {
   projectedTakeHome?: number;  // user's manually-set expected amount
 }
 
+export interface BudgetLine {
+  id: string;
+  label: string;
+  amountPerCheck: number;
+  category: "transfer" | "housing" | "food" | "transport" | "savings" | "utilities" | "other";
+  toAccount?: string;  // e.g. "Bank of America"
+  color?: string;
+  isDetected?: boolean;
+}
+
 export interface SelfCareItem {
   id: string;
   name: string;
@@ -502,6 +512,7 @@ export interface DashboardData {
   paycheckConfig?: PaycheckConfig;
   selfCareItems?: SelfCareItem[];
   recurringBills?: RecurringBill[];
+  budgetLines?: BudgetLine[];
   p2pTransfers?: P2PTransfer[];
   accountTransfers?: AccountTransfer[];
   sinkingFunds?: SinkingFund[];

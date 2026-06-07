@@ -141,6 +141,52 @@ function detectBills(txns: RawTxn[]) {
   return recurring.filter(b => b.amount >= 4).sort((a, b) => b.amount - a.amount).slice(0, 12);
 }
 
+// ── Post-paycheck split detection ─────────────────────────────────────────────
+function detectPaycheckSplits(txns: RawTxn[]) {
+  const PAYROLL_KW = ["direct dep", "payroll", "adp", "gusto", "paychex", "workday", "paycheck", "salary", "hca"];
+  const deposits = txns.filter(t =>
+    t.amount < -200 &&
+    (t.category === "INCOME" || t.category === "TRANSFER_IN" ||
+      PAYROLL_KW.some(k => t.name.toLowerCase().includes(k)))
+  );
+  if (deposits.length < 2) return [];
+
+  const byKey = new Map<string, number[]>();
+  for (const dep of deposits) {
+    const depDate = parseISO(dep.date);
+    const nearby = txns.filter(t => {
+      if (t.amount <= 0) return false;
+      const diff = differenceInDays(parseISO(t.date), depDate);
+      if (diff < 0 || diff > 3) return false;
+      const lower = t.name.toLowerCase();
+      return (
+        t.category === "TRANSFER_OUT" ||
+        lower.includes("bank of america") || lower.includes("bofa") || lower.includes("boa") ||
+        lower.includes("transfer") || lower.includes("zelle")
+      );
+    });
+    for (const t of nearby) {
+      const k = t.name.toLowerCase().trim();
+      if (!byKey.has(k)) byKey.set(k, []);
+      byKey.get(k)!.push(t.amount);
+    }
+  }
+
+  const splits: { toAccount: string; amount: number; count: number }[] = [];
+  for (const [key, amounts] of Array.from(byKey)) {
+    if (amounts.length < 2) continue;
+    const avg = amounts.reduce((s, a) => s + a, 0) / amounts.length;
+    if (!amounts.every(a => Math.abs(a - avg) / avg < 0.15)) continue;
+    const toAccount = (key.includes("bank of america") || key.includes("bofa") || key.includes("boa"))
+      ? "Bank of America"
+      : key.includes("zelle") ? "Zelle Transfer"
+      : "Linked Account";
+    splits.push({ toAccount, amount: Math.round(avg), count: amounts.length });
+  }
+
+  return splits.sort((a, b) => b.amount - a.amount).slice(0, 3);
+}
+
 // ── Route handler ─────────────────────────────────────────────────────────────
 const cache = new Map<string, { data: unknown; expiry: number }>();
 
@@ -181,6 +227,7 @@ export async function GET() {
       paycheck: detectPaychecks(txns),
       selfCare: detectSelfCare(txns),
       bills: detectBills(txns),
+      paycheckSplits: detectPaycheckSplits(txns),
       transactionCount: txns.length,
       dateRange: { from: startDate, to: endDate },
     };

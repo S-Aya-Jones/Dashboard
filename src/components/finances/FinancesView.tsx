@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { usePlaidLink } from "react-plaid-link";
 import { RefreshCw, Unlink, Plus, Trash2, Check, ChevronDown, ChevronUp, RotateCcw } from "lucide-react";
-import { DashboardData, PaycheckConfig, SelfCareItem, RecurringBill, P2PTransfer, AccountTransfer } from "@/types/dashboard";
+import { DashboardData, PaycheckConfig, SelfCareItem, RecurringBill, P2PTransfer, AccountTransfer, BudgetLine } from "@/types/dashboard";
 import { id } from "@/lib/utils";
 import { parseISO, format, addDays, differenceInDays } from "date-fns";
 
@@ -26,6 +26,7 @@ interface InsightsData {
   paycheck?: { amount: number; lastDate: string; nextEstimatedDate: string; frequency: string; avgGap: number };
   selfCare?: DetectedCare[];
   bills?: { name: string; amount: number; dayOfMonth: number }[];
+  paycheckSplits?: { toAccount: string; amount: number; count: number }[];
 }
 interface CheckSlot {
   checkDate: Date;
@@ -35,6 +36,7 @@ interface CheckSlot {
   canAfford: boolean;
   savings: number;
   billsTotal: number;
+  budgetTotal: number;
   dueBills: RecurringBill[];
   free: number;
 }
@@ -55,6 +57,13 @@ interface PlaidAccount {
 function fmt$(n: number) { return `$${Math.abs(n).toLocaleString("en-US", { maximumFractionDigits: 0 })}`; }
 function fmtDate(d: Date) { return format(d, "MMM d"); }
 function ordinal(n: number) { const s = ["th","st","nd","rd"]; const v = n % 100; return s[(v-20)%10] || s[v] || s[0]; }
+function getCategoryEmoji(cat: BudgetLine["category"]) {
+  const map: Record<BudgetLine["category"], string> = {
+    transfer: "🏦", housing: "🏠", food: "🛒", transport: "🚗",
+    savings: "💰", utilities: "💡", other: "📌",
+  };
+  return map[cat] ?? "📌";
+}
 
 function dueBillsInPeriod(bills: RecurringBill[], payday: Date): RecurringBill[] {
   const end = addDays(payday, 13);
@@ -67,7 +76,7 @@ function dueBillsInPeriod(bills: RecurringBill[], payday: Date): RecurringBill[]
 
 function buildYearPlan(
   payday: Date, takeHome: number, savingsPct: number,
-  items: SelfCareItem[], bills: RecurringBill[]
+  items: SelfCareItem[], bills: RecurringBill[], budgetLines: BudgetLine[] = []
 ): CheckSlot[] {
   const endOfYear = new Date(new Date().getFullYear(), 11, 31);
   const lastDoneMap: Record<string, string | undefined> = {};
@@ -75,12 +84,13 @@ function buildYearPlan(
 
   const slots: CheckSlot[] = [];
   let date = new Date(payday);
+  const budgetTotal = budgetLines.reduce((s, l) => s + l.amountPerCheck, 0);
 
   while (date <= endOfYear) {
     const savings    = Math.round(takeHome * savingsPct / 100);
     const due        = dueBillsInPeriod(bills, date);
     const billsTotal = due.reduce((s, b) => s + b.amount, 0);
-    const free       = takeHome - savings - billsTotal;
+    const free       = takeHome - savings - billsTotal - budgetTotal;
 
     // Score all items by urgency
     const scored = items.map(item => {
@@ -110,7 +120,7 @@ function buildYearPlan(
         for (let attempt = 0; attempt < 26; attempt++) {
           const futureDue = dueBillsInPeriod(bills, futureDate);
           const futureBills = futureDue.reduce((s, b) => s + b.amount, 0);
-          const futureFree = takeHome - Math.round(takeHome * savingsPct / 100) - futureBills;
+          const futureFree = takeHome - Math.round(takeHome * savingsPct / 100) - futureBills - budgetTotal;
           if (pushedItem.cost <= futureFree) {
             pushedTo = new Date(futureDate);
             break;
@@ -128,6 +138,7 @@ function buildYearPlan(
       canAfford: focusItem ? focusItem.cost <= free : false,
       savings,
       billsTotal,
+      budgetTotal,
       dueBills: due,
       free,
     });
@@ -242,6 +253,7 @@ export function FinancesView({ data, update }: Props) {
   const pc              = data.paycheckConfig;
   const selfCare        = data.selfCareItems ?? [];
   const bills           = data.recurringBills ?? [];
+  const budgetLines     = data.budgetLines ?? [];
   const p2pTransfers    = data.p2pTransfers ?? [];
   const accountTransfers = data.accountTransfers ?? [];
 
@@ -260,7 +272,7 @@ export function FinancesView({ data, update }: Props) {
 
   const effectiveTakeHome = pc.projectedTakeHome ?? pc.takeHomePerCheck;
   const payday   = parseISO(pc.nextPayday);
-  const yearPlan = buildYearPlan(payday, effectiveTakeHome, pc.savingsPercent, selfCare, bills);
+  const yearPlan = buildYearPlan(payday, effectiveTakeHome, pc.savingsPercent, selfCare, bills, budgetLines);
   const savingsAlerts = computeSavingsAlerts(yearPlan);
   const summary = yearSummary(yearPlan, effectiveTakeHome);
 
@@ -330,6 +342,7 @@ export function FinancesView({ data, update }: Props) {
             summary={summary}
             pc={pc}
             effectiveTakeHome={effectiveTakeHome}
+            budgetLines={budgetLines}
             p2pTransfers={p2pTransfers}
             onMarkBillPaid={(billId) => update(d => ({
               ...d, recurringBills: (d.recurringBills ?? []).map(b =>
@@ -351,9 +364,12 @@ export function FinancesView({ data, update }: Props) {
         {tab === "schedule" && (
           <ScheduleTab
             selfCare={selfCare} bills={bills} pc={pc}
+            budgetLines={budgetLines}
             insights={insights}
+            effectiveTakeHome={effectiveTakeHome}
             onUpdateCare={(items) => update(d => ({ ...d, selfCareItems: items }))}
             onUpdateBills={(b) => update(d => ({ ...d, recurringBills: b }))}
+            onUpdateBudgetLines={(bl) => update(d => ({ ...d, budgetLines: bl }))}
             onUpdatePc={(p) => update(d => ({ ...d, paycheckConfig: p }))}
             showToast={showToast}
           />
@@ -475,7 +491,7 @@ function SetupFlow({ insights, insightsLoading, onDone }: {
 }) {
   const [takeHome, setTakeHome]         = useState("");
   const [nextPayday, setNextPayday]     = useState("");
-  const [savingsPct, setSavingsPct]     = useState("10");
+  const [savingsPct, setSavingsPct]     = useState("");
   const [employer, setEmployer]         = useState("");
   const [projectedAmt, setProjectedAmt] = useState("");
 
@@ -490,7 +506,7 @@ function SetupFlow({ insights, insightsLoading, onDone }: {
   const handleStart = () => {
     const config: PaycheckConfig = {
       takeHomePerCheck: parseFloat(takeHome) || 0,
-      savingsPercent: parseFloat(savingsPct) || 10,
+      savingsPercent: parseFloat(savingsPct) || 0,
       nextPayday,
       employer: employer.trim() || undefined,
       projectedTakeHome: projectedAmt && parseFloat(projectedAmt) !== parseFloat(takeHome) ? parseFloat(projectedAmt) : undefined,
@@ -685,12 +701,13 @@ function AIAdvisorCard({ pc, currentSlot, yearChecksRemaining, totalYearTreatmen
 }
 
 // ── Plan Tab ──────────────────────────────────────────────────────────────────
-function PlanTab({ yearPlan, savingsAlerts, summary, pc, effectiveTakeHome, p2pTransfers, onMarkBillPaid, onMarkFocusDone, onUpdateSavings, onAddP2P, onRemoveP2P }: {
+function PlanTab({ yearPlan, savingsAlerts, summary, pc, effectiveTakeHome, budgetLines, p2pTransfers, onMarkBillPaid, onMarkFocusDone, onUpdateSavings, onAddP2P, onRemoveP2P }: {
   yearPlan: CheckSlot[];
   savingsAlerts: SavingsAlert[];
   summary: { totalChecks: number; totalIncome: number; totalTreatments: number; totalSavings: number };
   pc: PaycheckConfig;
   effectiveTakeHome: number;
+  budgetLines: BudgetLine[];
   p2pTransfers: P2PTransfer[];
   onMarkBillPaid: (id: string) => void;
   onMarkFocusDone: (itemId: string) => void;
@@ -788,9 +805,10 @@ function PlanTab({ yearPlan, savingsAlerts, summary, pc, effectiveTakeHome, p2pT
             </div>
             <div className="space-y-2 pt-4" style={{ borderTop: `1px solid ${BORDER}` }}>
               {[
-                { label: "Savings",    amount: current.savings,    color: "#6B8CAE" },
-                { label: "Bills",      amount: current.billsTotal,  color: AMBER },
-                { label: focus.name,   amount: focus.cost,          color: current.canAfford ? LIME : RED },
+                { label: "Savings",    amount: current.savings,      color: "#6B8CAE" },
+                ...budgetLines.map(l => ({ label: `${getCategoryEmoji(l.category)} ${l.label}`, amount: l.amountPerCheck, color: AMBER })),
+                { label: "Bills",      amount: current.billsTotal,   color: AMBER },
+                { label: focus.name,   amount: focus.cost,           color: current.canAfford ? LIME : RED },
               ].filter(r => r.amount > 0).map(r => (
                 <div key={r.label} className="flex items-center justify-between text-sm">
                   <span style={{ color: MUTED }}>{r.label}</span>
@@ -1081,10 +1099,12 @@ function PlanTab({ yearPlan, savingsAlerts, summary, pc, effectiveTakeHome, p2pT
 }
 
 // ── Schedule Tab ──────────────────────────────────────────────────────────────
-function ScheduleTab({ selfCare, bills, pc, insights, onUpdateCare, onUpdateBills, onUpdatePc, showToast }: {
+function ScheduleTab({ selfCare, bills, pc, budgetLines, effectiveTakeHome, insights, onUpdateCare, onUpdateBills, onUpdateBudgetLines, onUpdatePc, showToast }: {
   selfCare: SelfCareItem[]; bills: RecurringBill[]; pc: PaycheckConfig;
+  budgetLines: BudgetLine[]; effectiveTakeHome: number;
   insights: InsightsData | null;
   onUpdateCare: (i: SelfCareItem[]) => void; onUpdateBills: (b: RecurringBill[]) => void;
+  onUpdateBudgetLines: (bl: BudgetLine[]) => void;
   onUpdatePc: (p: PaycheckConfig) => void; showToast: (m: string) => void;
 }) {
   const [showCareForm, setShowCareForm] = useState(false);
@@ -1105,6 +1125,29 @@ function ScheduleTab({ selfCare, bills, pc, insights, onUpdateCare, onUpdateBill
   const [employerInput, setEmployerInput] = useState(pc.employer ?? "");
   const [editProjected, setEditProjected] = useState(false);
   const [projectedInput, setProjectedInput] = useState(String(pc.projectedTakeHome ?? pc.takeHomePerCheck));
+  const [showBudgetForm, setShowBudgetForm] = useState(false);
+  const [budgetLabel, setBudgetLabel]   = useState("");
+  const [budgetAmt, setBudgetAmt]       = useState("");
+  const [budgetCat, setBudgetCat]       = useState<BudgetLine["category"]>("other");
+  const [budgetToAcct, setBudgetToAcct] = useState("");
+
+  const addBudgetLine = () => {
+    if (!budgetLabel || !budgetAmt) return;
+    onUpdateBudgetLines([...budgetLines, {
+      id: id(), label: budgetLabel, amountPerCheck: parseFloat(budgetAmt),
+      category: budgetCat, toAccount: budgetToAcct || undefined,
+    }]);
+    setBudgetLabel(""); setBudgetAmt(""); setBudgetToAcct(""); setShowBudgetForm(false);
+    showToast("Added to paycheck breakdown!");
+  };
+
+  const addDetectedSplit = (split: { toAccount: string; amount: number }) => {
+    onUpdateBudgetLines([...budgetLines, {
+      id: id(), label: split.toAccount + " Transfer", amountPerCheck: split.amount,
+      category: "transfer", toAccount: split.toAccount, isDetected: true,
+    }]);
+    showToast("Added: " + split.toAccount);
+  };
 
   const markDone = (item: SelfCareItem) => {
     onUpdateCare(selfCare.map(i => i.id === item.id ? { ...i, lastDone: format(new Date(), "yyyy-MM-dd") } : i));
@@ -1263,6 +1306,128 @@ function ScheduleTab({ selfCare, bills, pc, insights, onUpdateCare, onUpdateBill
           </div>
         </div>
         <RentAfford pc={pc} />
+      </div>
+
+      {/* Paycheck Breakdown (budget lines waterfall) */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <p className="text-xs font-semibold" style={{ color: MUTED, letterSpacing: "0.08em" }}>PAYCHECK BREAKDOWN</p>
+            <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.25)" }}>Where your check goes each pay period</p>
+          </div>
+          <button onClick={() => setShowBudgetForm(!showBudgetForm)}
+            className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg"
+            style={{ background: "rgba(200,255,0,0.1)", color: LIME, border: `1px solid rgba(200,255,0,0.2)` }}>
+            <Plus size={12} /> Add
+          </button>
+        </div>
+
+        {/* Detected BofA / transfer splits */}
+        {(insights?.paycheckSplits ?? []).filter(s => !budgetLines.some(l => l.isDetected && l.toAccount === s.toAccount)).length > 0 && (
+          <div className="rounded-2xl px-4 py-3 mb-3" style={{ background: "rgba(200,255,0,0.04)", border: `1px solid rgba(200,255,0,0.15)` }}>
+            <p className="text-xs font-semibold mb-2" style={{ color: LIME }}>Detected recurring transfer{(insights!.paycheckSplits!.length > 1) ? "s" : ""}:</p>
+            {(insights!.paycheckSplits!).filter(s => !budgetLines.some(l => l.isDetected && l.toAccount === s.toAccount)).map((s, i) => (
+              <div key={i} className="flex items-center justify-between py-1.5">
+                <div>
+                  <p className="text-sm text-white">🏦 {s.toAccount}</p>
+                  <p className="text-xs" style={{ color: MUTED }}>{fmt$(s.amount)}/check · detected {s.count}x</p>
+                </div>
+                <button onClick={() => addDetectedSplit(s)}
+                  className="text-xs px-3 py-1.5 rounded-lg font-semibold"
+                  style={{ background: LIME, color: "#000" }}>
+                  Add
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Waterfall card */}
+        <div className="rounded-2xl overflow-hidden" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+          {/* Paycheck row */}
+          <div className="flex items-center justify-between px-4 py-3.5" style={{ borderBottom: `1px solid ${BORDER}` }}>
+            <p className="text-sm font-semibold text-white">💵 Paycheck</p>
+            <p className="text-sm font-bold text-white">{fmt$(effectiveTakeHome)}</p>
+          </div>
+
+          {/* Savings row */}
+          {pc.savingsPercent > 0 && (
+            <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}` }}>
+              <p className="text-sm" style={{ color: "#6B8CAE" }}>💰 Savings ({pc.savingsPercent}%)</p>
+              <p className="text-sm font-semibold" style={{ color: "#6B8CAE" }}>−{fmt$(Math.round(effectiveTakeHome * pc.savingsPercent / 100))}</p>
+            </div>
+          )}
+
+          {/* Budget lines */}
+          {budgetLines.map((line) => (
+            <div key={line.id} className="flex items-center justify-between px-4 py-3"
+              style={{ borderBottom: `1px solid ${BORDER}` }}>
+              <div className="flex items-center gap-2 min-w-0">
+                <p className="text-sm text-white truncate">
+                  {getCategoryEmoji(line.category)} {line.label}
+                </p>
+                {line.isDetected && (
+                  <span className="text-xs px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: "rgba(200,255,0,0.1)", color: LIME }}>auto</span>
+                )}
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <p className="text-sm font-semibold" style={{ color: RED }}>−{fmt$(line.amountPerCheck)}</p>
+                <button onClick={() => { onUpdateBudgetLines(budgetLines.filter(l => l.id !== line.id)); showToast("Removed"); }}>
+                  <Trash2 size={11} style={{ color: MUTED }} />
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {budgetLines.length === 0 && pc.savingsPercent === 0 && (
+            <div className="px-4 py-3 text-center" style={{ borderBottom: `1px solid ${BORDER}` }}>
+              <p className="text-xs" style={{ color: MUTED }}>Add allocations like rent, BofA transfer, groceries…</p>
+            </div>
+          )}
+
+          {/* Free to spend */}
+          <div className="flex items-center justify-between px-4 py-3.5" style={{ background: "rgba(200,255,0,0.03)" }}>
+            <p className="text-sm font-semibold" style={{ color: LIME }}>Yours to spend</p>
+            <p className="text-lg font-bold" style={{ color: LIME }}>
+              {fmt$(Math.max(0, effectiveTakeHome
+                - Math.round(effectiveTakeHome * pc.savingsPercent / 100)
+                - budgetLines.reduce((s, l) => s + l.amountPerCheck, 0)))}
+            </p>
+          </div>
+        </div>
+
+        {/* Add budget line form */}
+        {showBudgetForm && (
+          <div className="rounded-2xl p-4 mt-2" style={{ background: CARD, border: `1px solid rgba(200,255,0,0.2)` }}>
+            <div className="space-y-2 mb-3">
+              <input value={budgetLabel} onChange={e => setBudgetLabel(e.target.value)} placeholder="Label (e.g. Rent, BofA Transfer)"
+                className="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none"
+                style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }} />
+              <div className="grid grid-cols-2 gap-2">
+                <input type="number" value={budgetAmt} onChange={e => setBudgetAmt(e.target.value)} placeholder="Per check ($)"
+                  className="rounded-xl px-3 py-2.5 text-sm text-white outline-none"
+                  style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }} />
+                <select value={budgetCat} onChange={e => setBudgetCat(e.target.value as BudgetLine["category"])}
+                  className="rounded-xl px-3 py-2.5 text-sm text-white outline-none"
+                  style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }}>
+                  <option value="housing">🏠 Housing</option>
+                  <option value="transfer">🏦 Bank Transfer</option>
+                  <option value="food">🛒 Food</option>
+                  <option value="transport">🚗 Transport</option>
+                  <option value="utilities">💡 Utilities</option>
+                  <option value="savings">💰 Savings</option>
+                  <option value="other">📌 Other</option>
+                </select>
+              </div>
+              <input value={budgetToAcct} onChange={e => setBudgetToAcct(e.target.value)} placeholder="To account (optional, e.g. Bank of America)"
+                className="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none"
+                style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }} />
+            </div>
+            <button onClick={addBudgetLine} disabled={!budgetLabel || !budgetAmt}
+              className="w-full py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40"
+              style={{ background: LIME, color: "#000" }}>Add to Breakdown</button>
+          </div>
+        )}
       </div>
 
       {/* Self-care rotation */}
