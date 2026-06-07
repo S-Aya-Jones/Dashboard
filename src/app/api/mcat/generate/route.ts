@@ -25,14 +25,16 @@ export async function POST(req: Request) {
       const need = Math.min(perTopic, count - questions.length);
       const diff = difficulty === "mixed" ? "varying difficulty (mix of easy, medium, and hard)" : difficulty;
 
-      const prompt = `Generate ${need} MCAT multiple choice question${need > 1 ? "s" : ""} on the topic "${sel.topic}" within "${sel.subject}".
+      const prompt = `Generate ${need} MCAT-style multiple choice question${need > 1 ? "s" : ""} on the topic "${sel.topic}" within "${sel.subject}".
 
 Requirements:
-- MCAT-level accuracy and rigor
+- MCAT-level accuracy and scientific rigor — all facts MUST be correct
 - Difficulty: ${diff}
-- Each question has exactly 4 choices (A, B, C, D) with ONE correct answer
+- Each question has exactly 4 choices (A, B, C, D) with ONE definitively correct answer
+- Wrong answers must be plausible but clearly incorrect upon careful reasoning
 - Explanation must explain why the correct answer is right AND briefly why each wrong answer is wrong
-- Questions should test conceptual understanding, not just memorization
+- Questions should test conceptual understanding and MCAT-style reasoning, not rote memorization
+- Mimic AAMC passage-based or discrete question style
 
 Return ONLY a JSON array, no other text:
 [
@@ -51,9 +53,9 @@ Return ONLY a JSON array, no other text:
 
       try {
         const msg = await client.messages.create({
-          model: "claude-haiku-4-5-20251001",
-          max_tokens: 2000,
-          system: "You are an expert MCAT question writer. Return ONLY valid JSON arrays, no markdown or extra text.",
+          model: "claude-sonnet-4-6",
+          max_tokens: 4000,
+          system: "You are an expert MCAT question writer with board-level scientific accuracy. All facts must be verifiably correct. Return ONLY valid JSON arrays, no markdown or extra text.",
           messages: [{ role: "user", content: prompt }],
         });
 

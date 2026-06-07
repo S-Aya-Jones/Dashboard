@@ -9,6 +9,7 @@ import { QBankView } from "@/components/mcat/QBankView";
 import { AnkiView } from "@/components/mcat/AnkiView";
 import { StudyTimerView } from "@/components/mcat/StudyTimerView";
 import { DiagnosticView } from "@/components/mcat/DiagnosticView";
+import { LearnView } from "@/components/mcat/LearnView";
 
 const TABS = [
   { id: "mcat",       label: "MCAT Prep" },
@@ -16,6 +17,7 @@ const TABS = [
   { id: "shadowing",  label: "Shadowing" },
   { id: "qbank",      label: "Q Bank" },
   { id: "flashcards", label: "Flashcards" },
+  { id: "learn",      label: "Learn" },
   { id: "timer",      label: "Study Timer" },
   { id: "diagnostic", label: "Diagnostic" },
 ] as const;
@@ -54,6 +56,7 @@ export default function Page() {
           {tab === "shadowing"  && <ShadowingView  data={data} update={update} />}
           {tab === "qbank"      && <QBankView      data={data} update={update} />}
           {tab === "flashcards" && <AnkiView       data={data} update={update} />}
+          {tab === "learn"      && <LearnView      data={data} update={update} />}
           {tab === "timer"      && <StudyTimerView data={data} update={update} />}
           {tab === "diagnostic" && <DiagnosticView data={data} update={update} />}
         </div>

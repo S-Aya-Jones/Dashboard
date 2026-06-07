@@ -34,25 +34,24 @@ export async function POST(req: Request) {
     // Truncate to ~50k chars to stay within Claude context
     const text = rawText.slice(0, 50000);
 
-    const prompt = `You are an expert at parsing MCAT study materials. Extract all multiple choice questions from the following text.
+    const prompt = `You are an expert MCAT question parser with deep knowledge of all MCAT content areas. Extract every multiple choice question from the text below.
 
-The text may have various formats:
-- Questions numbered like "1.", "Q1:", "Question 1"
-- Answer choices labeled A-D or a-d, possibly with or without periods
-- Correct answers may be marked with asterisks (*), bold indicators, or listed at the end
-- Explanations may follow each question or be listed separately
-- Some formats have the answer key at the end of the document
+Identify questions by these patterns (any may appear):
+- Numbered: "1.", "Q1:", "Question 1", "#1"
+- Answer choices: "A)" "B)" "(A)" "(B)" "A." "B." or standalone A/B/C/D lines
+- Correct answers: marked with *, asterisk, bold hint, "Answer:", or listed in a key at the end
+- Explanations: text after each question or in a separate section
 
-For each question extract:
-- stem: the question text (not including choices)
-- choices: array of {letter, text} for A, B, C, D
-- correctLetter: the letter of the correct answer (A/B/C/D uppercase). Use "?" if unknown.
-- explanation: any explanation text, or empty string if none
-- subject: guess the MCAT subject (Behavioral Sciences, Biochemistry, Biology, Critical Analysis & Reasoning Skills, General Chemistry, Organic Chemistry, Physics)
-- topic: specific sub-topic if identifiable, otherwise match the closest subject topic
-- difficulty: "easy", "medium", or "hard"
+For EACH question, extract:
+- stem: full question text, NO answer choices
+- choices: exactly 4 choices [{letter:"A",text:"..."}, ...] — if fewer exist, infer plausible distractors
+- correctLetter: uppercase A/B/C/D (use "?" only if truly impossible to determine)
+- explanation: why the correct answer is right AND briefly why each wrong choice is wrong; generate a helpful explanation if none exists
+- subject: MUST be exactly one of: "Behavioral Sciences", "Biochemistry", "Biology", "Critical Analysis & Reasoning Skills", "General Chemistry", "Organic Chemistry", "Physics" — infer from content
+- topic: specific sub-topic (e.g., "Enzyme Kinetics", "Action Potential", "Acid-Base Chemistry")
+- difficulty: "easy", "medium", or "hard" based on MCAT standards
 
-Return ONLY a valid JSON array (no markdown, no other text):
+Return ONLY a valid JSON array, no markdown, no other text:
 [{"stem":"...","choices":[{"letter":"A","text":"..."},{"letter":"B","text":"..."},{"letter":"C","text":"..."},{"letter":"D","text":"..."}],"correctLetter":"B","explanation":"...","subject":"Biology","topic":"DNA & Gene Expression","difficulty":"medium"}]
 
 Text to parse:
@@ -61,9 +60,9 @@ ${text}
 ---`;
 
     const msg = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
+      model: "claude-sonnet-4-6",
       max_tokens: 16000,
-      system: "You are an expert MCAT question parser. Return ONLY valid JSON arrays, no markdown or extra text.",
+      system: "You are an expert MCAT question parser with deep knowledge of all MCAT content areas. Return ONLY valid JSON arrays, no markdown or extra text.",
       messages: [{ role: "user", content: prompt }],
     });
 

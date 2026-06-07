@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   Plus, Trash2, ChevronDown, ChevronUp,
-  Brain, BookOpen, Check, X, Zap, Clock
+  Brain, BookOpen, Check, X, Zap, Clock, Upload, Loader2
 } from "lucide-react";
 import { Flashcard, FlashcardReviewLog, DashboardData } from "@/types/dashboard";
 import { id } from "@/lib/utils";
@@ -163,6 +163,12 @@ export function AnkiView({ data, update }: Props) {
   const [search, setSearch] = useState("");
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
 
+  // Import state
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{ count: number; dupes: number } | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Computed
   const dueCards = flashcards.filter(isDueNow);
 
@@ -292,6 +298,40 @@ export function AnkiView({ data, update }: Props) {
       ...d,
       flashcards: (d.flashcards ?? []).filter(c => c.id !== cardId),
     }));
+  }
+
+  async function handleImport(file: File) {
+    setImporting(true);
+    setImportResult(null);
+    setImportError(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/mcat/import-anki", { method: "POST", body: formData });
+      const data2 = await res.json();
+      if (!res.ok) {
+        setImportError(data2.detail || data2.error || "Import failed");
+        return;
+      }
+      const incoming: Flashcard[] = data2.cards ?? [];
+      let dupes = 0;
+      update(d => {
+        const existing = new Set((d.flashcards ?? []).map(c => `${c.front}||${c.back}`));
+        const fresh = incoming.filter(c => {
+          const key = `${c.front}||${c.back}`;
+          if (existing.has(key)) { dupes++; return false; }
+          return true;
+        });
+        return { ...d, flashcards: [...(d.flashcards ?? []), ...fresh] };
+      });
+      setImportResult({ count: incoming.length - dupes, dupes });
+    } catch (e) {
+      console.error("Import error:", e);
+      setImportError("Failed to import. Check the file and try again.");
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   }
 
   function toggleExpand(cardId: string) {
@@ -829,6 +869,55 @@ export function AnkiView({ data, update }: Props) {
           <BookOpen size={16} /> Browse
         </button>
       </div>
+
+      {/* Anki Import */}
+      <div className="card" style={{ padding: "18px 20px", marginBottom: 24 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Upload size={16} style={{ color: "var(--purple)" }} />
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>Import Anki Deck</div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>.apkg, .txt, .tsv, or .csv — scheduling state preserved</div>
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {importResult && (
+              <span style={{ fontSize: 13, color: "var(--green)", fontWeight: 600 }}>
+                <Check size={13} style={{ display: "inline", verticalAlign: "middle", marginRight: 4 }} />
+                {importResult.count} imported{importResult.dupes > 0 ? `, ${importResult.dupes} dupes skipped` : ""}
+              </span>
+            )}
+            {importError && (
+              <span style={{ fontSize: 12, color: "var(--red)", fontWeight: 600, maxWidth: 200 }}>{importError}</span>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".apkg,.txt,.tsv,.csv"
+              style={{ display: "none" }}
+              onChange={e => { const f = e.target.files?.[0]; if (f) handleImport(f); }}
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={importing}
+              style={{
+                padding: "8px 18px", borderRadius: 10, border: "none",
+                background: importing ? "var(--bg)" : "var(--grad)",
+                color: importing ? "var(--text-muted)" : "#fff",
+                fontWeight: 700, fontSize: 13,
+                cursor: importing ? "not-allowed" : "pointer",
+                display: "flex", alignItems: "center", gap: 6,
+              }}
+            >
+              {importing
+                ? <><Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> Importing...</>
+                : <><Upload size={14} /> Choose File</>
+              }
+            </button>
+          </div>
+        </div>
+      </div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
       {/* Deck list */}
       {decks.length === 0 ? (
