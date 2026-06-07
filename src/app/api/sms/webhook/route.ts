@@ -1,41 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { loadData, saveData } from "@/lib/db";
 import { SmsMessage } from "@/types/dashboard";
-import { createHmac } from "crypto";
-
-// ── Twilio signature validation ───────────────────────────────────────────────
-function validateTwilioSignature(req: NextRequest, params: Record<string, string>): boolean {
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
-  if (!authToken) return false;
-
-  const signature = req.headers.get("x-twilio-signature") ?? "";
-  const url = `${req.nextUrl.protocol}//${req.nextUrl.host}${req.nextUrl.pathname}`;
-  const data = Object.keys(params).sort().reduce((acc, key) => acc + key + params[key], url);
-  const expected = createHmac("sha1", authToken).update(data).digest("base64");
-
-  const a = Buffer.from(signature, "utf8");
-  const b = Buffer.from(expected,  "utf8");
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
-  return diff === 0;
-}
 
 export async function POST(req: NextRequest) {
-  const form   = await req.formData();
-  const params = Object.fromEntries(form.entries()) as Record<string, string>;
-
-  if (!validateTwilioSignature(req, params)) {
-    return new NextResponse("Forbidden", { status: 403 });
-  }
-
-  const from = (params["From"] ?? "").trim();
-  const raw  = (params["Body"] ?? "").trim();
+  const form = await req.formData();
+  const from = (form.get("From") as string ?? "").trim();
+  const raw  = (form.get("Body")  as string ?? "").trim();
   const body = raw.toLowerCase().replace(/[!?.]+$/, "").trim();
 
   let reply  = "Got it! ✓";
   let action = "";
 
+  // Parse intent
   if (body === "done" || body === "workout done" || body === "finished" || body === "complete" || body === "completed") {
     action = "Workout marked complete";
     reply  = "Workout logged! You showed up and that's the whole game. 🔥 Keep that streak going.";
@@ -48,6 +24,7 @@ export async function POST(req: NextRequest) {
       const w = parseFloat(match[1]);
       action = `Body weight logged: ${w} lbs`;
       reply  = `Weight logged: ${w} lbs 📊 Progress is progress — keep going!`;
+      // Update body weight in dashboard
       try {
         const data = await loadData();
         const today = new Date().toISOString().slice(0, 10);
@@ -73,7 +50,7 @@ export async function POST(req: NextRequest) {
       } catch { /* non-fatal */ }
     }
   } else if (body === "help" || body === "commands" || body === "?") {
-    reply  = "📋 Commands:\n• DONE — log workout complete\n• SKIP — log rest day\n• 130lbs — log body weight\n• 8500 steps — log steps\n• HELP — show this menu";
+    reply = "📋 Commands:\n• DONE — log workout complete\n• SKIP — log rest day\n• 130lbs — log body weight\n• 8500 steps — log steps\n• HELP — show this menu";
     action = "Help requested";
   } else if (body === "yes" || body === "yep" || body === "yeah" || body === "yup") {
     reply  = "Let's go! 💪 Message me DONE when you finish.";
@@ -82,26 +59,23 @@ export async function POST(req: NextRequest) {
     reply = `Got your message! 👋 Reply HELP to see what I can track for you.`;
   }
 
-  // Store message — never overwrite a configured phone number with the sender's number
+  // Store incoming message
   try {
     const data = await loadData();
     const inbound: SmsMessage = {
-      id:           `sms-${Date.now()}`,
-      direction:    "inbound",
-      body:         raw,
-      timestamp:    new Date().toISOString(),
+      id: `sms-${Date.now()}`,
+      direction: "inbound",
+      body: raw,
+      timestamp: new Date().toISOString(),
       parsedAction: action || undefined,
     };
-    const existing = data.sms;
-    data.sms = {
-      phoneNumber: existing?.phoneNumber || from, // preserve configured number
-      enabled:     existing?.enabled ?? true,
-      messages:    [...(existing?.messages ?? []), inbound],
-      reminders:   existing?.reminders ?? [],
-    };
+    const sms = data.sms ?? { phoneNumber: from, enabled: true, messages: [], reminders: [] };
+    sms.messages = [...(sms.messages ?? []), inbound];
+    data.sms = sms;
     await saveData(data);
   } catch { /* non-fatal */ }
 
+  // TwiML response
   const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Message>${reply}</Message></Response>`;
   return new NextResponse(twiml, { headers: { "Content-Type": "text/xml" } });
 }
