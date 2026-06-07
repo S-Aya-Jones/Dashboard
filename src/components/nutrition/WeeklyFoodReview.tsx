@@ -32,7 +32,7 @@ function MealTypePie({ meals }: { meals: MealEntry[] }) {
   const counts = { breakfast: 0, lunch: 0, dinner: 0, snack: 0 };
   for (const m of meals) counts[m.mealType]++;
   const total = meals.length || 1;
-  const colors = { breakfast: "#C99A5C", lunch: "#71816D", dinner: "#FFFFFF", snack: "rgba(124,92,252,0.3)" };
+  const colors = { breakfast: "#C99A5C", lunch: "#71816D", dinner: "var(--text)", snack: "var(--text-light)" };
 
   return (
     <div className="flex gap-3 flex-wrap">
@@ -88,7 +88,7 @@ export function WeeklyFoodReview({ nutrition }: { nutrition: NutritionData }) {
   const statCard = (label: string, value: string | number, sub?: string) => (
     <div
       className="rounded-2xl p-4 text-center"
-      style={{ background: "rgba(113,129,109,0.08)", border: "1px solid rgba(124,92,252,0.07)" }}
+      style={{ background: "rgba(113,129,109,0.08)", border: "1px solid var(--border)" }}
     >
       <p
         className="font-serif text-3xl leading-none mb-1"
@@ -97,7 +97,7 @@ export function WeeklyFoodReview({ nutrition }: { nutrition: NutritionData }) {
         {value}
       </p>
       <p className="text-xs font-medium" style={{ color: "#A8967E" }}>{label}</p>
-      {sub && <p className="text-[11px] mt-0.5" style={{ color: "rgba(124,92,252,0.4)" }}>{sub}</p>}
+      {sub && <p className="text-[11px] mt-0.5" style={{ color: "var(--text-light)" }}>{sub}</p>}
     </div>
   );
 
@@ -129,7 +129,7 @@ export function WeeklyFoodReview({ nutrition }: { nutrition: NutritionData }) {
       {weekMeals.length > 0 && (
         <div
           className="rounded-2xl p-5 mb-4"
-          style={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.08)" }}
+          style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
         >
           <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: "#A8967E" }}>
             Meal Breakdown
@@ -142,7 +142,7 @@ export function WeeklyFoodReview({ nutrition }: { nutrition: NutritionData }) {
       {topMeal && (
         <div
           className="rounded-2xl p-5 mb-4 flex gap-4"
-          style={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.08)" }}
+          style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
         >
           {topMeal.photos.length > 0 && (
             <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0">
@@ -170,7 +170,7 @@ export function WeeklyFoodReview({ nutrition }: { nutrition: NutritionData }) {
       {topTags.length > 0 && (
         <div
           className="rounded-2xl p-5 mb-4"
-          style={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.08)" }}
+          style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
         >
           <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: "#A8967E" }}>
             Top Tags

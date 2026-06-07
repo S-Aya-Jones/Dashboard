@@ -473,7 +473,7 @@ export function FitnessView({ data, update }: Props) {
           >
             Fitness & Sleep
           </h1>
-          <p className="text-sm mt-1" style={{ color: "rgba(255,255,255,0.45)" }}>
+          <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>
             Movement that brings you joy, rest that restores you
           </p>
         </div>
@@ -492,7 +492,7 @@ export function FitnessView({ data, update }: Props) {
       {/* Tabs */}
       <div
         className="flex gap-1 p-1 rounded-2xl"
-        style={{ background: "rgba(255,255,255,0.05)" }}
+        style={{ background: "rgba(124,92,252,0.08)" }}
       >
         {TABS.map(({ id: tid, label }) => (
           <button

@@ -472,7 +472,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, totalCompleted,
         style={{ animation: "popIn 0.35s ease-out" }}>
         {/* Session number badge */}
         <div className="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest"
-          style={{ background: "rgba(200,255,0,0.1)", border: "1px solid rgba(124,92,252,0.25)", color: "#7C5CFC" }}>
+          style={{ background: "rgba(124,92,252,0.1)", border: "1px solid rgba(124,92,252,0.25)", color: "#7C5CFC" }}>
           Session #{sessionNum}
         </div>
         <div style={{ fontSize: "3.5rem", animation: "pulseGreen 1s ease-out", color: "#7C5CFC" }}>✓</div>
@@ -500,13 +500,13 @@ export function SessionView({ day, weekNum, lastWeights, streak, totalCompleted,
         </div>
         {isSunday && (
           <div className="w-full max-w-xs px-4 py-3 rounded-2xl text-sm text-center"
-            style={{ background: "rgba(200,255,0,0.08)", border: "1px solid rgba(200,255,0,0.2)", color: "#7C5CFC" }}>
+            style={{ background: "rgba(124,92,252,0.08)", border: "1px solid rgba(124,92,252,0.2)", color: "#7C5CFC" }}>
             Time to measure — track your hourglass progress
           </div>
         )}
         <button onClick={() => finishSession()}
-          className="px-10 py-4 rounded-2xl font-semibold text-black text-lg active:scale-95 transition-transform"
-          style={{ background: "#7C5CFC", animation: "pulseGreen 2s ease-out 0.5s" }}>
+          className="px-10 py-4 rounded-2xl font-semibold text-lg active:scale-95 transition-transform"
+          style={{ background: "#7C5CFC", color: "#fff", animation: "pulseGreen 2s ease-out 0.5s" }}>
           Save Workout
         </button>
       </div>
@@ -654,7 +654,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, totalCompleted,
         {/* Previous weight hint */}
         {prevWeight > 0 && (
           <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl"
-            style={{ background: "rgba(200,255,0,0.07)", border: "1px solid rgba(200,255,0,0.15)" }}>
+            style={{ background: "rgba(124,92,252,0.07)", border: "1px solid rgba(124,92,252,0.15)" }}>
             <span className="text-xs flex-1" style={{ color: "rgba(30,19,64,0.45)" }}>
               Last time: <span className="font-semibold text-ink">{prevWeight} lbs</span>
               {suggested !== prevWeight
@@ -663,7 +663,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, totalCompleted,
             </span>
             <button onClick={() => setWeight(String(suggested))}
               className="text-xs font-medium px-2.5 py-1 rounded-lg active:scale-95 transition-transform"
-              style={{ background: "rgba(200,255,0,0.15)", color: "#7C5CFC" }}>
+              style={{ background: "rgba(124,92,252,0.15)", color: "#7C5CFC" }}>
               Use
             </button>
           </div>
@@ -743,8 +743,8 @@ export function SessionView({ day, weekNum, lastWeights, streak, totalCompleted,
           </button>
         )}
         <button onClick={completeSet}
-          className="w-full py-4 rounded-2xl font-semibold text-black text-lg active:scale-95 transition-transform"
-          style={{ background: ctaBg }}>
+          className="w-full py-4 rounded-2xl font-semibold text-lg active:scale-95 transition-transform"
+          style={{ background: ctaBg, color: "#fff" }}>
           {setsLogged >= ex.sets - 1 && exIdx === exercises.length - 1 ? "Complete Workout" : "Complete Set"}
         </button>
         {setsLogged >= ex.sets && exIdx < exercises.length - 1 && (
@@ -781,7 +781,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, totalCompleted,
           <div className="flex gap-3">
             <button onClick={togglePause}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm active:scale-95 transition-transform"
-              style={{ background: paused ? "rgba(200,255,0,0.15)" : "rgba(124,92,252,0.07)", color: paused ? "#7C5CFC" : "var(--text-muted)" }}>
+              style={{ background: paused ? "rgba(124,92,252,0.15)" : "rgba(124,92,252,0.07)", color: paused ? "#7C5CFC" : "var(--text-muted)" }}>
               {paused ? <><Play size={14} /> Resume</> : <><Pause size={14} /> Pause</>}
             </button>
             <button onClick={skipRest}
