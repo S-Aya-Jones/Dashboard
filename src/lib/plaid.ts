@@ -23,7 +23,9 @@ export function getPlaidClient() {
 const ALGO = "aes-256-gcm";
 
 function derivedKey(): Buffer {
-  return createHash("sha256").update(process.env.PLAID_SECRET ?? "dev-fallback").digest();
+  const secret = process.env.PLAID_SECRET;
+  if (!secret) throw new Error("PLAID_SECRET env var is required for token encryption");
+  return createHash("sha256").update(secret).digest();
 }
 
 export function encryptToken(plain: string): string {
