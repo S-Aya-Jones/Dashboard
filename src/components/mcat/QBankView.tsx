@@ -12,7 +12,7 @@ import {
   BookOpen,
   CheckCircle,
   XCircle,
-  AlertCircle,
+
   BarChart2,
   Loader2,
   Plus,
@@ -824,7 +824,7 @@ export function QBankView({ data, update }: Props) {
     const isRevealed = revealed.has(q.id);
     const timeLeft = totalTimeLimit - elapsed;
     const timedOut = mode === "timed" && timeLeft <= 0;
-    const answeredCount = questions.filter((qq) => answers[qq.id]?.letter != null).length;
+    // answeredCount available if needed for future display
     const tutorCorrectCount = questions.filter(
       (qq) => revealed.has(qq.id) && answers[qq.id]?.letter === qq.correctLetter
     ).length;
