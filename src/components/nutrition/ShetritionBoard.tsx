@@ -146,6 +146,7 @@ export function ShetritionBoard({
                 }}
               >
                 <div className="relative">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={img.src} alt={img.caption ?? ""} className="w-full object-cover" />
                   <button
                     onClick={() => remove(img.id)}

@@ -11,7 +11,6 @@ interface SmsViewProps {
 }
 
 const LIME = "#7C5CFC";
-const SURFACE = "var(--surface)";
 const BUBBLE_OUT = "#7C5CFC";
 const BUBBLE_IN = "var(--bg2)";
 const BORDER = "rgba(124,92,252,0.12)";

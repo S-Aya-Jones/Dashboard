@@ -135,6 +135,7 @@ function RecipeDetail({
               className="w-full rounded-3xl overflow-hidden"
               style={{ background: "#E8D4B0" }}
             >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={recipe.photos[0]}
                 alt={recipe.title}
@@ -145,6 +146,7 @@ function RecipeDetail({
                 <div className="flex gap-2 p-3">
                   {recipe.photos.slice(1, 4).map((p, i) => (
                     <div key={i} className="flex-1 rounded-xl overflow-hidden" style={{ height: "72px" }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={p} alt="" className="w-full h-full object-cover" />
                     </div>
                   ))}
@@ -444,6 +446,7 @@ function RecipeCard({
     >
       {recipe.photos.length > 0 ? (
         <div className="w-full overflow-hidden" style={{ height: "190px" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={recipe.photos[0]}
             alt={recipe.title}
@@ -654,6 +657,7 @@ function AddRecipeForm({
             <div className="flex gap-2 flex-wrap mb-2">
               {photos.map((p, i) => (
                 <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={p} alt="" className="w-full h-full object-cover" />
                   <button
                     type="button"
