@@ -1,6 +1,51 @@
 "use client";
+
+import { useState } from "react";
 import { DashboardShell } from "@/components/DashboardShell";
 import { MCATView } from "@/components/mcat/MCATView";
+import { ScheduleView } from "@/components/schedule/ScheduleView";
+import { ShadowingView } from "@/components/shadowing/ShadowingView";
+
+const TABS = [
+  { id: "mcat",      label: "MCAT Prep" },
+  { id: "schedule",  label: "School & Schedule" },
+  { id: "shadowing", label: "Shadowing" },
+] as const;
+
+type TabId = typeof TABS[number]["id"];
+
 export default function Page() {
-  return <DashboardShell>{({ data, update }) => <MCATView data={data} update={update} />}</DashboardShell>;
+  const [tab, setTab] = useState<TabId>("mcat");
+
+  return (
+    <DashboardShell>
+      {({ data, update }) => (
+        <div className="space-y-0">
+          {/* Tab bar */}
+          <div
+            className="flex gap-1 mb-6 p-1 rounded-2xl"
+            style={{ background: "var(--surface)", boxShadow: "var(--shadow)" }}
+          >
+            {TABS.map(t => (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className="flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold transition-all"
+                style={tab === t.id
+                  ? { background: "var(--grad)", color: "#fff", boxShadow: "0 2px 12px rgba(124,92,252,0.3)" }
+                  : { color: "var(--text-muted)" }
+                }
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          {tab === "mcat"      && <MCATView      data={data} update={update} />}
+          {tab === "schedule"  && <ScheduleView  data={data} update={update} />}
+          {tab === "shadowing" && <ShadowingView data={data} update={update} />}
+        </div>
+      )}
+    </DashboardShell>
+  );
 }

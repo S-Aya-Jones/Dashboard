@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Sun, Calendar, CheckSquare, Brain, BookOpen, Activity,
-  Heart, Sparkles, DollarSign, Users, Star, Target, BookMarked,
+  Sun, Calendar, CheckSquare, Brain, BookOpen,
+  Heart, Sparkles, DollarSign, Users, Star, BookMarked,
   Globe, ChevronLeft, ChevronRight, Dumbbell, Gem, UtensilsCrossed,
   MessageSquare
 } from "lucide-react";
@@ -16,11 +16,8 @@ const navItems = [
   { href: "/week",      label: "This Week",        icon: Calendar },
   { href: "/habits",    label: "Habits",           icon: CheckSquare },
   { href: "/exposure",  label: "Exposure Therapy", icon: Brain },
-  { href: "/mcat",      label: "MCAT Prep",        icon: BookOpen },
-  { href: "/school",    label: "School & Schedule", icon: Target },
-  { href: "/shadowing", label: "Shadowing",        icon: Activity },
-  { href: "/fitness",   label: "Fitness & Sleep",  icon: Dumbbell },
-  { href: "/workout",   label: "Workout",          icon: Activity },
+  { href: "/mcat",      label: "Med School",       icon: BookOpen },
+  { href: "/fitness",   label: "Fitness",          icon: Dumbbell },
   { href: "/skincare",  label: "Skincare",         icon: Sparkles },
   { href: "/finances",  label: "Finances",         icon: DollarSign },
   { href: "/connections",label:"Connections",      icon: Users },
@@ -85,7 +82,9 @@ export function Sidebar({ saving = false }: SidebarProps) {
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto px-2 pb-4 space-y-0.5">
         {navItems.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href;
+          const active = pathname === href
+            || (href === "/mcat"    && ["/school", "/shadowing"].includes(pathname))
+            || (href === "/fitness" && pathname === "/workout");
           return (
             <Link
               key={href}
