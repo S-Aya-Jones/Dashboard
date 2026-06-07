@@ -6,7 +6,11 @@
 
 import JSZip from "jszip";
 import { Flashcard } from "@/types/dashboard";
-import { randomUUID } from "crypto";
+
+// Use browser's built-in crypto — never import from Node's "crypto" in client code
+function uid(): string {
+  return crypto.randomUUID();
+}
 
 // ── HTML stripping ────────────────────────────────────────────────────────────
 
@@ -89,7 +93,7 @@ export async function parseApkgInBrowser(
     locateFile: () => "/sql-wasm.wasm",
   });
 
-  onProgress?.("Parsing cards…");
+  onProgress?.("Parsing cards — keep this tab open…");
   const db = new SQL.Database(new Uint8Array(dbBuffer));
 
   // Collection metadata
@@ -119,11 +123,12 @@ export async function parseApkgInBrowser(
   const today = new Date().toISOString().slice(0, 10);
   const now = new Date();
   const flashcards: Flashcard[] = [];
+  const rows = cardResults[0].values;
+  const total = rows.length;
 
-  let processed = 0;
-  const total = cardResults[0].values.length;
-
-  for (const row of cardResults[0].values) {
+  // Process synchronously — no setTimeout yields which would pause in background tabs
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
     const flds      = String(row[0]);
     const tags      = String(row[1]).trim();
     const mid       = String(row[2]);
@@ -143,7 +148,6 @@ export async function parseApkgInBrowser(
     const topic     = detectTopic(deckName);
     const easeFactor = Math.max(1.3, Math.min(3.0, factor > 0 ? factor / 1000 : 2.5));
 
-    // Compute scheduling state
     let nextReview: string;
     let state: Flashcard["state"];
     let interval: number;
@@ -177,24 +181,22 @@ export async function parseApkgInBrowser(
     if (isCloze) {
       for (const cc of parseClozeCards(fields)) {
         if (!cc.front.trim() || !cc.back.trim()) continue;
-        flashcards.push({ id: randomUUID(), front: cc.front, back: cc.back, ...base });
+        flashcards.push({ id: uid(), front: cc.front, back: cc.back, ...base });
       }
     } else {
       const front = stripHtml(fields[0] ?? "");
       const back  = stripHtml(fields[1] ?? "");
       if (front.trim() && back.trim()) {
-        flashcards.push({ id: randomUUID(), front, back, ...base });
+        flashcards.push({ id: uid(), front, back, ...base });
       }
     }
 
-    processed++;
-    if (processed % 500 === 0) {
-      onProgress?.(`Parsed ${processed.toLocaleString()} / ${total.toLocaleString()} cards…`);
-      // Yield to keep UI responsive
-      await new Promise(r => setTimeout(r, 0));
+    // Update progress every 1000 cards without yielding (safe across tab switches)
+    if (i % 1000 === 0 && i > 0) {
+      onProgress?.(`Parsed ${i.toLocaleString()} / ${total.toLocaleString()} cards…`);
     }
   }
 
-  onProgress?.(`Done — ${flashcards.length.toLocaleString()} cards parsed`);
+  onProgress?.(`Done — ${flashcards.length.toLocaleString()} cards ready`);
   return flashcards;
 }

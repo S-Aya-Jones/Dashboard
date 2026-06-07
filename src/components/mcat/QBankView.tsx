@@ -12,7 +12,7 @@ import {
   BookOpen,
   CheckCircle,
   XCircle,
-
+  Trash2,
   BarChart2,
   Loader2,
   Plus,
@@ -453,10 +453,24 @@ export function QBankView({ data, update }: Props) {
     return "#E2D9FF";
   }
 
+  // ─── Delete helpers ──────────────────────────────────────────────────────
+
+  function deleteSession(sessionId: string) {
+    update(d => ({ ...d, mcatQuizSessions: (d.mcatQuizSessions ?? []).filter(s => s.id !== sessionId) }));
+  }
+
+  function clearAllSessions() {
+    update(d => ({ ...d, mcatQuizSessions: [] }));
+  }
+
+  function clearQBank() {
+    update(d => ({ ...d, mcatQuestions: [] }));
+  }
+
   // ─── Sessions summary ─────────────────────────────────────────────────────
 
   const pastSessions = data.mcatQuizSessions ?? [];
-  const recentSessions = [...pastSessions].reverse().slice(0, 3);
+  const recentSessions = [...pastSessions].reverse().slice(0, 5);
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
@@ -687,9 +701,17 @@ export function QBankView({ data, update }: Props) {
             </p>
           )}
           {(data.mcatQuestions?.length ?? 0) > 0 && (
-            <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--text-muted)" }}>
-              {data.mcatQuestions!.length} questions in your bank · {data.mcatQuizSessions?.length ?? 0} sessions completed
-            </p>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
+              <p style={{ margin: 0, fontSize: 12, color: "var(--text-muted)" }}>
+                {data.mcatQuestions!.length} questions in your bank · {data.mcatQuizSessions?.length ?? 0} sessions completed
+              </p>
+              <button
+                onClick={() => { if (confirm("Delete all questions from your Q Bank?")) clearQBank(); }}
+                style={{ fontSize: 11, color: "var(--red, #EF4444)", background: "none", border: "none", cursor: "pointer", fontWeight: 600, display: "flex", alignItems: "center", gap: 3 }}
+              >
+                <Trash2 size={11} /> Clear bank
+              </button>
+            </div>
           )}
         </div>
 
@@ -885,9 +907,17 @@ export function QBankView({ data, update }: Props) {
         {/* Recent sessions */}
         {recentSessions.length > 0 && (
           <div>
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", marginBottom: 12 }}>
-              Recent Sessions
-            </h3>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+              <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", margin: 0 }}>
+                Recent Sessions
+              </h3>
+              <button
+                onClick={() => { if (confirm("Delete all quiz sessions?")) clearAllSessions(); }}
+                style={{ fontSize: 12, color: "var(--red, #EF4444)", background: "none", border: "none", cursor: "pointer", fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}
+              >
+                <Trash2 size={12} /> Clear all
+              </button>
+            </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {recentSessions.map((sess) => {
                 const correct = sess.attempts.filter((a) => a.correct).length;
@@ -902,21 +932,15 @@ export function QBankView({ data, update }: Props) {
                   >
                     <div
                       style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 10,
+                        width: 40, height: 40, borderRadius: 10,
                         background: `${grade.color}18`,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontWeight: 800,
-                        fontSize: 14,
-                        color: grade.color,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontWeight: 800, fontSize: 14, color: grade.color, flexShrink: 0,
                       }}
                     >
                       {p}%
                     </div>
-                    <div style={{ flex: 1 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "var(--text)" }}>
                         {correct}/{total} correct · {sess.mode === "tutor" ? "Tutor" : "Timed"}
                       </p>
@@ -930,6 +954,13 @@ export function QBankView({ data, update }: Props) {
                     <span style={{ fontSize: 12, fontWeight: 700, color: grade.color }}>
                       {grade.label}
                     </span>
+                    <button
+                      onClick={() => deleteSession(sess.id)}
+                      title="Delete this session"
+                      style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 4, flexShrink: 0 }}
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 );
               })}
