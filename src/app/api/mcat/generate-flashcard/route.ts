@@ -66,9 +66,12 @@ Make the cards useful for MCAT preparation — test conceptual understanding, ke
       tags: [],
       deck: "MCAT",
       createdAt: new Date().toISOString(),
-      interval: 1,
+      state: "new" as const,
+      interval: 0,
       easeFactor: 2.5,
       repetitions: 0,
+      lapses: 0,
+      learningStep: 0,
       nextReview: today,
     }));
 

@@ -324,20 +324,27 @@ export function QBankView({ data, update }: Props) {
 
   // ─── File import ─────────────────────────────────────────────────────────
 
-  const importFile = async (file: File) => {
+  const importFiles = async (files: FileList) => {
     setImporting(true);
     setUploadError(null);
+    let totalImported = 0;
+    let totalSkipped = 0;
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/mcat/extract", { method: "POST", body: fd });
-      const j = await res.json();
-      if (j.error) { setUploadError(j.error); return; }
-      // Merge new questions into data, avoid duplicates by stem
-      const existing = new Set((data.mcatQuestions ?? []).map(q => q.stem.slice(0, 50)));
-      const fresh = (j.questions as MCATQuestion[]).filter(q => !existing.has(q.stem.slice(0, 50)));
-      update(d => ({ ...d, mcatQuestions: [...(d.mcatQuestions ?? []), ...fresh] }));
-      setUploadError(`✓ Imported ${fresh.length} questions (${j.count - fresh.length} duplicates skipped)`);
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        setUploadError(`Processing ${file.name} (${i + 1}/${files.length})…`);
+        const fd = new FormData();
+        fd.append("file", file);
+        const res = await fetch("/api/mcat/extract", { method: "POST", body: fd });
+        const j = await res.json();
+        if (j.error) { setUploadError(`Error in ${file.name}: ${j.error}`); continue; }
+        const existing = new Set((data.mcatQuestions ?? []).map(q => q.stem.slice(0, 50)));
+        const fresh = (j.questions as MCATQuestion[]).filter(q => !existing.has(q.stem.slice(0, 50)));
+        update(d => ({ ...d, mcatQuestions: [...(d.mcatQuestions ?? []), ...fresh] }));
+        totalImported += fresh.length;
+        totalSkipped  += (j.count - fresh.length);
+      }
+      setUploadError(`✓ Imported ${totalImported} questions across ${files.length} file${files.length > 1 ? "s" : ""}${totalSkipped > 0 ? ` (${totalSkipped} duplicates skipped)` : ""}`);
     } catch {
       setUploadError("Upload failed — try again");
     } finally {
@@ -628,7 +635,7 @@ export function QBankView({ data, update }: Props) {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
             <div>
               <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "var(--text)" }}>Import from file</p>
-              <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--text-muted)" }}>Upload .docx, .txt — Claude will extract and structure all questions automatically</p>
+              <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--text-muted)" }}>Upload multiple .docx or .txt files — Claude extracts and structures all questions automatically</p>
             </div>
             <button
               onClick={() => fileInputRef.current?.click()}
@@ -658,7 +665,8 @@ export function QBankView({ data, update }: Props) {
             type="file"
             accept=".docx,.txt,.pdf"
             style={{ display: "none" }}
-            onChange={e => { const f = e.target.files?.[0]; if (f) importFile(f); e.target.value = ""; }}
+            multiple
+            onChange={e => { if (e.target.files?.length) importFiles(e.target.files); e.target.value = ""; }}
           />
           {uploadError && (
             <p style={{ margin: "8px 0 0", fontSize: 12, color: uploadError.startsWith("✓") ? "var(--green, #10B981)" : "var(--red, #EF4444)" }}>

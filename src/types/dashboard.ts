@@ -515,11 +515,15 @@ export interface Flashcard {
   tags: string[];
   deck: string;
   createdAt: string;
-  interval: number;       // days until next review
-  easeFactor: number;     // default 2.5
-  repetitions: number;
-  nextReview: string;     // YYYY-MM-DD
-  lastReview?: string;
+  // Anki SM-2 / Miles Down compatible fields
+  state: "new" | "learning" | "review" | "relearning";
+  interval: number;       // days (review state) or ignored (learning state)
+  easeFactor: number;     // default 2.5 (250%)
+  repetitions: number;    // successful consecutive reviews
+  lapses: number;         // times failed as a review card
+  learningStep: number;   // current index in learning/relearning steps array
+  nextReview: string;     // ISO timestamp for learning/relearning; YYYY-MM-DD for review
+  lastReview?: string;    // ISO timestamp of last rating
 }
 
 export interface FlashcardReviewLog {

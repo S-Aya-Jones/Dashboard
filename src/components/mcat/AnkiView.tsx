@@ -7,40 +7,105 @@ import {
 } from "lucide-react";
 import { Flashcard, FlashcardReviewLog, DashboardData } from "@/types/dashboard";
 import { id } from "@/lib/utils";
-import { format, addDays, parseISO, isToday, isPast } from "date-fns";
+import { format, addDays, parseISO } from "date-fns";
 
-// ── SM-2 Algorithm ──────────────────────────────────────────────────────────
+// ── Miles Down / Anki SM-2 Algorithm ────────────────────────────────────────
+// Matches MilesDown MCAT deck settings exactly:
+// Learning steps: 1m 10m | Graduating: 1d | Easy: 4d
+// Ease: 2.5 start | Hard: ×1.2 -15% ease | Easy bonus: ×1.3 +15% ease
+// Lapse: relearn 10m, new interval = 0% of old (reset to 1d), ease -20%
 
-function sm2Update(card: Flashcard, rating: 0 | 1 | 2 | 3): Partial<Flashcard> {
-  let { interval, easeFactor, repetitions } = card;
-  if (rating === 0) {
-    interval = 1; repetitions = 0;
-    easeFactor = Math.max(1.3, easeFactor - 0.2);
-  } else if (rating === 1) {
-    interval = Math.max(1, Math.round(interval * 1.2));
-    easeFactor = Math.max(1.3, easeFactor - 0.15);
-  } else if (rating === 2) {
-    if (repetitions === 0) interval = 1;
-    else if (repetitions === 1) interval = 6;
-    else interval = Math.round(interval * easeFactor);
-    repetitions++;
-  } else {
-    if (repetitions === 0) interval = 4;
-    else interval = Math.round(interval * easeFactor * 1.3);
-    repetitions++;
-    easeFactor = Math.min(3.0, easeFactor + 0.15);
+const MD = {
+  learnSteps:    [1, 10],   // minutes
+  relearnSteps:  [10],      // minutes
+  graduateInt:   1,         // days
+  easyInt:       4,         // days
+  startEase:     2.5,
+  hardMult:      1.2,
+  easyBonus:     1.3,
+  intMod:        1.0,
+  newIntMult:    0.0,       // lapse resets interval to 1d
+  maxInt:        36500,
+  leechAt:       8,
+};
+
+function minutesFromNow(mins: number): string {
+  return new Date(Date.now() + mins * 60_000).toISOString();
+}
+
+function milesDown(card: Flashcard, rating: 0 | 1 | 2 | 3): Partial<Flashcard> {
+  const now = new Date();
+  const ef  = card.easeFactor ?? MD.startEase;
+
+  if (card.state === "new" || card.state === "learning") {
+    if (rating === 0) {
+      return { state: "learning", learningStep: 0, nextReview: minutesFromNow(MD.learnSteps[0]), lastReview: now.toISOString() };
+    }
+    if (rating === 1) {
+      // Hard: repeat current step
+      const step = MD.learnSteps[card.learningStep] ?? MD.learnSteps[MD.learnSteps.length - 1];
+      return { state: "learning", learningStep: card.learningStep, nextReview: minutesFromNow(step), lastReview: now.toISOString() };
+    }
+    if (rating === 3) {
+      // Easy: skip straight to easy interval
+      return { state: "review", interval: MD.easyInt, learningStep: 0, repetitions: 1, easeFactor: Math.min(3.0, ef + 0.15), nextReview: format(addDays(now, MD.easyInt), "yyyy-MM-dd"), lastReview: now.toISOString() };
+    }
+    // Good: advance step or graduate
+    const next = card.learningStep + 1;
+    if (next >= MD.learnSteps.length) {
+      return { state: "review", interval: MD.graduateInt, learningStep: 0, repetitions: 1, nextReview: format(addDays(now, MD.graduateInt), "yyyy-MM-dd"), lastReview: now.toISOString() };
+    }
+    return { state: "learning", learningStep: next, nextReview: minutesFromNow(MD.learnSteps[next]), lastReview: now.toISOString() };
   }
-  const nextReview = format(addDays(new Date(), interval), "yyyy-MM-dd");
-  return { interval, easeFactor, repetitions, nextReview, lastReview: format(new Date(), "yyyy-MM-dd") };
+
+  if (card.state === "relearning") {
+    if (rating === 0) {
+      return { state: "relearning", learningStep: 0, nextReview: minutesFromNow(MD.relearnSteps[0]), lastReview: now.toISOString() };
+    }
+    // Hard/Good/Easy: graduate from relearning with minimum 1d
+    const newInt = Math.max(1, Math.round(card.interval * MD.newIntMult) || 1);
+    return { state: "review", interval: newInt, learningStep: 0, repetitions: card.repetitions + 1, nextReview: format(addDays(now, newInt), "yyyy-MM-dd"), lastReview: now.toISOString() };
+  }
+
+  // Review state
+  if (rating === 0) {
+    // Lapse → relearning
+    const newInt = Math.max(1, Math.round(card.interval * MD.newIntMult) || 1);
+    return { state: "relearning", learningStep: 0, interval: newInt, lapses: (card.lapses ?? 0) + 1, easeFactor: Math.max(1.3, ef - 0.2), nextReview: minutesFromNow(MD.relearnSteps[0]), lastReview: now.toISOString() };
+  }
+  if (rating === 1) {
+    const newInt = Math.min(MD.maxInt, Math.max(card.interval + 1, Math.round(card.interval * MD.hardMult * MD.intMod)));
+    return { state: "review", interval: newInt, easeFactor: Math.max(1.3, ef - 0.15), repetitions: card.repetitions + 1, nextReview: format(addDays(now, newInt), "yyyy-MM-dd"), lastReview: now.toISOString() };
+  }
+  if (rating === 2) {
+    const newInt = Math.min(MD.maxInt, Math.max(card.interval + 1, Math.round(card.interval * ef * MD.intMod)));
+    return { state: "review", interval: newInt, repetitions: card.repetitions + 1, nextReview: format(addDays(now, newInt), "yyyy-MM-dd"), lastReview: now.toISOString() };
+  }
+  // Easy
+  const newInt = Math.min(MD.maxInt, Math.max(card.interval + 1, Math.round(card.interval * ef * MD.easyBonus * MD.intMod)));
+  return { state: "review", interval: newInt, easeFactor: Math.min(3.0, ef + 0.15), repetitions: card.repetitions + 1, nextReview: format(addDays(now, newInt), "yyyy-MM-dd"), lastReview: now.toISOString() };
 }
 
 function previewInterval(card: Flashcard, rating: 0 | 1 | 2 | 3): string {
-  const updated = sm2Update(card, rating);
+  const updated = milesDown(card, rating);
+  if (updated.state === "learning" || updated.state === "relearning") {
+    const ms  = new Date(updated.nextReview as string).getTime() - Date.now();
+    const min = Math.round(ms / 60_000);
+    return min < 60 ? `${min}m` : `${Math.round(min / 60)}h`;
+  }
   const days = updated.interval ?? 1;
-  if (days === 1) return "1d";
-  if (days < 30) return `${days}d`;
-  const weeks = Math.round(days / 7);
-  return `${weeks}w`;
+  if (days < 7)   return `${days}d`;
+  if (days < 30)  return `${Math.round(days / 7)}w`;
+  if (days < 365) return `${Math.round(days / 30)}mo`;
+  return `${Math.round(days / 365)}y`;
+}
+
+function isDueNow(card: Flashcard): boolean {
+  if (card.state === "new") return true;
+  if (card.state === "learning" || card.state === "relearning") {
+    return new Date(card.nextReview) <= new Date();
+  }
+  try { return parseISO(card.nextReview) <= new Date(); } catch { return true; }
 }
 
 // ── MCAT Subjects ───────────────────────────────────────────────────────────
@@ -99,10 +164,7 @@ export function AnkiView({ data, update }: Props) {
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
 
   // Computed
-  const dueCards = flashcards.filter(c => {
-    const d = parseISO(c.nextReview);
-    return isToday(d) || isPast(d);
-  });
+  const dueCards = flashcards.filter(isDueNow);
 
   const decks = Array.from(new Set(flashcards.map(c => c.deck)));
 
@@ -141,7 +203,7 @@ export function AnkiView({ data, update }: Props) {
     if (!card) return;
 
     const responseTimeMs = Date.now() - reviewStart;
-    const updates = sm2Update(card, rating);
+    const updates = milesDown(card, rating);
 
     const reviewLog: FlashcardReviewLog = {
       cardId: card.id,
@@ -188,9 +250,12 @@ export function AnkiView({ data, update }: Props) {
       topic: topic.trim() || undefined,
       tags: tags.split(",").map(t => t.trim()).filter(Boolean),
       createdAt: new Date().toISOString(),
-      interval: 1,
-      easeFactor: 2.5,
+      state: "new" as const,
+      interval: 0,
+      easeFactor: MD.startEase,
       repetitions: 0,
+      lapses: 0,
+      learningStep: 0,
       nextReview: format(new Date(), "yyyy-MM-dd"),
     };
     update(d => ({ ...d, flashcards: [...(d.flashcards ?? []), newCard] }));
