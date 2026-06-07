@@ -822,7 +822,7 @@ export function AnkiView({ data, update }: Props) {
   const sessionCounts = computeSessionCounts(null);
   const deckStatsList = decks.map(d => {
     const counts = computeSessionCounts(d);
-    return { name: d, total: flashcards.filter(c => c.deck === d).length, ...counts };
+    return { name: d, cardCount: flashcards.filter(c => c.deck === d).length, ...counts };
   });
 
   return (
@@ -940,25 +940,25 @@ export function AnkiView({ data, update }: Props) {
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {deckStatsList.map(d => (
               <div key={d.name} className="card"
-                style={{ padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: d.total > 0 ? "pointer" : "default" }}
-                onClick={d.total > 0 ? () => startReview(d.name) : undefined}
+                style={{ padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: d.cardCount > 0 ? "pointer" : "default" }}
+                onClick={d.cardCount > 0 ? () => startReview(d.name) : undefined}
               >
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>{d.name}</div>
                   <div style={{ display: "flex", gap: 12, fontSize: 13 }}>
-                    <span style={{ color: "var(--text-muted)" }}>{d.total} cards</span>
+                    <span style={{ color: "var(--text-muted)" }}>{d.cardCount} cards</span>
                     {d.learnCount > 0 && <span style={{ color: "#3B82F6", fontWeight: 600 }}>● {d.learnCount} learning</span>}
                     {d.reviewCount > 0 && <span style={{ color: "var(--red)", fontWeight: 600 }}>● {d.reviewCount} review</span>}
                     {d.newCount > 0 && <span style={{ color: "var(--green)", fontWeight: 600 }}>● {d.newCount} new</span>}
                     {d.total === 0 && <span style={{ color: "var(--green)" }}>All caught up!</span>}
                   </div>
                 </div>
-                {d.total > 0 && (
+                {d.cardCount > 0 && (
                   <button
                     onClick={e => { e.stopPropagation(); startReview(d.name); }}
                     style={{ padding: "8px 18px", borderRadius: 10, border: "none", cursor: "pointer", background: "var(--grad)", color: "#fff", fontWeight: 700, fontSize: 13, flexShrink: 0 }}
                   >
-                    Study ({d.total})
+                    Study ({d.cardCount})
                   </button>
                 )}
               </div>
