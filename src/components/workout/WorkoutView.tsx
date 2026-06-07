@@ -48,14 +48,14 @@ function ProgramOverview({ onClose }: { onClose: () => void }) {
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
 
   return (
-    <div className="absolute inset-0 flex flex-col overflow-hidden" style={{ background: "#0A0A0A", zIndex: 80 }}>
+    <div className="absolute inset-0 flex flex-col overflow-hidden" style={{ background: "var(--bg)", zIndex: 80 }}>
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 flex-shrink-0 border-b" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
+      <div className="flex items-center justify-between px-5 py-4 flex-shrink-0 border-b" style={{ borderColor: "var(--border)" }}>
         <div>
-          <h2 className="font-serif text-xl text-white">6-Week Program</h2>
-          <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>Full schedule — tap a day to expand</p>
+          <h2 className="font-serif text-xl" style={{ color: "var(--text)" }}>6-Week Program</h2>
+          <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>Full schedule — tap a day to expand</p>
         </div>
-        <button onClick={onClose} className="p-2 rounded-xl" style={{ color: "rgba(255,255,255,0.4)" }}>
+        <button onClick={onClose} className="p-2 rounded-xl" style={{ color: "var(--text-muted)" }}>
           <X size={18} />
         </button>
       </div>
@@ -64,18 +64,18 @@ function ProgramOverview({ onClose }: { onClose: () => void }) {
 
         {/* Week phases */}
         <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-widest px-1" style={{ color: "rgba(255,255,255,0.4)" }}>Week Phases</p>
+          <p className="text-xs font-semibold uppercase tracking-widest px-1" style={{ color: "var(--text-muted)" }}>Week Phases</p>
           {[
-            { weeks: "Weeks 1–2", label: "Building the Foundation", color: "#C8FF00", desc: "Focus on form and mind-muscle connection. Moderate weight." },
+            { weeks: "Weeks 1–2", label: "Building the Foundation", color: "#7C5CFC", desc: "Focus on form and mind-muscle connection. Moderate weight." },
             { weeks: "Weeks 3–4", label: "Progressive Overload", color: "#9B7FFF", desc: "Add weight every session. Last reps should be hard." },
             { weeks: "Week 4", label: "Deload — Let It Grow", color: "#DA667B", desc: "Drop all weights by 40%. Your body grows during recovery." },
             { weeks: "Weeks 5–6", label: "Peak Intensity", color: "#C99A5C", desc: "Heaviest weights yet. Push every set to near failure." },
           ].map(({ weeks, label, color, desc }) => (
-            <div key={weeks} className="rounded-xl px-4 py-3 flex items-start gap-3" style={{ background: "#141414", border: "1px solid rgba(255,255,255,0.06)" }}>
+            <div key={weeks} className="rounded-xl px-4 py-3 flex items-start gap-3" style={{ background: "#FAF8FF", border: "1px solid var(--border)" }}>
               <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1.5" style={{ background: color }} />
               <div>
                 <p className="text-xs font-semibold" style={{ color }}>{weeks} · {label}</p>
-                <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.45)" }}>{desc}</p>
+                <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>{desc}</p>
               </div>
             </div>
           ))}
@@ -83,33 +83,33 @@ function ProgramOverview({ onClose }: { onClose: () => void }) {
 
         {/* Daily schedule */}
         <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-widest px-1" style={{ color: "rgba(255,255,255,0.4)" }}>Daily Schedule</p>
+          <p className="text-xs font-semibold uppercase tracking-widest px-1" style={{ color: "var(--text-muted)" }}>Daily Schedule</p>
           {PROGRAM.map((day) => {
             const isExpanded = expandedDay === day.id;
             const fullList = buildFullExerciseList(day);
             return (
-              <div key={day.id} className="rounded-2xl overflow-hidden" style={{ background: "#141414", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <div key={day.id} className="rounded-2xl overflow-hidden" style={{ background: "#FAF8FF", border: "1px solid var(--border)" }}>
                 <button className="w-full flex items-center justify-between px-4 py-3.5 text-left"
                   onClick={() => setExpandedDay(isExpanded ? null : day.id)}>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: day.isGluteDay ? "#C8FF00" : "rgba(255,255,255,0.4)" }}>
+                      <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: day.isGluteDay ? "#7C5CFC" : "var(--text-muted)" }}>
                         {WEEK_DAYS[day.weekday]}
                       </span>
                       {day.isGluteDay && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold" style={{ background: "rgba(200,255,0,0.1)", color: "#C8FF00" }}>Glute Day</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold" style={{ background: "rgba(124,92,252,0.1)", color: "#7C5CFC" }}>Glute Day</span>
                       )}
                     </div>
-                    <p className="font-serif text-base text-white mt-0.5">{day.label}</p>
-                    <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>
+                    <p className="font-serif text-base mt-0.5" style={{ color: "var(--text)" }}>{day.label}</p>
+                    <p className="text-xs mt-0.5" style={{ color: "var(--text-light)" }}>
                       {fullList.length} exercises · ~{day.estimatedMinutes} min
                     </p>
                   </div>
-                  <ChevronRight size={16} className={`flex-shrink-0 transition-transform ${isExpanded ? "rotate-90" : ""}`} style={{ color: "rgba(255,255,255,0.3)" }} />
+                  <ChevronRight size={16} className={`flex-shrink-0 transition-transform ${isExpanded ? "rotate-90" : ""}`} style={{ color: "var(--text-light)" }} />
                 </button>
 
                 {isExpanded && (
-                  <div className="px-4 pb-4 space-y-4 border-t" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
+                  <div className="px-4 pb-4 space-y-4 border-t" style={{ borderColor: "var(--border)" }}>
                     {/* Core primer */}
                     <div className="pt-3">
                       <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: "#DA667B" }}>Core Primer (every session)</p>
@@ -117,8 +117,8 @@ function ProgramOverview({ onClose }: { onClose: () => void }) {
                         {CORE_PRIMER.map((ex) => (
                           <div key={ex.id} className="flex items-center gap-2.5">
                             <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "#DA667B" }} />
-                            <span className="text-sm text-white">{ex.name}</span>
-                            <span className="ml-auto text-xs" style={{ color: "rgba(255,255,255,0.3)" }}>{ex.sets}×{ex.reps}</span>
+                            <span className="text-sm" style={{ color: "var(--text)" }}>{ex.name}</span>
+                            <span className="ml-auto text-xs" style={{ color: "var(--text-light)" }}>{ex.sets}×{ex.reps}</span>
                           </div>
                         ))}
                       </div>
@@ -132,8 +132,8 @@ function ProgramOverview({ onClose }: { onClose: () => void }) {
                           {HIP_FLEXOR_UNLOCK.map((ex) => (
                             <div key={ex.id} className="flex items-center gap-2.5">
                               <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "#C99A5C" }} />
-                              <span className="text-sm text-white">{ex.name}</span>
-                              <span className="ml-auto text-xs" style={{ color: "rgba(255,255,255,0.3)" }}>{ex.sets}×{ex.reps}</span>
+                              <span className="text-sm" style={{ color: "var(--text)" }}>{ex.name}</span>
+                              <span className="ml-auto text-xs" style={{ color: "var(--text-light)" }}>{ex.sets}×{ex.reps}</span>
                             </div>
                           ))}
                         </div>
@@ -142,18 +142,18 @@ function ProgramOverview({ onClose }: { onClose: () => void }) {
 
                     {/* Main exercises */}
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: "rgba(255,255,255,0.4)" }}>Main Work</p>
+                      <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: "var(--text-muted)" }}>Main Work</p>
                       <div className="space-y-2">
                         {day.mainExercises.map((ex) => {
-                          const dotColor = ex.category === "compound" ? "#C8FF00" : ex.category === "isolation" ? "#9B7FFF" : ex.category === "core" ? "#DA667B" : "#C99A5C";
+                          const dotColor = ex.category === "compound" ? "#7C5CFC" : ex.category === "isolation" ? "#9B7FFF" : ex.category === "core" ? "#DA667B" : "#C99A5C";
                           return (
                             <div key={ex.id}>
                               <div className="flex items-center gap-2.5">
                                 <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: dotColor }} />
-                                <span className="text-sm text-white">{ex.name}</span>
-                                <span className="ml-auto text-xs flex-shrink-0" style={{ color: "rgba(255,255,255,0.3)" }}>{ex.sets}×{ex.reps}</span>
+                                <span className="text-sm" style={{ color: "var(--text)" }}>{ex.name}</span>
+                                <span className="ml-auto text-xs flex-shrink-0" style={{ color: "var(--text-light)" }}>{ex.sets}×{ex.reps}</span>
                               </div>
-                              <p className="text-xs pl-4 mt-0.5 leading-snug" style={{ color: "rgba(255,255,255,0.35)" }}>{ex.formCue}</p>
+                              <p className="text-xs pl-4 mt-0.5 leading-snug" style={{ color: "var(--text-light)" }}>{ex.formCue}</p>
                             </div>
                           );
                         })}
@@ -167,11 +167,11 @@ function ProgramOverview({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* Program rules */}
-        <div className="rounded-2xl p-4 space-y-3" style={{ background: "#141414", border: "1px solid rgba(255,255,255,0.06)" }}>
-          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.4)" }}>Program Rules</p>
+        <div className="rounded-2xl p-4 space-y-3" style={{ background: "#FAF8FF", border: "1px solid var(--border)" }}>
+          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Program Rules</p>
           {[
-            { color: "#C8FF00", rule: "Core Primer every session — non-negotiable." },
-            { color: "#C8FF00", rule: "Hip Flexor Unlock before every glute day." },
+            { color: "#7C5CFC", rule: "Core Primer every session — non-negotiable." },
+            { color: "#7C5CFC", rule: "Hip Flexor Unlock before every glute day." },
             { color: "#9B7FFF", rule: "Mind-muscle connection > weight. Feel it or it doesn't count." },
             { color: "#9B7FFF", rule: "Add 5 lbs when 8 reps feel easy." },
             { color: "#DA667B", rule: "Week 4 deload is mandatory — that's when you grow." },
@@ -179,7 +179,7 @@ function ProgramOverview({ onClose }: { onClose: () => void }) {
           ].map(({ color, rule }, i) => (
             <div key={i} className="flex items-start gap-3">
               <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1.5" style={{ background: color }} />
-              <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.55)" }}>{rule}</p>
+              <p className="text-sm leading-relaxed" style={{ color: "var(--text-muted)" }}>{rule}</p>
             </div>
           ))}
         </div>
@@ -215,10 +215,10 @@ function MeasurementsCard({ data, update }: Props) {
   };
 
   return (
-    <div className="rounded-2xl p-5 space-y-4" style={{ background: "#141414", border: "1px solid rgba(200,255,0,0.15)" }}>
+    <div className="rounded-2xl p-5 space-y-4" style={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.15)" }}>
       <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold text-white">Measurements</p>
-        <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: "rgba(200,255,0,0.1)", color: "#C8FF00" }}>Most important</span>
+        <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>Measurements</p>
+        <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: "rgba(124,92,252,0.1)", color: "#7C5CFC" }}>Most important</span>
       </div>
       {latest && (
         <div className="grid grid-cols-4 gap-2 text-center">
@@ -228,9 +228,9 @@ function MeasurementsCard({ data, update }: Props) {
             { label: "Bust",  value: latest.bust ? `${latest.bust}"` : "—" },
             { label: "Ratio", value: ratio ? String(ratio) : "—", highlight: true },
           ].map(({ label, value, highlight }) => (
-            <div key={label} className="rounded-xl py-2.5" style={{ background: "#1A1A1A" }}>
-              <p className="font-serif text-lg text-white">{value}</p>
-              <p className="text-[10px] mt-0.5" style={{ color: highlight ? "#C8FF00" : "rgba(255,255,255,0.4)" }}>{label}</p>
+            <div key={label} className="rounded-xl py-2.5" style={{ background: "var(--bg2)" }}>
+              <p className="font-serif text-lg" style={{ color: "var(--text)" }}>{value}</p>
+              <p className="text-[10px] mt-0.5" style={{ color: highlight ? "#7C5CFC" : "var(--text-muted)" }}>{label}</p>
             </div>
           ))}
         </div>
@@ -244,11 +244,11 @@ function MeasurementsCard({ data, update }: Props) {
           ].map(({ placeholder, value, set }) => (
             <input key={placeholder} type="number" step="0.5" placeholder={placeholder} value={value}
               onChange={(e) => set(e.target.value)}
-              style={{ background: "#1C1C1C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "0.75rem", padding: "0.5rem 0.75rem", color: "#fff", fontSize: "0.875rem", width: "100%", outline: "none" }} />
+              style={{ background: "rgba(124,92,252,0.06)", border: "1px solid var(--border)", borderRadius: "0.75rem", padding: "0.5rem 0.75rem", color: "var(--text)", fontSize: "0.875rem", width: "100%", outline: "none" }} />
           ))}
         </div>
-        <button onClick={save} className="w-full py-2.5 rounded-xl text-sm font-semibold text-black"
-          style={{ background: saved ? "#9B7FFF" : "#C8FF00" }}>
+        <button onClick={save} className="w-full py-2.5 rounded-xl text-sm font-semibold"
+          style={{ background: saved ? "#9B7FFF" : "#7C5CFC", color: "#fff" }}>
           {saved ? "Saved" : "Log Measurements"}
         </button>
       </div>
@@ -281,29 +281,29 @@ function WeightCard({ data, update }: Props) {
   };
 
   return (
-    <div className="rounded-2xl p-5 space-y-3" style={{ background: "#141414", border: "1px solid rgba(255,255,255,0.06)" }}>
+    <div className="rounded-2xl p-5 space-y-3" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
       <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold text-white">Body Weight</p>
-        {current > 0 && <span className="font-serif text-xl text-white">{current} lbs</span>}
+        <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>Body Weight</p>
+        {current > 0 && <span className="font-serif text-xl" style={{ color: "var(--text)" }}>{current} lbs</span>}
       </div>
       {goalW > 0 && current > 0 && (
         <div className="space-y-1.5">
-          <div className="flex justify-between text-xs" style={{ color: "rgba(255,255,255,0.4)" }}>
+          <div className="flex justify-between text-xs" style={{ color: "var(--text-muted)" }}>
             <span>Goal: {goalW} lbs</span>
             <span>{Math.abs(current - goalW).toFixed(1)} lbs to go</span>
           </div>
-          <div className="h-2 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.07)" }}>
+          <div className="h-2 rounded-full overflow-hidden" style={{ background: "rgba(124,92,252,0.07)" }}>
             <div className="h-full rounded-full" style={{ width: `${Math.max(pct, 3)}%`, background: "#9B7FFF" }} />
           </div>
         </div>
       )}
       <div className="flex gap-2">
         <input type="number" step="0.5" placeholder="Today's weight" value={input} onChange={(e) => setInput(e.target.value)}
-          style={{ flex: 1, background: "#1C1C1C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "0.75rem", padding: "0.5rem 0.75rem", color: "#fff", fontSize: "0.875rem", outline: "none" }} />
+          style={{ flex: 1, background: "rgba(124,92,252,0.06)", border: "1px solid var(--border)", borderRadius: "0.75rem", padding: "0.5rem 0.75rem", color: "var(--text)", fontSize: "0.875rem", outline: "none" }} />
         <input type="number" step="0.5" placeholder="Goal" value={goal} onChange={(e) => setGoalIn(e.target.value)}
-          style={{ width: 80, background: "#1C1C1C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "0.75rem", padding: "0.5rem 0.75rem", color: "#fff", fontSize: "0.875rem", outline: "none" }} />
-        <button onClick={save} className="px-4 py-2 rounded-xl text-sm font-semibold text-black"
-          style={{ background: saved ? "#9B7FFF" : "#C8FF00", flexShrink: 0 }}>
+          style={{ width: 80, background: "rgba(124,92,252,0.06)", border: "1px solid var(--border)", borderRadius: "0.75rem", padding: "0.5rem 0.75rem", color: "var(--text)", fontSize: "0.875rem", outline: "none" }} />
+        <button onClick={save} className="px-4 py-2 rounded-xl text-sm font-semibold"
+          style={{ background: saved ? "#9B7FFF" : "#7C5CFC", color: "#fff", flexShrink: 0 }}>
           {saved ? "✓" : "Log"}
         </button>
       </div>
@@ -338,28 +338,28 @@ function WalkingCard({ data, update }: Props) {
   const maxSteps = Math.max(...weekSteps, 1);
 
   return (
-    <div className="rounded-2xl p-5 space-y-3" style={{ background: "#141414", border: "1px solid rgba(255,255,255,0.06)" }}>
+    <div className="rounded-2xl p-5 space-y-3" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
       <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold text-white">Walking</p>
+        <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>Walking</p>
         {todayLog?.steps && (
           <div className="text-right">
-            <span className="font-serif text-xl text-white">{todayLog.steps.toLocaleString()}</span>
-            <span className="text-xs ml-1" style={{ color: todayLog.steps >= 8000 ? "#C8FF00" : "rgba(255,255,255,0.4)" }}>steps</span>
+            <span className="font-serif text-xl" style={{ color: "var(--text)" }}>{todayLog.steps.toLocaleString()}</span>
+            <span className="text-xs ml-1" style={{ color: todayLog.steps >= 8000 ? "#7C5CFC" : "var(--text-muted)" }}>steps</span>
           </div>
         )}
       </div>
       <div className="flex gap-1 items-end" style={{ height: 32 }}>
         {weekSteps.map((s, i) => (
           <div key={i} className="flex-1 rounded-t-sm"
-            style={{ height: Math.max((s / maxSteps) * 32, s > 0 ? 3 : 2), background: s >= 8000 ? "#C8FF00" : s > 0 ? "#C99A5C" : "rgba(255,255,255,0.06)" }} />
+            style={{ height: Math.max((s / maxSteps) * 32, s > 0 ? 3 : 2), background: s >= 8000 ? "#7C5CFC" : s > 0 ? "#C99A5C" : "rgba(124,92,252,0.06)" }} />
         ))}
       </div>
       <div className="flex gap-2">
         <input type="number" placeholder="Steps" value={steps} onChange={(e) => setSteps(e.target.value)}
-          style={{ flex: 1, background: "#1C1C1C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "0.75rem", padding: "0.5rem 0.75rem", color: "#fff", fontSize: "0.875rem", outline: "none" }} />
+          style={{ flex: 1, background: "rgba(124,92,252,0.06)", border: "1px solid var(--border)", borderRadius: "0.75rem", padding: "0.5rem 0.75rem", color: "var(--text)", fontSize: "0.875rem", outline: "none" }} />
         <input type="number" step="0.1" placeholder="Miles" value={miles} onChange={(e) => setMiles(e.target.value)}
-          style={{ width: 80, background: "#1C1C1C", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "0.75rem", padding: "0.5rem 0.75rem", color: "#fff", fontSize: "0.875rem", outline: "none" }} />
-        <button onClick={save} className="px-4 py-2 rounded-xl text-sm font-semibold text-black" style={{ background: "#C8FF00", flexShrink: 0 }}>Log</button>
+          style={{ width: 80, background: "rgba(124,92,252,0.06)", border: "1px solid var(--border)", borderRadius: "0.75rem", padding: "0.5rem 0.75rem", color: "var(--text)", fontSize: "0.875rem", outline: "none" }} />
+        <button onClick={save} className="px-4 py-2 rounded-xl text-sm font-semibold" style={{ background: "#7C5CFC", color: "#fff", flexShrink: 0 }}>Log</button>
       </div>
     </div>
   );
@@ -369,17 +369,17 @@ function WalkingCard({ data, update }: Props) {
 
 // Day color theme
 const DAY_THEME: Record<string, { bg: string; accent: string; label: string }> = {
-  "mon-heavy-glutes":    { bg: "linear-gradient(135deg,#1a2200 0%,#0d0d0d 100%)", accent: "#C8FF00", label: "Glute Day" },
-  "tue-flexibility":     { bg: "linear-gradient(135deg,#1a0d2e 0%,#0d0d0d 100%)", accent: "#9B7FFF", label: "Flexibility" },
-  "wed-stretch-glutes":  { bg: "linear-gradient(135deg,#1a2200 0%,#0d0d0d 100%)", accent: "#C8FF00", label: "Glute Day" },
-  "thu-calisthenics":    { bg: "linear-gradient(135deg,#1f1500 0%,#0d0d0d 100%)", accent: "#C99A5C", label: "Skills" },
-  "fri-pump-glutes":     { bg: "linear-gradient(135deg,#1a2200 0%,#0d0d0d 100%)", accent: "#C8FF00", label: "Glute Day" },
-  "sat-flexibility-bridge": { bg: "linear-gradient(135deg,#1a0d2e 0%,#0d0d0d 100%)", accent: "#9B7FFF", label: "Flexibility" },
-  "sun-recovery":        { bg: "linear-gradient(135deg,#1f0a10 0%,#0d0d0d 100%)", accent: "#DA667B", label: "Recovery" },
+  "mon-heavy-glutes":    { bg: "linear-gradient(135deg,#ede8ff 0%,#f4f0fe 100%)", accent: "#7C5CFC", label: "Glute Day" },
+  "tue-flexibility":     { bg: "linear-gradient(135deg,#ede8ff 0%,#f4f0fe 100%)", accent: "#9B7FFF", label: "Flexibility" },
+  "wed-stretch-glutes":  { bg: "linear-gradient(135deg,#ede8ff 0%,#f4f0fe 100%)", accent: "#7C5CFC", label: "Glute Day" },
+  "thu-calisthenics":    { bg: "linear-gradient(135deg,#fdf4e8 0%,#f4f0fe 100%)", accent: "#C99A5C", label: "Skills" },
+  "fri-pump-glutes":     { bg: "linear-gradient(135deg,#ede8ff 0%,#f4f0fe 100%)", accent: "#7C5CFC", label: "Glute Day" },
+  "sat-flexibility-bridge": { bg: "linear-gradient(135deg,#ede8ff 0%,#f4f0fe 100%)", accent: "#9B7FFF", label: "Flexibility" },
+  "sun-recovery":        { bg: "linear-gradient(135deg,#fde8ed 0%,#f4f0fe 100%)", accent: "#DA667B", label: "Recovery" },
 };
 
 const BROWSE_CATEGORIES = [
-  { label: "Glute Days",      accent: "#C8FF00", ids: ["mon-heavy-glutes","wed-stretch-glutes","fri-pump-glutes"] },
+  { label: "Glute Days",      accent: "#7C5CFC", ids: ["mon-heavy-glutes","wed-stretch-glutes","fri-pump-glutes"] },
   { label: "Flexibility",     accent: "#9B7FFF", ids: ["tue-flexibility","sat-flexibility-bridge"] },
   { label: "Skills & Core",   accent: "#C99A5C", ids: ["thu-calisthenics"] },
   { label: "Recovery",        accent: "#DA667B", ids: ["sun-recovery"] },
@@ -424,16 +424,16 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
         {/* ── Header ── */}
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.35)" }}>
+            <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--text-light)" }}>
               {format(new Date(), "EEEE, MMMM d")}
             </p>
-            <h1 className="font-serif text-3xl text-white mt-0.5">Workout</h1>
+            <h1 className="font-serif text-3xl mt-0.5" style={{ color: "var(--text)" }}>Workout</h1>
           </div>
           {streak > 0 && (
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
-              style={{ background: "rgba(200,255,0,0.1)", border: "1px solid rgba(200,255,0,0.2)" }}>
-              <Flame size={13} style={{ color: "#C8FF00" }} />
-              <span className="text-sm font-semibold" style={{ color: "#C8FF00" }}>{streak} day streak</span>
+              style={{ background: "rgba(124,92,252,0.1)", border: "1px solid rgba(124,92,252,0.2)" }}>
+              <Flame size={13} style={{ color: "#7C5CFC" }} />
+              <span className="text-sm font-semibold" style={{ color: "#7C5CFC" }}>{streak} day streak</span>
             </div>
           )}
         </div>
@@ -441,15 +441,15 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
         {/* ── Stats tracker ── */}
         <div className="grid grid-cols-3 gap-2">
           {[
-            { value: totalCompleted, label: "Sessions", color: "#C8FF00", sub: "all time" },
+            { value: totalCompleted, label: "Sessions", color: "#7C5CFC", sub: "all time" },
             { value: weekDone,       label: "This Week", color: "#9B7FFF", sub: `of ${PROGRAM.length}` },
             { value: streak,         label: "Streak",    color: "#DA667B", sub: streak === 1 ? "day" : "days" },
           ].map(({ value, label, color, sub }) => (
             <div key={label} className="rounded-2xl p-4 text-center flex flex-col items-center gap-0.5"
-              style={{ background: "#141414", border: `1px solid ${color}22` }}>
+              style={{ background: "var(--surface)", border: `1px solid ${color}22` }}>
               <p className="font-serif text-3xl leading-none" style={{ color }}>{value}</p>
-              <p className="text-xs font-semibold mt-1" style={{ color: "rgba(255,255,255,0.7)" }}>{label}</p>
-              <p className="text-[10px]" style={{ color: "rgba(255,255,255,0.3)" }}>{sub}</p>
+              <p className="text-xs font-semibold mt-1" style={{ color: "var(--text)" }}>{label}</p>
+              <p className="text-[10px]" style={{ color: "var(--text-light)" }}>{sub}</p>
             </div>
           ))}
         </div>
@@ -463,13 +463,13 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
             return (
               <button key={d.id} onClick={() => onStartSession(d.id)}
                 className="flex-1 flex flex-col items-center gap-1.5 py-2.5 rounded-2xl transition-all active:scale-95"
-                style={{ background: isToday ? "rgba(200,255,0,0.1)" : "rgba(255,255,255,0.04)", border: `1px solid ${isToday ? "rgba(200,255,0,0.25)" : "transparent"}` }}>
-                <p className="text-[10px] font-semibold" style={{ color: isToday ? "#C8FF00" : "rgba(255,255,255,0.3)" }}>
+                style={{ background: isToday ? "rgba(124,92,252,0.1)" : "rgba(124,92,252,0.04)", border: `1px solid ${isToday ? "rgba(124,92,252,0.25)" : "transparent"}` }}>
+                <p className="text-[10px] font-semibold" style={{ color: isToday ? "#7C5CFC" : "var(--text-light)" }}>
                   {WEEK_DAYS[d.weekday]}
                 </p>
                 <div className="w-6 h-6 rounded-full flex items-center justify-center"
-                  style={{ background: done ? acc : isToday ? "rgba(200,255,0,0.2)" : "rgba(255,255,255,0.07)", border: isToday && !done ? `2px solid ${acc}` : "none" }}>
-                  {done && <span style={{ color: acc === "#C8FF00" ? "#000" : "#fff", fontSize: "0.6rem", fontWeight: 700 }}>✓</span>}
+                  style={{ background: done ? acc : isToday ? "rgba(124,92,252,0.2)" : "rgba(124,92,252,0.07)", border: isToday && !done ? `2px solid ${acc}` : "none" }}>
+                  {done && <span style={{ color: "#fff", fontSize: "0.6rem", fontWeight: 700 }}>✓</span>}
                 </div>
               </button>
             );
@@ -480,17 +480,17 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
         {w.programStartDate && (
           <div className="space-y-1.5">
             <div className="flex justify-between items-center">
-              <p className="text-xs font-semibold" style={{ color: phase?.isDeload ? "#DA667B" : "#C8FF00" }}>
+              <p className="text-xs font-semibold" style={{ color: phase?.isDeload ? "#DA667B" : "#7C5CFC" }}>
                 Week {weekNum} of 6{phase?.isDeload ? " — DELOAD" : ` · ${phase?.label}`}
               </p>
-              <button onClick={onViewProgram} className="text-xs" style={{ color: "rgba(255,255,255,0.35)" }}>
+              <button onClick={onViewProgram} className="text-xs" style={{ color: "var(--text-light)" }}>
                 Full plan →
               </button>
             </div>
-            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.08)" }}>
-              <div className="h-full rounded-full transition-all" style={{ width: `${(weekNum / 6) * 100}%`, background: phase?.isDeload ? "#DA667B" : "#C8FF00" }} />
+            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(124,92,252,0.08)" }}>
+              <div className="h-full rounded-full transition-all" style={{ width: `${(weekNum / 6) * 100}%`, background: phase?.isDeload ? "#DA667B" : "#7C5CFC" }} />
             </div>
-            <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.3)" }}>
+            <p className="text-[11px]" style={{ color: "var(--text-light)" }}>
               {weekDone}/{PROGRAM.length} workouts this week · {phase?.guidance}
             </p>
           </div>
@@ -512,7 +512,7 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
                 Today
               </span>
               <span className="text-xs font-semibold px-2.5 py-1 rounded-full"
-                style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.5)" }}>
+                style={{ background: "rgba(124,92,252,0.06)", color: "var(--text-muted)" }}>
                 {theme.label}
               </span>
               {todayDone && (
@@ -521,15 +521,15 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
               )}
             </div>
             <div>
-              <h2 className="font-serif leading-tight" style={{ fontSize: "2rem", color: "#fff" }}>{todayDay.label}</h2>
-              <p className="text-sm mt-1" style={{ color: "rgba(255,255,255,0.45)" }}>
+              <h2 className="font-serif leading-tight" style={{ fontSize: "2rem", color: "var(--text)" }}>{todayDay.label}</h2>
+              <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>
                 {buildFullExerciseList(todayDay).length} exercises · ~{todayDay.estimatedMinutes} min
                 {todayDay.isGluteDay ? " · Glute focus" : ""}
               </p>
             </div>
             <button
               className="px-6 py-3 rounded-2xl font-bold text-sm active:scale-95 transition-transform"
-              style={{ background: theme.accent, color: theme.accent === "#C8FF00" ? "#000" : "#fff" }}>
+              style={{ background: theme.accent, color: "#fff" }}>
               {todayDone ? "Repeat Workout →" : "Start Workout →"}
             </button>
           </div>
@@ -537,16 +537,16 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
 
         {/* ── No program banner ── */}
         {!w.programStartDate && (
-          <div className="rounded-2xl p-5 text-center space-y-3" style={{ background: "#141414", border: "1px solid rgba(200,255,0,0.2)" }}>
-            <p className="font-serif text-xl text-white">Start the 6-Week Program</p>
-            <p className="text-sm" style={{ color: "rgba(255,255,255,0.45)" }}>Heavy glutes, flat stomach, no bulk. Track your transformation.</p>
+          <div className="rounded-2xl p-5 text-center space-y-3" style={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.2)" }}>
+            <p className="font-serif text-xl" style={{ color: "var(--text)" }}>Start the 6-Week Program</p>
+            <p className="text-sm" style={{ color: "var(--text-muted)" }}>Heavy glutes, flat stomach, no bulk. Track your transformation.</p>
             <div className="flex gap-2 justify-center">
               <button onClick={startProgram}
-                className="px-6 py-3 rounded-2xl font-semibold text-black active:scale-95 transition-transform"
-                style={{ background: "#C8FF00" }}>Start Program</button>
+                className="px-6 py-3 rounded-2xl font-semibold active:scale-95 transition-transform"
+                style={{ background: "#7C5CFC", color: "#fff" }}>Start Program</button>
               <button onClick={onViewProgram}
                 className="px-6 py-3 rounded-2xl font-semibold text-sm active:scale-95 transition-transform"
-                style={{ background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.6)" }}>Preview</button>
+                style={{ background: "rgba(124,92,252,0.07)", color: "var(--text-muted)" }}>Preview</button>
             </div>
           </div>
         )}
@@ -558,7 +558,7 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
           return (
             <div key={cat.label} className="space-y-2.5">
               <div className="flex items-center justify-between px-0.5">
-                <p className="text-sm font-bold text-white">{cat.label}</p>
+                <p className="text-sm font-bold" style={{ color: "var(--text)" }}>{cat.label}</p>
                 <p className="text-xs font-semibold" style={{ color: cat.accent }}>{days.length} workout{days.length > 1 ? "s" : ""}</p>
               </div>
               <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
@@ -585,8 +585,8 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
                         )}
                         <div className="pt-1">
                           <p className="text-xs font-semibold" style={{ color: cat.accent }}>{WEEK_DAYS[d.weekday]}</p>
-                          <p className="font-serif text-sm text-white mt-0.5 leading-tight">{d.label}</p>
-                          <p className="text-[11px] mt-1" style={{ color: "rgba(255,255,255,0.35)" }}>
+                          <p className="font-serif text-sm mt-0.5 leading-tight" style={{ color: "var(--text)" }}>{d.label}</p>
+                          <p className="text-[11px] mt-1" style={{ color: "var(--text-muted)" }}>
                             ~{d.estimatedMinutes} min
                           </p>
                         </div>
@@ -600,22 +600,22 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
         })}
 
         {/* ── Settings ── */}
-        <div className="rounded-2xl px-5 py-4 space-y-4" style={{ background: "#141414", border: "1px solid rgba(255,255,255,0.06)" }}>
+        <div className="rounded-2xl px-5 py-4 space-y-4" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold" style={{ color: "rgba(255,255,255,0.5)" }}>Prep time per exercise</p>
-              <span className="text-sm font-semibold" style={{ color: prepTime > 0 ? "#C8FF00" : "rgba(255,255,255,0.3)" }}>
+              <p className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>Prep time per exercise</p>
+              <span className="text-sm font-semibold" style={{ color: prepTime > 0 ? "#7C5CFC" : "var(--text-light)" }}>
                 {prepTime === 0 ? "Off" : `${prepTime}s`}
               </span>
             </div>
             <input type="range" min={0} max={15} step={1} value={prepTime}
               onChange={(e) => setPrepTime(parseInt(e.target.value))}
-              className="w-full" style={{ accentColor: "#C8FF00", cursor: "pointer" }} />
+              className="w-full" style={{ accentColor: "#7C5CFC", cursor: "pointer" }} />
           </div>
-          <div className="flex items-center justify-between pt-2 border-t" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
+          <div className="flex items-center justify-between pt-2 border-t" style={{ borderColor: "var(--border)" }}>
             <div>
-              <p className="text-xs font-semibold" style={{ color: "rgba(255,255,255,0.5)" }}>Coaching Voice</p>
-              <p className="text-[11px] mt-0.5" style={{ color: "#C8FF00" }}>Aya — Custom Voice</p>
+              <p className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>Coaching Voice</p>
+              <p className="text-[11px] mt-0.5" style={{ color: "#7C5CFC" }}>Aya — Custom Voice</p>
             </div>
             <button onClick={async () => {
               try {
@@ -624,7 +624,7 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
                 new Audio(URL.createObjectURL(await res.blob())).play();
               } catch { /* blocked */ }
             }} className="text-xs px-2.5 py-1 rounded-lg active:scale-95 transition-transform"
-              style={{ background: "rgba(200,255,0,0.1)", color: "#C8FF00" }}>
+              style={{ background: "rgba(124,92,252,0.1)", color: "#7C5CFC" }}>
               Test voice
             </button>
           </div>
@@ -696,7 +696,7 @@ export function WorkoutView({ data, update }: Props) {
   // Full-screen session
   if (tab === "today" && activeDay) {
     return (
-      <div className="h-full" style={{ background: "#0A0A0A" }}>
+      <div className="h-full" style={{ background: "var(--bg)" }}>
         <SessionView
           day={activeDay}
           weekNum={weekNum}
@@ -715,7 +715,7 @@ export function WorkoutView({ data, update }: Props) {
   if (tab === "today" && !activeDay) setTab("home");
 
   return (
-    <div className="h-full flex flex-col overflow-hidden relative" style={{ background: "#0A0A0A" }}>
+    <div className="h-full flex flex-col overflow-hidden relative" style={{ background: "var(--bg)" }}>
       <div className="flex-1 overflow-hidden min-h-0">
         {tab === "home" && (
           <HomeTab data={data} update={update} onStartSession={startSession}
@@ -726,7 +726,7 @@ export function WorkoutView({ data, update }: Props) {
       </div>
 
       {/* Bottom nav */}
-      <div className="flex-shrink-0 flex border-t" style={{ background: "#0D0D0D", borderColor: "rgba(255,255,255,0.07)" }}>
+      <div className="flex-shrink-0 flex border-t" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
         {([["home", "Home", Home], ["today", "Today", Play], ["history", "History", TrendingUp]] as const).map(([tid, label, Icon]) => {
           const active = tab === tid;
           return (
@@ -740,7 +740,7 @@ export function WorkoutView({ data, update }: Props) {
                 }
               }}
               className="flex-1 flex flex-col items-center gap-1 py-3 transition-colors"
-              style={{ color: active ? "#C8FF00" : "rgba(255,255,255,0.35)" }}>
+              style={{ color: active ? "#7C5CFC" : "var(--text-light)" }}>
               <Icon size={18} />
               <span className="text-[10px] font-medium">{label}</span>
             </button>

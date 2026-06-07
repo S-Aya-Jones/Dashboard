@@ -28,8 +28,8 @@ const CATEGORIES = [
   { key: "health-mental" as const, label: "Health & Mental Health", icon: "🧠", color: "#8A9E87" },
   { key: "career" as const, label: "Career", icon: "💼", color: "#71816D" },
   { key: "personal" as const, label: "Personal", icon: "🌸", color: "#C99A5C" },
-  { key: "financial" as const, label: "Financial", icon: "💚", color: "#FFFFFF" },
-  { key: "spiritual" as const, label: "Spiritual", icon: "🙏", color: "rgba(255,255,255,0.3)" },
+  { key: "financial" as const, label: "Financial", icon: "💚", color: "#7C5CFC" },
+  { key: "spiritual" as const, label: "Spiritual", icon: "🙏", color: "#E879F9" },
 ];
 
 const CURRENT_QUARTER = "Q2-2026";
@@ -148,7 +148,7 @@ export function GoalsView({ data, update }: Props) {
                       className={`w-5 h-5 mt-0.5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${goal.done ? "border-transparent" : "border-sand hover:border-terracotta"}`}
                       style={goal.done ? { background: color, borderColor: color } : {}}
                     >
-                      {goal.done && <Check size={11} className="text-white" />}
+                      {goal.done && <Check size={11} />}
                     </button>
                     <div className="flex-1">
                       <p className={`text-sm ${goal.done ? "line-through text-sand-dark" : "text-brown"}`}>{goal.text}</p>

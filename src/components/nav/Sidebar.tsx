@@ -12,25 +12,25 @@ import { useState } from "react";
 import { SaveIndicator } from "@/components/ui/SaveIndicator";
 
 const navItems = [
-  { href: "/", label: "Today", icon: Sun },
-  { href: "/week", label: "This Week", icon: Calendar },
-  { href: "/habits", label: "Habits", icon: CheckSquare },
-  { href: "/exposure", label: "Exposure Therapy", icon: Brain },
-  { href: "/mcat", label: "MCAT Prep", icon: BookOpen },
-  { href: "/school", label: "School & Schedule", icon: Target },
-  { href: "/shadowing", label: "Shadowing", icon: Activity },
-  { href: "/fitness", label: "Fitness & Sleep", icon: Dumbbell },
-  { href: "/workout", label: "Workout", icon: Activity },
-  { href: "/skincare", label: "Skincare", icon: Sparkles },
-  { href: "/finances", label: "Finances", icon: DollarSign },
-  { href: "/connections", label: "Connections", icon: Users },
-  { href: "/messages", label: "Messages", icon: MessageSquare },
-  { href: "/wins", label: "Wins Jar", icon: Star },
-  { href: "/goals", label: "Goals", icon: Heart },
-  { href: "/books", label: "Books", icon: BookMarked },
-  { href: "/year", label: "Year View", icon: Globe },
-  { href: "/vision", label: "Vision", icon: Gem },
-  { href: "/nutrition", label: "Food Journal", icon: UtensilsCrossed },
+  { href: "/",          label: "Today",            icon: Sun },
+  { href: "/week",      label: "This Week",        icon: Calendar },
+  { href: "/habits",    label: "Habits",           icon: CheckSquare },
+  { href: "/exposure",  label: "Exposure Therapy", icon: Brain },
+  { href: "/mcat",      label: "MCAT Prep",        icon: BookOpen },
+  { href: "/school",    label: "School & Schedule", icon: Target },
+  { href: "/shadowing", label: "Shadowing",        icon: Activity },
+  { href: "/fitness",   label: "Fitness & Sleep",  icon: Dumbbell },
+  { href: "/workout",   label: "Workout",          icon: Activity },
+  { href: "/skincare",  label: "Skincare",         icon: Sparkles },
+  { href: "/finances",  label: "Finances",         icon: DollarSign },
+  { href: "/connections",label:"Connections",      icon: Users },
+  { href: "/messages",  label: "Messages",         icon: MessageSquare },
+  { href: "/wins",      label: "Wins Jar",         icon: Star },
+  { href: "/goals",     label: "Goals",            icon: Heart },
+  { href: "/books",     label: "Books",            icon: BookMarked },
+  { href: "/year",      label: "Year View",        icon: Globe },
+  { href: "/vision",    label: "Vision",           icon: Gem },
+  { href: "/nutrition", label: "Food Journal",     icon: UtensilsCrossed },
 ];
 
 interface SidebarProps {
@@ -43,24 +43,40 @@ export function Sidebar({ saving = false }: SidebarProps) {
 
   return (
     <aside
-      className={`
-        flex flex-col h-screen sticky top-0
-        border-r border-white/8 transition-all duration-300
-        ${collapsed ? "w-16" : "w-56"}
-      `}
-      style={{ background: "#0D0D0D" }}
+      className={`flex flex-col h-screen sticky top-0 transition-all duration-300 ${collapsed ? "w-16" : "w-56"}`}
+      style={{
+        background: "var(--surface)",
+        borderRight: "1.5px solid var(--border)",
+        boxShadow: "4px 0 24px rgba(124,92,252,0.08)",
+      }}
     >
       {/* Logo */}
       <div className={`px-4 pt-6 pb-4 flex items-center ${collapsed ? "justify-center" : "justify-between"}`}>
         {!collapsed && (
           <div>
-            <h1 className="font-serif text-2xl text-white leading-tight">Aya&apos;s</h1>
-            <p className="text-xs font-medium tracking-wide" style={{ color: "#C8FF00" }}>Dashboard</p>
+            <h1
+              className="font-serif text-2xl leading-tight"
+              style={{ background: "var(--grad)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}
+            >
+              Aya&apos;s
+            </h1>
+            <p className="text-xs font-semibold tracking-wider" style={{ color: "var(--text-muted)" }}>
+              Dashboard
+            </p>
           </div>
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="p-1.5 rounded-lg text-white/30 hover:text-white hover:bg-white/5 transition-colors"
+          className="p-1.5 rounded-lg transition-colors"
+          style={{ color: "var(--text-muted)" }}
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLElement).style.background = "var(--bg)";
+            (e.currentTarget as HTMLElement).style.color = "var(--purple)";
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLElement).style.background = "transparent";
+            (e.currentTarget as HTMLElement).style.color = "var(--text-muted)";
+          }}
         >
           {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </button>
@@ -74,16 +90,28 @@ export function Sidebar({ saving = false }: SidebarProps) {
             <Link
               key={href}
               href={href}
-              className={`
-                flex items-center gap-3 px-3 py-2.5 rounded-xl
-                text-sm transition-all duration-150
-                ${active
-                  ? "shadow-soft"
-                  : "text-white/50 hover:text-white hover:bg-white/5"
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-150 ${collapsed ? "justify-center" : ""}`}
+              style={active
+                ? {
+                    background: "linear-gradient(135deg, rgba(124,92,252,0.15) 0%, rgba(232,121,249,0.12) 100%)",
+                    color: "var(--purple)",
+                    fontWeight: 600,
+                    boxShadow: "inset 2px 0 0 var(--purple)",
+                  }
+                : { color: "var(--text-muted)" }
+              }
+              onMouseEnter={e => {
+                if (!active) {
+                  (e.currentTarget as HTMLElement).style.background = "var(--bg)";
+                  (e.currentTarget as HTMLElement).style.color = "var(--purple)";
                 }
-                ${collapsed ? "justify-center" : ""}
-              `}
-              style={active ? { color: "#C8FF00", background: "rgba(200,255,0,0.1)" } : undefined}
+              }}
+              onMouseLeave={e => {
+                if (!active) {
+                  (e.currentTarget as HTMLElement).style.background = "transparent";
+                  (e.currentTarget as HTMLElement).style.color = "var(--text-muted)";
+                }
+              }}
               title={collapsed ? label : undefined}
             >
               <Icon size={17} className="flex-shrink-0" />
@@ -95,7 +123,7 @@ export function Sidebar({ saving = false }: SidebarProps) {
 
       {/* Save indicator */}
       {!collapsed && (
-        <div className="px-4 pb-4">
+        <div className="px-4 pb-6">
           <SaveIndicator saving={saving} />
         </div>
       )}

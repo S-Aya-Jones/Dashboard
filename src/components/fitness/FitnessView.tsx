@@ -53,7 +53,7 @@ function workoutColor(type: string): string {
   for (const [key, color] of WORKOUT_COLORS) {
     if (t.includes(key)) return color;
   }
-  return "rgba(255,255,255,0.3)";
+  return "rgba(124,92,252,0.3)";
 }
 
 function dayColor(date: string, health: HealthData | undefined): string {
@@ -62,7 +62,7 @@ function dayColor(date: string, health: HealthData | undefined): string {
   const snap = health?.daily?.[date];
   if ((snap?.exerciseMinutes ?? 0) > 0) return "#8A9E87";
   if ((snap?.steps ?? 0) > 3000) return "#C99A5C";
-  return "#111111";
+  return "var(--bg2)";
 }
 
 function calcStreak(health: HealthData | undefined): number {
@@ -117,7 +117,7 @@ function BarChart({ values, maxVal, color, height = 48 }: BarChartProps) {
               }}
             />
           ) : (
-            <div style={{ height: 2, background: "rgba(255,255,255,0.06)" }} className="rounded-t-sm" />
+            <div style={{ height: 2, background: "rgba(124,92,252,0.1)" }} className="rounded-t-sm" />
           )}
         </div>
       ))}
@@ -135,19 +135,19 @@ function AppleHealthTab({ data }: { data: DashboardData }) {
     return (
       <div
         className="rounded-2xl p-8 text-center space-y-4"
-        style={{ background: "rgba(255,255,255,0.04)", border: "1.5px dashed rgba(255,255,255,0.12)" }}
+        style={{ background: "var(--surface)", border: "1.5px dashed rgba(124,92,252,0.2)" }}
       >
         <div className="text-4xl">📱</div>
-        <h3 className="font-serif text-xl" style={{ color: "#FFFFFF" }}>Connect Apple Health</h3>
-        <p className="text-sm max-w-md mx-auto" style={{ color: "rgba(255,255,255,0.5)" }}>
+        <h3 className="font-serif text-xl" style={{ color: "var(--text)" }}>Connect Apple Health</h3>
+        <p className="text-sm max-w-md mx-auto" style={{ color: "var(--text-muted)" }}>
           Use the <strong>Health Auto Export</strong> app to sync your Apple Health data here automatically.
         </p>
         <div
           className="rounded-xl p-4 text-left text-sm space-y-2 max-w-md mx-auto"
-          style={{ background: "#141414" }}
+          style={{ background: "var(--surface)" }}
         >
-          <p className="font-medium" style={{ color: "#FFFFFF" }}>Setup steps:</p>
-          <ol className="space-y-1.5 list-decimal list-inside" style={{ color: "rgba(255,255,255,0.65)" }}>
+          <p className="font-medium" style={{ color: "var(--text)" }}>Setup steps:</p>
+          <ol className="space-y-1.5 list-decimal list-inside" style={{ color: "var(--text-muted)" }}>
             <li>Download <strong>Health Auto Export</strong> from the App Store</li>
             <li>Open the app → <strong>Automations</strong> tab → <strong>+</strong></li>
             <li>Choose <strong>REST API</strong> as the export type</li>
@@ -159,7 +159,7 @@ function AppleHealthTab({ data }: { data: DashboardData }) {
         </div>
         <div
           className="rounded-xl p-3 text-left max-w-md mx-auto font-mono text-xs space-y-1.5"
-          style={{ background: "rgba(255,255,255,0.06)", color: "#FFFFFF" }}
+          style={{ background: "var(--bg)", color: "var(--text)" }}
         >
           <p><span style={{ color: "#71816D" }}>URL:</span> https://your-app.vercel.app/api/health/import</p>
           <p><span style={{ color: "#71816D" }}>Method:</span> POST</p>
@@ -188,7 +188,7 @@ function AppleHealthTab({ data }: { data: DashboardData }) {
       <div>
         <h2
           className="font-serif text-xl mb-3"
-          style={{ color: "#FFFFFF", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+          style={{ color: "var(--text)", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
         >
           Today&apos;s Movement
         </h2>
@@ -232,13 +232,13 @@ function AppleHealthTab({ data }: { data: DashboardData }) {
               <div
                 key={item.label}
                 className="rounded-2xl p-4 flex flex-col gap-2"
-                style={{ background: "#141414" }}
+                style={{ background: "var(--surface)" }}
               >
                 <div className="flex items-center justify-between">
                   <span style={{ color: item.color }}>{item.icon}</span>
                   <div
                     className="h-1.5 flex-1 mx-3 rounded-full overflow-hidden"
-                    style={{ background: "rgba(255,255,255,0.08)" }}
+                    style={{ background: "rgba(124,92,252,0.1)" }}
                   >
                     <div
                       className="h-full rounded-full transition-all"
@@ -246,10 +246,10 @@ function AppleHealthTab({ data }: { data: DashboardData }) {
                     />
                   </div>
                 </div>
-                <p className="font-serif text-2xl leading-none" style={{ color: "#FFFFFF" }}>
+                <p className="font-serif text-2xl leading-none" style={{ color: "var(--text)" }}>
                   {item.value}
                 </p>
-                <p className="text-xs" style={{ color: "rgba(255,255,255,0.45)" }}>{item.label}</p>
+                <p className="text-xs" style={{ color: "var(--text-muted)" }}>{item.label}</p>
               </div>
             );
           })}
@@ -261,21 +261,21 @@ function AppleHealthTab({ data }: { data: DashboardData }) {
         {/* Streak */}
         <div
           className="rounded-2xl p-5 flex flex-col items-center justify-center text-center"
-          style={{ background: "#141414" }}
+          style={{ background: "var(--surface)" }}
         >
-          <p className="font-serif text-5xl" style={{ color: "#FFFFFF" }}>{streak}</p>
-          <p className="text-sm mt-1" style={{ color: "rgba(255,255,255,0.5)" }}>day streak 🔥</p>
+          <p className="font-serif text-5xl" style={{ color: "var(--text)" }}>{streak}</p>
+          <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>day streak 🔥</p>
           {streak > 0 && (
-            <p className="text-xs mt-2" style={{ color: "rgba(255,255,255,0.35)" }}>keep it going!</p>
+            <p className="text-xs mt-2" style={{ color: "var(--text-muted)" }}>keep it going!</p>
           )}
         </div>
 
         {/* Weekly grid */}
         <div
           className="rounded-2xl p-5 col-span-1 sm:col-span-2"
-          style={{ background: "#141414" }}
+          style={{ background: "var(--surface)" }}
         >
-          <p className="text-xs font-medium mb-3" style={{ color: "rgba(255,255,255,0.45)" }}>This Week</p>
+          <p className="text-xs font-medium mb-3" style={{ color: "var(--text-muted)" }}>This Week</p>
           <div className="grid grid-cols-7 gap-2">
             {week.map((d) => {
               const date = new Date(d + "T12:00:00");
@@ -283,15 +283,15 @@ function AppleHealthTab({ data }: { data: DashboardData }) {
               const isToday = d === today;
               return (
                 <div key={d} className="flex flex-col items-center gap-1.5">
-                  <p className="text-[10px]" style={{ color: "rgba(255,255,255,0.4)" }}>
+                  <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>
                     {DAYS[date.getDay()]}
                   </p>
                   <div
                     className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-medium"
                     style={{
                       background: color,
-                      color: color === "#111111" ? "rgba(255,255,255,0.3)" : "#fff",
-                      boxShadow: isToday ? "0 0 0 2px #C8FF00" : "none",
+                      color: color === "var(--bg2)" ? "var(--text-muted)" : "#fff",
+                      boxShadow: isToday ? "0 0 0 2px #7C5CFC" : "none",
                     }}
                   >
                     {date.getDate()}
@@ -307,11 +307,11 @@ function AppleHealthTab({ data }: { data: DashboardData }) {
               ["#71816D", "Strength"],
               ["#C99A5C", "Walking"],
               ["#8A9E87", "Other"],
-              ["#111111", "Rest"],
+              ["var(--bg2)", "Rest"],
             ].map(([c, l]) => (
               <div key={l} className="flex items-center gap-1">
                 <div className="w-2 h-2 rounded-full" style={{ background: c }} />
-                <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.45)" }}>{l}</span>
+                <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>{l}</span>
               </div>
             ))}
           </div>
@@ -320,8 +320,8 @@ function AppleHealthTab({ data }: { data: DashboardData }) {
 
       {/* Recent Workouts */}
       {recentWorkouts.length > 0 && (
-        <div className="rounded-2xl p-5" style={{ background: "#141414" }}>
-          <p className="text-xs font-medium mb-3" style={{ color: "rgba(255,255,255,0.45)" }}>Recent Workouts</p>
+        <div className="rounded-2xl p-5" style={{ background: "var(--surface)" }}>
+          <p className="text-xs font-medium mb-3" style={{ color: "var(--text-muted)" }}>Recent Workouts</p>
           <div className="space-y-2">
             {recentWorkouts.map((w) => {
               const color = workoutColor(w.type);
@@ -330,17 +330,17 @@ function AppleHealthTab({ data }: { data: DashboardData }) {
                 <div
                   key={w.id}
                   className="flex items-center gap-3 py-2 border-b last:border-0"
-                  style={{ borderColor: "rgba(255,255,255,0.06)" }}
+                  style={{ borderColor: "var(--border)" }}
                 >
                   <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: color }} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate" style={{ color: "#FFFFFF" }}>{w.type}</p>
-                    <p className="text-xs" style={{ color: "rgba(255,255,255,0.45)" }}>{dateLabel}</p>
+                    <p className="text-sm font-medium truncate" style={{ color: "var(--text)" }}>{w.type}</p>
+                    <p className="text-xs" style={{ color: "var(--text-muted)" }}>{dateLabel}</p>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="text-sm" style={{ color: "#FFFFFF" }}>{w.durationMin} min</p>
+                    <p className="text-sm" style={{ color: "var(--text)" }}>{w.durationMin} min</p>
                     {w.calories && (
-                      <p className="text-xs" style={{ color: "rgba(255,255,255,0.45)" }}>{w.calories} kcal</p>
+                      <p className="text-xs" style={{ color: "var(--text-muted)" }}>{w.calories} kcal</p>
                     )}
                   </div>
                 </div>
@@ -353,20 +353,20 @@ function AppleHealthTab({ data }: { data: DashboardData }) {
       {/* Trends row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Sleep trend */}
-        <div className="rounded-2xl p-5" style={{ background: "#141414" }}>
+        <div className="rounded-2xl p-5" style={{ background: "var(--surface)" }}>
           <div className="flex items-center gap-2 mb-3">
             <Moon size={13} style={{ color: "#71816D" }} />
-            <p className="text-xs font-medium" style={{ color: "rgba(255,255,255,0.45)" }}>Sleep — 30 days</p>
+            <p className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>Sleep — 30 days</p>
           </div>
           <BarChart values={sleep30} maxVal={10} color="#71816D" height={56} />
           <div className="flex justify-between mt-1">
-            <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.3)" }}>30 days ago</span>
-            <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.3)" }}>today</span>
+            <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>30 days ago</span>
+            <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>today</span>
           </div>
           {sleep30.some((v) => v !== null) && (
-            <p className="text-xs mt-2" style={{ color: "rgba(255,255,255,0.45)" }}>
+            <p className="text-xs mt-2" style={{ color: "var(--text-muted)" }}>
               Avg{" "}
-              <span style={{ color: "#FFFFFF" }}>
+              <span style={{ color: "var(--text)" }}>
                 {(
                   sleep30.filter((v): v is number => v !== null).reduce((a, b) => a + b, 0) /
                   sleep30.filter((v) => v !== null).length
@@ -379,20 +379,20 @@ function AppleHealthTab({ data }: { data: DashboardData }) {
         </div>
 
         {/* Resting HR trend */}
-        <div className="rounded-2xl p-5" style={{ background: "#141414" }}>
+        <div className="rounded-2xl p-5" style={{ background: "var(--surface)" }}>
           <div className="flex items-center gap-2 mb-3">
             <HeartPulse size={13} style={{ color: "#DA667B" }} />
-            <p className="text-xs font-medium" style={{ color: "rgba(255,255,255,0.45)" }}>Resting HR — 30 days</p>
+            <p className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>Resting HR — 30 days</p>
           </div>
           <BarChart values={hr30} maxVal={100} color="#DA667B" height={56} />
           <div className="flex justify-between mt-1">
-            <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.3)" }}>30 days ago</span>
-            <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.3)" }}>today</span>
+            <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>30 days ago</span>
+            <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>today</span>
           </div>
           {hr30.some((v) => v !== null) && (
-            <p className="text-xs mt-2" style={{ color: "rgba(255,255,255,0.45)" }}>
+            <p className="text-xs mt-2" style={{ color: "var(--text-muted)" }}>
               Avg{" "}
-              <span style={{ color: "#FFFFFF" }}>
+              <span style={{ color: "var(--text)" }}>
                 {Math.round(
                   hr30.filter((v): v is number => v !== null).reduce((a, b) => a + b, 0) /
                     hr30.filter((v) => v !== null).length
@@ -405,7 +405,7 @@ function AppleHealthTab({ data }: { data: DashboardData }) {
       </div>
 
       {/* Last sync */}
-      <p className="text-center text-xs" style={{ color: "rgba(255,255,255,0.3)" }}>
+      <p className="text-center text-xs" style={{ color: "var(--text-muted)" }}>
         Last sync: {timeAgo(health.lastImportAt)}
       </p>
     </div>
@@ -469,7 +469,7 @@ export function FitnessView({ data, update }: Props) {
         <div>
           <h1
             className="font-serif text-4xl"
-            style={{ color: "#FFFFFF", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+            style={{ color: "var(--text)", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
           >
             Fitness & Sleep
           </h1>

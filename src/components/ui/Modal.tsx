@@ -23,17 +23,22 @@ export function Modal({ open, onClose, title, children, width = "max-w-lg" }: Mo
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
+      style={{ background: "rgba(30,19,64,0.5)", backdropFilter: "blur(8px)" }}
+      onClick={onClose}
     >
       <div
         className={`card w-full ${width} max-h-[90vh] overflow-y-auto animate-slide-up`}
+        style={{ background: "var(--surface)" }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-5 pb-0">
-          {title && <h2 className="font-serif text-xl text-white">{title}</h2>}
+          {title && <h2 className="font-serif text-xl" style={{ color: "var(--text)" }}>{title}</h2>}
           <button
             onClick={onClose}
-            className="ml-auto p-1.5 rounded-lg hover:bg-white/10 text-white/50 hover:text-white transition-colors"
+            className="ml-auto p-1.5 rounded-lg transition-colors"
+            style={{ color: "var(--text-muted)" }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "var(--bg)"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
           >
             <X size={18} />
           </button>

@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "A personal life dashboard — calm, clear, and grounded.",
     start_url: "/",
     display: "standalone",
-    background_color: "#0A0A0A",
-    theme_color: "#0A0A0A",
+    background_color: "#F4F0FE",
+    theme_color: "#7C5CFC",
     orientation: "portrait",
     icons: [
       {

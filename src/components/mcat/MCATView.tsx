@@ -19,7 +19,7 @@ const SECTIONS = [
   { key: "cars" as const, label: "CARS", color: "#DA667B" },
   { key: "bioBiochem" as const, label: "Bio/Biochem", color: "#71816D" },
   { key: "chemPhys" as const, label: "Chem/Phys", color: "#C99A5C" },
-  { key: "psychSoc" as const, label: "Psych/Soc", color: "rgba(255,255,255,0.3)" },
+  { key: "psychSoc" as const, label: "Psych/Soc", color: "rgba(124,92,252,0.3)" },
 ];
 
 export function MCATView({ data, update }: Props) {
@@ -141,10 +141,10 @@ export function MCATView({ data, update }: Props) {
           <div className="h-48 mt-2">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={studyChartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(124,92,252,0.1)" />
                 <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#A8967E" }} />
                 <YAxis tick={{ fontSize: 11, fill: "#A8967E" }} />
-                <Tooltip contentStyle={{ background: "#141414", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", fontSize: "12px" }} />
+                <Tooltip contentStyle={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.1)", borderRadius: "8px", fontSize: "12px" }} />
                 {SECTIONS.map((s) => <Bar key={s.key} dataKey={s.label} stackId="a" fill={s.color} />)}
               </BarChart>
             </ResponsiveContainer>

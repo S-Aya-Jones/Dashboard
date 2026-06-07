@@ -161,7 +161,7 @@ export function WeekView({ data, update }: Props) {
                           className={`w-6 h-6 rounded-full border transition-all mx-auto flex items-center justify-center ${done ? "border-transparent" : "border-sand hover:border-sand-dark"}`}
                           style={done ? { background: habit.color } : {}}
                         >
-                          {done && <Check size={10} className="text-white" />}
+                          {done && <Check size={10} />}
                         </button>
                       </td>
                     );
@@ -184,7 +184,7 @@ export function WeekView({ data, update }: Props) {
               <p className={`text-sm font-semibold mb-2 ${today ? "text-terracotta" : "text-brown"}`}>
                 {format(day, "EEEE")}
                 <span className="ml-1 font-normal text-sand-dark text-xs">{format(day, "M/d")}</span>
-                {today && <span className="ml-1 text-xs bg-terracotta text-white px-1.5 py-0.5 rounded-full">Today</span>}
+                {today && <span className="ml-1 text-xs bg-terracotta px-1.5 py-0.5 rounded-full">Today</span>}
               </p>
 
               <ul className="space-y-1.5 mb-2">
@@ -194,7 +194,7 @@ export function WeekView({ data, update }: Props) {
                       onClick={() => toggleTask(task.id, task.done)}
                       className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center transition-all ${task.done ? "bg-sage border-sage" : "border-sand hover:border-terracotta"}`}
                     >
-                      {task.done && <Check size={9} className="text-white" />}
+                      {task.done && <Check size={9} />}
                     </button>
                     <span className={`text-xs flex-1 ${task.done ? "line-through text-sand-dark" : "text-brown"}`}>{task.text}</span>
                     <button onClick={() => deleteTask(task.id)} className="opacity-0 group-hover:opacity-100 text-sand hover:text-rose">

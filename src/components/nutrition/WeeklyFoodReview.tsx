@@ -32,7 +32,7 @@ function MealTypePie({ meals }: { meals: MealEntry[] }) {
   const counts = { breakfast: 0, lunch: 0, dinner: 0, snack: 0 };
   for (const m of meals) counts[m.mealType]++;
   const total = meals.length || 1;
-  const colors = { breakfast: "#C99A5C", lunch: "#71816D", dinner: "#FFFFFF", snack: "rgba(255,255,255,0.3)" };
+  const colors = { breakfast: "#C99A5C", lunch: "#71816D", dinner: "#FFFFFF", snack: "rgba(124,92,252,0.3)" };
 
   return (
     <div className="flex gap-3 flex-wrap">
@@ -42,7 +42,7 @@ function MealTypePie({ meals }: { meals: MealEntry[] }) {
         return (
           <div key={type} className="flex items-center gap-1.5">
             <div className="w-2.5 h-2.5 rounded-full" style={{ background: colors[type as keyof typeof colors] }} />
-            <span className="text-xs capitalize" style={{ color: "#FFFFFF" }}>{type}</span>
+            <span className="text-xs capitalize" style={{ color: "var(--text)" }}>{type}</span>
             <span className="text-xs font-medium" style={{ color: "#A8967E" }}>{pct}%</span>
           </div>
         );
@@ -88,16 +88,16 @@ export function WeeklyFoodReview({ nutrition }: { nutrition: NutritionData }) {
   const statCard = (label: string, value: string | number, sub?: string) => (
     <div
       className="rounded-2xl p-4 text-center"
-      style={{ background: "rgba(113,129,109,0.08)", border: "1px solid rgba(255,255,255,0.07)" }}
+      style={{ background: "rgba(113,129,109,0.08)", border: "1px solid rgba(124,92,252,0.07)" }}
     >
       <p
         className="font-serif text-3xl leading-none mb-1"
-        style={{ color: "#FFFFFF", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+        style={{ color: "var(--text)", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
       >
         {value}
       </p>
       <p className="text-xs font-medium" style={{ color: "#A8967E" }}>{label}</p>
-      {sub && <p className="text-[11px] mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>{sub}</p>}
+      {sub && <p className="text-[11px] mt-0.5" style={{ color: "rgba(124,92,252,0.4)" }}>{sub}</p>}
     </div>
   );
 
@@ -107,7 +107,7 @@ export function WeeklyFoodReview({ nutrition }: { nutrition: NutritionData }) {
         <div>
           <h2
             className="font-serif text-2xl"
-            style={{ color: "#FFFFFF", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+            style={{ color: "var(--text)", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
           >
             This Week&apos;s Food Story
           </h2>
@@ -129,7 +129,7 @@ export function WeeklyFoodReview({ nutrition }: { nutrition: NutritionData }) {
       {weekMeals.length > 0 && (
         <div
           className="rounded-2xl p-5 mb-4"
-          style={{ background: "#141414", border: "1px solid rgba(255,255,255,0.08)" }}
+          style={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.08)" }}
         >
           <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: "#A8967E" }}>
             Meal Breakdown
@@ -142,7 +142,7 @@ export function WeeklyFoodReview({ nutrition }: { nutrition: NutritionData }) {
       {topMeal && (
         <div
           className="rounded-2xl p-5 mb-4 flex gap-4"
-          style={{ background: "#141414", border: "1px solid rgba(255,255,255,0.08)" }}
+          style={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.08)" }}
         >
           {topMeal.photos.length > 0 && (
             <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0">
@@ -155,7 +155,7 @@ export function WeeklyFoodReview({ nutrition }: { nutrition: NutritionData }) {
             </p>
             <p
               className="font-serif text-xl leading-tight"
-              style={{ color: "#FFFFFF", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+              style={{ color: "var(--text)", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
             >
               {topMeal.name}
             </p>
@@ -170,7 +170,7 @@ export function WeeklyFoodReview({ nutrition }: { nutrition: NutritionData }) {
       {topTags.length > 0 && (
         <div
           className="rounded-2xl p-5 mb-4"
-          style={{ background: "#141414", border: "1px solid rgba(255,255,255,0.08)" }}
+          style={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.08)" }}
         >
           <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: "#A8967E" }}>
             Top Tags
@@ -195,7 +195,7 @@ export function WeeklyFoodReview({ nutrition }: { nutrition: NutritionData }) {
           className="rounded-2xl p-4 text-center"
           style={{ background: "rgba(218,102,123,0.06)", border: "1px solid rgba(218,102,123,0.15)" }}
         >
-          <p className="text-sm italic" style={{ color: "#FFFFFF" }}>{insights}</p>
+          <p className="text-sm italic" style={{ color: "var(--text)" }}>{insights}</p>
         </div>
       )}
 

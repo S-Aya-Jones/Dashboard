@@ -96,10 +96,10 @@ export function TodayView({ data, update }: Props) {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="font-serif text-4xl text-brown">
+          <h1 className="font-serif text-4xl" style={{ background: "var(--grad)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
             {greetingByTime()}, Aya
           </h1>
-          <p className="text-sand-dark text-lg mt-1">
+          <p className="text-lg mt-1" style={{ color: "var(--text-muted)" }}>
             {format(new Date(), "EEEE, MMMM d, yyyy")}
           </p>
         </div>
@@ -227,7 +227,7 @@ export function TodayView({ data, update }: Props) {
                   style={done ? { background: `${habit.color}15`, borderColor: `${habit.color}40` } : {}}
                 >
                   <span className="text-lg">{habit.icon}</span>
-                  <span className={`text-sm flex-1 ${done ? "line-through" : ""}`} style={done ? { color: habit.color } : { color: "#FFFFFF" }}>
+                  <span className={`text-sm flex-1 ${done ? "line-through" : ""}`} style={done ? { color: habit.color } : { color: "var(--text)" }}>
                     {habit.name}
                   </span>
                   {done && <Check size={14} style={{ color: habit.color }} />}
