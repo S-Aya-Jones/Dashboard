@@ -127,7 +127,6 @@ export function AnkiView({ data, update }: Props) {
   const ankiSettings = data.ankiSettings ?? { newPerDay: 20, reviewPerDay: 200 };
 
   const [view, setView] = useState<View>("home");
-  const [deckFilter, setDeckFilter] = useState<string | null>(null);
 
   // Settings form
   const [settingsNew, setSettingsNew] = useState(ankiSettings.newPerDay);
@@ -242,7 +241,6 @@ export function AnkiView({ data, update }: Props) {
       },
     }));
 
-    setDeckFilter(filter);
     setQueue(items);
     setQIdx(0);
     setFlipped(false);
