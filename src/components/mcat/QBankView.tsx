@@ -169,8 +169,11 @@ export function QBankView({ data, update }: Props) {
   const [sessionSaved, setSessionSaved] = useState(false);
   const [showMissed, setShowMissed] = useState(false);
   const [showFlagged, setShowFlagged] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sessionStartRef = useRef<string>("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ─── Timer logic ─────────────────────────────────────────────────────────
 
@@ -318,6 +321,53 @@ export function QBankView({ data, update }: Props) {
       return next;
     });
   }
+
+  // ─── File import ─────────────────────────────────────────────────────────
+
+  const importFile = async (file: File) => {
+    setImporting(true);
+    setUploadError(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/mcat/extract", { method: "POST", body: fd });
+      const j = await res.json();
+      if (j.error) { setUploadError(j.error); return; }
+      // Merge new questions into data, avoid duplicates by stem
+      const existing = new Set((data.mcatQuestions ?? []).map(q => q.stem.slice(0, 50)));
+      const fresh = (j.questions as MCATQuestion[]).filter(q => !existing.has(q.stem.slice(0, 50)));
+      update(d => ({ ...d, mcatQuestions: [...(d.mcatQuestions ?? []), ...fresh] }));
+      setUploadError(`✓ Imported ${fresh.length} questions (${j.count - fresh.length} duplicates skipped)`);
+    } catch {
+      setUploadError("Upload failed — try again");
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  // ─── Use saved questions ──────────────────────────────────────────────────
+
+  const useSaved = () => {
+    const selected = Array.from(selectedTopics);
+    const pool = (data.mcatQuestions ?? []).filter(q =>
+      selected.some(key => {
+        const [subj, topic] = key.split("::");
+        return q.subject === subj && (topic === "__all__" || q.topic === topic);
+      })
+    );
+    if (pool.length === 0) return;
+    // Shuffle and take up to qCount
+    const shuffled = [...pool].sort(() => Math.random() - 0.5).slice(0, qCount);
+    setQuestions(shuffled);
+    // initialize answers
+    const init: Record<string, { letter: string | null; flagged: boolean; startedAt: number }> = {};
+    shuffled.forEach(q => { init[q.id] = { letter: null, flagged: false, startedAt: Date.now() }; });
+    setAnswers(init);
+    setCurrentIdx(0);
+    setRevealed(new Set());
+    setElapsed(0);
+    setPhase("quiz");
+  };
 
   // ─── Quiz interactions ────────────────────────────────────────────────────
 
@@ -573,6 +623,55 @@ export function QBankView({ data, update }: Props) {
           </div>
         </div>
 
+        {/* File import section */}
+        <div className="rounded-2xl p-4" style={{ background: "rgba(124,92,252,0.04)", border: "1.5px dashed rgba(124,92,252,0.25)", borderRadius: 16, padding: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+            <div>
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "var(--text)" }}>Import from file</p>
+              <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--text-muted)" }}>Upload .docx, .txt — Claude will extract and structure all questions automatically</p>
+            </div>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={importing}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "8px 16px",
+                borderRadius: 12,
+                fontSize: 14,
+                fontWeight: 600,
+                background: "var(--purple, #7C5CFC)",
+                color: "#fff",
+                border: "none",
+                cursor: importing ? "not-allowed" : "pointer",
+                opacity: importing ? 0.5 : 1,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {importing ? <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> : <Plus size={14} />}
+              {importing ? "Extracting…" : "Upload File"}
+            </button>
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".docx,.txt,.pdf"
+            style={{ display: "none" }}
+            onChange={e => { const f = e.target.files?.[0]; if (f) importFile(f); e.target.value = ""; }}
+          />
+          {uploadError && (
+            <p style={{ margin: "8px 0 0", fontSize: 12, color: uploadError.startsWith("✓") ? "var(--green, #10B981)" : "var(--red, #EF4444)" }}>
+              {uploadError}
+            </p>
+          )}
+          {(data.mcatQuestions?.length ?? 0) > 0 && (
+            <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--text-muted)" }}>
+              {data.mcatQuestions!.length} questions in your bank · {data.mcatQuizSessions?.length ?? 0} sessions completed
+            </p>
+          )}
+        </div>
+
         {/* Options */}
         <div className="card" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 20 }}>
           {/* Mode */}
@@ -692,15 +791,56 @@ export function QBankView({ data, update }: Props) {
           </div>
 
           {/* Generate button */}
-          <div style={{ display: "flex", alignItems: "center", gap: 16, paddingTop: 4 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 16, paddingTop: 4, flexWrap: "wrap" }}>
             <span style={{ fontSize: 13, color: "var(--text-muted)" }}>
               {selectedTopics.size} topic{selectedTopics.size !== 1 ? "s" : ""} selected
             </span>
+            {(() => {
+              const selected = Array.from(selectedTopics);
+              const savedPool = (data.mcatQuestions ?? []).filter(q =>
+                selected.some(key => {
+                  const [subj, topic] = key.split("::");
+                  return q.subject === subj && (topic === "__all__" || q.topic === topic);
+                })
+              );
+              const hasSaved = selectedTopics.size > 0 && savedPool.length > 0;
+              return hasSaved ? (
+                <button
+                  onClick={useSaved}
+                  style={{
+                    marginLeft: "auto",
+                    padding: "10px 20px",
+                    borderRadius: 12,
+                    background: "white",
+                    color: "#7C5CFC",
+                    fontWeight: 700,
+                    fontSize: 14,
+                    border: "2px solid #7C5CFC",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  <BookOpen size={16} />
+                  Use Saved ({savedPool.length})
+                </button>
+              ) : null;
+            })()}
             <button
               onClick={handleGenerate}
               disabled={selectedTopics.size === 0}
               style={{
-                marginLeft: "auto",
+                marginLeft: (() => {
+                  const selected = Array.from(selectedTopics);
+                  const savedPool = (data.mcatQuestions ?? []).filter(q =>
+                    selected.some(key => {
+                      const [subj, topic] = key.split("::");
+                      return q.subject === subj && (topic === "__all__" || q.topic === topic);
+                    })
+                  );
+                  return selectedTopics.size > 0 && savedPool.length > 0 ? 0 : "auto";
+                })(),
                 padding: "10px 24px",
                 borderRadius: 12,
                 background: selectedTopics.size === 0 ? "#C4B8F0" : "var(--grad)",
