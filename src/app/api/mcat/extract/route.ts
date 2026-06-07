@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import mammoth from "mammoth";
 import { randomUUID } from "crypto";
 
+export const maxDuration = 120;
+
 const client = new Anthropic();
 
 export async function POST(req: Request) {
@@ -19,17 +21,18 @@ export async function POST(req: Request) {
     if (name.endsWith(".docx")) {
       const result = await mammoth.extractRawText({ buffer });
       rawText = result.value;
-    } else if (name.endsWith(".txt")) {
+    } else if (name.endsWith(".txt") || name.endsWith(".md")) {
       rawText = buffer.toString("utf-8");
+    } else if (name.endsWith(".pdf")) {
+      return NextResponse.json({ error: "PDF files are not supported. Please export as .docx or .txt" }, { status: 400 });
     } else {
-      // Treat as plain text for other formats
       rawText = buffer.toString("utf-8");
     }
 
     if (!rawText.trim()) return NextResponse.json({ error: "Could not extract text from file" }, { status: 400 });
 
-    // Truncate to avoid token limits — Claude can handle big chunks
-    const text = rawText.slice(0, 40000);
+    // Truncate to ~50k chars to stay within Claude context
+    const text = rawText.slice(0, 50000);
 
     const prompt = `You are an expert at parsing MCAT study materials. Extract all multiple choice questions from the following text.
 
@@ -43,26 +46,14 @@ The text may have various formats:
 For each question extract:
 - stem: the question text (not including choices)
 - choices: array of {letter, text} for A, B, C, D
-- correctLetter: the letter of the correct answer (A/B/C/D uppercase)
+- correctLetter: the letter of the correct answer (A/B/C/D uppercase). Use "?" if unknown.
 - explanation: any explanation text, or empty string if none
-- subject: guess the MCAT subject (Behavioral Sciences, Biochemistry, Biology, Critical Analysis & Reasoning Skills, General Chemistry, Organic Chemistry, Physics) based on content
-- topic: specific sub-topic if identifiable
-- difficulty: "easy", "medium", or "hard" based on complexity
+- subject: guess the MCAT subject (Behavioral Sciences, Biochemistry, Biology, Critical Analysis & Reasoning Skills, General Chemistry, Organic Chemistry, Physics)
+- topic: specific sub-topic if identifiable, otherwise match the closest subject topic
+- difficulty: "easy", "medium", or "hard"
 
 Return ONLY a valid JSON array (no markdown, no other text):
-[
-  {
-    "stem": "...",
-    "choices": [{"letter":"A","text":"..."},{"letter":"B","text":"..."},{"letter":"C","text":"..."},{"letter":"D","text":"..."}],
-    "correctLetter": "B",
-    "explanation": "...",
-    "subject": "Biology",
-    "topic": "DNA & Gene Expression",
-    "difficulty": "medium"
-  }
-]
-
-If you cannot confidently identify the correct answer for a question, use "?" as correctLetter and note it in the explanation.
+[{"stem":"...","choices":[{"letter":"A","text":"..."},{"letter":"B","text":"..."},{"letter":"C","text":"..."},{"letter":"D","text":"..."}],"correctLetter":"B","explanation":"...","subject":"Biology","topic":"DNA & Gene Expression","difficulty":"medium"}]
 
 Text to parse:
 ---
@@ -71,17 +62,15 @@ ${text}
 
     const msg = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 8000,
+      max_tokens: 16000,
       system: "You are an expert MCAT question parser. Return ONLY valid JSON arrays, no markdown or extra text.",
       messages: [{ role: "user", content: prompt }],
     });
 
     const raw = (msg.content[0] as { type: string; text: string }).text.trim();
 
-    // Strip markdown code blocks if present
-    const cleaned = raw.replace(/^```json\n?/,"").replace(/^```\n?/,"").replace(/\n?```$/,"").trim();
-
-    const parsed: {
+    // Try to extract a JSON array robustly
+    let parsed: {
       stem: string;
       choices: { letter: string; text: string }[];
       correctLetter: string;
@@ -89,13 +78,45 @@ ${text}
       subject: string;
       topic: string;
       difficulty: string;
-    }[] = JSON.parse(cleaned);
+    }[];
+
+    try {
+      // First try: direct parse
+      const cleaned = raw
+        .replace(/^```json\s*/i, "")
+        .replace(/^```\s*/i, "")
+        .replace(/\s*```$/, "")
+        .trim();
+      parsed = JSON.parse(cleaned);
+    } catch {
+      // Second try: find the first '[' to last ']'
+      const start = raw.indexOf("[");
+      const end = raw.lastIndexOf("]");
+      if (start === -1 || end === -1 || end <= start) {
+        return NextResponse.json(
+          { error: "AI could not structure the questions. Make sure the file contains clearly formatted multiple-choice questions." },
+          { status: 422 }
+        );
+      }
+      try {
+        parsed = JSON.parse(raw.slice(start, end + 1));
+      } catch {
+        return NextResponse.json(
+          { error: "Failed to parse AI response. The file may have an unusual format." },
+          { status: 500 }
+        );
+      }
+    }
+
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      return NextResponse.json({ error: "No questions found in the file." }, { status: 422 });
+    }
 
     const questions = parsed.map(q => ({
       id: randomUUID(),
       subject: q.subject || "General",
       topic: q.topic || "General",
-      difficulty: (["easy","medium","hard"].includes(q.difficulty) ? q.difficulty : "medium") as "easy"|"medium"|"hard",
+      difficulty: (["easy", "medium", "hard"].includes(q.difficulty) ? q.difficulty : "medium") as "easy" | "medium" | "hard",
       stem: q.stem,
       choices: q.choices,
       correctLetter: q.correctLetter,
@@ -106,6 +127,7 @@ ${text}
     return NextResponse.json({ questions, count: questions.length });
   } catch (e) {
     console.error("Extract error:", e);
-    return NextResponse.json({ error: "Extraction failed", detail: String(e) }, { status: 500 });
+    const msg = e instanceof Error ? e.message : String(e);
+    return NextResponse.json({ error: "Extraction failed", detail: msg }, { status: 500 });
   }
 }

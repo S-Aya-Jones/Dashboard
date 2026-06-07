@@ -635,7 +635,7 @@ export function QBankView({ data, update }: Props) {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
             <div>
               <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "var(--text)" }}>Import from file</p>
-              <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--text-muted)" }}>Upload multiple .docx or .txt files — Claude extracts and structures all questions automatically</p>
+              <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--text-muted)" }}>Upload .docx or .txt files — Claude extracts and structures all questions automatically</p>
             </div>
             <button
               onClick={() => fileInputRef.current?.click()}
@@ -663,7 +663,7 @@ export function QBankView({ data, update }: Props) {
           <input
             ref={fileInputRef}
             type="file"
-            accept=".docx,.txt,.pdf"
+            accept=".docx,.txt"
             style={{ display: "none" }}
             multiple
             onChange={e => { if (e.target.files?.length) importFiles(e.target.files); e.target.value = ""; }}
