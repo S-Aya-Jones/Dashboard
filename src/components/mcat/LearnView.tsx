@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import {
   Brain, BookOpen, BarChart2, Loader2, Send,
   Sparkles, HelpCircle, GitBranch, RotateCcw,
-  Plus, Check,
+  Plus, Check, Printer,
 } from "lucide-react";
 import { DashboardData, Flashcard, MCATQuestion } from "@/types/dashboard";
 import { TutorAvatar } from "./TutorAvatar";
@@ -274,6 +274,71 @@ export function LearnView({ update }: Props) {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
+
+  // ── Print Lesson ───────────────────────────────────────────────────────────────
+
+  function printLesson(markdown: string, topicConcept: string, topicSubject: string) {
+    function mdToHtml(md: string): string {
+      const lines = md.split("\n");
+      const out: string[] = [];
+      let i = 0;
+      while (i < lines.length) {
+        const line = lines[i];
+        const trimmed = line.trim();
+        if (!trimmed) { out.push(""); i++; continue; }
+        if (trimmed.startsWith("## ")) {
+          out.push(`<h2>${trimmed.slice(3)}</h2>`);
+          i++; continue;
+        }
+        if (trimmed.startsWith("### ")) {
+          out.push(`<h3>${trimmed.slice(4)}</h3>`);
+          i++; continue;
+        }
+        if (trimmed.startsWith("- ")) {
+          const items: string[] = [];
+          while (i < lines.length && lines[i].trim().startsWith("- ")) {
+            items.push(`<li>${lines[i].trim().slice(2)}</li>`);
+            i++;
+          }
+          out.push(`<ul>${items.join("")}</ul>`);
+          continue;
+        }
+        const withBold = trimmed.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+        out.push(`<p>${withBold}</p>`);
+        i++;
+      }
+      return out.join("\n");
+    }
+
+    const bodyHtml = mdToHtml(markdown);
+    const win = window.open("", "_blank");
+    if (!win) return;
+    win.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>${topicConcept} — ${topicSubject}</title>
+  <style>
+    body { font-family: Georgia, serif; max-width: 700px; margin: 40px auto; color: #1a1a2e; line-height: 1.7; }
+    h1 { font-size: 22px; color: #7C5CFC; margin-bottom: 4px; }
+    h2 { font-size: 18px; color: #7C5CFC; border-bottom: 1.5px solid #7C5CFC; padding-bottom: 4px; margin-top: 28px; }
+    h3 { font-size: 15px; color: #5b40c0; margin-top: 20px; }
+    p { font-size: 14px; margin: 8px 0; }
+    ul { padding-left: 20px; }
+    li { font-size: 14px; margin: 4px 0; }
+    .subtitle { font-size: 13px; color: #888; margin-bottom: 24px; }
+    @media print { body { margin: 20px; } }
+  </style>
+</head>
+<body>
+  <h1>${topicConcept}</h1>
+  <div class="subtitle">${topicSubject}</div>
+  ${bodyHtml}
+</body>
+</html>`);
+    win.document.close();
+    setTimeout(() => { win.print(); win.close(); }, 500);
+  }
 
   // ── API ───────────────────────────────────────────────────────────────────────
 
@@ -582,6 +647,17 @@ export function LearnView({ update }: Props) {
                   <div className="card" style={{ padding: "16px 20px", borderRadius: "4px 16px 16px 16px" }}>
                     {renderMarkdown(msg.content)}
                   </div>
+                  <button
+                    onClick={() => printLesson(msg.content, concept, subject)}
+                    style={{
+                      marginTop: 6, padding: "5px 12px", borderRadius: 8,
+                      border: "1.5px solid var(--border)", background: "var(--surface)",
+                      color: "var(--text-muted)", fontSize: 11, fontWeight: 600,
+                      cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5,
+                    }}
+                  >
+                    <Printer size={12} /> Print Study Sheet
+                  </button>
 
                   {/* Flashcard previews */}
                   {msg.cards && msg.cards.length > 0 && (

@@ -60,7 +60,9 @@ Return ONLY a JSON array, no other text:
         });
 
         const raw = (msg.content[0] as { type: string; text: string }).text.trim();
-        const parsed: { stem: string; choices: { letter: string; text: string }[]; correctLetter: string; explanation: string }[] = JSON.parse(raw);
+        const cleaned = raw
+          .replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/\s*```$/, "").trim();
+        const parsed: { stem: string; choices: { letter: string; text: string }[]; correctLetter: string; explanation: string }[] = JSON.parse(cleaned);
 
         for (const q of parsed) {
           questions.push({

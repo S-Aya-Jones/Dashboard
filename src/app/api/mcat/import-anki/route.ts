@@ -7,7 +7,7 @@ import { randomUUID } from "crypto";
 import { format } from "date-fns";
 import { Flashcard } from "@/types/dashboard";
 
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 // ── HTML stripping ──────────────────────────────────────────────────────────
 
@@ -435,6 +435,15 @@ export async function POST(req: Request) {
     const file = formData.get("file") as File | null;
     if (!file)
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
+
+    // Guard: warn on very large files (> 300 MB) — can exhaust server memory
+    const fileSizeMB = file.size / (1024 * 1024);
+    if (fileSizeMB > 300) {
+      return NextResponse.json(
+        { error: `File is ${fileSizeMB.toFixed(0)} MB. Try exporting individual decks rather than your full collection to keep files under 300 MB.` },
+        { status: 400 }
+      );
+    }
 
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);

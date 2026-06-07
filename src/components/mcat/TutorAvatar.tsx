@@ -162,17 +162,27 @@ export function TutorAvatar({ text }: Props) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+      <style>{`
+        @keyframes pulse-ring {
+          0%   { transform: scale(1);    opacity: 0.7; }
+          50%  { transform: scale(1.08); opacity: 0.3; }
+          100% { transform: scale(1);    opacity: 0.7; }
+        }
+      `}</style>
       {/* Avatar face */}
       <div style={{
-        width: 72, height: 72,
+        width: 120, height: 120,
         borderRadius: "50%",
         overflow: "hidden",
+        position: "relative",
         boxShadow: isActive
           ? "0 0 0 3px var(--purple), 0 4px 20px rgba(124,92,252,0.45)"
           : "0 2px 12px rgba(124,92,252,0.18)",
         flexShrink: 0,
+        outline: status === "playing" ? "3px solid var(--purple)" : "none",
+        animation: status === "playing" ? "pulse-ring 1.4s ease-in-out infinite" : "none",
       }}>
-        <svg viewBox="0 0 100 100" width="72" height="72">
+        <svg viewBox="0 0 100 100" width="120" height="120">
           <defs>
             <linearGradient id="avatarFaceGrad" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="#7C5CFC" />

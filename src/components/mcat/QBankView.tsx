@@ -1414,6 +1414,156 @@ export function QBankView({ data, update }: Props) {
           </div>
         )}
 
+        {/* Focus Topics — per-session topic accuracy */}
+        {(() => {
+          const topicMap: Record<string, { correct: number; total: number; subject: string }> = {};
+          for (const q of questions) {
+            const key = q.topic;
+            if (!topicMap[key]) {
+              topicMap[key] = { correct: 0, total: 0, subject: q.subject };
+            }
+            topicMap[key].total += 1;
+            if (answers[q.id]?.letter === q.correctLetter) {
+              topicMap[key].correct += 1;
+            }
+          }
+          const topicBreakdown = Object.entries(topicMap)
+            .map(([topic, stats]) => ({
+              topic,
+              subject: stats.subject,
+              correct: stats.correct,
+              total: stats.total,
+              pct: Math.round((stats.correct / stats.total) * 100),
+              abbr: SUBJECTS.find(s => s.name === stats.subject)?.abbr ?? stats.subject,
+              color: SUBJECTS.find(s => s.name === stats.subject)?.color ?? "#7C5CFC",
+            }))
+            .sort((a, b) => a.pct - b.pct);
+
+          if (topicBreakdown.length === 0) return null;
+
+          return (
+            <div className="card" style={{ padding: 20 }}>
+              <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", marginBottom: 16 }}>
+                Focus Topics
+              </h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {topicBreakdown.map((t) => {
+                  const barColor = t.pct < 50 ? "#EF4444" : t.pct < 70 ? "#F59E0B" : "#10B981";
+                  const showWarning = t.pct < 60 && t.total >= 2;
+                  return (
+                    <div key={t.topic} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span style={{
+                        fontSize: 10, fontWeight: 700, padding: "2px 6px",
+                        borderRadius: 6, background: `${t.color}18`, color: t.color,
+                        minWidth: 52, textAlign: "center",
+                      }}>
+                        {t.abbr}
+                      </span>
+                      <span style={{ flex: 1, fontSize: 12, color: "var(--text)", fontWeight: 500, lineHeight: 1.3 }}>
+                        {t.topic}
+                      </span>
+                      {showWarning && (
+                        <span style={{
+                          fontSize: 10, fontWeight: 700,
+                          color: "#F59E0B", background: "rgba(245,158,11,0.1)",
+                          padding: "2px 7px", borderRadius: 10, whiteSpace: "nowrap",
+                        }}>
+                          ⚠ Review this
+                        </span>
+                      )}
+                      <span style={{ fontSize: 11, color: "var(--text-muted)", minWidth: 32, textAlign: "right" }}>
+                        {t.correct}/{t.total}
+                      </span>
+                      <div style={{ width: 72, height: 6, borderRadius: 3, background: "var(--bg)", overflow: "hidden" }}>
+                        <div style={{ width: `${t.pct}%`, height: "100%", background: barColor, borderRadius: 3 }} />
+                      </div>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: barColor, minWidth: 34, textAlign: "right" }}>
+                        {t.pct}%
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* All-Time Weak Topics */}
+        {(() => {
+          const allSessions = data.mcatQuizSessions ?? [];
+          const allQuestions = data.mcatQuestions ?? [];
+          if (allSessions.length === 0 || allQuestions.length === 0) return null;
+
+          const topicMap: Record<string, { correct: number; total: number; subject: string }> = {};
+          for (const session of allSessions) {
+            for (const attempt of session.attempts) {
+              const q = allQuestions.find(qq => qq.id === attempt.questionId);
+              if (!q) continue;
+              const key = q.topic;
+              if (!topicMap[key]) {
+                topicMap[key] = { correct: 0, total: 0, subject: q.subject };
+              }
+              topicMap[key].total += 1;
+              if (attempt.correct) topicMap[key].correct += 1;
+            }
+          }
+
+          const weakTopics = Object.entries(topicMap)
+            .filter(([, stats]) => stats.total >= 3 && (stats.correct / stats.total) < 0.6)
+            .map(([topic, stats]) => ({
+              topic,
+              subject: stats.subject,
+              correct: stats.correct,
+              total: stats.total,
+              pct: Math.round((stats.correct / stats.total) * 100),
+              abbr: SUBJECTS.find(s => s.name === stats.subject)?.abbr ?? stats.subject,
+              color: SUBJECTS.find(s => s.name === stats.subject)?.color ?? "#7C5CFC",
+            }))
+            .sort((a, b) => a.pct - b.pct)
+            .slice(0, 6);
+
+          if (weakTopics.length === 0) return null;
+
+          return (
+            <div className="card" style={{ padding: 20 }}>
+              <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", marginBottom: 16 }}>
+                All-Time Weak Topics
+              </h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {weakTopics.map((t) => {
+                  const barColor = t.pct < 50 ? "#EF4444" : "#F59E0B";
+                  return (
+                    <div key={t.topic} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span style={{
+                        fontSize: 10, fontWeight: 700, padding: "2px 6px",
+                        borderRadius: 6, background: `${t.color}18`, color: t.color,
+                        minWidth: 52, textAlign: "center",
+                      }}>
+                        {t.abbr}
+                      </span>
+                      <span style={{ flex: 1, fontSize: 12, color: "var(--text)", fontWeight: 500, lineHeight: 1.3 }}>
+                        {t.topic}
+                      </span>
+                      <span style={{ fontSize: 10, color: "var(--purple)", fontWeight: 600, whiteSpace: "nowrap" }}>
+                        → Learn Mode
+                      </span>
+                      <span style={{ fontSize: 11, color: "var(--text-muted)", minWidth: 42, textAlign: "right" }}>
+                        {t.correct}/{t.total}
+                      </span>
+                      <div style={{ width: 72, height: 6, borderRadius: 3, background: "var(--bg)", overflow: "hidden" }}>
+                        <div style={{ width: `${t.pct}%`, height: "100%", background: barColor, borderRadius: 3 }} />
+                      </div>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: barColor, minWidth: 34, textAlign: "right" }}>
+                        {t.pct}%
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Missed questions */}
         {missedQuestions.length > 0 && (
           <div className="card" style={{ padding: 0, overflow: "hidden" }}>
