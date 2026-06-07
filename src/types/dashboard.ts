@@ -506,6 +506,56 @@ export interface MCATQuizSession {
   topics: string[];
 }
 
+export interface Flashcard {
+  id: string;
+  front: string;
+  back: string;
+  subject?: string;
+  topic?: string;
+  tags: string[];
+  deck: string;
+  createdAt: string;
+  interval: number;       // days until next review
+  easeFactor: number;     // default 2.5
+  repetitions: number;
+  nextReview: string;     // YYYY-MM-DD
+  lastReview?: string;
+}
+
+export interface FlashcardReviewLog {
+  cardId: string;
+  date: string;
+  rating: 0 | 1 | 2 | 3;  // Again=0, Hard=1, Good=2, Easy=3
+  responseTimeMs: number;
+}
+
+export interface StudyTimerLog {
+  id: string;
+  date: string;           // YYYY-MM-DD
+  subject: string;
+  topic?: string;
+  durationSeconds: number;
+  startedAt: string;      // ISO
+}
+
+export interface DiagnosticSectionResult {
+  name: string;
+  questionIds: string[];
+  attempts: MCATQuizAttempt[];
+  timeLimitMinutes: number;
+  startedAt?: string;
+  completedAt?: string;
+  scaledScore?: number;   // 118–132
+}
+
+export interface DiagnosticSession {
+  id: string;
+  startedAt: string;
+  completedAt?: string;
+  sections: DiagnosticSectionResult[];
+  totalScore?: number;    // 472–528
+}
+
 export interface DashboardData {
   userId: string;
   updatedAt: string;
@@ -530,6 +580,10 @@ export interface DashboardData {
   mcatTestDate?: string;
   mcatQuestions?: MCATQuestion[];
   mcatQuizSessions?: MCATQuizSession[];
+  flashcards?: Flashcard[];
+  flashcardReviews?: FlashcardReviewLog[];
+  studyTimerLogs?: StudyTimerLog[];
+  diagnosticSessions?: DiagnosticSession[];
 
   // School
   classes: ClassEntry[];
