@@ -103,7 +103,7 @@ export function ScheduleView({ data, update }: Props) {
             <div key={m.id} className="flex items-start gap-3 group">
               <button
                 onClick={() => toggleMilestone(m.id)}
-                className={`w-5 h-5 mt-0.5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${m.done ? "bg-sage border-sage text-white" : "border-sand hover:border-terracotta"}`}
+                className={`w-5 h-5 mt-0.5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${m.done ? "bg-sage border-sage" : "border-sand hover:border-terracotta"}`}
               >
                 {m.done && <Check size={11} />}
               </button>

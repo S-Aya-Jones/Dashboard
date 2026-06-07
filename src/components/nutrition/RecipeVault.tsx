@@ -135,6 +135,7 @@ function RecipeDetail({
               className="w-full rounded-3xl overflow-hidden"
               style={{ background: "#E8D4B0" }}
             >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={recipe.photos[0]}
                 alt={recipe.title}
@@ -145,6 +146,7 @@ function RecipeDetail({
                 <div className="flex gap-2 p-3">
                   {recipe.photos.slice(1, 4).map((p, i) => (
                     <div key={i} className="flex-1 rounded-xl overflow-hidden" style={{ height: "72px" }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={p} alt="" className="w-full h-full object-cover" />
                     </div>
                   ))}
@@ -154,7 +156,7 @@ function RecipeDetail({
           ) : (
             <div
               className="w-full rounded-3xl flex flex-col items-center justify-center gap-4"
-              style={{ minHeight: "300px", background: "rgba(255,255,255,0.05)", border: "2px dashed rgba(255,255,255,0.12)" }}
+              style={{ minHeight: "300px", background: "rgba(124,92,252,0.05)", border: "2px dashed var(--border)" }}
             >
               <span className="text-5xl">🍳</span>
               <p className="text-sm font-medium" style={{ color: "#A8967E" }}>Add a photo</p>
@@ -162,14 +164,14 @@ function RecipeDetail({
                 <button
                   onClick={() => photoFileRef.current?.click()}
                   disabled={uploadingPhoto}
-                  className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-white w-full"
-                  style={{ background: "#71816D" }}
+                  className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-medium w-full"
+                  style={{ background: "#71816D", color: "var(--surface)" }}
                 >
                   <Camera size={14} /> {uploadingPhoto ? "Uploading…" : "Upload photo"}
                 </button>
                 <div className="flex gap-2">
                   <input
-                    style={{ flex: 1, background: "#1C1C1C", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "10px", color: "#FFFFFF", padding: "7px 10px", fontSize: "13px", outline: "none" }}
+                    style={{ flex: 1, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "10px", color: "var(--text)", padding: "7px 10px", fontSize: "13px", outline: "none" }}
                     placeholder="Or paste image URL…"
                     value={photoUrlInput}
                     onChange={(e) => setPhotoUrlInput(e.target.value)}
@@ -192,7 +194,7 @@ function RecipeDetail({
           <h1
             className="font-serif leading-tight mb-3"
             style={{
-              color: "#FFFFFF",
+              color: "var(--text)",
               fontFamily: "'Cormorant Garamond', Georgia, serif",
               fontSize: "clamp(1.75rem, 4vw, 2.75rem)",
             }}
@@ -216,7 +218,7 @@ function RecipeDetail({
           )}
 
           {recipe.description && (
-            <p className="text-sm mb-4 leading-relaxed" style={{ color: "rgba(255,255,255,0.55)" }}>
+            <p className="text-sm mb-4 leading-relaxed" style={{ color: "var(--text-muted)" }}>
               {recipe.description}
             </p>
           )}
@@ -224,25 +226,25 @@ function RecipeDetail({
           {/* Serving controls + calorie bar */}
           <div
             className="flex items-center justify-between py-3 px-4 rounded-2xl mb-6"
-            style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
+            style={{ background: "rgba(124,92,252,0.05)", border: "1px solid var(--border)" }}
           >
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setServings((s) => Math.max(1, s - 1))}
                 className="w-7 h-7 rounded-full flex items-center justify-center transition-colors"
-                style={{ background: "rgba(255,255,255,0.06)", color: "#FFFFFF" }}
+                style={{ background: "rgba(124,92,252,0.06)", color: "var(--text)" }}
               >
                 <Minus size={13} />
               </button>
               <div className="text-center">
-                <span className="text-sm font-medium" style={{ color: "#FFFFFF" }}>
+                <span className="text-sm font-medium" style={{ color: "var(--text)" }}>
                   Makes {servings} {servings === 1 ? "portion" : "portions"}
                 </span>
               </div>
               <button
                 onClick={() => setServings((s) => s + 1)}
                 className="w-7 h-7 rounded-full flex items-center justify-center transition-colors"
-                style={{ background: "rgba(255,255,255,0.06)", color: "#FFFFFF" }}
+                style={{ background: "rgba(124,92,252,0.06)", color: "var(--text)" }}
               >
                 <Plus size={13} />
               </button>
@@ -250,7 +252,7 @@ function RecipeDetail({
             {perCal && (
               <span className="text-sm" style={{ color: "#A8967E" }}>
                 Per portion:{" "}
-                <span className="font-semibold" style={{ color: "#FFFFFF" }}>
+                <span className="font-semibold" style={{ color: "var(--text)" }}>
                   {perCal} kcal
                 </span>
               </span>
@@ -269,8 +271,8 @@ function RecipeDetail({
                 </h2>
                 <button
                   onClick={() => onAddToGrocery(itemLines)}
-                  className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg text-white"
-                  style={{ background: "#71816D" }}
+                  className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg"
+                  style={{ background: "#71816D", color: "var(--surface)" }}
                 >
                   <ShoppingCart size={12} /> Add all to Grocery
                 </button>
@@ -278,7 +280,7 @@ function RecipeDetail({
 
               <div
                 className="rounded-2xl overflow-hidden divide-y"
-                style={{ border: "1px solid rgba(255,255,255,0.08)" }}
+                style={{ border: "1px solid var(--border)" }}
               >
                 {parsed.map((line, i) => {
                   if (line.header) {
@@ -286,7 +288,7 @@ function RecipeDetail({
                       <div
                         key={i}
                         className="px-4 pt-3 pb-1.5"
-                        style={{ background: "rgba(255,255,255,0.04)" }}
+                        style={{ background: "rgba(124,92,252,0.04)" }}
                       >
                         <p
                           className="text-[10px] font-bold uppercase tracking-widest"
@@ -308,13 +310,13 @@ function RecipeDetail({
                       type="button"
                       onClick={() => toggleCheck(idx)}
                       className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors"
-                      style={{ background: done ? "rgba(255,255,255,0.04)" : "transparent" }}
+                      style={{ background: done ? "rgba(124,92,252,0.04)" : "transparent" }}
                     >
                       {/* Custom checkbox */}
                       <div
                         className="flex-shrink-0 w-4 h-4 rounded flex items-center justify-center transition-all"
                         style={{
-                          border: `1.5px solid ${done ? "#71816D" : "rgba(255,255,255,0.3)"}`,
+                          border: `1.5px solid ${done ? "#71816D" : "rgba(124,92,252,0.3)"}`,
                           background: done ? "#71816D" : "transparent",
                         }}
                       >
@@ -327,7 +329,7 @@ function RecipeDetail({
                       <span
                         className="text-sm"
                         style={{
-                          color: done ? "rgba(255,255,255,0.35)" : "#FFFFFF",
+                          color: done ? "var(--text-light)" : "var(--text)",
                           textDecoration: done ? "line-through" : "none",
                         }}
                       >
@@ -350,12 +352,12 @@ function RecipeDetail({
                 {recipe.steps.map((step, i) => (
                   <div key={i} className="flex gap-4">
                     <div
-                      className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-semibold"
-                      style={{ background: "#71816D" }}
+                      className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold"
+                      style={{ background: "#71816D", color: "var(--surface)" }}
                     >
                       {i + 1}
                     </div>
-                    <p className="text-sm leading-relaxed pt-0.5" style={{ color: "#FFFFFF" }}>
+                    <p className="text-sm leading-relaxed pt-0.5" style={{ color: "var(--text)" }}>
                       {step}
                     </p>
                   </div>
@@ -369,13 +371,13 @@ function RecipeDetail({
             <div className="mb-6">
               <h2 className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "#A8967E" }}>
                 Nutrition
-                <span className="normal-case font-normal ml-1.5" style={{ color: "rgba(255,255,255,0.3)" }}>
+                <span className="normal-case font-normal ml-1.5" style={{ color: "var(--text-light)" }}>
                   · {servings} {servings === 1 ? "portion" : "portions"} total
                 </span>
               </h2>
               <div
                 className="grid grid-cols-4 rounded-2xl overflow-hidden"
-                style={{ border: "1px solid rgba(255,255,255,0.08)" }}
+                style={{ border: "1px solid var(--border)" }}
               >
                 {[
                   { label: "Calories", val: totalCal,     unit: "kcal" },
@@ -386,11 +388,11 @@ function RecipeDetail({
                   <div
                     key={label}
                     className="py-4 px-2 text-center"
-                    style={{ borderLeft: i > 0 ? "1px solid rgba(255,255,255,0.08)" : "none", background: "#141414" }}
+                    style={{ borderLeft: i > 0 ? "1px solid var(--border)" : "none", background: "var(--bg)" }}
                   >
                     <p
                       className="font-serif text-2xl leading-none mb-1"
-                      style={{ color: "#FFFFFF", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+                      style={{ color: "var(--text)", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
                     >
                       {val}{unit !== "kcal" ? unit : ""}
                     </p>
@@ -408,7 +410,7 @@ function RecipeDetail({
                 <span
                   key={t}
                   className="text-xs px-2.5 py-1 rounded-full"
-                  style={{ background: "rgba(255,255,255,0.06)", color: "#71816D" }}
+                  style={{ background: "rgba(124,92,252,0.06)", color: "#71816D" }}
                 >
                   #{t}
                 </span>
@@ -436,14 +438,15 @@ function RecipeCard({
     <div
       className="group rounded-2xl overflow-hidden cursor-pointer transition-all duration-200 hover:-translate-y-1"
       style={{
-        background: "#141414",
-        border: "1px solid rgba(255,255,255,0.08)",
-        boxShadow: "0 3px 14px rgba(0,0,0,0.3)",
+        background: "var(--surface)",
+        border: "1px solid var(--border)",
+        boxShadow: "0 3px 14px rgba(124,92,252,0.08)",
       }}
       onClick={onClick}
     >
       {recipe.photos.length > 0 ? (
         <div className="w-full overflow-hidden" style={{ height: "190px" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={recipe.photos[0]}
             alt={recipe.title}
@@ -453,7 +456,7 @@ function RecipeCard({
       ) : (
         <div
           className="w-full flex items-center justify-center"
-          style={{ height: "120px", background: "rgba(255,255,255,0.05)" }}
+          style={{ height: "120px", background: "rgba(124,92,252,0.05)" }}
         >
           <span className="text-4xl">🍳</span>
         </div>
@@ -463,7 +466,7 @@ function RecipeCard({
         <div className="flex items-start justify-between gap-2 mb-2">
           <h3
             className="font-serif text-lg leading-tight flex-1"
-            style={{ color: "#FFFFFF", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+            style={{ color: "var(--text)", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
           >
             {recipe.title}
           </h3>
@@ -523,7 +526,7 @@ function SerifRating({ value, onChange }: { value: number; onChange: (n: number)
           onClick={() => onChange(n)}
           className="font-serif text-xl leading-none transition-colors"
           style={{
-            color: n <= value ? "#DA667B" : "rgba(255,255,255,0.3)",
+            color: n <= value ? "#DA667B" : "var(--text-light)",
             fontFamily: "'Cormorant Garamond', Georgia, serif",
           }}
         >
@@ -621,10 +624,10 @@ function AddRecipeForm({
   }
 
   const inp: React.CSSProperties = {
-    background: "#1C1C1C",
-    border: "1px solid rgba(255,255,255,0.12)",
+    background: "var(--surface)",
+    border: "1px solid var(--border)",
     borderRadius: "10px",
-    color: "#FFFFFF",
+    color: "var(--text)",
     padding: "8px 12px",
     fontSize: "14px",
     outline: "none",
@@ -634,11 +637,11 @@ function AddRecipeForm({
   return (
     <div
       className="rounded-2xl p-6 mb-6"
-      style={{ background: "#141414", border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 4px 20px rgba(0,0,0,0.3)" }}
+      style={{ background: "var(--bg)", border: "1px solid var(--border)", boxShadow: "0 4px 20px rgba(124,92,252,0.08)" }}
     >
       <h3
         className="font-serif text-2xl mb-5"
-        style={{ color: "#FFFFFF", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+        style={{ color: "var(--text)", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
       >
         Add Recipe
       </h3>
@@ -654,12 +657,13 @@ function AddRecipeForm({
             <div className="flex gap-2 flex-wrap mb-2">
               {photos.map((p, i) => (
                 <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={p} alt="" className="w-full h-full object-cover" />
                   <button
                     type="button"
                     onClick={() => setPhotos((a) => a.filter((_, j) => j !== i))}
                     className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full flex items-center justify-center"
-                    style={{ background: "rgba(255,255,255,0.65)" }}
+                    style={{ background: "rgba(124,92,252,0.65)" }}
                   >
                     <X size={9} color="white" />
                   </button>
@@ -704,7 +708,7 @@ function AddRecipeForm({
               return (
                 <button key={tag} type="button" onClick={() => toggleDietary(tag)}
                   className="text-xs px-3 py-1 rounded-full font-medium transition-all"
-                  style={{ background: on ? "#71816D" : "rgba(113,129,109,0.10)", color: on ? "white" : "#71816D" }}>
+                  style={{ background: on ? "#71816D" : "rgba(113,129,109,0.10)", color: on ? "var(--surface)" : "#71816D" }}>
                   {tag}
                 </button>
               );
@@ -736,7 +740,7 @@ function AddRecipeForm({
         <div>
           <p className="text-xs font-medium mb-1.5" style={{ color: "#A8967E" }}>
             Ingredients{" "}
-            <span className="font-normal" style={{ color: "rgba(255,255,255,0.3)" }}>
+            <span className="font-normal" style={{ color: "var(--text-light)" }}>
               — one per line. Write ALL CAPS or add a colon to create a section header (e.g. CHICKEN: or SOUP:)
             </span>
           </p>
@@ -751,7 +755,7 @@ function AddRecipeForm({
         {/* Steps */}
         <div>
           <p className="text-xs font-medium mb-1.5" style={{ color: "#A8967E" }}>
-            Instructions <span className="font-normal" style={{ color: "rgba(255,255,255,0.3)" }}>— one step per line</span>
+            Instructions <span className="font-normal" style={{ color: "var(--text-light)" }}>— one step per line</span>
           </p>
           <textarea
             style={{ ...inp, resize: "none", minHeight: "110px" }}
@@ -779,8 +783,8 @@ function AddRecipeForm({
           <button
             onClick={submit}
             disabled={!title.trim()}
-            className="px-6 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-40"
-            style={{ background: "#71816D" }}
+            className="px-6 py-2.5 rounded-xl text-sm font-medium disabled:opacity-40"
+            style={{ background: "#71816D", color: "var(--surface)" }}
           >
             {saveLabel}
           </button>
@@ -966,7 +970,7 @@ export function RecipeVault({
       />
 
       <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
-        <p className="text-sm" style={{ color: "rgba(255,255,255,0.4)" }}>
+        <p className="text-sm" style={{ color: "var(--text-light)" }}>
           {nutrition.recipes.length} recipe{nutrition.recipes.length !== 1 ? "s" : ""} saved
         </p>
         {!adding && (
@@ -988,8 +992,8 @@ export function RecipeVault({
             </button>
             <button
               onClick={() => { setDraft(null); setAdding(true); }}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-white"
-              style={{ background: "#71816D" }}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium"
+              style={{ background: "#71816D", color: "var(--surface)" }}
             >
               <Plus size={15} /> Add Recipe
             </button>
@@ -999,7 +1003,7 @@ export function RecipeVault({
 
       {/* Progress bar for mass import */}
       {extracting && extractProgress && extractProgress.total > 1 && (
-        <div className="mb-4 rounded-xl overflow-hidden" style={{ background: "rgba(255,255,255,0.06)", height: "6px" }}>
+        <div className="mb-4 rounded-xl overflow-hidden" style={{ background: "rgba(124,92,252,0.06)", height: "6px" }}>
           <div
             className="h-full rounded-xl transition-all duration-300"
             style={{ background: "#71816D", width: `${(extractProgress.current / extractProgress.total) * 100}%` }}
@@ -1036,7 +1040,7 @@ export function RecipeVault({
       )}
 
       {nutrition.recipes.length === 0 && !adding ? (
-        <div className="text-center py-16" style={{ color: "rgba(255,255,255,0.35)" }}>
+        <div className="text-center py-16" style={{ color: "var(--text-light)" }}>
           <p
             className="font-serif text-2xl mb-2"
             style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
