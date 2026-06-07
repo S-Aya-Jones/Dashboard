@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import {
-  RotateCcw, Plus, Trash2, ChevronDown, ChevronUp,
+  Plus, Trash2, ChevronDown, ChevronUp,
   Brain, BookOpen, Check, X, Zap, Clock
 } from "lucide-react";
 import { Flashcard, FlashcardReviewLog, DashboardData } from "@/types/dashboard";
@@ -72,6 +72,7 @@ export function AnkiView({ data, update }: Props) {
 
   // View state
   const [view, setView] = useState<View>("home");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [deckFilter, setDeckFilter] = useState<string | null>(null);
 
   // Review state
