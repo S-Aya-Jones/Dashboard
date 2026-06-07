@@ -796,13 +796,13 @@ export function SessionView({ day, weekNum, lastWeights, streak, totalCompleted,
       {/* Paused overlay */}
       {paused && !rest && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 p-8 text-center"
-          style={{ background: "rgba(10,10,10,0.97)", zIndex: 50, animation: "fadeIn 0.15s ease-out" }}>
-          <p className="font-serif text-4xl text-ink">Paused</p>
+          style={{ background: "rgba(244,240,254,0.97)", zIndex: 50, animation: "fadeIn 0.15s ease-out" }}>
+          <p className="font-serif text-4xl" style={{ color: "var(--text)" }}>Paused</p>
           <p className="text-sm" style={{ color: "var(--text-muted)" }}>Take your time. Hydrate. Breathe.</p>
           <button onClick={togglePause}
-            className="flex items-center gap-2 px-8 py-4 rounded-2xl font-semibold text-black text-base active:scale-95 transition-transform"
-            style={{ background: "#7C5CFC" }}>
-            <Play size={16} fill="black" /> Resume
+            className="flex items-center gap-2 px-8 py-4 rounded-2xl font-semibold text-base active:scale-95 transition-transform"
+            style={{ background: "#7C5CFC", color: "#fff" }}>
+            <Play size={16} fill="white" /> Resume
           </button>
         </div>
       )}
@@ -831,7 +831,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, totalCompleted,
       {/* Mind-muscle prompt */}
       {showMMP && (
         <div className="absolute inset-0 flex items-center justify-center p-8"
-          style={{ background: "rgba(10,10,10,0.95)", zIndex: 40, animation: "fadeIn 0.2s ease-out" }}>
+          style={{ background: "rgba(244,240,254,0.95)", zIndex: 40, animation: "fadeIn 0.2s ease-out" }}>
           <div className="text-center space-y-3">
             <p className="font-serif text-2xl text-ink leading-snug">
               Squeeze your glute now<br />— hold —<br />now load it
@@ -844,7 +844,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, totalCompleted,
       {/* Exit confirmation */}
       {showExitConfirm && (
         <div className="absolute inset-0 flex items-center justify-center p-8"
-          style={{ background: "rgba(0,0,0,0.85)", zIndex: 70, animation: "fadeIn 0.15s ease-out" }}>
+          style={{ background: "rgba(124,92,252,0.15)", zIndex: 70, animation: "fadeIn 0.15s ease-out" }}>
           <div className="rounded-2xl p-6 w-full max-w-xs space-y-4 text-center"
             style={{ background: "var(--surface2)", animation: "popIn 0.2s ease-out" }}>
             <p className="font-serif text-xl text-ink">End this workout?</p>
@@ -880,7 +880,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, totalCompleted,
       {showAddEx && (
         <div className="absolute inset-0 flex flex-col justify-end" style={{ background: "rgba(0,0,0,0.6)", zIndex: 60 }}
           onClick={(e) => { if (e.target === e.currentTarget) setShowAddEx(false); }}>
-          <div className="rounded-t-3xl p-6 space-y-4" style={{ background: "#141414", animation: "slideUp 0.25s ease-out" }}>
+          <div className="rounded-t-3xl p-6 space-y-4" style={{ background: "var(--surface)", animation: "slideUp 0.25s ease-out" }}>
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-semibold text-ink">Add Exercise</p>
@@ -913,7 +913,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, totalCompleted,
             </div>
             <button onClick={addCustomExercise}
               className="w-full py-3.5 rounded-2xl font-semibold text-sm active:scale-95 transition-transform"
-              style={{ background: addExName.trim() ? "#7C5CFC" : "rgba(124,92,252,0.25)", color: addExName.trim() ? "#000" : "rgba(30,19,64,0.3)" }}>
+              style={{ background: addExName.trim() ? "#7C5CFC" : "rgba(124,92,252,0.25)", color: addExName.trim() ? "#fff" : "var(--text-light)" }}>
               Add to Main Work
             </button>
           </div>

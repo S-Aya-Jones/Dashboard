@@ -76,7 +76,7 @@ export function ShetritionBoard({
       {/* Upload controls */}
       <div
         className="rounded-2xl p-5 mb-6"
-        style={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.1)" }}
+        style={{ background: "var(--bg)", border: "1px solid var(--border)" }}
       >
         <h3 className="font-serif text-lg mb-3" style={{ color: "var(--text)", fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
           Add Inspiration
@@ -110,7 +110,7 @@ export function ShetritionBoard({
             onClick={() => fileRef.current?.click()}
             disabled={uploading}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium  w-full justify-center"
-            style={{ background: "#71816D" }}
+            style={{ background: "#71816D", color: "var(--surface)" }}
           >
             <Camera size={15} />
             {uploading ? "Uploading…" : "Upload Screenshot or Photo"}
@@ -127,7 +127,7 @@ export function ShetritionBoard({
       </div>
 
       {nutrition.shetritionImages.length === 0 ? (
-        <div className="text-center py-16" style={{ color: "rgba(124,92,252,0.35)" }}>
+        <div className="text-center py-16" style={{ color: "var(--text-light)" }}>
           <p className="font-serif text-2xl mb-2" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
             Your board is blank
           </p>
@@ -141,8 +141,8 @@ export function ShetritionBoard({
                 className="rounded-2xl overflow-hidden transition-all duration-200"
                 style={{
                   background: "var(--surface)",
-                  border: "1px solid rgba(124,92,252,0.08)",
-                  boxShadow: "0 3px 14px rgba(0,0,0,0.3)",
+                  border: "1px solid var(--border)",
+                  boxShadow: "0 3px 14px rgba(124,92,252,0.08)",
                 }}
               >
                 <div className="relative">
@@ -158,7 +158,7 @@ export function ShetritionBoard({
                 <div className="px-3 py-2">
                   <input
                     className="w-full text-xs bg-transparent border-none outline-none italic"
-                    style={{ color: "rgba(124,92,252,0.5)" }}
+                    style={{ color: "var(--text-muted)" }}
                     placeholder="Add a caption…"
                     defaultValue={img.caption ?? ""}
                     onBlur={(e) => updateCaption(img.id, e.target.value)}

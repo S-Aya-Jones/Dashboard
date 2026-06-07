@@ -18,7 +18,7 @@ const SESSION_TYPES = [
   { value: "gym",    label: "Gym 🏋🏾‍♀️",          color: "#71816D" },
   { value: "tennis", label: "Tennis 🎾",           color: "#DA667B" },
   { value: "walk",   label: "Morning Walk 🚶🏾‍♀️",   color: "#8A9E87" },
-  { value: "other",  label: "Other",               color: "rgba(255,255,255,0.3)" },
+  { value: "other",  label: "Other",               color: "rgba(124,92,252,0.3)" },
 ];
 
 // ── Apple Health helpers ───────────────────────────────────────────────────
@@ -500,9 +500,9 @@ export function FitnessView({ data, update }: Props) {
             onClick={() => setTab(tid)}
             className="px-5 py-2 rounded-xl text-sm font-medium transition-all duration-150"
             style={{
-              background: tab === tid ? "#141414" : "transparent",
-              color: tab === tid ? "#FFFFFF" : "rgba(255,255,255,0.45)",
-              boxShadow: tab === tid ? "0 2px 8px rgba(255,255,255,0.06)" : "none",
+              background: tab === tid ? "var(--bg)" : "transparent",
+              color: tab === tid ? "var(--text)" : "var(--text-muted)",
+              boxShadow: tab === tid ? "0 2px 8px rgba(124,92,252,0.1)" : "none",
             }}
           >
             {label}
@@ -589,7 +589,7 @@ export function FitnessView({ data, update }: Props) {
                           <div
                             key={i}
                             className="w-2 h-2 rounded-full"
-                            style={{ background: i < s.quality ? "#71816D" : "rgba(255,255,255,0.1)" }}
+                            style={{ background: i < s.quality ? "#71816D" : "rgba(124,92,252,0.12)" }}
                           />
                         ))}
                       </div>

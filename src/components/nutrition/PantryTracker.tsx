@@ -62,7 +62,7 @@ export function PantryTracker({
               <button
                 onClick={() => toggle(item.id)}
                 className="flex-1 text-left text-sm truncate"
-                style={{ color: item.inStock ? "#FFFFFF" : "rgba(124,92,252,0.4)" }}
+                style={{ color: item.inStock ? "var(--text)" : "var(--text-light)" }}
                 title={item.inStock ? "Mark as out" : "Mark as in stock"}
               >
                 <span
@@ -109,14 +109,14 @@ export function PantryTracker({
         <button
           onClick={addItem}
           className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium "
-          style={{ background: "#71816D" }}
+          style={{ background: "#71816D", color: "var(--surface)" }}
         >
           <Plus size={15} /> Add
         </button>
       </div>
 
       {nutrition.pantryItems.length === 0 ? (
-        <div className="text-center py-16" style={{ color: "rgba(124,92,252,0.35)" }}>
+        <div className="text-center py-16" style={{ color: "var(--text-light)" }}>
           <p className="font-serif text-2xl mb-2" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
             Pantry is empty
           </p>

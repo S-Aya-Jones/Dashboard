@@ -459,7 +459,7 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
           {PROGRAM.map((d) => {
             const isToday = d.weekday === weekday;
             const done = isDone(d);
-            const acc = DAY_THEME[d.id]?.accent ?? "#C8FF00";
+            const acc = DAY_THEME[d.id]?.accent ?? "#7C5CFC";
             return (
               <button key={d.id} onClick={() => onStartSession(d.id)}
                 className="flex-1 flex flex-col items-center gap-1.5 py-2.5 rounded-2xl transition-all active:scale-95"
@@ -568,7 +568,7 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
                   return (
                     <div key={d.id} onClick={() => onStartSession(d.id)}
                       className="flex-shrink-0 rounded-2xl overflow-hidden relative cursor-pointer active:scale-95 transition-transform"
-                      style={{ width: 160, background: DAY_THEME[d.id]?.bg ?? "#141414", border: `1px solid ${cat.accent}33` }}>
+                      style={{ width: 160, background: DAY_THEME[d.id]?.bg ?? "var(--bg2)", border: `1px solid ${cat.accent}33` }}>
                       {/* Big number */}
                       <div className="absolute right-2 bottom-2 font-serif select-none pointer-events-none"
                         style={{ fontSize: "4rem", lineHeight: 1, color: cat.accent, opacity: 0.12 }}>
