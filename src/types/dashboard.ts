@@ -474,6 +474,38 @@ export interface SmsData {
   pushSubscription?: PushSubscriptionData;
 }
 
+export interface MCATQuestion {
+  id: string;
+  subject: string;
+  topic: string;
+  difficulty: "easy" | "medium" | "hard";
+  stem: string;
+  choices: { letter: string; text: string }[];
+  correctLetter: string;
+  explanation: string;
+  createdAt: string;
+}
+
+export interface MCATQuizAttempt {
+  questionId: string;
+  selectedLetter: string | null;
+  correct: boolean;
+  flagged: boolean;
+  timeSpentSeconds: number;
+}
+
+export interface MCATQuizSession {
+  id: string;
+  startedAt: string;
+  completedAt?: string;
+  mode: "tutor" | "timed";
+  timeLimitMinutes?: number;
+  questionIds: string[];
+  attempts: MCATQuizAttempt[];
+  subjects: string[];
+  topics: string[];
+}
+
 export interface DashboardData {
   userId: string;
   updatedAt: string;
@@ -496,6 +528,8 @@ export interface DashboardData {
   practiceTests: PracticeTest[];
   mcatResources: MCATResource[];
   mcatTestDate?: string;
+  mcatQuestions?: MCATQuestion[];
+  mcatQuizSessions?: MCATQuizSession[];
 
   // School
   classes: ClassEntry[];
