@@ -588,6 +588,8 @@ export interface DashboardData {
   flashcardReviews?: FlashcardReviewLog[];
   studyTimerLogs?: StudyTimerLog[];
   diagnosticSessions?: DiagnosticSession[];
+  ankiSettings?: { newPerDay: number; reviewPerDay: number };
+  ankiDailyCount?: { date: string; newSeen: number; reviewSeen: number };
 
   // School
   classes: ClassEntry[];
