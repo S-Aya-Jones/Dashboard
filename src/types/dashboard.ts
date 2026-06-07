@@ -215,6 +215,14 @@ export interface BudgetLine {
   isDetected?: boolean;
 }
 
+export interface CreditScoreEntry {
+  id: string;
+  date: string;       // YYYY-MM-DD
+  score: number;      // 300–850
+  source: string;     // "Credit Karma", "Chase", "Experian", etc.
+  notes?: string;
+}
+
 export interface SelfCareItem {
   id: string;
   name: string;
@@ -513,6 +521,7 @@ export interface DashboardData {
   selfCareItems?: SelfCareItem[];
   recurringBills?: RecurringBill[];
   budgetLines?: BudgetLine[];
+  creditScores?: CreditScoreEntry[];
   p2pTransfers?: P2PTransfer[];
   accountTransfers?: AccountTransfer[];
   sinkingFunds?: SinkingFund[];

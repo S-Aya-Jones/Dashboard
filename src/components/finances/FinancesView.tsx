@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { usePlaidLink } from "react-plaid-link";
 import { RefreshCw, Unlink, Plus, Trash2, Check, ChevronDown, ChevronUp, RotateCcw } from "lucide-react";
-import { DashboardData, PaycheckConfig, SelfCareItem, RecurringBill, P2PTransfer, AccountTransfer, BudgetLine } from "@/types/dashboard";
+import { DashboardData, PaycheckConfig, SelfCareItem, RecurringBill, P2PTransfer, AccountTransfer, BudgetLine, CreditScoreEntry } from "@/types/dashboard";
 import { id } from "@/lib/utils";
 import { parseISO, format, addDays, differenceInDays } from "date-fns";
 
@@ -51,6 +51,23 @@ interface PlaidAccount {
   accountId: string; name: string; mask?: string | null; type: string; subtype?: string | null;
   balances: { current?: number | null; available?: number | null; limit?: number | null };
   institutionName?: string | null; itemId?: string;
+}
+interface CreditCardLiability {
+  accountId: string; name: string; balance: number; creditLimit: number | null;
+  utilization: number | null; minimumPayment: number | null; nextDueDate: string | null;
+  purchaseApr: number | null; isOverdue: boolean;
+}
+interface StudentLoanLiability {
+  accountId: string; name: string; outstandingBalance: number; interestRate: number | null;
+  minimumPayment: number | null; nextDueDate: string | null; expectedPayoffDate: string | null;
+  isOverdue: boolean;
+}
+interface LiabilitiesData {
+  hasData: boolean;
+  creditCards: CreditCardLiability[];
+  studentLoans: StudentLoanLiability[];
+  totalDebt: number;
+  totalMinPayments: number;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -198,7 +215,7 @@ function PlaidConnectButton({ onConnected }: { onConnected: () => void }) {
 interface Props { data: DashboardData; update: (fn: (d: DashboardData) => DashboardData) => void; }
 
 export function FinancesView({ data, update }: Props) {
-  const [tab, setTab]                       = useState<"plan"|"schedule"|"accounts">("plan");
+  const [tab, setTab]                       = useState<"plan"|"schedule"|"credit"|"accounts">("plan");
   const [toast, setToast]                   = useState<string | null>(null);
   const [insights, setInsights]             = useState<InsightsData | null>(null);
   const [insightsLoading, setInsightsLoading] = useState(true);
@@ -206,6 +223,8 @@ export function FinancesView({ data, update }: Props) {
   const [loadingAccts, setLoadingAccts]     = useState(true);
   const [refreshing, setRefreshing]         = useState(false);
   const [showBanner, setShowBanner]         = useState(false);
+  const [liabilities, setLiabilities]       = useState<LiabilitiesData | null>(null);
+  const [liabilitiesLoading, setLiabilitiesLoading] = useState(true);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
 
@@ -228,6 +247,12 @@ export function FinancesView({ data, update }: Props) {
       }
     }).catch(() => {}).finally(() => setInsightsLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/plaid/liabilities").then(r => r.json()).then((d: LiabilitiesData) => {
+      setLiabilities(d);
+    }).catch(() => {}).finally(() => setLiabilitiesLoading(false));
   }, []);
 
   const fetchAccounts = useCallback(async (bust = false) => {
@@ -305,9 +330,9 @@ export function FinancesView({ data, update }: Props) {
           </div>
         </div>
         <div className="flex gap-1 rounded-xl p-1" style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${BORDER}` }}>
-          {(["plan","schedule","accounts"] as const).map(k => (
+          {(["plan","schedule","credit","accounts"] as const).map(k => (
             <button key={k} onClick={() => setTab(k)}
-              className="flex-1 py-2 rounded-lg text-xs font-semibold capitalize transition-all"
+              className="flex-1 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all"
               style={tab === k ? { background: LIME, color: "#000" } : { color: MUTED }}>
               {k}
             </button>
@@ -372,6 +397,16 @@ export function FinancesView({ data, update }: Props) {
             onUpdateBudgetLines={(bl) => update(d => ({ ...d, budgetLines: bl }))}
             onUpdatePc={(p) => update(d => ({ ...d, paycheckConfig: p }))}
             showToast={showToast}
+          />
+        )}
+        {tab === "credit" && (
+          <CreditTab
+            liabilities={liabilities}
+            liabilitiesLoading={liabilitiesLoading}
+            creditScores={data.creditScores ?? []}
+            effectiveTakeHome={effectiveTakeHome}
+            freeCash={yearPlan[0]?.free ?? 0}
+            onUpdateScores={(scores) => update(d => ({ ...d, creditScores: scores }))}
           />
         )}
         {tab === "accounts" && (
@@ -1787,6 +1822,324 @@ function AccountsTab({ accounts, loadingAccts, refreshing, accountTransfers, onR
           <p className="text-xs text-center py-2" style={{ color: MUTED }}>No account transfers logged</p>
         )}
       </div>
+    </div>
+  );
+}
+
+// ── Credit Tab ────────────────────────────────────────────────────────────────
+function scoreLabel(s: number): { text: string; color: string } {
+  if (s >= 800) return { text: "Exceptional", color: LIME };
+  if (s >= 740) return { text: "Very Good",   color: LIME };
+  if (s >= 670) return { text: "Good",        color: "#8A9E87" };
+  if (s >= 580) return { text: "Fair",        color: AMBER };
+  return               { text: "Poor",        color: RED };
+}
+
+function CreditTab({ liabilities, liabilitiesLoading, creditScores, effectiveTakeHome, freeCash, onUpdateScores }: {
+  liabilities: LiabilitiesData | null;
+  liabilitiesLoading: boolean;
+  creditScores: CreditScoreEntry[];
+  effectiveTakeHome: number;
+  freeCash: number;
+  onUpdateScores: (s: CreditScoreEntry[]) => void;
+}) {
+  const [showScoreForm, setShowScoreForm] = useState(false);
+  const [scoreInput, setScoreInput]       = useState("");
+  const [scoreSource, setScoreSource]     = useState("Credit Karma");
+  const [scoreNote, setScoreNote]         = useState("");
+  const [advice, setAdvice]               = useState<string | null>(null);
+  const [adviceLoading, setAdviceLoading] = useState(false);
+  const fetchedRef = useRef(false);
+
+  const sorted  = [...creditScores].sort((a, b) => b.date.localeCompare(a.date));
+  const latest  = sorted[0] ?? null;
+  const prev    = sorted[1] ?? null;
+  const delta   = latest && prev ? latest.score - prev.score : null;
+
+  const fetchAdvice = useCallback(async () => {
+    if (!liabilities?.hasData && !liabilities?.creditCards.length) return;
+    setAdviceLoading(true);
+    try {
+      const ctx = {
+        takeHome: effectiveTakeHome,
+        creditCards: (liabilities?.creditCards ?? []).map(c => ({
+          name: c.name, balance: c.balance,
+          minimumPayment: c.minimumPayment, purchaseApr: c.purchaseApr,
+        })),
+        studentLoans: (liabilities?.studentLoans ?? []).map(l => ({
+          name: l.name, outstandingBalance: l.outstandingBalance,
+          interestRate: l.interestRate, minimumPayment: l.minimumPayment,
+        })),
+        totalDebt: liabilities?.totalDebt ?? 0,
+        totalMinPayments: liabilities?.totalMinPayments ?? 0,
+        freeCash,
+      };
+      const res = await fetch("/api/ai/debt-advice", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(ctx),
+      });
+      const j = await res.json();
+      setAdvice(j.advice ?? null);
+    } catch { setAdvice(null); }
+    finally  { setAdviceLoading(false); }
+  }, [liabilities, effectiveTakeHome, freeCash]);
+
+  useEffect(() => {
+    if (!fetchedRef.current && !liabilitiesLoading) {
+      fetchedRef.current = true;
+      fetchAdvice();
+    }
+  }, [fetchAdvice, liabilitiesLoading]);
+
+  const logScore = () => {
+    const n = parseInt(scoreInput);
+    if (!n || n < 300 || n > 850) return;
+    onUpdateScores([{ id: id(), date: format(new Date(), "yyyy-MM-dd"), score: n, source: scoreSource, notes: scoreNote || undefined }, ...creditScores]);
+    setScoreInput(""); setScoreNote(""); setShowScoreForm(false);
+  };
+
+  const label = latest ? scoreLabel(latest.score) : null;
+
+  return (
+    <div className="space-y-5">
+      {/* Credit Score card */}
+      <div className="rounded-3xl p-6" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+        <div className="flex items-start justify-between mb-4">
+          <p className="text-xs font-semibold" style={{ color: MUTED, letterSpacing: "0.1em" }}>CREDIT SCORE</p>
+          <button onClick={() => setShowScoreForm(!showScoreForm)}
+            className="text-xs px-3 py-1.5 rounded-xl font-semibold"
+            style={{ background: "rgba(200,255,0,0.1)", color: LIME, border: `1px solid rgba(200,255,0,0.2)` }}>
+            + Log Score
+          </button>
+        </div>
+
+        {latest ? (
+          <div>
+            <div className="flex items-end gap-3 mb-1">
+              <p className="text-5xl font-bold" style={{ color: label?.color }}>{latest.score}</p>
+              {delta !== null && (
+                <p className="text-sm font-semibold mb-2" style={{ color: delta >= 0 ? LIME : RED }}>
+                  {delta >= 0 ? `↑ +${delta}` : `↓ ${delta}`} pts
+                </p>
+              )}
+            </div>
+            <p className="text-sm font-semibold mb-0.5" style={{ color: label?.color }}>{label?.text}</p>
+            <p className="text-xs" style={{ color: MUTED }}>
+              via {latest.source} · {format(parseISO(latest.date), "MMM d, yyyy")}
+            </p>
+
+            {/* Score bar 300–850 */}
+            <div className="mt-4 relative">
+              <div className="h-2 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.08)" }}>
+                {["rgba(218,102,123,0.8)","rgba(232,168,124,0.8)","rgba(138,158,135,0.8)","rgba(200,255,0,0.7)","rgba(200,255,0,1)"].map((c, i) => (
+                  <div key={i} className="absolute top-0 h-2" style={{ left: `${i * 20}%`, width: "20%", background: c, opacity: 0.5 }} />
+                ))}
+                <div className="absolute top-0 h-2 rounded-full"
+                  style={{ left: 0, width: `${((latest.score - 300) / 550) * 100}%`, background: label?.color, transition: "width 0.5s" }} />
+              </div>
+              <div className="flex justify-between mt-1">
+                <p className="text-xs" style={{ color: MUTED }}>300</p>
+                <p className="text-xs" style={{ color: MUTED }}>850</p>
+              </div>
+            </div>
+
+            {/* Score history */}
+            {sorted.length > 1 && (
+              <div className="mt-4 pt-4" style={{ borderTop: `1px solid ${BORDER}` }}>
+                <p className="text-xs font-semibold mb-2" style={{ color: MUTED, letterSpacing: "0.06em" }}>HISTORY</p>
+                <div className="space-y-1.5">
+                  {sorted.slice(0, 5).map((e) => {
+                    const lbl = scoreLabel(e.score);
+                    return (
+                      <div key={e.id} className="flex items-center justify-between">
+                        <p className="text-xs" style={{ color: MUTED }}>{format(parseISO(e.date), "MMM d, yyyy")} · {e.source}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-semibold" style={{ color: lbl.color }}>{e.score}</p>
+                          <button onClick={() => onUpdateScores(creditScores.filter(x => x.id !== e.id))}>
+                            <Trash2 size={10} style={{ color: "rgba(255,255,255,0.15)" }} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="text-center py-4">
+            <p className="text-4xl mb-2">📊</p>
+            <p className="text-sm text-white mb-1">No score logged yet</p>
+            <p className="text-xs" style={{ color: MUTED }}>Check yours on Credit Karma, Chase, or your bank app — it&apos;s free.</p>
+          </div>
+        )}
+
+        {/* Log score form */}
+        {showScoreForm && (
+          <div className="mt-4 pt-4 space-y-2" style={{ borderTop: `1px solid ${BORDER}` }}>
+            <div className="grid grid-cols-2 gap-2">
+              <input type="number" min="300" max="850" value={scoreInput} onChange={e => setScoreInput(e.target.value)}
+                placeholder="Score (300–850)"
+                className="rounded-xl px-3 py-2.5 text-sm text-white outline-none"
+                style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }} />
+              <select value={scoreSource} onChange={e => setScoreSource(e.target.value)}
+                className="rounded-xl px-3 py-2.5 text-sm text-white outline-none"
+                style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }}>
+                {["Credit Karma","Chase","Capital One","Experian","Discover","Bank of America","Other"].map(s => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+            <input value={scoreNote} onChange={e => setScoreNote(e.target.value)} placeholder="Note (optional)"
+              className="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none"
+              style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}` }} />
+            <button onClick={logScore} disabled={!scoreInput}
+              className="w-full py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40"
+              style={{ background: LIME, color: "#000" }}>Save Score</button>
+          </div>
+        )}
+      </div>
+
+      {/* Debt Overview */}
+      {liabilitiesLoading ? (
+        <div className="rounded-2xl p-6 text-center" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+          <div className="w-5 h-5 border-2 rounded-full animate-spin mx-auto mb-2" style={{ borderColor: LIME, borderTopColor: "transparent" }} />
+          <p className="text-xs" style={{ color: MUTED }}>Reading your accounts…</p>
+        </div>
+      ) : liabilities?.hasData ? (
+        <>
+          {/* Summary bar */}
+          <div className="rounded-2xl px-5 py-4" style={{ background: "rgba(218,102,123,0.06)", border: `1px solid rgba(218,102,123,0.2)` }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold mb-1" style={{ color: RED, letterSpacing: "0.08em" }}>TOTAL DEBT</p>
+                <p className="text-3xl font-bold text-white">{fmt$(liabilities.totalDebt)}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs" style={{ color: MUTED }}>Minimum/mo</p>
+                <p className="text-xl font-bold" style={{ color: AMBER }}>{fmt$(liabilities.totalMinPayments)}</p>
+                <p className="text-xs mt-0.5" style={{ color: MUTED }}>
+                  {fmt$(Math.round(liabilities.totalMinPayments / 2))}/check
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Credit Cards */}
+          {liabilities.creditCards.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold mb-3" style={{ color: MUTED, letterSpacing: "0.08em" }}>CREDIT CARDS</p>
+              <div className="rounded-2xl overflow-hidden" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+                {liabilities.creditCards.map((cc, i) => {
+                  const util = cc.utilization ?? 0;
+                  const utilColor = util >= 50 ? RED : util >= 30 ? AMBER : LIME;
+                  return (
+                    <div key={cc.accountId} className="px-4 py-4"
+                      style={{ borderBottom: i < liabilities.creditCards.length - 1 ? `1px solid ${BORDER}` : undefined }}>
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <p className="text-sm font-semibold text-white flex items-center gap-2">
+                            💳 {cc.name}
+                            {cc.isOverdue && <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ background: "rgba(218,102,123,0.15)", color: RED }}>Overdue</span>}
+                          </p>
+                          <p className="text-xs mt-0.5" style={{ color: MUTED }}>
+                            {cc.purchaseApr ? `${cc.purchaseApr}% APR · ` : ""}
+                            {cc.nextDueDate ? `Due ${format(parseISO(cc.nextDueDate), "MMM d")}` : ""}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-bold" style={{ color: RED }}>{fmt$(cc.balance)}</p>
+                          {cc.minimumPayment && (
+                            <p className="text-xs" style={{ color: MUTED }}>min {fmt$(cc.minimumPayment)}/mo</p>
+                          )}
+                        </div>
+                      </div>
+                      {cc.creditLimit && (
+                        <div>
+                          <div className="flex justify-between mb-1">
+                            <p className="text-xs" style={{ color: MUTED }}>
+                              {fmt$(cc.balance)} of {fmt$(cc.creditLimit)} limit
+                            </p>
+                            <p className="text-xs font-semibold" style={{ color: utilColor }}>{util}% used</p>
+                          </div>
+                          <div className="h-1.5 rounded-full" style={{ background: "rgba(255,255,255,0.08)" }}>
+                            <div className="h-1.5 rounded-full transition-all"
+                              style={{ width: `${Math.min(100, util)}%`, background: utilColor }} />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Student Loans */}
+          {liabilities.studentLoans.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold mb-3" style={{ color: MUTED, letterSpacing: "0.08em" }}>STUDENT LOANS</p>
+              <div className="rounded-2xl overflow-hidden" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+                {liabilities.studentLoans.map((loan, i) => (
+                  <div key={loan.accountId} className="px-4 py-4"
+                    style={{ borderBottom: i < liabilities.studentLoans.length - 1 ? `1px solid ${BORDER}` : undefined }}>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-white flex items-center gap-2">
+                          🎓 {loan.name}
+                          {loan.isOverdue && <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ background: "rgba(218,102,123,0.15)", color: RED }}>Overdue</span>}
+                        </p>
+                        <p className="text-xs mt-0.5" style={{ color: MUTED }}>
+                          {loan.interestRate ? `${loan.interestRate}% rate · ` : ""}
+                          {loan.nextDueDate ? `Due ${format(parseISO(loan.nextDueDate), "MMM d")}` : ""}
+                          {loan.expectedPayoffDate ? ` · Payoff ${format(parseISO(loan.expectedPayoffDate), "MMM yyyy")}` : ""}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold" style={{ color: AMBER }}>{fmt$(loan.outstandingBalance)}</p>
+                        {loan.minimumPayment && (
+                          <p className="text-xs" style={{ color: MUTED }}>min {fmt$(loan.minimumPayment)}/mo</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* AI Payoff Plan */}
+          <div className="rounded-2xl p-4" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-semibold" style={{ color: MUTED, letterSpacing: "0.08em" }}>AI PAYOFF PLAN</p>
+              <button onClick={fetchAdvice} disabled={adviceLoading}
+                className="p-1.5 rounded-lg" style={{ background: "rgba(255,255,255,0.06)", border: `1px solid ${BORDER}` }}>
+                <RotateCcw size={12} className={adviceLoading ? "animate-spin" : ""} style={{ color: MUTED }} />
+              </button>
+            </div>
+            {adviceLoading ? (
+              <div className="space-y-2">
+                <div className="h-3 rounded animate-pulse" style={{ background: "rgba(255,255,255,0.08)", width: "90%" }} />
+                <div className="h-3 rounded animate-pulse" style={{ background: "rgba(255,255,255,0.08)", width: "75%" }} />
+                <div className="h-3 rounded animate-pulse" style={{ background: "rgba(255,255,255,0.08)", width: "60%" }} />
+              </div>
+            ) : advice ? (
+              <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.85)" }}>{advice}</p>
+            ) : (
+              <p className="text-sm" style={{ color: MUTED }}>Tap refresh for a personalized payoff strategy.</p>
+            )}
+            <p className="text-xs text-right mt-3" style={{ color: "rgba(255,255,255,0.2)" }}>powered by Claude</p>
+          </div>
+        </>
+      ) : (
+        <div className="rounded-2xl p-6 text-center" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+          <p className="text-3xl mb-2">💳</p>
+          <p className="text-sm text-white mb-1">No debt accounts detected</p>
+          <p className="text-xs" style={{ color: MUTED }}>
+            Plaid will pull in credit cards and loans automatically once it reads your connected accounts.
+            Make sure your credit card accounts are linked.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
