@@ -335,18 +335,31 @@ export function QBankView({ data, update }: Props) {
         setUploadError(`Processing ${file.name} (${i + 1}/${files.length})…`);
         const fd = new FormData();
         fd.append("file", file);
-        const res = await fetch("/api/mcat/extract", { method: "POST", body: fd });
-        const j = await res.json();
-        if (j.error) { setUploadError(`Error in ${file.name}: ${j.error}`); continue; }
+        let res: Response;
+        try {
+          res = await fetch("/api/mcat/extract", { method: "POST", body: fd });
+        } catch (netErr) {
+          setUploadError(`Network error — ${netErr instanceof Error ? netErr.message : String(netErr)}`);
+          continue;
+        }
+        let j: { questions?: MCATQuestion[]; count?: number; error?: string; detail?: string };
+        try {
+          j = await res.json();
+        } catch {
+          setUploadError(`Server error (HTTP ${res.status}) — see browser console for details`);
+          continue;
+        }
+        if (j.error) { setUploadError(`${j.error}${j.detail ? ` — ${j.detail}` : ""}`); continue; }
+        if (!j.questions) { setUploadError("Server returned no questions — try a different file"); continue; }
         const existing = new Set((data.mcatQuestions ?? []).map(q => q.stem.slice(0, 50)));
-        const fresh = (j.questions as MCATQuestion[]).filter(q => !existing.has(q.stem.slice(0, 50)));
+        const fresh = j.questions.filter(q => !existing.has(q.stem.slice(0, 50)));
         update(d => ({ ...d, mcatQuestions: [...(d.mcatQuestions ?? []), ...fresh] }));
         totalImported += fresh.length;
-        totalSkipped  += (j.count - fresh.length);
+        totalSkipped  += ((j.count ?? j.questions.length) - fresh.length);
       }
-      setUploadError(`✓ Imported ${totalImported} questions across ${files.length} file${files.length > 1 ? "s" : ""}${totalSkipped > 0 ? ` (${totalSkipped} duplicates skipped)` : ""}`);
-    } catch {
-      setUploadError("Upload failed — try again");
+      setUploadError(`✓ Imported ${totalImported} question${totalImported !== 1 ? "s" : ""}${totalSkipped > 0 ? ` (${totalSkipped} duplicates skipped)` : ""}`);
+    } catch (e) {
+      setUploadError(`Upload failed: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setImporting(false);
     }

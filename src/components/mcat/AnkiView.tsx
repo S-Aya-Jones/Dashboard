@@ -307,10 +307,22 @@ export function AnkiView({ data, update }: Props) {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch("/api/mcat/import-anki", { method: "POST", body: formData });
-      const data2 = await res.json();
-      if (!res.ok) {
-        setImportError(data2.detail || data2.error || "Import failed");
+      let res: Response;
+      try {
+        res = await fetch("/api/mcat/import-anki", { method: "POST", body: formData });
+      } catch (netErr) {
+        setImportError(`Network error — ${netErr instanceof Error ? netErr.message : String(netErr)}`);
+        return;
+      }
+      let data2: { cards?: Flashcard[]; error?: string; detail?: string };
+      try {
+        data2 = await res.json();
+      } catch {
+        setImportError(`Server error (HTTP ${res.status}) — open browser console for details`);
+        return;
+      }
+      if (!res.ok || data2.error) {
+        setImportError(data2.detail || data2.error || `Import failed (HTTP ${res.status})`);
         return;
       }
       const incoming: Flashcard[] = data2.cards ?? [];
@@ -327,7 +339,7 @@ export function AnkiView({ data, update }: Props) {
       setImportResult({ count: incoming.length - dupes, dupes });
     } catch (e) {
       console.error("Import error:", e);
-      setImportError("Failed to import. Check the file and try again.");
+      setImportError(`Import failed: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setImporting(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
