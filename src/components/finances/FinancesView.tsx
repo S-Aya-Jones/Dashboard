@@ -191,6 +191,20 @@ function buildYearPlan(
   return slots;
 }
 
+// Normalize a stored nextPayday to the nearest upcoming payday from today.
+// Walks the 14-day cycle backward if the stored date is far in the future,
+// or forward if it's in the past, so it always lands within 0-14 days ahead.
+function getEffectivePayday(nextPayday: string): Date {
+  const anchor = parseISO(nextPayday);
+  const today  = new Date(); today.setHours(0, 0, 0, 0);
+  let d = new Date(anchor.getTime());
+  // Step backward while more than 14 days ahead of today
+  while (differenceInDays(d, today) > 14) d = addDays(d, -14);
+  // Step forward while still in the past
+  while (differenceInDays(d, today) < 0)  d = addDays(d, 14);
+  return d;
+}
+
 function computeSavingsAlerts(slots: CheckSlot[]): SavingsAlert[] {
   const seen = new Set<string>();
   return slots.slice(1).reduce<SavingsAlert[]>((out, slot, idx) => {
@@ -534,6 +548,20 @@ export function FinancesView({ data, update }: Props) {
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
 
+  // Auto-correct a stale nextPayday on mount so the dashboard always
+  // anchors to the current pay cycle, not some far-future stored date.
+  useEffect(() => {
+    if (!pc) return;
+    const effectiveStr = format(getEffectivePayday(pc.nextPayday), "yyyy-MM-dd");
+    if (effectiveStr !== pc.nextPayday) {
+      update(d => d.paycheckConfig
+        ? { ...d, paycheckConfig: { ...d.paycheckConfig, nextPayday: effectiveStr } }
+        : d
+      );
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     fetch("/api/plaid/insights").then(r => r.json()).then((d: InsightsData) => {
       setInsights(d);
@@ -602,7 +630,7 @@ export function FinancesView({ data, update }: Props) {
   }
 
   const effectiveTakeHome = pc.projectedTakeHome ?? pc.takeHomePerCheck;
-  const payday   = parseISO(pc.nextPayday);
+  const payday   = getEffectivePayday(pc.nextPayday);
   const yearPlan      = buildYearPlan(payday, effectiveTakeHome, pc.savingsPercent, selfCare, bills, budgetLines);
   const savingsAlerts = computeSavingsAlerts(yearPlan);
   const health        = calcHealthGrade(pc, liabilities, data.creditScores ?? [], budgetLines);
@@ -687,6 +715,7 @@ export function FinancesView({ data, update }: Props) {
           <FlowTab
             yearPlan={yearPlan} savingsAlerts={savingsAlerts}
             pc={pc} effectiveTakeHome={effectiveTakeHome}
+            paydayStr={format(payday, "yyyy-MM-dd")}
             budgetLines={budgetLines} bills={bills} selfCare={selfCare}
             insights={insights} p2pTransfers={p2pTransfers}
             liabilities={liabilities} creditScores={data.creditScores ?? []}
@@ -842,9 +871,9 @@ function EditCareInline({ item, onSave }: { item: SelfCareItem; onSave: (cost: n
 }
 
 // ── Flow Tab ──────────────────────────────────────────────────────────────────
-function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, budgetLines, bills, selfCare, insights, p2pTransfers, liabilities, creditScores, onMarkBillPaid, onMarkFocusDone, onAddP2P, onRemoveP2P, onUpdateCare, onUpdateBills, onUpdateBudgetLines, onUpdatePc, showToast }: {
+function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, budgetLines, bills, selfCare, insights, p2pTransfers, liabilities, creditScores, onMarkBillPaid, onMarkFocusDone, onAddP2P, onRemoveP2P, onUpdateCare, onUpdateBills, onUpdateBudgetLines, onUpdatePc, showToast }: {
   yearPlan: CheckSlot[]; savingsAlerts: SavingsAlert[];
-  pc: PaycheckConfig; effectiveTakeHome: number;
+  pc: PaycheckConfig; effectiveTakeHome: number; paydayStr: string;
   budgetLines: BudgetLine[]; bills: RecurringBill[]; selfCare: SelfCareItem[];
   insights: InsightsData | null; p2pTransfers: P2PTransfer[];
   liabilities: LiabilitiesData | null; creditScores: CreditScoreEntry[];
@@ -882,7 +911,6 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, budgetLines, 
   const current      = yearPlan[0];
   const focus        = current.focusItem;
   const pushed       = current.pushedItem;
-  const paydayStr    = format(parseISO(pc.nextPayday), "yyyy-MM-dd");
   const isPaid       = (b: RecurringBill) => !!(b.lastPaidDate && b.lastPaidDate >= paydayStr);
   const prioritySlots = yearPlan.slice(1).filter(s => s.focusItem || s.pushedItem);
   const byMonth: { month: string; slots: { slot: CheckSlot; idx: number }[] }[] = [];
