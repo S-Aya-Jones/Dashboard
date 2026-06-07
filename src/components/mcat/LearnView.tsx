@@ -7,6 +7,7 @@ import {
   Plus, Check,
 } from "lucide-react";
 import { DashboardData, Flashcard, MCATQuestion } from "@/types/dashboard";
+import { TutorAvatar } from "./TutorAvatar";
 import { format } from "date-fns";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -495,6 +496,8 @@ export function LearnView({ update }: Props) {
 
   // ── Lesson View ───────────────────────────────────────────────────────────────
 
+  const lastAIText = [...messages].reverse().find(m => m.role === "assistant")?.content ?? "";
+
   const AID_BUTTONS = [
     { type: "mnemonic",   label: "Mnemonic",   icon: <Brain size={13} /> },
     { type: "table",      label: "Table",      icon: <BarChart2 size={13} /> },
@@ -506,18 +509,26 @@ export function LearnView({ update }: Props) {
   return (
     <div style={{ maxWidth: 760, margin: "0 auto", padding: "0 0 40px" }}>
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: "var(--grad)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, gap: 12 }}>
+        {/* Left: concept info */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: "var(--grad)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <Brain size={18} color="#fff" />
           </div>
-          <div>
-            <div style={{ fontSize: 17, fontWeight: 800, color: "var(--text)" }}>{concept}</div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{concept}</div>
             <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 20, background: "rgba(124,92,252,0.1)", color: "var(--purple)", fontWeight: 600 }}>
               {subject}
             </span>
           </div>
         </div>
+
+        {/* Center: avatar (only when there's something to speak) */}
+        {lastAIText && (
+          <TutorAvatar key={lastAIText.slice(0, 80)} text={lastAIText} />
+        )}
+
+        {/* Right: new topic */}
         <button
           onClick={() => setMode("home")}
           style={{
@@ -525,6 +536,7 @@ export function LearnView({ update }: Props) {
             border: "1.5px solid var(--border)", background: "var(--surface)",
             color: "var(--text-muted)", fontWeight: 600, fontSize: 13,
             cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
+            flexShrink: 0,
           }}
         >
           <RotateCcw size={13} /> New Topic
