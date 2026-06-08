@@ -57,13 +57,21 @@ interface LearnRequest {
   mode: "teach" | "chat" | "aid";
   message?: string;
   aidType?: string;
+  characterId?: string;
   history?: { role: "user" | "assistant"; content: string }[];
 }
+
+const PERSONALITIES: Record<string, string> = {
+  professor: "You are Prof. Nova, a warm and knowledgeable professor. Explain with clear structure, correct scientific terminology, and genuine encouragement.",
+  monster:   "You are Moxy, an enthusiastic monster who LOVES science! Use exciting analogies, celebrate breakthroughs with energy. Stay accurate but make it FUN.",
+  robot:     "You are ARIA (Advanced Reasoning Intelligence Assistant). Be precise, logical, systematic. Use numbered steps, eliminate fluff, maximize clarity.",
+  owl:       "You are Sage, a wise owl who teaches through questions and metaphors. Use Socratic dialogue, draw analogies from nature, foster deep understanding.",
+};
 
 export async function POST(req: Request) {
   try {
     const body: LearnRequest = await req.json();
-    const { concept, subject, mode, message, aidType, history = [] } = body;
+    const { concept, subject, mode, message, aidType, characterId, history = [] } = body;
 
     if (!concept?.trim()) {
       return NextResponse.json({ error: "Concept is required" }, { status: 400 });
@@ -101,10 +109,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid request" }, { status: 400 });
     }
 
+    const personalityLine = PERSONALITIES[characterId ?? "professor"] ?? PERSONALITIES.professor;
+    const systemWithPersonality = personalityLine + "\n\n" + SYSTEM_PROMPT;
+
     const response = await client.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 3000,
-      system: SYSTEM_PROMPT,
+      system: systemWithPersonality,
       messages,
     });
 

@@ -4,10 +4,13 @@ import React, { useState, useRef, useEffect } from "react";
 import {
   Brain, BookOpen, BarChart2, Loader2, Send,
   Sparkles, HelpCircle, GitBranch, RotateCcw,
-  Plus, Check, Printer,
+  Plus, Check, Printer, Gamepad2,
 } from "lucide-react";
 import { DashboardData, Flashcard, MCATQuestion } from "@/types/dashboard";
 import { TutorAvatar } from "./TutorAvatar";
+import { CharacterSelect } from "./CharacterSelect";
+import { GameHub } from "./GameHub";
+import { CharacterId } from "./characters";
 import { format } from "date-fns";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -23,6 +26,7 @@ interface Props {
   data: DashboardData;
   update: (fn: (d: DashboardData) => DashboardData) => void;
 }
+
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -259,7 +263,7 @@ function renderMarkdown(text: string): React.ReactNode {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function LearnView({ update }: Props) {
+export function LearnView({ data, update }: Props) {
   const [mode, setMode] = useState<"home" | "lesson">("home");
   const [concept, setConcept] = useState("");
   const [subject, setSubject] = useState("Biology");
@@ -269,6 +273,8 @@ export function LearnView({ update }: Props) {
   const [chatInput, setChatInput] = useState("");
   const [savedCardIdx, setSavedCardIdx] = useState<Set<number>>(new Set());
   const [savedQIdx, setSavedQIdx] = useState<Set<number>>(new Set());
+  const [characterId, setCharacterId] = useState<CharacterId>("professor");
+  const [learnTab, setLearnTab] = useState<"learn" | "games">("learn");
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -358,6 +364,7 @@ export function LearnView({ update }: Props) {
       };
       if (params.message) body.message = params.message;
       if (params.aidType) body.aidType = params.aidType;
+      body.characterId = characterId;
 
       const res = await fetch("/api/mcat/learn", {
         method: "POST",
@@ -457,104 +464,136 @@ export function LearnView({ update }: Props) {
   if (mode === "home") {
     return (
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 0 48px" }}>
-        <div style={{ textAlign: "center", marginBottom: 36 }}>
-          <div style={{
-            width: 64, height: 64, borderRadius: 20,
-            background: "var(--grad)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            margin: "0 auto 16px",
-            boxShadow: "0 4px 20px rgba(124,92,252,0.3)",
-          }}>
-            <Brain size={32} color="#fff" />
-          </div>
-          <h1 style={{ fontSize: 28, fontWeight: 800, color: "var(--text)", margin: "0 0 8px" }}>Learn Mode</h1>
-          <p style={{ fontSize: 15, color: "var(--text-muted)", margin: 0, maxWidth: 480, marginLeft: "auto", marginRight: "auto" }}>
-            Your personal MCAT tutor. Learn any concept, get mnemonics, tables, diagrams, flashcards, and practice questions.
-          </p>
-        </div>
-
-        {/* Input card */}
-        <div className="card" style={{ padding: "28px 28px 24px", marginBottom: 24 }}>
-          <label style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", display: "block", marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.5 }}>
-            What do you want to learn?
-          </label>
-          <input
-            value={inputConcept}
-            onChange={e => setInputConcept(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && startLesson(inputConcept, subject)}
-            placeholder='e.g. "Enzyme Kinetics" or "How does the kidney regulate pH?"'
-            autoFocus
-            style={{
-              width: "100%", padding: "13px 16px", borderRadius: 12, fontSize: 15,
-              border: "1.5px solid var(--border)", background: "var(--bg)",
-              color: "var(--text)", fontFamily: "inherit", boxSizing: "border-box",
-              marginBottom: 18,
-            }}
-          />
-
-          <label style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", display: "block", marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.5 }}>
-            MCAT Subject
-          </label>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20 }}>
-            {SUBJECTS.map(s => (
-              <button
-                key={s}
-                onClick={() => setSubject(s)}
-                style={{
-                  padding: "6px 14px", borderRadius: 20,
-                  border: "1.5px solid",
-                  borderColor: subject === s ? "var(--purple)" : "var(--border)",
-                  background: subject === s ? "rgba(124,92,252,0.1)" : "transparent",
-                  color: subject === s ? "var(--purple)" : "var(--text-muted)",
-                  fontWeight: subject === s ? 700 : 500,
-                  fontSize: 13, cursor: "pointer",
-                }}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-
-          <button
-            onClick={() => startLesson(inputConcept, subject)}
-            disabled={!inputConcept.trim()}
-            style={{
-              width: "100%", padding: "14px", borderRadius: 12, border: "none",
-              background: inputConcept.trim() ? "var(--grad)" : "var(--border)",
-              color: inputConcept.trim() ? "#fff" : "var(--text-muted)",
-              fontWeight: 700, fontSize: 15,
-              cursor: inputConcept.trim() ? "pointer" : "not-allowed",
-              boxShadow: inputConcept.trim() ? "0 2px 16px rgba(124,92,252,0.3)" : "none",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-            }}
-          >
-            <Sparkles size={17} />
-            Teach Me This
-          </button>
-        </div>
-
-        {/* Quick starts */}
-        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.8 }}>
-          Quick Start Topics
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
-          {QUICK_STARTS.map(({ concept: c, subject: s, emoji }) => (
+        {/* Tab bar */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
+          {[
+            { id: "learn" as const, label: "Learn", icon: <Brain size={14} /> },
+            { id: "games" as const, label: "Study Games", icon: <Gamepad2 size={14} /> },
+          ].map(tab => (
             <button
-              key={c}
-              onClick={() => startLesson(c, s)}
+              key={tab.id}
+              onClick={() => setLearnTab(tab.id)}
               style={{
-                padding: "12px 14px", borderRadius: 12,
-                border: "1.5px solid var(--border)",
-                background: "var(--surface)",
-                cursor: "pointer", textAlign: "left",
+                padding: "9px 18px", borderRadius: 10, border: "1.5px solid",
+                borderColor: learnTab === tab.id ? "var(--purple)" : "var(--border)",
+                background: learnTab === tab.id ? "rgba(124,92,252,0.1)" : "var(--surface)",
+                color: learnTab === tab.id ? "var(--purple)" : "var(--text-muted)",
+                fontWeight: learnTab === tab.id ? 700 : 500,
+                fontSize: 13, cursor: "pointer",
+                display: "flex", alignItems: "center", gap: 6,
               }}
             >
-              <div style={{ fontSize: 18, marginBottom: 4 }}>{emoji}</div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", lineHeight: 1.3 }}>{c}</div>
-              <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{s}</div>
+              {tab.icon}{tab.label}
             </button>
           ))}
         </div>
+
+        {learnTab === "learn" && (
+          <>
+            <div style={{ textAlign: "center", marginBottom: 36 }}>
+              <div style={{
+                width: 64, height: 64, borderRadius: 20,
+                background: "var(--grad)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                margin: "0 auto 16px",
+                boxShadow: "0 4px 20px rgba(124,92,252,0.3)",
+              }}>
+                <Brain size={32} color="#fff" />
+              </div>
+              <h1 style={{ fontSize: 28, fontWeight: 800, color: "var(--text)", margin: "0 0 8px" }}>Learn Mode</h1>
+              <p style={{ fontSize: 15, color: "var(--text-muted)", margin: 0, maxWidth: 480, marginLeft: "auto", marginRight: "auto" }}>
+                Your personal MCAT tutor. Learn any concept, get mnemonics, tables, diagrams, flashcards, and practice questions.
+              </p>
+            </div>
+
+            <CharacterSelect selected={characterId} onSelect={setCharacterId} />
+
+            {/* Input card */}
+            <div className="card" style={{ padding: "28px 28px 24px", marginBottom: 24 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", display: "block", marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                What do you want to learn?
+              </label>
+              <input
+                value={inputConcept}
+                onChange={e => setInputConcept(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && startLesson(inputConcept, subject)}
+                placeholder='e.g. "Enzyme Kinetics" or "How does the kidney regulate pH?"'
+                autoFocus
+                style={{
+                  width: "100%", padding: "13px 16px", borderRadius: 12, fontSize: 15,
+                  border: "1.5px solid var(--border)", background: "var(--bg)",
+                  color: "var(--text)", fontFamily: "inherit", boxSizing: "border-box",
+                  marginBottom: 18,
+                }}
+              />
+
+              <label style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", display: "block", marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                MCAT Subject
+              </label>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20 }}>
+                {SUBJECTS.map(s => (
+                  <button
+                    key={s}
+                    onClick={() => setSubject(s)}
+                    style={{
+                      padding: "6px 14px", borderRadius: 20,
+                      border: "1.5px solid",
+                      borderColor: subject === s ? "var(--purple)" : "var(--border)",
+                      background: subject === s ? "rgba(124,92,252,0.1)" : "transparent",
+                      color: subject === s ? "var(--purple)" : "var(--text-muted)",
+                      fontWeight: subject === s ? 700 : 500,
+                      fontSize: 13, cursor: "pointer",
+                    }}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={() => startLesson(inputConcept, subject)}
+                disabled={!inputConcept.trim()}
+                style={{
+                  width: "100%", padding: "14px", borderRadius: 12, border: "none",
+                  background: inputConcept.trim() ? "var(--grad)" : "var(--border)",
+                  color: inputConcept.trim() ? "#fff" : "var(--text-muted)",
+                  fontWeight: 700, fontSize: 15,
+                  cursor: inputConcept.trim() ? "pointer" : "not-allowed",
+                  boxShadow: inputConcept.trim() ? "0 2px 16px rgba(124,92,252,0.3)" : "none",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                }}
+              >
+                <Sparkles size={17} />
+                Teach Me This
+              </button>
+            </div>
+
+            {/* Quick starts */}
+            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.8 }}>
+              Quick Start Topics
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+              {QUICK_STARTS.map(({ concept: c, subject: s, emoji }) => (
+                <button
+                  key={c}
+                  onClick={() => startLesson(c, s)}
+                  style={{
+                    padding: "12px 14px", borderRadius: 12,
+                    border: "1.5px solid var(--border)",
+                    background: "var(--surface)",
+                    cursor: "pointer", textAlign: "left",
+                  }}
+                >
+                  <div style={{ fontSize: 18, marginBottom: 4 }}>{emoji}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", lineHeight: 1.3 }}>{c}</div>
+                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{s}</div>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
+        {learnTab === "games" && <GameHub data={data} />}
       </div>
     );
   }
@@ -590,7 +629,7 @@ export function LearnView({ update }: Props) {
 
         {/* Center: avatar (only when there's something to speak) */}
         {lastAIText && (
-          <TutorAvatar key={lastAIText.slice(0, 80)} text={lastAIText} />
+          <TutorAvatar key={lastAIText.slice(0, 80)} text={lastAIText} characterId={characterId} />
         )}
 
         {/* Right: new topic */}

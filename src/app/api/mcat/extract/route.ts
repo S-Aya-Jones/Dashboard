@@ -71,25 +71,33 @@ function parseJsonResponse(raw: string): RawQuestion[] {
 function makePrompt(text: string, hasImages: boolean, batchNote: string): string {
   const imageHint = hasImages
     ? `\nThe images above are pages/screenshots from a study document. ` +
-      `Read them carefully — they contain the actual question text and answer choices. ` +
+      `Read them carefully — they may contain pre-written questions OR study notes/outlines. ` +
       `If a question references a figure, describe the figure in the stem.`
     : "";
 
-  return `Extract EVERY multiple-choice question from the content below.${imageHint}${batchNote}
+  return `You are an expert MCAT question processor. Analyze the content below and do ONE of the following:
 
-For EACH question return:
-- stem: full question text including passage context, NO answer choices
-- choices: exactly 4 [{letter:"A",text:"..."}, ...] — infer plausible distractors if fewer exist
-- correctLetter: uppercase A/B/C/D (or "?" if impossible to determine)
-- explanation: why correct answer is right AND why each wrong choice is wrong
-- subject: MUST be one of: "Behavioral Sciences","Biochemistry","Biology","Critical Analysis & Reasoning Skills","General Chemistry","Organic Chemistry","Physics"
-- topic: specific sub-topic (e.g. "Demographics & Social Structure")
+1. If the content contains pre-written multiple-choice questions → extract every one exactly as written
+2. If the content contains study notes, outlines, flashcards, or explanatory text → GENERATE high-quality MCAT-style MCQs based on the key concepts
+3. If the content is mixed → extract existing MCQs AND generate additional ones from any accompanying notes
+
+${imageHint}${batchNote}
+
+For EACH question (extracted or generated) return:
+- stem: full question text, NO answer choices in stem
+- choices: exactly 4 [{letter:"A",text:"..."}, ...] — must have one definitively correct answer
+- correctLetter: uppercase A/B/C/D
+- explanation: why correct answer is right AND why each wrong choice is wrong (1–2 sentences each)
+- subject: MUST be exactly one of: "Behavioral Sciences","Biochemistry","Biology","Critical Analysis & Reasoning Skills","General Chemistry","Organic Chemistry","Physics"
+- topic: specific sub-topic (e.g. "Enzyme Kinetics", "Demographics & Social Structure")
 - difficulty: "easy","medium","hard"
 
-Return ONLY a valid JSON array:
+Aim for at least 5 questions per page of content. For notes/outlines, generate questions testing the most high-yield MCAT concepts in the material.
+
+Return ONLY a valid JSON array with no markdown:
 [{"stem":"...","choices":[{"letter":"A","text":"..."},{"letter":"B","text":"..."},{"letter":"C","text":"..."},{"letter":"D","text":"..."}],"correctLetter":"B","explanation":"...","subject":"Biology","topic":"DNA Replication","difficulty":"medium"}]
 
-${text.trim() ? `Text content:\n---\n${text.slice(0, 40000)}\n---` : ""}`;
+${text.trim() ? `Content to process:\n---\n${text.slice(0, 40000)}\n---` : ""}`;
 }
 
 async function callClaude(text: string, images: ImageEntry[], batchNote = ""): Promise<RawQuestion[]> {
@@ -105,7 +113,7 @@ async function callClaude(text: string, images: ImageEntry[], batchNote = ""): P
 
   const msg = await client.messages.create({
     model: "claude-sonnet-4-6",
-    max_tokens: 16000,
+    max_tokens: 20000,
     system: SYSTEM_PROMPT,
     messages: [{ role: "user", content }],
   });
@@ -192,7 +200,7 @@ export async function POST(req: Request) {
 
     if (allRaw.length === 0) {
       return NextResponse.json(
-        { error: "No questions found. Make sure the file contains multiple-choice questions." },
+        { error: "No questions could be generated from this file. Try a .docx or .txt with study notes, outlines, or multiple-choice questions." },
         { status: 422 }
       );
     }
@@ -217,6 +225,13 @@ export async function POST(req: Request) {
         explanation: q.explanation || "",
         createdAt: new Date().toISOString(),
       }));
+
+    if (questions.length === 0) {
+      return NextResponse.json(
+        { error: "The AI couldn't extract valid questions from this file. Try a different file or make sure it contains study material with clear concepts." },
+        { status: 422 }
+      );
+    }
 
     return NextResponse.json({ questions, count: questions.length, hadImages: hasImages });
   } catch (e) {

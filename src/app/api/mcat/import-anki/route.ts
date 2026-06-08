@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import JSZip from "jszip";
 import initSqlJs from "sql.js";
-import { readFileSync } from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
 import { format } from "date-fns";
@@ -142,14 +141,9 @@ async function parseApkg(
 
   const dbBuffer = await dbEntry.async("arraybuffer");
 
-  const wasmBuffer = readFileSync(
-    path.join(process.cwd(), "node_modules", "sql.js", "dist", "sql-wasm.wasm")
-  );
   const SQL = await initSqlJs({
-    wasmBinary: wasmBuffer.buffer.slice(
-      wasmBuffer.byteOffset,
-      wasmBuffer.byteOffset + wasmBuffer.byteLength
-    ) as ArrayBuffer,
+    locateFile: (file: string) =>
+      path.join(process.cwd(), "node_modules", "sql.js", "dist", file),
   });
   const db = new SQL.Database(new Uint8Array(dbBuffer));
 

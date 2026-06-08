@@ -47,6 +47,7 @@ interface SavingsAlert {
   savePerCheck: number;
   checksUntil: number;
 }
+type PaycheckPlanData = { overrides: Record<string, number>; savingsOverride?: number; incomeOverride?: number; oneTimeItems: { id: string; label: string; amount: number; category: string }[]; checkIns?: Record<string, { checkedAt: string; actualAmount?: number }> };
 interface PlaidAccount {
   accountId: string; name: string; mask?: string | null; type: string; subtype?: string | null;
   balances: { current?: number | null; available?: number | null; limit?: number | null };
@@ -103,6 +104,16 @@ function getCategoryEmoji(cat: BudgetLine["category"]) {
     savings: "💰", utilities: "💡", other: "📌",
   };
   return map[cat] ?? "📌";
+}
+function autoDetectCategory(label: string): BudgetLine["category"] {
+  const l = label.toLowerCase();
+  if (/rent|mortgage|hoa/.test(l)) return "housing";
+  if (/car\s*(note|payment|loan)|auto|vehicle|gas|fuel|uber|lyft|transit|bus|train|parking|toll/.test(l)) return "transport";
+  if (/grocer|grocery|food|walmart|target|costco|trader\s*joe|whole\s*food|aldi|kroger|safeway|instacart/.test(l)) return "food";
+  if (/phone|internet|cable|electric|water|utility|utilities|ymca|gym|fitness/.test(l)) return "utilities";
+  if (/saving|emergency fund|invest|401k|roth|ira|sinking fund/.test(l)) return "savings";
+  if (/transfer|bofa|chase|wells\s*fargo|citi|deposit/.test(l)) return "transfer";
+  return "other";
 }
 
 function dueBillsInPeriod(bills: RecurringBill[], payday: Date): RecurringBill[] {
@@ -286,129 +297,135 @@ function HealthGradeRing({ grade, score, color, size = 96 }: { grade: string; sc
 }
 
 // ── Year Calendar ─────────────────────────────────────────────────────────────
-function YearCalendar({ yearPlan, effectiveTakeHome, budgetLines, pc }: {
-  yearPlan: CheckSlot[];
-  effectiveTakeHome: number;
-  budgetLines: BudgetLine[];
-  pc: PaycheckConfig;
+function UpcomingChecksCard({ yearPlan, effectiveTakeHome, budgetLines, pc, paycheckPlans, onUpdatePaycheckPlans }: {
+  yearPlan: CheckSlot[]; effectiveTakeHome: number; budgetLines: BudgetLine[]; pc: PaycheckConfig;
+  paycheckPlans: Record<string, PaycheckPlanData>; onUpdatePaycheckPlans: (p: Record<string, PaycheckPlanData>) => void;
 }) {
-  const today      = new Date();
-  const currentYear = today.getFullYear();
-  const [selMonth, setSelMonth]   = useState(today.getMonth());
-  const [selSlot,  setSelSlot]    = useState<CheckSlot | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [showAll,  setShowAll]  = useState(false);
+  const visible = showAll ? yearPlan : yearPlan.slice(0, 8);
 
-  const months = Array.from({ length: 12 - today.getMonth() }, (_, i) => today.getMonth() + i);
-
-  const checkMap = new Map<string, CheckSlot>();
-  for (const slot of yearPlan) checkMap.set(format(slot.checkDate, "yyyy-MM-dd"), slot);
-
-  const firstDay  = new Date(currentYear, selMonth, 1);
-  const lastDay   = new Date(currentYear, selMonth + 1, 0);
-  const startDow  = firstDay.getDay();
-  const totalCells = Math.ceil((startDow + lastDay.getDate()) / 7) * 7;
-
-  const cells = Array.from({ length: totalCells }, (_, i) => {
-    const dayNum = i - startDow + 1;
-    if (dayNum < 1 || dayNum > lastDay.getDate()) return null;
-    const dateStr = format(new Date(currentYear, selMonth, dayNum), "yyyy-MM-dd");
-    return { dayNum, dateStr, slot: checkMap.get(dateStr) ?? null };
-  });
+  const addToPlan = (key: string, label: string, amount: number, category: string) => {
+    const existing = paycheckPlans[key] ?? { overrides: {}, oneTimeItems: [] };
+    if (existing.oneTimeItems.some(o => o.label === label)) return;
+    onUpdatePaycheckPlans({ ...paycheckPlans, [key]: { ...existing, oneTimeItems: [...existing.oneTimeItems, { id: id(), label, amount, category }] } });
+  };
+  const isInPlan = (key: string, label: string) =>
+    (paycheckPlans[key]?.oneTimeItems ?? []).some(o => o.label === label);
 
   return (
-    <div>
-      {/* Month pills */}
-      <div className="flex gap-1.5 overflow-x-auto pb-2 mb-3" style={{ scrollbarWidth: "none" }}>
-        {months.map(m => (
-          <button key={m} onClick={() => { setSelMonth(m); setSelSlot(null); }}
-            className="flex-shrink-0 px-3 py-1 rounded-full text-xs font-semibold"
-            style={selMonth === m ? { background: LIME, color: "#fff"} : { background: "rgba(124,92,252,0.07)", color: MUTED }}>
-            {format(new Date(currentYear, m, 1), "MMM")}
-          </button>
-        ))}
-      </div>
-
-      {/* Day headers */}
-      <div className="grid grid-cols-7 mb-0.5">
-        {["Su","Mo","Tu","We","Th","Fr","Sa"].map(d => (
-          <div key={d} className="text-center text-xs py-1 font-semibold" style={{ color: MUTED }}>{d}</div>
-        ))}
-      </div>
-
-      {/* Grid */}
-      <div className="grid grid-cols-7 gap-0.5">
-        {cells.map((cell, i) => {
-          if (!cell) return <div key={i} className="aspect-square" />;
-          const { dayNum, dateStr, slot } = cell;
-          const isToday   = dateStr === format(today, "yyyy-MM-dd");
-          const isPast    = new Date(dateStr) < today;
-          const item      = slot?.focusItem ?? slot?.pushedItem;
-          const isPushed  = slot && !slot.focusItem && !!slot.pushedItem;
-          const dotColor  = slot ? (slot.canAfford ? LIME : isPushed ? AMBER : RED) : null;
-          const isSel     = selSlot ? format(selSlot.checkDate, "yyyy-MM-dd") === dateStr : false;
-          return (
-            <button key={i} onClick={() => slot && setSelSlot(isSel ? null : slot)} disabled={!slot}
-              className="aspect-square flex flex-col items-center justify-center rounded-lg transition-all"
-              style={{
-                background: isSel ? "rgba(124,92,252,0.15)" : slot ? "rgba(124,92,252,0.05)" : "transparent",
-                border: isSel ? `1px solid rgba(124,92,252,0.45)` : isToday ? `1px solid rgba(124,92,252,0.35)` : "1px solid transparent",
-                opacity: isPast && !slot ? 0.35 : 1,
-              }}>
-              <span className="text-xs leading-none" style={{ color: isToday ? LIME : "var(--text)", fontWeight: slot ? 700 : 400 }}>{dayNum}</span>
-              {item   && <span className="text-xs leading-none mt-0.5">{item.emoji}</span>}
-              {!item && dotColor && <div className="w-1 h-1 rounded-full mt-0.5" style={{ background: dotColor }} />}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Waterfall detail */}
-      {selSlot && (
-        <div className="mt-3 rounded-2xl p-4" style={{ background: "rgba(124,92,252,0.05)", border: `1px solid ${BORDER}` }}>
-          <p className="text-xs font-semibold mb-3" style={{ color: LIME, letterSpacing: "0.08em" }}>
-            {format(selSlot.checkDate, "MMM d").toUpperCase()}
-            {pc.employer ? ` · ${pc.employer.toUpperCase()}` : ""}
-          </p>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between"><span style={{ color: MUTED }}>💵 Paycheck</span><span className="font-bold">{fmt$(effectiveTakeHome)}</span></div>
-            {selSlot.savings > 0 && (
-              <div className="flex justify-between"><span style={{ color: "#9B7FFF" }}>💰 Savings ({pc.savingsPercent}%)</span><span className="font-semibold" style={{ color: "#9B7FFF" }}>−{fmt$(selSlot.savings)}</span></div>
-            )}
-            {budgetLines.map(l => (
-              <div key={l.id} className="flex justify-between"><span style={{ color: MUTED }}>{getCategoryEmoji(l.category)} {l.label}</span><span className="font-semibold" style={{ color: AMBER }}>−{fmt$(l.amountPerCheck)}</span></div>
-            ))}
-            {selSlot.billsTotal > 0 && (
-              <div className="flex justify-between"><span style={{ color: MUTED }}>🧾 Bills</span><span className="font-semibold" style={{ color: AMBER }}>−{fmt$(selSlot.billsTotal)}</span></div>
-            )}
-            <div className="border-t pt-2" style={{ borderColor: BORDER }}>
-              <div className="flex justify-between"><span style={{ color: MUTED }}>Available</span><span className="font-bold">{fmt$(selSlot.free)}</span></div>
-            </div>
-            {selSlot.focusItem && (
-              <>
-                <div className="flex justify-between">
-                  <span style={{ color: selSlot.canAfford ? LIME : RED }}>{selSlot.focusItem.emoji} {selSlot.focusItem.name}</span>
-                  <span className="font-semibold" style={{ color: selSlot.canAfford ? LIME : RED }}>−{fmt$(selSlot.focusItem.cost)}</span>
-                </div>
-                <div className="border-t pt-2 flex justify-between items-center" style={{ borderColor: BORDER }}>
-                  <span style={{ color: MUTED }}>Yours after</span>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-lg font-bold" style={{ color: selSlot.canAfford ? LIME : RED }}>{fmt$(Math.max(0, selSlot.free - selSlot.focusItem.cost))}</span>
-                    {selSlot.canAfford && <span>✅</span>}
-                    {!selSlot.canAfford && <span style={{ color: RED }}>⚠️</span>}
-                  </div>
-                </div>
-              </>
-            )}
-            {selSlot.pushedItem && !selSlot.focusItem && (
-              <div className="pt-1 space-y-1.5">
-                <p className="text-xs" style={{ color: AMBER }}>{selSlot.pushedItem.emoji} {selSlot.pushedItem.name} pushed{selSlot.pushedTo ? ` → ${fmtDate(selSlot.pushedTo)}` : ""}</p>
-                <div className="flex justify-between"><span style={{ color: MUTED }}>Yours after</span><span className="text-lg font-bold">{fmt$(selSlot.free)}</span></div>
+    <div className="rounded-2xl overflow-hidden" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+      {visible.map((slot, idx) => {
+        const key      = format(slot.checkDate, "yyyy-MM-dd");
+        const isExp    = expanded === key;
+        const focus    = slot.focusItem;
+        const freeAft  = slot.free - (focus?.cost ?? 0);
+        const sc       = freeAft < 0 ? RED : freeAft < 100 ? AMBER : "#10B981";
+        const prevSlot = visible[idx - 1];
+        const newMonth = !prevSlot || format(prevSlot.checkDate, "MM-yyyy") !== format(slot.checkDate, "MM-yyyy");
+        return (
+          <div key={key}>
+            {newMonth && (
+              <div className="px-4 py-2" style={{ background: "rgba(124,92,252,0.03)", borderBottom: `1px solid ${BORDER}` }}>
+                <p className="text-xs font-semibold" style={{ color: MUTED, letterSpacing: "0.07em" }}>{format(slot.checkDate, "MMMM yyyy").toUpperCase()}</p>
               </div>
             )}
-            {!selSlot.focusItem && !selSlot.pushedItem && (
-              <div className="flex justify-between pt-1"><span style={{ color: MUTED }}>Yours after</span><span className="text-lg font-bold">{fmt$(selSlot.free)}</span></div>
+            <button onClick={() => setExpanded(isExp ? null : key)} className="w-full px-4 py-3.5 flex items-center justify-between text-left" style={{ borderBottom: `1px solid ${BORDER}` }}>
+              <div className="min-w-0">
+                <p className="text-sm font-bold" style={{ color: "var(--text)" }}>{format(slot.checkDate, "EEE, MMM d")}</p>
+                <p className="text-xs mt-0.5" style={{ color: MUTED }}>
+                  {focus
+                    ? `${focus.emoji} ${focus.name} · ${fmt$(focus.cost)}`
+                    : slot.dueBills.length > 0
+                    ? `${slot.dueBills.length} bill${slot.dueBills.length > 1 ? "s" : ""} due · ${fmt$(slot.billsTotal)}`
+                    : "No self-care scheduled"}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                <div className="text-right">
+                  <p className="text-sm font-bold" style={{ color: sc }}>{fmt$(Math.max(0, freeAft))}</p>
+                  <p className="text-xs" style={{ color: MUTED }}>free</p>
+                </div>
+                <ChevronDown size={13} style={{ color: MUTED, transform: isExp ? "rotate(180deg)" : "none", transition: "transform 0.15s" }} />
+              </div>
+            </button>
+            {isExp && (
+              <div className="px-4 py-3 space-y-2" style={{ background: "rgba(124,92,252,0.02)", borderBottom: `1px solid ${BORDER}` }}>
+                <div className="flex justify-between text-sm">
+                  <span style={{ color: MUTED }}>Paycheck</span>
+                  <span className="font-semibold" style={{ color: "var(--text)" }}>{fmt$(effectiveTakeHome)}</span>
+                </div>
+                {slot.savings > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span style={{ color: MUTED }}>Savings ({pc.savingsPercent}%)</span>
+                    <span className="font-semibold" style={{ color: "#10B981" }}>−{fmt$(slot.savings)}</span>
+                  </div>
+                )}
+                {budgetLines.map(l => (
+                  <div key={l.id} className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-1.5">
+                      <CatChip cat={l.category} />
+                      <span style={{ color: "var(--text)" }}>{l.label}</span>
+                    </div>
+                    <span className="font-semibold" style={{ color: AMBER }}>−{fmt$(l.amountPerCheck)}</span>
+                  </div>
+                ))}
+                <div className="flex justify-between text-sm pt-1.5" style={{ borderTop: `1px solid ${BORDER}` }}>
+                  <span className="font-semibold" style={{ color: "var(--text)" }}>Available</span>
+                  <span className="font-bold" style={{ color: "var(--text)" }}>{fmt$(slot.free)}</span>
+                </div>
+                {focus && (
+                  <div className="flex items-center justify-between text-sm gap-2">
+                    <span style={{ color: slot.canAfford ? "#10B981" : RED }}>{focus.emoji} {focus.name}</span>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="font-semibold" style={{ color: slot.canAfford ? "#10B981" : RED }}>−{fmt$(focus.cost)}</span>
+                      {isInPlan(key, focus.name) ? (
+                        <span className="text-xs px-2 py-0.5 rounded-lg" style={{ background: "rgba(16,185,129,0.12)", color: "#10B981" }}>Added ✓</span>
+                      ) : (
+                        <button onClick={() => addToPlan(key, focus.name, focus.cost, "other")}
+                          className="text-xs px-2 py-0.5 rounded-lg"
+                          style={{ background: "rgba(124,92,252,0.1)", color: LIME, border: `1px solid rgba(124,92,252,0.2)` }}>
+                          + Plan
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {slot.dueBills.map(b => (
+                  <div key={b.id} className="flex items-center justify-between text-sm gap-2">
+                    <span style={{ color: MUTED }}>🧾 {b.name}</span>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="font-semibold" style={{ color: AMBER }}>−{fmt$(b.amount)}</span>
+                      {isInPlan(key, b.name) ? (
+                        <span className="text-xs px-2 py-0.5 rounded-lg" style={{ background: "rgba(16,185,129,0.12)", color: "#10B981" }}>Added ✓</span>
+                      ) : (
+                        <button onClick={() => addToPlan(key, b.name, b.amount, autoDetectCategory(b.name))}
+                          className="text-xs px-2 py-0.5 rounded-lg"
+                          style={{ background: "rgba(124,92,252,0.1)", color: LIME, border: `1px solid rgba(124,92,252,0.2)` }}>
+                          + Plan
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                <div className="flex justify-between text-sm pt-1.5" style={{ borderTop: `1px solid ${BORDER}` }}>
+                  <span className="font-semibold" style={{ color: "var(--text)" }}>Yours after</span>
+                  <span className="text-base font-bold" style={{ color: sc }}>{fmt$(Math.max(0, freeAft))}</span>
+                </div>
+              </div>
             )}
           </div>
-        </div>
+        );
+      })}
+      {!showAll && yearPlan.length > 8 && (
+        <button onClick={() => setShowAll(true)} className="w-full py-3 text-xs text-center" style={{ color: MUTED }}>
+          Show all {yearPlan.length} checks ▼
+        </button>
+      )}
+      {showAll && (
+        <button onClick={() => setShowAll(false)} className="w-full py-3 text-xs text-center" style={{ color: MUTED }}>
+          Show less ▲
+        </button>
       )}
     </div>
   );
@@ -704,7 +721,7 @@ export function FinancesView({ data, update }: Props) {
             health={health}
             accounts={accounts} loadingAccts={loadingAccts} refreshing={refreshing}
             accountTransfers={accountTransfers}
-            yearPlan={yearPlan} effectiveTakeHome={effectiveTakeHome} pc={pc}
+            yearPlan={yearPlan} effectiveTakeHome={effectiveTakeHome}
             onRefresh={handleRefresh} onDisconnect={handleDisconnect}
             onConnected={() => fetchAccounts(true)}
             onAddTransfer={(t) => update(d => ({ ...d, accountTransfers: [t, ...(d.accountTransfers ?? [])] }))}
@@ -719,6 +736,7 @@ export function FinancesView({ data, update }: Props) {
             budgetLines={budgetLines} bills={bills} selfCare={selfCare}
             insights={insights} p2pTransfers={p2pTransfers}
             liabilities={liabilities} creditScores={data.creditScores ?? []}
+            paycheckPlans={data.paycheckPlans ?? {}}
             onMarkBillPaid={(billId) => update(d => ({
               ...d, recurringBills: (d.recurringBills ?? []).map(b =>
                 b.id === billId ? { ...b, lastPaidDate: format(new Date(), "yyyy-MM-dd") } : b),
@@ -738,6 +756,7 @@ export function FinancesView({ data, update }: Props) {
             onUpdateBills={(b) => update(d => ({ ...d, recurringBills: b }))}
             onUpdateBudgetLines={(bl) => update(d => ({ ...d, budgetLines: bl }))}
             onUpdatePc={(p) => update(d => ({ ...d, paycheckConfig: p }))}
+            onUpdatePaycheckPlans={(plans) => update(d => ({ ...d, paycheckPlans: plans }))}
             showToast={showToast}
           />
         )}
@@ -772,11 +791,11 @@ export function FinancesView({ data, update }: Props) {
 }
 
 // ── Health Tab ────────────────────────────────────────────────────────────────
-function HealthTab({ health, accounts, loadingAccts, refreshing, accountTransfers, yearPlan, effectiveTakeHome, pc, onRefresh, onDisconnect, onConnected, onAddTransfer, onRemoveTransfer }: {
+function HealthTab({ health, accounts, loadingAccts, refreshing, accountTransfers, yearPlan, effectiveTakeHome, onRefresh, onDisconnect, onConnected, onAddTransfer, onRemoveTransfer }: {
   health: ReturnType<typeof calcHealthGrade>;
   accounts: PlaidAccount[]; loadingAccts: boolean; refreshing: boolean;
   accountTransfers: AccountTransfer[]; yearPlan: CheckSlot[];
-  effectiveTakeHome: number; pc: PaycheckConfig;
+  effectiveTakeHome: number;
   onRefresh: () => void; onDisconnect: (itemId?: string) => void; onConnected: () => void;
   onAddTransfer: (t: AccountTransfer) => void; onRemoveTransfer: (tid: string) => void;
 }) {
@@ -828,8 +847,6 @@ function HealthTab({ health, accounts, loadingAccts, refreshing, accountTransfer
         ))}
       </div>
 
-      <RentAfford pc={pc} />
-
       <AccountsTab accounts={accounts} loadingAccts={loadingAccts} refreshing={refreshing}
         accountTransfers={accountTransfers} onRefresh={onRefresh} onDisconnect={onDisconnect}
         onConnected={onConnected} onAddTransfer={onAddTransfer} onRemoveTransfer={onRemoveTransfer} />
@@ -871,16 +888,18 @@ function EditCareInline({ item, onSave }: { item: SelfCareItem; onSave: (cost: n
 }
 
 // ── Flow Tab ──────────────────────────────────────────────────────────────────
-function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, budgetLines, bills, selfCare, insights, p2pTransfers, liabilities, creditScores, onMarkBillPaid, onMarkFocusDone, onAddP2P, onRemoveP2P, onUpdateCare, onUpdateBills, onUpdateBudgetLines, onUpdatePc, showToast }: {
+function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, budgetLines, bills, selfCare, insights, p2pTransfers, liabilities, creditScores, paycheckPlans, onMarkBillPaid, onMarkFocusDone, onAddP2P, onRemoveP2P, onUpdateCare, onUpdateBills, onUpdateBudgetLines, onUpdatePc, onUpdatePaycheckPlans, showToast }: {
   yearPlan: CheckSlot[]; savingsAlerts: SavingsAlert[];
   pc: PaycheckConfig; effectiveTakeHome: number; paydayStr: string;
   budgetLines: BudgetLine[]; bills: RecurringBill[]; selfCare: SelfCareItem[];
   insights: InsightsData | null; p2pTransfers: P2PTransfer[];
   liabilities: LiabilitiesData | null; creditScores: CreditScoreEntry[];
+  paycheckPlans: Record<string, PaycheckPlanData>;
   onMarkBillPaid: (id: string) => void; onMarkFocusDone: (id: string) => void;
   onAddP2P: (t: P2PTransfer) => void; onRemoveP2P: (tid: string) => void;
   onUpdateCare: (i: SelfCareItem[]) => void; onUpdateBills: (b: RecurringBill[]) => void;
   onUpdateBudgetLines: (bl: BudgetLine[]) => void; onUpdatePc: (p: PaycheckConfig) => void;
+  onUpdatePaycheckPlans: (p: Record<string, PaycheckPlanData>) => void;
   showToast: (m: string) => void;
 }) {
   const [expanded,       setExpanded]       = useState<number | null>(null);
@@ -912,6 +931,12 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
   const focus        = current.focusItem;
   const pushed       = current.pushedItem;
   const isPaid       = (b: RecurringBill) => !!(b.lastPaidDate && b.lastPaidDate >= paydayStr);
+  const thisPlan       = paycheckPlans[paydayStr] ?? { overrides: {}, oneTimeItems: [] };
+  const planIncome     = thisPlan.incomeOverride ?? effectiveTakeHome;
+  const planSavings    = thisPlan.savingsOverride !== undefined ? thisPlan.savingsOverride : Math.round(planIncome * pc.savingsPercent / 100);
+  const planLines      = budgetLines.map(l => ({ ...l, amountPerCheck: thisPlan.overrides[l.id] ?? l.amountPerCheck }));
+  const planBudgetTot  = planLines.reduce((s, l) => s + l.amountPerCheck, 0);
+  const planFree       = planIncome - planSavings - planBudgetTot - current.billsTotal;
   const prioritySlots = yearPlan.slice(1).filter(s => s.focusItem || s.pushedItem);
   const byMonth: { month: string; slots: { slot: CheckSlot; idx: number }[] }[] = [];
   for (let i = 0; i < prioritySlots.length; i++) {
@@ -965,12 +990,35 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
 
   return (
     <div className="space-y-5">
-      {/* ── YEAR CALENDAR ── */}
+      {/* ── THIS PAYCHECK PLAN ── */}
+      <PaycheckPlanCard
+        paydayStr={paydayStr}
+        budgetLines={budgetLines}
+        effectiveTakeHome={effectiveTakeHome}
+        pc={pc}
+        paycheckPlans={paycheckPlans}
+        onUpdatePaycheckPlans={onUpdatePaycheckPlans}
+        showToast={showToast}
+      />
+
+      {/* ── SAVINGS CALIBRATION ── */}
+      <SavingsCalibrationCard
+        yearPlan={yearPlan}
+        paycheckPlans={paycheckPlans}
+        onUpdatePaycheckPlans={onUpdatePaycheckPlans}
+        effectiveTakeHome={effectiveTakeHome}
+        pc={pc}
+        budgetLines={budgetLines}
+        showToast={showToast}
+      />
+
+      {/* ── UPCOMING CHECKS ── */}
       <div>
-        <p className="text-xs font-semibold mb-3" style={{ color: MUTED, letterSpacing: "0.08em" }}>YEAR CALENDAR</p>
-        <div className="rounded-2xl p-4" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
-          <YearCalendar yearPlan={yearPlan} effectiveTakeHome={effectiveTakeHome} budgetLines={budgetLines} pc={pc} />
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs font-semibold" style={{ color: MUTED, letterSpacing: "0.08em" }}>UPCOMING CHECKS</p>
         </div>
+        <UpcomingChecksCard yearPlan={yearPlan} effectiveTakeHome={effectiveTakeHome} budgetLines={budgetLines} pc={pc}
+          paycheckPlans={paycheckPlans} onUpdatePaycheckPlans={onUpdatePaycheckPlans} />
       </div>
 
       {/* ── AI CHAT ── */}
@@ -1005,22 +1053,25 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
                 style={{ background: "rgba(124,92,252,0.12)", color: LIME, border: `1px solid rgba(124,92,252,0.3)` }}>Done ✓</button>
             </div>
             <div className="space-y-2 pt-4" style={{ borderTop: `1px solid ${BORDER}` }}>
-              {[
-                { label: "💵 Paycheck",  amount: effectiveTakeHome, color: "var(--text)" },
-                { label: "💰 Savings",   amount: current.savings,   color: "#9B7FFF" },
-                ...budgetLines.map(l => ({ label: `${getCategoryEmoji(l.category)} ${l.label}`, amount: l.amountPerCheck, color: AMBER })),
-                { label: "🧾 Bills",     amount: current.billsTotal, color: AMBER },
-                { label: `${focus.emoji} ${focus.name}`, amount: focus.cost, color: current.canAfford ? LIME : RED },
-              ].filter(r => r.amount > 0).map(r => (
-                <div key={r.label} className="flex justify-between text-sm">
-                  <span style={{ color: MUTED }}>{r.label}</span>
-                  <span className="font-semibold" style={{ color: r.color }}>{r.label === "💵 Paycheck" ? fmt$(r.amount) : `−${fmt$(r.amount)}`}</span>
+              {([
+                { label: "Paycheck",  amount: planIncome,    color: "var(--text)", isIncome: true },
+                { label: "Savings",   amount: planSavings,   color: "#9B7FFF",     isIncome: false, cat: "savings" as BudgetLine["category"] },
+                ...planLines.map(l => ({ label: l.label, amount: l.amountPerCheck, color: AMBER, isIncome: false, cat: l.category })),
+                { label: "Bills",     amount: current.billsTotal, color: AMBER,    isIncome: false, cat: undefined },
+                { label: focus.name,  amount: focus.cost,    color: current.canAfford ? LIME : RED, isIncome: false, cat: undefined },
+              ] as { label: string; amount: number; color: string; isIncome: boolean; cat?: BudgetLine["category"] }[]).filter(r => r.amount > 0).map(r => (
+                <div key={r.label} className="flex justify-between text-sm items-center gap-2">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    {r.cat && <CatChip cat={r.cat} />}
+                    <span className="truncate" style={{ color: "var(--text)" }}>{r.label}</span>
+                  </div>
+                  <span className="font-semibold flex-shrink-0" style={{ color: r.color }}>{r.isIncome ? fmt$(r.amount) : `−${fmt$(r.amount)}`}</span>
                 </div>
               ))}
               <div className="flex justify-between items-center pt-2" style={{ borderTop: `1px solid ${BORDER}` }}>
                 <span className="text-sm" style={{ color: MUTED }}>Yours after</span>
-                <span className="text-2xl font-bold" style={{ color: current.free - focus.cost >= 0 ? LIME : RED }}>
-                  {fmt$(Math.max(0, current.free - focus.cost))}
+                <span className="text-2xl font-bold" style={{ color: planFree - focus.cost >= 0 ? LIME : RED }}>
+                  {fmt$(Math.max(0, planFree - focus.cost))}
                 </span>
               </div>
             </div>
@@ -1229,7 +1280,10 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
               <p className="text-xs font-semibold" style={{ color: MUTED, letterSpacing: "0.08em" }}>PAYCHECK BREAKDOWN</p>
               <p className="text-xs mt-0.5" style={{ color: "var(--text-light)" }}>Where your check goes each pay period</p>
             </div>
-            <button onClick={() => setShowBudgetForm(!showBudgetForm)} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg" style={{ background: "rgba(200,255,0,0.1)", color: LIME, border: `1px solid rgba(200,255,0,0.2)` }}><Plus size={12} /> Add</button>
+            <div className="flex items-center gap-2">
+              <button onClick={() => onUpdateBudgetLines(budgetLines.map(l => ({ ...l, category: autoDetectCategory(l.label) })))} className="text-xs px-2 py-1.5 rounded-lg" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Auto-fix</button>
+              <button onClick={() => setShowBudgetForm(!showBudgetForm)} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg" style={{ background: "rgba(200,255,0,0.1)", color: LIME, border: `1px solid rgba(200,255,0,0.2)` }}><Plus size={12} /> Add</button>
+            </div>
           </div>
           {(insights?.paycheckSplits ?? []).filter(s => !budgetLines.some(l => l.isDetected && l.toAccount === s.toAccount)).length > 0 && (
             <div className="rounded-2xl px-4 py-3 mb-3" style={{ background: "rgba(200,255,0,0.04)", border: `1px solid rgba(200,255,0,0.15)` }}>
@@ -1273,7 +1327,7 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
           {showBudgetForm && (
             <div className="rounded-2xl p-4 mt-2" style={{ background: CARD, border: `1px solid rgba(200,255,0,0.2)` }}>
               <div className="space-y-2 mb-3">
-                <input value={budgetLabel} onChange={e => setBudgetLabel(e.target.value)} placeholder="Label (e.g. Rent, BofA Transfer)" className="w-full rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+                <input value={budgetLabel} onChange={e => { setBudgetLabel(e.target.value); setBudgetCat(autoDetectCategory(e.target.value)); }} placeholder="Label (e.g. Rent, BofA Transfer)" className="w-full rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
                 <div className="grid grid-cols-2 gap-2">
                   <input type="number" value={budgetAmt} onChange={e => setBudgetAmt(e.target.value)} placeholder="Per check ($)" className="rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
                   <select value={budgetCat} onChange={e => setBudgetCat(e.target.value as BudgetLine["category"])} className="rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }}>
@@ -1909,51 +1963,340 @@ function AIAdvisorCard({ pc, currentSlot, yearChecksRemaining, totalYearTreatmen
   );
 }
 
-// ── Rent Affordability ────────────────────────────────────────────────────────
-function RentAfford({ pc }: { pc: PaycheckConfig }) {
-  const [targetRent, setTargetRent] = useState("");
-  const effectiveTakeHome = pc.projectedTakeHome ?? pc.takeHomePerCheck;
-  const monthlyIncome = (effectiveTakeHome * 26) / 12;
-  const rentPct = targetRent ? (parseFloat(targetRent) / monthlyIncome) * 100 : 0;
-  const verdict = rentPct === 0 ? null
-    : rentPct <= 25 ? { text: "Comfortable", color: LIME }
-    : rentPct <= 30 ? { text: "Manageable", color: "#10B981" }
-    : rentPct <= 35 ? { text: "Stretching it", color: AMBER }
-    :                 { text: "Too much", color: RED };
+// ── Savings Calibration Card ──────────────────────────────────────────────────
+function SavingsCalibrationCard({ yearPlan, paycheckPlans, onUpdatePaycheckPlans, effectiveTakeHome, pc, budgetLines, showToast }: {
+  yearPlan: CheckSlot[]; paycheckPlans: Record<string, PaycheckPlanData>;
+  onUpdatePaycheckPlans: (p: Record<string, PaycheckPlanData>) => void;
+  effectiveTakeHome: number; pc: PaycheckConfig; budgetLines: BudgetLine[];
+  showToast: (m: string) => void;
+}) {
+  const [showAll, setShowAll] = useState(false);
+  const MIN_BUFFER = 100;
+
+  const warnings = yearPlan.slice(0, 26).flatMap(slot => {
+    const key = format(slot.checkDate, "yyyy-MM-dd");
+    const plan = paycheckPlans[key] ?? { overrides: {}, oneTimeItems: [] };
+    if (plan.savingsOverride !== undefined) return []; // already handled
+    const income       = plan.incomeOverride ?? effectiveTakeHome;
+    const savings      = Math.round(income * pc.savingsPercent / 100);
+    const budget       = budgetLines.reduce((s, l) => s + (plan.overrides[l.id] ?? l.amountPerCheck), 0);
+    const oneTime      = plan.oneTimeItems.reduce((s, o) => s + o.amount, 0);
+    const focusCost    = slot.focusItem?.cost ?? 0;
+    const effectiveFree = income - savings - budget - slot.billsTotal - oneTime - focusCost;
+    if (effectiveFree >= MIN_BUFFER) return [];
+    const suggestedSavings = Math.max(0, income - budget - slot.billsTotal - oneTime - focusCost - MIN_BUFFER);
+    return [{ slot, key, effectiveFree, savings, suggestedSavings, isNeg: effectiveFree < 0 }];
+  });
+
+  const visible = showAll ? warnings : warnings.slice(0, 3);
+
+  if (warnings.length === 0) return (
+    <div className="rounded-2xl px-4 py-3 flex items-center gap-3" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+      <span className="text-lg">✓</span>
+      <div>
+        <p className="text-sm font-semibold" style={{ color: "#10B981" }}>Savings plan is solid</p>
+        <p className="text-xs mt-0.5" style={{ color: MUTED }}>All upcoming checks are feasible at your current savings rate</p>
+      </div>
+    </div>
+  );
+
+  const negCount = warnings.filter(w => w.isNeg).length;
 
   return (
-    <div className="mt-4">
-      <p className="text-xs font-semibold mb-3" style={{ color: MUTED, letterSpacing: "0.08em" }}>RENT AFFORDABILITY</p>
-      <div className="rounded-2xl p-4" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
-        <p className="text-xs mb-3" style={{ color: MUTED }}>Based on {fmt$(Math.round(monthlyIncome))}/month take-home:</p>
-        <div className="space-y-1.5 mb-4">
-          {[
-            { label: "Comfortable (25%)", amount: Math.round(monthlyIncome * 0.25), color: LIME },
-            { label: "Standard (30%)",    amount: Math.round(monthlyIncome * 0.30), color: "#10B981" },
-            { label: "Max (35%)",         amount: Math.round(monthlyIncome * 0.35), color: RED },
-          ].map(r => (
-            <div key={r.label} className="flex items-center justify-between py-2 px-3 rounded-xl" style={{ background: "rgba(124,92,252,0.05)" }}>
-              <p className="text-sm" style={{ color: MUTED }}>{r.label}</p>
-              <p className="text-sm font-bold" style={{ color: r.color }}>{fmt$(r.amount)}/mo</p>
+    <div>
+      <p className="text-xs font-semibold mb-3" style={{ color: MUTED, letterSpacing: "0.08em" }}>SAVINGS CALIBRATION</p>
+      <div className="rounded-2xl overflow-hidden" style={{ background: CARD, border: `1px solid rgba(245,158,11,0.3)` }}>
+        <div className="px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}`, background: "rgba(245,158,11,0.04)" }}>
+          <p className="text-sm font-semibold" style={{ color: AMBER }}>
+            {negCount > 0 ? "⚠️" : "🔔"} {warnings.length} check{warnings.length !== 1 ? "s" : ""} need a savings adjustment
+          </p>
+          <p className="text-xs mt-0.5" style={{ color: MUTED }}>
+            At your current savings rate, these dates get tight. Tap Fix to reduce savings just for that check.
+          </p>
+        </div>
+        {visible.map(({ slot, key, effectiveFree, savings, suggestedSavings, isNeg }) => {
+          const skipped = savings - suggestedSavings;
+          return (
+            <div key={key} className="px-4 py-3.5 flex items-start justify-between gap-3" style={{ borderBottom: `1px solid ${BORDER}` }}>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold" style={{ color: isNeg ? RED : AMBER }}>
+                  {fmtDate(slot.checkDate)}
+                  {slot.focusItem ? ` · ${slot.focusItem.name}` : " · bills heavy"}
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: MUTED }}>
+                  {isNeg
+                    ? `Short by ${fmt$(Math.abs(effectiveFree))} — `
+                    : `Only ${fmt$(effectiveFree)} breathing room — `}
+                  save {fmt$(suggestedSavings)} instead{skipped > 0 ? ` (hold back ${fmt$(skipped)})` : ""}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  const existing = paycheckPlans[key] ?? { overrides: {}, oneTimeItems: [] };
+                  onUpdatePaycheckPlans({ ...paycheckPlans, [key]: { ...existing, savingsOverride: suggestedSavings } });
+                  showToast(`Savings adjusted for ${fmtDate(slot.checkDate)}`);
+                }}
+                className="text-xs px-3 py-1.5 rounded-lg font-semibold flex-shrink-0 mt-0.5"
+                style={{ background: "rgba(245,158,11,0.12)", color: AMBER, border: "1px solid rgba(245,158,11,0.25)" }}>
+                Fix it
+              </button>
             </div>
-          ))}
+          );
+        })}
+        {warnings.length > 3 && (
+          <button onClick={() => setShowAll(!showAll)} className="w-full px-4 py-3 text-xs text-center" style={{ color: MUTED }}>
+            {showAll ? "Show less ▲" : `Show ${warnings.length - 3} more ▼`}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Paycheck Plan Card ────────────────────────────────────────────────────────
+const CAT_COLORS: Record<BudgetLine["category"], string> = {
+  housing: "#7C5CFC", transfer: "#6366F1", food: "#10B981",
+  transport: "#FB923C", utilities: "#F59E0B", savings: "#10B981", other: "#7C6FAE",
+};
+function CatChip({ cat }: { cat: BudgetLine["category"] }) {
+  const c = CAT_COLORS[cat] ?? "#7C6FAE";
+  return (
+    <span className="text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 capitalize"
+      style={{ background: `${c}22`, color: c }}>{cat}</span>
+  );
+}
+
+function CheckCircle({ checked, onToggle }: { checked: boolean; onToggle: () => void }) {
+  return (
+    <button onClick={onToggle} className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center transition-all"
+      style={{ background: checked ? "#10B981" : "transparent", border: `2px solid ${checked ? "#10B981" : "rgba(124,92,252,0.25)"}` }}>
+      {checked && <Check size={12} color="#fff" strokeWidth={3} />}
+    </button>
+  );
+}
+
+function PaycheckPlanCard({ paydayStr, budgetLines, effectiveTakeHome, pc, paycheckPlans, onUpdatePaycheckPlans, showToast }: {
+  paydayStr: string; budgetLines: BudgetLine[]; effectiveTakeHome: number; pc: PaycheckConfig;
+  paycheckPlans: Record<string, PaycheckPlanData>; onUpdatePaycheckPlans: (p: Record<string, PaycheckPlanData>) => void;
+  showToast: (m: string) => void;
+}) {
+  const plan = paycheckPlans[paydayStr] ?? { overrides: {}, oneTimeItems: [] };
+  const checkIns = plan.checkIns ?? {};
+  const [editingId,    setEditingId]    = useState<string | null>(null);
+  const [editVal,      setEditVal]      = useState("");
+  const [editSav,      setEditSav]      = useState(false);
+  const [savVal,       setSavVal]       = useState("");
+  const [editInc,      setEditInc]      = useState(false);
+  const [incVal,       setIncVal]       = useState("");
+  const [showForm,     setShowForm]     = useState(false);
+  const [oneLabel,     setOneLabel]     = useState("");
+  const [oneAmt,       setOneAmt]       = useState("");
+  const [oneCat,       setOneCat]       = useState<BudgetLine["category"]>("other");
+  const [actualEditId, setActualEditId] = useState<string | null>(null);
+  const [actualVal,    setActualVal]    = useState("");
+
+  const savePlan      = (next: PaycheckPlanData) => onUpdatePaycheckPlans({ ...paycheckPlans, [paydayStr]: next });
+  const setOverride   = (lineId: string, amount: number) => savePlan({ ...plan, overrides: { ...plan.overrides, [lineId]: amount } });
+  const clearOverride = (lineId: string) => { const next = { ...plan.overrides }; delete next[lineId]; savePlan({ ...plan, overrides: next }); };
+  const addOneTime    = () => {
+    if (!oneLabel || !oneAmt) return;
+    savePlan({ ...plan, oneTimeItems: [...plan.oneTimeItems, { id: id(), label: oneLabel, amount: parseFloat(oneAmt), category: oneCat }] });
+    setOneLabel(""); setOneAmt(""); setShowForm(false); showToast("Added!");
+  };
+  const removeOneTime  = (oid: string) => savePlan({ ...plan, oneTimeItems: plan.oneTimeItems.filter(o => o.id !== oid) });
+
+  const toggleCheckIn = (itemId: string, budgetedAmt: number) => {
+    const next = { ...checkIns };
+    if (next[itemId]) { delete next[itemId]; }
+    else { next[itemId] = { checkedAt: new Date().toISOString(), actualAmount: budgetedAmt }; }
+    savePlan({ ...plan, checkIns: next });
+  };
+  const saveActual = (itemId: string, amount: number) => {
+    savePlan({ ...plan, checkIns: { ...checkIns, [itemId]: { ...(checkIns[itemId] ?? { checkedAt: new Date().toISOString() }), actualAmount: amount } } });
+    setActualEditId(null);
+  };
+
+  const income       = plan.incomeOverride ?? effectiveTakeHome;
+  const savingsDed   = plan.savingsOverride !== undefined ? plan.savingsOverride : Math.round(income * pc.savingsPercent / 100);
+  const totalBudget  = budgetLines.reduce((s, l) => s + (plan.overrides[l.id] ?? l.amountPerCheck), 0);
+  const totalOneTime = plan.oneTimeItems.reduce((s, o) => s + o.amount, 0);
+  const remaining    = income - savingsDed - totalBudget - totalOneTime;
+
+  const totalItems   = budgetLines.length + plan.oneTimeItems.length + (pc.savingsPercent > 0 ? 1 : 0);
+  const checkedCount = Object.keys(checkIns).length;
+
+  const tx = { color: "var(--text)" } as const;
+  const mx = { color: MUTED } as const;
+
+  return (
+    <div className="mb-5">
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <p className="text-xs font-semibold" style={{ color: MUTED, letterSpacing: "0.08em" }}>THIS PAYCHECK</p>
+          <p className="text-xs mt-0.5" style={mx}>{fmtDate(parseISO(paydayStr))} · tap circle to check in when paid</p>
         </div>
-        <div className="relative">
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-white">$</span>
-          <input type="number" value={targetRent} onChange={e => setTargetRent(e.target.value)} placeholder="Enter a rent to check"
-            className="w-full rounded-xl pl-8 pr-4 py-3 text-sm outline-none"
-            style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
-        </div>
-        {verdict && targetRent && (
-          <div className="mt-3 rounded-xl p-3" style={{ background: "rgba(124,92,252,0.05)" }}>
-            <p className="text-sm font-semibold" style={{ color: verdict.color }}>
-              {verdict.text} — {Math.round(rentPct)}% of take-home
-            </p>
-            <p className="text-xs mt-0.5" style={{ color: MUTED }}>
-              {fmt$(Math.round(monthlyIncome - parseFloat(targetRent)))} left after rent each month.
+        {totalItems > 0 && (
+          <div className="flex items-center gap-1.5">
+            <div className="h-1.5 w-20 rounded-full overflow-hidden" style={{ background: "rgba(124,92,252,0.12)" }}>
+              <div className="h-full rounded-full transition-all" style={{ width: `${Math.round(checkedCount / totalItems * 100)}%`, background: "#10B981" }} />
+            </div>
+            <p className="text-xs font-semibold" style={{ color: checkedCount === totalItems ? "#10B981" : MUTED }}>
+              {checkedCount}/{totalItems}
             </p>
           </div>
         )}
+      </div>
+      <div className="rounded-2xl overflow-hidden" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+
+        {/* Income */}
+        <div className="px-4 py-3.5" style={{ borderBottom: `1px solid ${BORDER}` }}>
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold" style={tx}>Paycheck income</p>
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-bold" style={tx}>{fmt$(income)}</p>
+              <button onClick={() => { setEditInc(!editInc); setIncVal(String(income)); }} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Edit</button>
+            </div>
+          </div>
+          {plan.incomeOverride !== undefined && !editInc && <p className="text-xs mt-1" style={mx}>Standard: {fmt$(effectiveTakeHome)}</p>}
+          {editInc && (
+            <div className="mt-2 flex gap-2">
+              <input type="number" value={incVal} onChange={e => setIncVal(e.target.value)} className="flex-1 rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} placeholder="Take-home this check" />
+              <button onClick={() => { savePlan({ ...plan, incomeOverride: parseFloat(incVal) || undefined }); setEditInc(false); showToast("Updated!"); }} className="px-3 py-2 rounded-xl text-sm font-semibold" style={{ background: LIME, color: "#fff" }}>Save</button>
+              {plan.incomeOverride !== undefined && <button onClick={() => { savePlan({ ...plan, incomeOverride: undefined }); setEditInc(false); showToast("Reset"); }} className="px-3 py-2 rounded-xl text-sm" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Reset</button>}
+            </div>
+          )}
+        </div>
+
+        {/* Savings */}
+        {pc.savingsPercent > 0 && (
+          <div className="px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}`, opacity: checkIns["__savings__"] ? 0.6 : 1 }}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CheckCircle checked={!!checkIns["__savings__"]} onToggle={() => toggleCheckIn("__savings__", savingsDed)} />
+                <CatChip cat="savings" />
+                <p className="text-sm" style={tx}>Savings ({pc.savingsPercent}%)</p>
+                {plan.savingsOverride !== undefined && <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ background: "rgba(245,158,11,0.15)", color: AMBER }}>edited</span>}
+              </div>
+              <div className="flex items-center gap-2">
+                {checkIns["__savings__"] ? (
+                  <span className="text-xs font-semibold" style={{ color: "#10B981" }}>Transferred ✓</span>
+                ) : (
+                  <p className="text-sm font-semibold" style={{ color: "#10B981" }}>−{fmt$(savingsDed)}</p>
+                )}
+                <button onClick={() => { setEditSav(!editSav); setSavVal(String(savingsDed)); }} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Edit</button>
+              </div>
+            </div>
+            {plan.savingsOverride !== undefined && !editSav && <p className="text-xs mt-1 ml-8" style={mx}>Standard: {fmt$(Math.round(income * pc.savingsPercent / 100))}</p>}
+            {editSav && (
+              <div className="mt-2 flex gap-2">
+                <input type="number" value={savVal} onChange={e => setSavVal(e.target.value)} className="flex-1 rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} placeholder="Savings this check ($)" />
+                <button onClick={() => { savePlan({ ...plan, savingsOverride: parseFloat(savVal) || 0 }); setEditSav(false); showToast("Updated!"); }} className="px-3 py-2 rounded-xl text-sm font-semibold" style={{ background: LIME, color: "#fff" }}>Save</button>
+                {plan.savingsOverride !== undefined && <button onClick={() => { savePlan({ ...plan, savingsOverride: undefined }); setEditSav(false); showToast("Reset"); }} className="px-3 py-2 rounded-xl text-sm" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Reset</button>}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Budget lines */}
+        {budgetLines.map(line => {
+          const isEditing    = editingId === line.id;
+          const hasOverride  = plan.overrides[line.id] !== undefined;
+          const displayAmt   = hasOverride ? plan.overrides[line.id] : line.amountPerCheck;
+          const ci           = checkIns[line.id];
+          const isChecked    = !!ci;
+          const actualDiffers = ci && ci.actualAmount !== undefined && ci.actualAmount !== displayAmt;
+          const isActualEdit = actualEditId === line.id;
+          return (
+            <div key={line.id} className="px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}`, opacity: isChecked ? 0.65 : 1 }}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                  <CheckCircle checked={isChecked} onToggle={() => toggleCheckIn(line.id, displayAmt)} />
+                  <CatChip cat={line.category} />
+                  <p className="text-sm truncate" style={tx}>{line.label}</p>
+                  {hasOverride && !isChecked && <span className="text-xs px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: "rgba(245,158,11,0.15)", color: AMBER }}>edited</span>}
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {isChecked ? (
+                    <button onClick={() => { setActualEditId(isActualEdit ? null : line.id); setActualVal(String(ci.actualAmount ?? displayAmt)); }}
+                      className="text-xs font-semibold" style={{ color: "#10B981" }}>
+                      Paid {fmt$(ci.actualAmount ?? displayAmt)} {actualDiffers ? `(budget ${fmt$(displayAmt)})` : "✓"}
+                    </button>
+                  ) : (
+                    <>
+                      <p className="text-sm font-semibold" style={{ color: RED }}>−{fmt$(displayAmt)}</p>
+                      <button onClick={() => { setEditingId(isEditing ? null : line.id); setEditVal(String(displayAmt)); }} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Edit</button>
+                    </>
+                  )}
+                </div>
+              </div>
+              {isActualEdit && (
+                <div className="mt-2 flex gap-2 ml-8">
+                  <input type="number" value={actualVal} onChange={e => setActualVal(e.target.value)} className="flex-1 rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} placeholder="Actual amount paid" />
+                  <button onClick={() => saveActual(line.id, parseFloat(actualVal) || displayAmt)} className="px-3 py-2 rounded-xl text-sm font-semibold" style={{ background: "#10B981", color: "#fff" }}>Save</button>
+                </div>
+              )}
+              {isEditing && !isChecked && (
+                <div className="mt-2 flex gap-2 ml-8">
+                  <input type="number" value={editVal} onChange={e => setEditVal(e.target.value)} className="flex-1 rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} placeholder="This paycheck amount" />
+                  <button onClick={() => { setOverride(line.id, parseFloat(editVal) || 0); setEditingId(null); showToast("Updated!"); }} className="px-3 py-2 rounded-xl text-sm font-semibold" style={{ background: LIME, color: "#fff" }}>Save</button>
+                  {hasOverride && <button onClick={() => { clearOverride(line.id); setEditingId(null); showToast("Reset to standard"); }} className="px-3 py-2 rounded-xl text-sm" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Reset</button>}
+                </div>
+              )}
+              {hasOverride && !isEditing && !isChecked && <p className="text-xs mt-1 ml-8" style={mx}>Standard: {fmt$(line.amountPerCheck)}</p>}
+            </div>
+          );
+        })}
+
+        {/* One-time items */}
+        {plan.oneTimeItems.map(o => {
+          const ci        = checkIns[o.id];
+          const isChecked = !!ci;
+          return (
+            <div key={o.id} className="px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}`, opacity: isChecked ? 0.65 : 1 }}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                  <CheckCircle checked={isChecked} onToggle={() => toggleCheckIn(o.id, o.amount)} />
+                  <CatChip cat={o.category as BudgetLine["category"]} />
+                  <p className="text-sm truncate" style={tx}>{o.label}</p>
+                  <span className="text-xs px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: "rgba(232,121,249,0.15)", color: "#E879F9" }}>once</span>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {isChecked ? (
+                    <span className="text-xs font-semibold" style={{ color: "#10B981" }}>Paid {fmt$(ci.actualAmount ?? o.amount)} ✓</span>
+                  ) : (
+                    <p className="text-sm font-semibold" style={{ color: RED }}>−{fmt$(o.amount)}</p>
+                  )}
+                  {!isChecked && <button onClick={() => removeOneTime(o.id)}><Trash2 size={11} style={{ color: MUTED }} /></button>}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Add one-time */}
+        <div className="px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}` }}>
+          <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg" style={{ background: "rgba(232,121,249,0.1)", color: "#E879F9", border: "1px solid rgba(232,121,249,0.2)" }}>
+            <Plus size={12} /> One-time item this check
+          </button>
+          {showForm && (
+            <div className="mt-2 space-y-2">
+              <input value={oneLabel} onChange={e => { setOneLabel(e.target.value); setOneCat(autoDetectCategory(e.target.value)); }} placeholder="Label (e.g. Car repair, Birthday gift)" className="w-full rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+              <div className="grid grid-cols-2 gap-2">
+                <input type="number" value={oneAmt} onChange={e => setOneAmt(e.target.value)} placeholder="Amount ($)" className="rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+                <select value={oneCat} onChange={e => setOneCat(e.target.value as BudgetLine["category"])} className="rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }}>
+                  <option value="housing">Housing</option><option value="transfer">Transfer</option><option value="food">Food</option><option value="transport">Transport</option><option value="utilities">Utilities</option><option value="savings">Savings</option><option value="other">Other</option>
+                </select>
+              </div>
+              <button onClick={addOneTime} disabled={!oneLabel || !oneAmt} className="w-full py-2 rounded-xl text-sm font-semibold disabled:opacity-40" style={{ background: "#E879F9", color: "#fff" }}>Add This Check Only</button>
+            </div>
+          )}
+        </div>
+
+        {/* Remaining */}
+        <div className="flex items-center justify-between px-4 py-3.5" style={{ background: remaining >= 0 ? "rgba(16,185,129,0.04)" : "rgba(239,68,68,0.04)" }}>
+          <p className="text-sm font-semibold" style={{ color: remaining >= 0 ? "#10B981" : RED }}>{remaining >= 0 ? "Yours to spend" : "Over budget"}</p>
+          <p className="text-lg font-bold" style={{ color: remaining >= 0 ? "#10B981" : RED }}>{remaining >= 0 ? fmt$(remaining) : "−" + fmt$(Math.abs(remaining))}</p>
+        </div>
       </div>
     </div>
   );

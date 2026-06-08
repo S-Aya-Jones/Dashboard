@@ -12,7 +12,7 @@ import {
   BookOpen,
   CheckCircle,
   XCircle,
-
+  Trash2,
   BarChart2,
   Loader2,
   Plus,
@@ -171,6 +171,10 @@ export function QBankView({ data, update }: Props) {
   const [showFlagged, setShowFlagged] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [importFolder, setImportFolder] = useState("");
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [folderFilter, setFolderFilter] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sessionStartRef = useRef<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -324,7 +328,17 @@ export function QBankView({ data, update }: Props) {
 
   // ─── File import ─────────────────────────────────────────────────────────
 
-  const importFiles = async (files: FileList) => {
+  function openImportModal(files: FileList) {
+    const arr = Array.from(files);
+    setPendingFiles(arr);
+    // Default folder name: clean up first filename
+    const raw = arr[0].name.replace(/\.(docx|txt|md)$/i, "").replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+    setImportFolder(raw);
+    setShowImportModal(true);
+  }
+
+  const importFiles = async (files: File[], folder: string) => {
+    setShowImportModal(false);
     setImporting(true);
     setUploadError(null);
     let totalImported = 0;
@@ -335,20 +349,42 @@ export function QBankView({ data, update }: Props) {
         setUploadError(`Processing ${file.name} (${i + 1}/${files.length})…`);
         const fd = new FormData();
         fd.append("file", file);
-        const res = await fetch("/api/mcat/extract", { method: "POST", body: fd });
-        const j = await res.json();
-        if (j.error) { setUploadError(`Error in ${file.name}: ${j.error}`); continue; }
+        let res: Response;
+        try {
+          res = await fetch("/api/mcat/extract", { method: "POST", body: fd });
+        } catch (netErr) {
+          setUploadError(`Network error — ${netErr instanceof Error ? netErr.message : String(netErr)}`);
+          continue;
+        }
+        let j: { questions?: MCATQuestion[]; count?: number; error?: string; detail?: string };
+        try {
+          j = await res.json();
+        } catch {
+          setUploadError(`Server error (HTTP ${res.status}) — see browser console for details`);
+          continue;
+        }
+        if (j.error) { setUploadError(`${j.error}${j.detail ? ` — ${j.detail}` : ""}`); continue; }
+        if (!j.questions) { setUploadError("Server returned no questions — try a different file"); continue; }
         const existing = new Set((data.mcatQuestions ?? []).map(q => q.stem.slice(0, 50)));
-        const fresh = (j.questions as MCATQuestion[]).filter(q => !existing.has(q.stem.slice(0, 50)));
+        const fresh = j.questions
+          .filter(q => !existing.has(q.stem.slice(0, 50)))
+          .map(q => ({ ...q, folder: folder.trim() || undefined }));
         update(d => ({ ...d, mcatQuestions: [...(d.mcatQuestions ?? []), ...fresh] }));
         totalImported += fresh.length;
-        totalSkipped  += (j.count - fresh.length);
+        totalSkipped  += ((j.count ?? j.questions.length) - fresh.length);
       }
-      setUploadError(`✓ Imported ${totalImported} questions across ${files.length} file${files.length > 1 ? "s" : ""}${totalSkipped > 0 ? ` (${totalSkipped} duplicates skipped)` : ""}`);
-    } catch {
-      setUploadError("Upload failed — try again");
+      if (totalImported === 0 && totalSkipped === 0) {
+        setUploadError("No questions were extracted — the file may be empty or in an unsupported format. Try a .docx with study notes or questions.");
+      } else if (totalImported === 0 && totalSkipped > 0) {
+        setUploadError(`All ${totalSkipped} questions already exist in your bank — no new ones added.`);
+      } else {
+        setUploadError(`✓ Imported ${totalImported} question${totalImported !== 1 ? "s" : ""}${folder.trim() ? ` into "${folder.trim()}"` : ""}${totalSkipped > 0 ? ` (${totalSkipped} dupes skipped)` : ""}`);
+      }
+    } catch (e) {
+      setUploadError(`Upload failed: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setImporting(false);
+      setPendingFiles([]);
     }
   };
 
@@ -357,10 +393,11 @@ export function QBankView({ data, update }: Props) {
   const useSaved = () => {
     const selected = Array.from(selectedTopics);
     const pool = (data.mcatQuestions ?? []).filter(q =>
-      selected.some(key => {
+      (!folderFilter || q.folder === folderFilter) &&
+      (selected.length === 0 || selected.some(key => {
         const [subj, topic] = key.split("::");
         return q.subject === subj && (topic === "__all__" || q.topic === topic);
-      })
+      }))
     );
     if (pool.length === 0) return;
     // Shuffle and take up to qCount
@@ -440,10 +477,25 @@ export function QBankView({ data, update }: Props) {
     return "#E2D9FF";
   }
 
-  // ─── Sessions summary ─────────────────────────────────────────────────────
+  // ─── Delete helpers ──────────────────────────────────────────────────────
+
+  function deleteSession(sessionId: string) {
+    update(d => ({ ...d, mcatQuizSessions: (d.mcatQuizSessions ?? []).filter(s => s.id !== sessionId) }));
+  }
+
+  function clearAllSessions() {
+    update(d => ({ ...d, mcatQuizSessions: [] }));
+  }
+
+  function clearQBank() {
+    update(d => ({ ...d, mcatQuestions: [] }));
+  }
+
+  // ─── Sessions summary / folders ──────────────────────────────────────────
 
   const pastSessions = data.mcatQuizSessions ?? [];
-  const recentSessions = [...pastSessions].reverse().slice(0, 3);
+  const recentSessions = [...pastSessions].reverse().slice(0, 5);
+  const allFolders = Array.from(new Set((data.mcatQuestions ?? []).filter(q => q.folder).map(q => q.folder!)));
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
@@ -451,6 +503,98 @@ export function QBankView({ data, update }: Props) {
   if (phase === "setup") {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+
+      {/* ── Import Modal ────────────────────────────────────────────────── */}
+      {showImportModal && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 1000,
+          background: "rgba(30,19,64,0.45)", backdropFilter: "blur(4px)",
+          display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
+        }}>
+          <div style={{
+            background: "var(--surface)", borderRadius: 20, padding: 28,
+            maxWidth: 480, width: "100%", boxShadow: "0 20px 60px rgba(0,0,0,0.25)",
+            display: "flex", flexDirection: "column", gap: 20,
+          }}>
+            <div>
+              <h3 style={{ fontSize: 18, fontWeight: 800, color: "var(--text)", margin: "0 0 4px" }}>Import to Q Bank</h3>
+              <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>
+                Claude will extract every question from your files and save them to the folder you choose.
+              </p>
+            </div>
+
+            {/* File list */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 2 }}>
+                Files ({pendingFiles.length})
+              </div>
+              {pendingFiles.map((f, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", borderRadius: 10, background: "var(--bg)" }}>
+                  <span style={{ fontSize: 16 }}>📄</span>
+                  <span style={{ fontSize: 13, color: "var(--text)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</span>
+                  <span style={{ fontSize: 11, color: "var(--text-muted)", flexShrink: 0 }}>{(f.size / 1024 / 1024).toFixed(1)} MB</span>
+                  <button
+                    onClick={() => setPendingFiles(prev => prev.filter((_, j) => j !== i))}
+                    style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 2, lineHeight: 0, flexShrink: 0 }}
+                  >
+                    <span style={{ fontSize: 16, lineHeight: 1 }}>×</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Folder picker */}
+            <div>
+              <label style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", display: "block", marginBottom: 8 }}>
+                Save to folder
+              </label>
+              <input
+                value={importFolder}
+                onChange={e => setImportFolder(e.target.value)}
+                placeholder="e.g. Demographics Discretes, Psych/Soc Passages…"
+                style={{
+                  width: "100%", padding: "10px 14px", borderRadius: 10, fontSize: 14,
+                  border: "1.5px solid var(--border)", background: "var(--bg)",
+                  color: "var(--text)", fontFamily: "inherit", boxSizing: "border-box",
+                }}
+              />
+              {/* Existing folders as quick-pick chips */}
+              {allFolders.length > 0 && (
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
+                  <span style={{ fontSize: 11, color: "var(--text-muted)", alignSelf: "center" }}>Existing:</span>
+                  {allFolders.map(f => (
+                    <button key={f} onClick={() => setImportFolder(f)}
+                      style={{
+                        padding: "4px 10px", borderRadius: 20, border: "1.5px solid var(--border)",
+                        background: importFolder === f ? "var(--purple)" : "var(--bg)",
+                        color: importFolder === f ? "#fff" : "var(--text-muted)",
+                        fontSize: 12, fontWeight: 600, cursor: "pointer",
+                      }}
+                    >{f}</button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={() => { setShowImportModal(false); setPendingFiles([]); }}
+                style={{ flex: 1, padding: "11px", borderRadius: 12, border: "1.5px solid var(--border)", background: "var(--bg)", color: "var(--text-muted)", fontWeight: 700, fontSize: 14, cursor: "pointer" }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => importFiles(pendingFiles, importFolder)}
+                disabled={pendingFiles.length === 0}
+                style={{ flex: 2, padding: "11px", borderRadius: 12, border: "none", background: "var(--grad)", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}
+              >
+                Import {pendingFiles.length} file{pendingFiles.length !== 1 ? "s" : ""}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
         {/* Header */}
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
@@ -506,6 +650,44 @@ export function QBankView({ data, update }: Props) {
                   >
                     {p}%
                   </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Folder filter */}
+        {allFolders.length > 0 && (
+          <div>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", marginBottom: 10 }}>Filter by Folder</h3>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button
+                onClick={() => setFolderFilter(null)}
+                style={{
+                  padding: "6px 14px", borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: "pointer",
+                  border: "1.5px solid", borderColor: !folderFilter ? "var(--purple)" : "var(--border)",
+                  background: !folderFilter ? "rgba(124,92,252,0.1)" : "var(--surface)",
+                  color: !folderFilter ? "var(--purple)" : "var(--text-muted)",
+                }}
+              >
+                All folders
+                <span style={{ marginLeft: 6, fontSize: 11, opacity: 0.7 }}>({data.mcatQuestions?.length ?? 0})</span>
+              </button>
+              {allFolders.map(f => {
+                const count = (data.mcatQuestions ?? []).filter(q => q.folder === f).length;
+                const active = folderFilter === f;
+                return (
+                  <button key={f} onClick={() => setFolderFilter(active ? null : f)}
+                    style={{
+                      padding: "6px 14px", borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: "pointer",
+                      border: "1.5px solid", borderColor: active ? "var(--purple)" : "var(--border)",
+                      background: active ? "rgba(124,92,252,0.1)" : "var(--surface)",
+                      color: active ? "var(--purple)" : "var(--text-muted)",
+                    }}
+                  >
+                    {f}
+                    <span style={{ marginLeft: 6, fontSize: 11, opacity: 0.7 }}>({count})</span>
+                  </button>
                 );
               })}
             </div>
@@ -666,7 +848,7 @@ export function QBankView({ data, update }: Props) {
             accept=".docx,.txt"
             style={{ display: "none" }}
             multiple
-            onChange={e => { if (e.target.files?.length) importFiles(e.target.files); e.target.value = ""; }}
+            onChange={e => { if (e.target.files?.length) { openImportModal(e.target.files); } e.target.value = ""; }}
           />
           {uploadError && (
             <p style={{ margin: "8px 0 0", fontSize: 12, color: uploadError.startsWith("✓") ? "var(--green, #10B981)" : "var(--red, #EF4444)" }}>
@@ -674,9 +856,17 @@ export function QBankView({ data, update }: Props) {
             </p>
           )}
           {(data.mcatQuestions?.length ?? 0) > 0 && (
-            <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--text-muted)" }}>
-              {data.mcatQuestions!.length} questions in your bank · {data.mcatQuizSessions?.length ?? 0} sessions completed
-            </p>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
+              <p style={{ margin: 0, fontSize: 12, color: "var(--text-muted)" }}>
+                {data.mcatQuestions!.length} questions in your bank · {data.mcatQuizSessions?.length ?? 0} sessions completed
+              </p>
+              <button
+                onClick={() => { if (confirm("Delete all questions from your Q Bank?")) clearQBank(); }}
+                style={{ fontSize: 11, color: "var(--red, #EF4444)", background: "none", border: "none", cursor: "pointer", fontWeight: 600, display: "flex", alignItems: "center", gap: 3 }}
+              >
+                <Trash2 size={11} /> Clear bank
+              </button>
+            </div>
           )}
         </div>
 
@@ -806,12 +996,13 @@ export function QBankView({ data, update }: Props) {
             {(() => {
               const selected = Array.from(selectedTopics);
               const savedPool = (data.mcatQuestions ?? []).filter(q =>
-                selected.some(key => {
+                (!folderFilter || q.folder === folderFilter) &&
+                (selected.length === 0 || selected.some(key => {
                   const [subj, topic] = key.split("::");
                   return q.subject === subj && (topic === "__all__" || q.topic === topic);
-                })
+                }))
               );
-              const hasSaved = selectedTopics.size > 0 && savedPool.length > 0;
+              const hasSaved = savedPool.length > 0;
               return hasSaved ? (
                 <button
                   onClick={useSaved}
@@ -842,12 +1033,13 @@ export function QBankView({ data, update }: Props) {
                 marginLeft: (() => {
                   const selected = Array.from(selectedTopics);
                   const savedPool = (data.mcatQuestions ?? []).filter(q =>
-                    selected.some(key => {
+                    (!folderFilter || q.folder === folderFilter) &&
+                    (selected.length === 0 || selected.some(key => {
                       const [subj, topic] = key.split("::");
                       return q.subject === subj && (topic === "__all__" || q.topic === topic);
-                    })
+                    }))
                   );
-                  return selectedTopics.size > 0 && savedPool.length > 0 ? 0 : "auto";
+                  return savedPool.length > 0 ? 0 : "auto";
                 })(),
                 padding: "10px 24px",
                 borderRadius: 12,
@@ -872,9 +1064,17 @@ export function QBankView({ data, update }: Props) {
         {/* Recent sessions */}
         {recentSessions.length > 0 && (
           <div>
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", marginBottom: 12 }}>
-              Recent Sessions
-            </h3>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+              <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", margin: 0 }}>
+                Recent Sessions
+              </h3>
+              <button
+                onClick={() => { if (confirm("Delete all quiz sessions?")) clearAllSessions(); }}
+                style={{ fontSize: 12, color: "var(--red, #EF4444)", background: "none", border: "none", cursor: "pointer", fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}
+              >
+                <Trash2 size={12} /> Clear all
+              </button>
+            </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {recentSessions.map((sess) => {
                 const correct = sess.attempts.filter((a) => a.correct).length;
@@ -889,21 +1089,15 @@ export function QBankView({ data, update }: Props) {
                   >
                     <div
                       style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 10,
+                        width: 40, height: 40, borderRadius: 10,
                         background: `${grade.color}18`,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontWeight: 800,
-                        fontSize: 14,
-                        color: grade.color,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontWeight: 800, fontSize: 14, color: grade.color, flexShrink: 0,
                       }}
                     >
                       {p}%
                     </div>
-                    <div style={{ flex: 1 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "var(--text)" }}>
                         {correct}/{total} correct · {sess.mode === "tutor" ? "Tutor" : "Timed"}
                       </p>
@@ -917,6 +1111,13 @@ export function QBankView({ data, update }: Props) {
                     <span style={{ fontSize: 12, fontWeight: 700, color: grade.color }}>
                       {grade.label}
                     </span>
+                    <button
+                      onClick={() => deleteSession(sess.id)}
+                      title="Delete this session"
+                      style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 4, flexShrink: 0 }}
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 );
               })}
