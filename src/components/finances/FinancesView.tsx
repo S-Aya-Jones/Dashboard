@@ -47,6 +47,7 @@ interface SavingsAlert {
   savePerCheck: number;
   checksUntil: number;
 }
+type PaycheckPlanData = { overrides: Record<string, number>; oneTimeItems: { id: string; label: string; amount: number; category: string }[] };
 interface PlaidAccount {
   accountId: string; name: string; mask?: string | null; type: string; subtype?: string | null;
   balances: { current?: number | null; available?: number | null; limit?: number | null };
@@ -704,7 +705,7 @@ export function FinancesView({ data, update }: Props) {
             health={health}
             accounts={accounts} loadingAccts={loadingAccts} refreshing={refreshing}
             accountTransfers={accountTransfers}
-            yearPlan={yearPlan} effectiveTakeHome={effectiveTakeHome} pc={pc}
+            yearPlan={yearPlan} effectiveTakeHome={effectiveTakeHome}
             onRefresh={handleRefresh} onDisconnect={handleDisconnect}
             onConnected={() => fetchAccounts(true)}
             onAddTransfer={(t) => update(d => ({ ...d, accountTransfers: [t, ...(d.accountTransfers ?? [])] }))}
@@ -719,6 +720,7 @@ export function FinancesView({ data, update }: Props) {
             budgetLines={budgetLines} bills={bills} selfCare={selfCare}
             insights={insights} p2pTransfers={p2pTransfers}
             liabilities={liabilities} creditScores={data.creditScores ?? []}
+            paycheckPlans={data.paycheckPlans ?? {}}
             onMarkBillPaid={(billId) => update(d => ({
               ...d, recurringBills: (d.recurringBills ?? []).map(b =>
                 b.id === billId ? { ...b, lastPaidDate: format(new Date(), "yyyy-MM-dd") } : b),
@@ -738,6 +740,7 @@ export function FinancesView({ data, update }: Props) {
             onUpdateBills={(b) => update(d => ({ ...d, recurringBills: b }))}
             onUpdateBudgetLines={(bl) => update(d => ({ ...d, budgetLines: bl }))}
             onUpdatePc={(p) => update(d => ({ ...d, paycheckConfig: p }))}
+            onUpdatePaycheckPlans={(plans) => update(d => ({ ...d, paycheckPlans: plans }))}
             showToast={showToast}
           />
         )}
@@ -772,11 +775,11 @@ export function FinancesView({ data, update }: Props) {
 }
 
 // ── Health Tab ────────────────────────────────────────────────────────────────
-function HealthTab({ health, accounts, loadingAccts, refreshing, accountTransfers, yearPlan, effectiveTakeHome, pc, onRefresh, onDisconnect, onConnected, onAddTransfer, onRemoveTransfer }: {
+function HealthTab({ health, accounts, loadingAccts, refreshing, accountTransfers, yearPlan, effectiveTakeHome, onRefresh, onDisconnect, onConnected, onAddTransfer, onRemoveTransfer }: {
   health: ReturnType<typeof calcHealthGrade>;
   accounts: PlaidAccount[]; loadingAccts: boolean; refreshing: boolean;
   accountTransfers: AccountTransfer[]; yearPlan: CheckSlot[];
-  effectiveTakeHome: number; pc: PaycheckConfig;
+  effectiveTakeHome: number;
   onRefresh: () => void; onDisconnect: (itemId?: string) => void; onConnected: () => void;
   onAddTransfer: (t: AccountTransfer) => void; onRemoveTransfer: (tid: string) => void;
 }) {
@@ -828,8 +831,6 @@ function HealthTab({ health, accounts, loadingAccts, refreshing, accountTransfer
         ))}
       </div>
 
-      <RentAfford pc={pc} />
-
       <AccountsTab accounts={accounts} loadingAccts={loadingAccts} refreshing={refreshing}
         accountTransfers={accountTransfers} onRefresh={onRefresh} onDisconnect={onDisconnect}
         onConnected={onConnected} onAddTransfer={onAddTransfer} onRemoveTransfer={onRemoveTransfer} />
@@ -871,16 +872,18 @@ function EditCareInline({ item, onSave }: { item: SelfCareItem; onSave: (cost: n
 }
 
 // ── Flow Tab ──────────────────────────────────────────────────────────────────
-function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, budgetLines, bills, selfCare, insights, p2pTransfers, liabilities, creditScores, onMarkBillPaid, onMarkFocusDone, onAddP2P, onRemoveP2P, onUpdateCare, onUpdateBills, onUpdateBudgetLines, onUpdatePc, showToast }: {
+function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, budgetLines, bills, selfCare, insights, p2pTransfers, liabilities, creditScores, paycheckPlans, onMarkBillPaid, onMarkFocusDone, onAddP2P, onRemoveP2P, onUpdateCare, onUpdateBills, onUpdateBudgetLines, onUpdatePc, onUpdatePaycheckPlans, showToast }: {
   yearPlan: CheckSlot[]; savingsAlerts: SavingsAlert[];
   pc: PaycheckConfig; effectiveTakeHome: number; paydayStr: string;
   budgetLines: BudgetLine[]; bills: RecurringBill[]; selfCare: SelfCareItem[];
   insights: InsightsData | null; p2pTransfers: P2PTransfer[];
   liabilities: LiabilitiesData | null; creditScores: CreditScoreEntry[];
+  paycheckPlans: Record<string, PaycheckPlanData>;
   onMarkBillPaid: (id: string) => void; onMarkFocusDone: (id: string) => void;
   onAddP2P: (t: P2PTransfer) => void; onRemoveP2P: (tid: string) => void;
   onUpdateCare: (i: SelfCareItem[]) => void; onUpdateBills: (b: RecurringBill[]) => void;
   onUpdateBudgetLines: (bl: BudgetLine[]) => void; onUpdatePc: (p: PaycheckConfig) => void;
+  onUpdatePaycheckPlans: (p: Record<string, PaycheckPlanData>) => void;
   showToast: (m: string) => void;
 }) {
   const [expanded,       setExpanded]       = useState<number | null>(null);
@@ -1286,6 +1289,17 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
             </div>
           )}
         </div>
+
+        {/* Paycheck Plan */}
+        <PaycheckPlanCard
+          paydayStr={paydayStr}
+          budgetLines={budgetLines}
+          effectiveTakeHome={effectiveTakeHome}
+          pc={pc}
+          paycheckPlans={paycheckPlans}
+          onUpdatePaycheckPlans={onUpdatePaycheckPlans}
+          showToast={showToast}
+        />
 
         {/* Self-care rotation */}
         <div className="mb-5">
@@ -1909,51 +1923,114 @@ function AIAdvisorCard({ pc, currentSlot, yearChecksRemaining, totalYearTreatmen
   );
 }
 
-// ── Rent Affordability ────────────────────────────────────────────────────────
-function RentAfford({ pc }: { pc: PaycheckConfig }) {
-  const [targetRent, setTargetRent] = useState("");
-  const effectiveTakeHome = pc.projectedTakeHome ?? pc.takeHomePerCheck;
-  const monthlyIncome = (effectiveTakeHome * 26) / 12;
-  const rentPct = targetRent ? (parseFloat(targetRent) / monthlyIncome) * 100 : 0;
-  const verdict = rentPct === 0 ? null
-    : rentPct <= 25 ? { text: "Comfortable", color: LIME }
-    : rentPct <= 30 ? { text: "Manageable", color: "#10B981" }
-    : rentPct <= 35 ? { text: "Stretching it", color: AMBER }
-    :                 { text: "Too much", color: RED };
+// ── Paycheck Plan Card ────────────────────────────────────────────────────────
+function PaycheckPlanCard({ paydayStr, budgetLines, effectiveTakeHome, pc, paycheckPlans, onUpdatePaycheckPlans, showToast }: {
+  paydayStr: string; budgetLines: BudgetLine[]; effectiveTakeHome: number; pc: PaycheckConfig;
+  paycheckPlans: Record<string, PaycheckPlanData>; onUpdatePaycheckPlans: (p: Record<string, PaycheckPlanData>) => void;
+  showToast: (m: string) => void;
+}) {
+  const plan = paycheckPlans[paydayStr] ?? { overrides: {}, oneTimeItems: [] };
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editVal,   setEditVal]   = useState("");
+  const [showForm,  setShowForm]  = useState(false);
+  const [oneLabel,  setOneLabel]  = useState("");
+  const [oneAmt,    setOneAmt]    = useState("");
+  const [oneCat,    setOneCat]    = useState<BudgetLine["category"]>("other");
+
+  const savePlan = (next: PaycheckPlanData) => onUpdatePaycheckPlans({ ...paycheckPlans, [paydayStr]: next });
+  const setOverride  = (lineId: string, amount: number) => savePlan({ ...plan, overrides: { ...plan.overrides, [lineId]: amount } });
+  const clearOverride = (lineId: string) => { const next = { ...plan.overrides }; delete next[lineId]; savePlan({ ...plan, overrides: next }); };
+  const addOneTime   = () => {
+    if (!oneLabel || !oneAmt) return;
+    savePlan({ ...plan, oneTimeItems: [...plan.oneTimeItems, { id: id(), label: oneLabel, amount: parseFloat(oneAmt), category: oneCat }] });
+    setOneLabel(""); setOneAmt(""); setShowForm(false); showToast("Added!");
+  };
+  const removeOneTime = (oid: string) => savePlan({ ...plan, oneTimeItems: plan.oneTimeItems.filter(o => o.id !== oid) });
+
+  const savingsDed  = Math.round(effectiveTakeHome * pc.savingsPercent / 100);
+  const totalBudget = budgetLines.reduce((s, l) => s + (plan.overrides[l.id] ?? l.amountPerCheck), 0);
+  const totalOneTime = plan.oneTimeItems.reduce((s, o) => s + o.amount, 0);
+  const remaining   = effectiveTakeHome - savingsDed - totalBudget - totalOneTime;
 
   return (
-    <div className="mt-4">
-      <p className="text-xs font-semibold mb-3" style={{ color: MUTED, letterSpacing: "0.08em" }}>RENT AFFORDABILITY</p>
-      <div className="rounded-2xl p-4" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
-        <p className="text-xs mb-3" style={{ color: MUTED }}>Based on {fmt$(Math.round(monthlyIncome))}/month take-home:</p>
-        <div className="space-y-1.5 mb-4">
-          {[
-            { label: "Comfortable (25%)", amount: Math.round(monthlyIncome * 0.25), color: LIME },
-            { label: "Standard (30%)",    amount: Math.round(monthlyIncome * 0.30), color: "#10B981" },
-            { label: "Max (35%)",         amount: Math.round(monthlyIncome * 0.35), color: RED },
-          ].map(r => (
-            <div key={r.label} className="flex items-center justify-between py-2 px-3 rounded-xl" style={{ background: "rgba(124,92,252,0.05)" }}>
-              <p className="text-sm" style={{ color: MUTED }}>{r.label}</p>
-              <p className="text-sm font-bold" style={{ color: r.color }}>{fmt$(r.amount)}/mo</p>
-            </div>
-          ))}
+    <div className="mb-5">
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <p className="text-xs font-semibold" style={{ color: MUTED, letterSpacing: "0.08em" }}>PAYCHECK PLAN</p>
+          <p className="text-xs mt-0.5" style={{ color: "var(--text-light)" }}>Override amounts just for {fmtDate(parseISO(paydayStr))}</p>
         </div>
-        <div className="relative">
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-white">$</span>
-          <input type="number" value={targetRent} onChange={e => setTargetRent(e.target.value)} placeholder="Enter a rent to check"
-            className="w-full rounded-xl pl-8 pr-4 py-3 text-sm outline-none"
-            style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+      </div>
+      <div className="rounded-2xl overflow-hidden" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+        <div className="flex items-center justify-between px-4 py-3.5" style={{ borderBottom: `1px solid ${BORDER}` }}>
+          <p className="text-sm font-semibold text-white">💵 {fmtDate(parseISO(paydayStr))}</p>
+          <p className="text-sm font-bold text-white">{fmt$(effectiveTakeHome)}</p>
         </div>
-        {verdict && targetRent && (
-          <div className="mt-3 rounded-xl p-3" style={{ background: "rgba(124,92,252,0.05)" }}>
-            <p className="text-sm font-semibold" style={{ color: verdict.color }}>
-              {verdict.text} — {Math.round(rentPct)}% of take-home
-            </p>
-            <p className="text-xs mt-0.5" style={{ color: MUTED }}>
-              {fmt$(Math.round(monthlyIncome - parseFloat(targetRent)))} left after rent each month.
-            </p>
+        {pc.savingsPercent > 0 && (
+          <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}` }}>
+            <p className="text-sm" style={{ color: "#9B7FFF" }}>💰 Savings ({pc.savingsPercent}%)</p>
+            <p className="text-sm font-semibold" style={{ color: "#9B7FFF" }}>−{fmt$(savingsDed)}</p>
           </div>
         )}
+        {budgetLines.map(line => {
+          const isEditing    = editingId === line.id;
+          const hasOverride  = plan.overrides[line.id] !== undefined;
+          const displayAmt   = hasOverride ? plan.overrides[line.id] : line.amountPerCheck;
+          return (
+            <div key={line.id} className="px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}` }}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                  <p className="text-sm text-white truncate">{getCategoryEmoji(line.category)} {line.label}</p>
+                  {hasOverride && <span className="text-xs px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: "rgba(245,158,11,0.15)", color: AMBER }}>edited</span>}
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <p className="text-sm font-semibold" style={{ color: RED }}>−{fmt$(displayAmt)}</p>
+                  <button onClick={() => { setEditingId(isEditing ? null : line.id); setEditVal(String(displayAmt)); }} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Edit</button>
+                </div>
+              </div>
+              {isEditing && (
+                <div className="mt-2 flex gap-2">
+                  <input type="number" value={editVal} onChange={e => setEditVal(e.target.value)} className="flex-1 rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} placeholder="This paycheck amount" />
+                  <button onClick={() => { setOverride(line.id, parseFloat(editVal) || 0); setEditingId(null); showToast("Updated for this check!"); }} className="px-3 py-2 rounded-xl text-sm font-semibold" style={{ background: LIME, color: "#fff" }}>Save</button>
+                  {hasOverride && <button onClick={() => { clearOverride(line.id); setEditingId(null); showToast("Reset to standard"); }} className="px-3 py-2 rounded-xl text-sm" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Reset</button>}
+                </div>
+              )}
+              {hasOverride && !isEditing && <p className="text-xs mt-1" style={{ color: MUTED }}>Standard: {fmt$(line.amountPerCheck)}</p>}
+            </div>
+          );
+        })}
+        {plan.oneTimeItems.map(o => (
+          <div key={o.id} className="flex items-center justify-between px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}` }}>
+            <div className="flex items-center gap-2">
+              <p className="text-sm text-white">{getCategoryEmoji(o.category as BudgetLine["category"])} {o.label}</p>
+              <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ background: "rgba(232,121,249,0.15)", color: "#E879F9" }}>once</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-semibold" style={{ color: RED }}>−{fmt$(o.amount)}</p>
+              <button onClick={() => removeOneTime(o.id)}><Trash2 size={11} style={{ color: MUTED }} /></button>
+            </div>
+          </div>
+        ))}
+        <div className="px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}` }}>
+          <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg" style={{ background: "rgba(232,121,249,0.1)", color: "#E879F9", border: "1px solid rgba(232,121,249,0.2)" }}>
+            <Plus size={12} /> One-time item this check
+          </button>
+          {showForm && (
+            <div className="mt-2 space-y-2">
+              <input value={oneLabel} onChange={e => setOneLabel(e.target.value)} placeholder="Label (e.g. Car repair, Birthday gift)" className="w-full rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+              <div className="grid grid-cols-2 gap-2">
+                <input type="number" value={oneAmt} onChange={e => setOneAmt(e.target.value)} placeholder="Amount ($)" className="rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+                <select value={oneCat} onChange={e => setOneCat(e.target.value as BudgetLine["category"])} className="rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }}>
+                  <option value="housing">🏠 Housing</option><option value="transfer">🏦 Transfer</option><option value="food">🛒 Food</option><option value="transport">🚗 Transport</option><option value="utilities">💡 Utilities</option><option value="savings">💰 Savings</option><option value="other">📌 Other</option>
+                </select>
+              </div>
+              <button onClick={addOneTime} disabled={!oneLabel || !oneAmt} className="w-full py-2 rounded-xl text-sm font-semibold disabled:opacity-40" style={{ background: "#E879F9", color: "#fff" }}>Add This Check Only</button>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center justify-between px-4 py-3.5" style={{ background: remaining >= 0 ? "rgba(200,255,0,0.03)" : "rgba(239,68,68,0.04)" }}>
+          <p className="text-sm font-semibold" style={{ color: remaining >= 0 ? LIME : RED }}>{remaining >= 0 ? "Yours to spend" : "Over budget"}</p>
+          <p className="text-lg font-bold" style={{ color: remaining >= 0 ? LIME : RED }}>{remaining >= 0 ? fmt$(remaining) : "−" + fmt$(Math.abs(remaining))}</p>
+        </div>
       </div>
     </div>
   );
