@@ -6,7 +6,7 @@ import {
   Sun, Calendar, Brain, BookOpen,
   Sparkles, DollarSign,
   ChevronLeft, ChevronRight, Dumbbell, Gem, UtensilsCrossed,
-  MessageSquare
+  MessageSquare, LayoutGrid
 } from "lucide-react";
 import { useState } from "react";
 import { SaveIndicator } from "@/components/ui/SaveIndicator";
@@ -19,7 +19,8 @@ const navItems = [
   { href: "/fitness",   label: "Fitness",          icon: Dumbbell },
   { href: "/skincare",  label: "Skincare",         icon: Sparkles },
   { href: "/finances",  label: "Finances",         icon: DollarSign },
-  { href: "/messages",  label: "Messages",         icon: MessageSquare },
+  { href: "/messages",      label: "Messages",      icon: MessageSquare },
+  { href: "/integrations",  label: "Integrations",  icon: LayoutGrid },
   { href: "/vision",    label: "Vision",           icon: Gem },
   { href: "/nutrition", label: "Food Journal",     icon: UtensilsCrossed },
 ];
