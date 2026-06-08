@@ -297,12 +297,21 @@ function HealthGradeRing({ grade, score, color, size = 96 }: { grade: string; sc
 }
 
 // ── Year Calendar ─────────────────────────────────────────────────────────────
-function UpcomingChecksCard({ yearPlan, effectiveTakeHome, budgetLines, pc }: {
+function UpcomingChecksCard({ yearPlan, effectiveTakeHome, budgetLines, pc, paycheckPlans, onUpdatePaycheckPlans }: {
   yearPlan: CheckSlot[]; effectiveTakeHome: number; budgetLines: BudgetLine[]; pc: PaycheckConfig;
+  paycheckPlans: Record<string, PaycheckPlanData>; onUpdatePaycheckPlans: (p: Record<string, PaycheckPlanData>) => void;
 }) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [showAll,  setShowAll]  = useState(false);
   const visible = showAll ? yearPlan : yearPlan.slice(0, 8);
+
+  const addToPlan = (key: string, label: string, amount: number, category: string) => {
+    const existing = paycheckPlans[key] ?? { overrides: {}, oneTimeItems: [] };
+    if (existing.oneTimeItems.some(o => o.label === label)) return;
+    onUpdatePaycheckPlans({ ...paycheckPlans, [key]: { ...existing, oneTimeItems: [...existing.oneTimeItems, { id: id(), label, amount, category }] } });
+  };
+  const isInPlan = (key: string, label: string) =>
+    (paycheckPlans[key]?.oneTimeItems ?? []).some(o => o.label === label);
 
   return (
     <div className="rounded-2xl overflow-hidden" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
@@ -361,22 +370,44 @@ function UpcomingChecksCard({ yearPlan, effectiveTakeHome, budgetLines, pc }: {
                     <span className="font-semibold" style={{ color: AMBER }}>−{fmt$(l.amountPerCheck)}</span>
                   </div>
                 ))}
-                {slot.billsTotal > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span style={{ color: MUTED }}>Bills ({slot.dueBills.map(b => b.name).join(", ")})</span>
-                    <span className="font-semibold" style={{ color: AMBER }}>−{fmt$(slot.billsTotal)}</span>
-                  </div>
-                )}
                 <div className="flex justify-between text-sm pt-1.5" style={{ borderTop: `1px solid ${BORDER}` }}>
                   <span className="font-semibold" style={{ color: "var(--text)" }}>Available</span>
                   <span className="font-bold" style={{ color: "var(--text)" }}>{fmt$(slot.free)}</span>
                 </div>
                 {focus && (
-                  <div className="flex justify-between text-sm">
+                  <div className="flex items-center justify-between text-sm gap-2">
                     <span style={{ color: slot.canAfford ? "#10B981" : RED }}>{focus.emoji} {focus.name}</span>
-                    <span className="font-semibold" style={{ color: slot.canAfford ? "#10B981" : RED }}>−{fmt$(focus.cost)}</span>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="font-semibold" style={{ color: slot.canAfford ? "#10B981" : RED }}>−{fmt$(focus.cost)}</span>
+                      {isInPlan(key, focus.name) ? (
+                        <span className="text-xs px-2 py-0.5 rounded-lg" style={{ background: "rgba(16,185,129,0.12)", color: "#10B981" }}>Added ✓</span>
+                      ) : (
+                        <button onClick={() => addToPlan(key, focus.name, focus.cost, "other")}
+                          className="text-xs px-2 py-0.5 rounded-lg"
+                          style={{ background: "rgba(124,92,252,0.1)", color: LIME, border: `1px solid rgba(124,92,252,0.2)` }}>
+                          + Plan
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
+                {slot.dueBills.map(b => (
+                  <div key={b.id} className="flex items-center justify-between text-sm gap-2">
+                    <span style={{ color: MUTED }}>🧾 {b.name}</span>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="font-semibold" style={{ color: AMBER }}>−{fmt$(b.amount)}</span>
+                      {isInPlan(key, b.name) ? (
+                        <span className="text-xs px-2 py-0.5 rounded-lg" style={{ background: "rgba(16,185,129,0.12)", color: "#10B981" }}>Added ✓</span>
+                      ) : (
+                        <button onClick={() => addToPlan(key, b.name, b.amount, autoDetectCategory(b.name))}
+                          className="text-xs px-2 py-0.5 rounded-lg"
+                          style={{ background: "rgba(124,92,252,0.1)", color: LIME, border: `1px solid rgba(124,92,252,0.2)` }}>
+                          + Plan
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
                 <div className="flex justify-between text-sm pt-1.5" style={{ borderTop: `1px solid ${BORDER}` }}>
                   <span className="font-semibold" style={{ color: "var(--text)" }}>Yours after</span>
                   <span className="text-base font-bold" style={{ color: sc }}>{fmt$(Math.max(0, freeAft))}</span>
@@ -986,7 +1017,8 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
         <div className="flex items-center justify-between mb-3">
           <p className="text-xs font-semibold" style={{ color: MUTED, letterSpacing: "0.08em" }}>UPCOMING CHECKS</p>
         </div>
-        <UpcomingChecksCard yearPlan={yearPlan} effectiveTakeHome={effectiveTakeHome} budgetLines={budgetLines} pc={pc} />
+        <UpcomingChecksCard yearPlan={yearPlan} effectiveTakeHome={effectiveTakeHome} budgetLines={budgetLines} pc={pc}
+          paycheckPlans={paycheckPlans} onUpdatePaycheckPlans={onUpdatePaycheckPlans} />
       </div>
 
       {/* ── AI CHAT ── */}
