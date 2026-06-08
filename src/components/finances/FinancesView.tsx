@@ -297,129 +297,104 @@ function HealthGradeRing({ grade, score, color, size = 96 }: { grade: string; sc
 }
 
 // ── Year Calendar ─────────────────────────────────────────────────────────────
-function YearCalendar({ yearPlan, effectiveTakeHome, budgetLines, pc }: {
-  yearPlan: CheckSlot[];
-  effectiveTakeHome: number;
-  budgetLines: BudgetLine[];
-  pc: PaycheckConfig;
+function UpcomingChecksCard({ yearPlan, effectiveTakeHome, budgetLines, pc }: {
+  yearPlan: CheckSlot[]; effectiveTakeHome: number; budgetLines: BudgetLine[]; pc: PaycheckConfig;
 }) {
-  const today      = new Date();
-  const currentYear = today.getFullYear();
-  const [selMonth, setSelMonth]   = useState(today.getMonth());
-  const [selSlot,  setSelSlot]    = useState<CheckSlot | null>(null);
-
-  const months = Array.from({ length: 12 - today.getMonth() }, (_, i) => today.getMonth() + i);
-
-  const checkMap = new Map<string, CheckSlot>();
-  for (const slot of yearPlan) checkMap.set(format(slot.checkDate, "yyyy-MM-dd"), slot);
-
-  const firstDay  = new Date(currentYear, selMonth, 1);
-  const lastDay   = new Date(currentYear, selMonth + 1, 0);
-  const startDow  = firstDay.getDay();
-  const totalCells = Math.ceil((startDow + lastDay.getDate()) / 7) * 7;
-
-  const cells = Array.from({ length: totalCells }, (_, i) => {
-    const dayNum = i - startDow + 1;
-    if (dayNum < 1 || dayNum > lastDay.getDate()) return null;
-    const dateStr = format(new Date(currentYear, selMonth, dayNum), "yyyy-MM-dd");
-    return { dayNum, dateStr, slot: checkMap.get(dateStr) ?? null };
-  });
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [showAll,  setShowAll]  = useState(false);
+  const visible = showAll ? yearPlan : yearPlan.slice(0, 8);
 
   return (
-    <div>
-      {/* Month pills */}
-      <div className="flex gap-1.5 overflow-x-auto pb-2 mb-3" style={{ scrollbarWidth: "none" }}>
-        {months.map(m => (
-          <button key={m} onClick={() => { setSelMonth(m); setSelSlot(null); }}
-            className="flex-shrink-0 px-3 py-1 rounded-full text-xs font-semibold"
-            style={selMonth === m ? { background: LIME, color: "#fff"} : { background: "rgba(124,92,252,0.07)", color: MUTED }}>
-            {format(new Date(currentYear, m, 1), "MMM")}
-          </button>
-        ))}
-      </div>
-
-      {/* Day headers */}
-      <div className="grid grid-cols-7 mb-0.5">
-        {["Su","Mo","Tu","We","Th","Fr","Sa"].map(d => (
-          <div key={d} className="text-center text-xs py-1 font-semibold" style={{ color: MUTED }}>{d}</div>
-        ))}
-      </div>
-
-      {/* Grid */}
-      <div className="grid grid-cols-7 gap-0.5">
-        {cells.map((cell, i) => {
-          if (!cell) return <div key={i} className="aspect-square" />;
-          const { dayNum, dateStr, slot } = cell;
-          const isToday   = dateStr === format(today, "yyyy-MM-dd");
-          const isPast    = new Date(dateStr) < today;
-          const item      = slot?.focusItem ?? slot?.pushedItem;
-          const isPushed  = slot && !slot.focusItem && !!slot.pushedItem;
-          const dotColor  = slot ? (slot.canAfford ? LIME : isPushed ? AMBER : RED) : null;
-          const isSel     = selSlot ? format(selSlot.checkDate, "yyyy-MM-dd") === dateStr : false;
-          return (
-            <button key={i} onClick={() => slot && setSelSlot(isSel ? null : slot)} disabled={!slot}
-              className="aspect-square flex flex-col items-center justify-center rounded-lg transition-all"
-              style={{
-                background: isSel ? "rgba(124,92,252,0.15)" : slot ? "rgba(124,92,252,0.05)" : "transparent",
-                border: isSel ? `1px solid rgba(124,92,252,0.45)` : isToday ? `1px solid rgba(124,92,252,0.35)` : "1px solid transparent",
-                opacity: isPast && !slot ? 0.35 : 1,
-              }}>
-              <span className="text-xs leading-none" style={{ color: isToday ? LIME : "var(--text)", fontWeight: slot ? 700 : 400 }}>{dayNum}</span>
-              {item   && <span className="text-xs leading-none mt-0.5">{item.emoji}</span>}
-              {!item && dotColor && <div className="w-1 h-1 rounded-full mt-0.5" style={{ background: dotColor }} />}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Waterfall detail */}
-      {selSlot && (
-        <div className="mt-3 rounded-2xl p-4" style={{ background: "rgba(124,92,252,0.05)", border: `1px solid ${BORDER}` }}>
-          <p className="text-xs font-semibold mb-3" style={{ color: LIME, letterSpacing: "0.08em" }}>
-            {format(selSlot.checkDate, "MMM d").toUpperCase()}
-            {pc.employer ? ` · ${pc.employer.toUpperCase()}` : ""}
-          </p>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between"><span style={{ color: MUTED }}>💵 Paycheck</span><span className="font-bold">{fmt$(effectiveTakeHome)}</span></div>
-            {selSlot.savings > 0 && (
-              <div className="flex justify-between"><span style={{ color: "#9B7FFF" }}>💰 Savings ({pc.savingsPercent}%)</span><span className="font-semibold" style={{ color: "#9B7FFF" }}>−{fmt$(selSlot.savings)}</span></div>
-            )}
-            {budgetLines.map(l => (
-              <div key={l.id} className="flex justify-between"><span style={{ color: MUTED }}>{getCategoryEmoji(l.category)} {l.label}</span><span className="font-semibold" style={{ color: AMBER }}>−{fmt$(l.amountPerCheck)}</span></div>
-            ))}
-            {selSlot.billsTotal > 0 && (
-              <div className="flex justify-between"><span style={{ color: MUTED }}>🧾 Bills</span><span className="font-semibold" style={{ color: AMBER }}>−{fmt$(selSlot.billsTotal)}</span></div>
-            )}
-            <div className="border-t pt-2" style={{ borderColor: BORDER }}>
-              <div className="flex justify-between"><span style={{ color: MUTED }}>Available</span><span className="font-bold">{fmt$(selSlot.free)}</span></div>
-            </div>
-            {selSlot.focusItem && (
-              <>
-                <div className="flex justify-between">
-                  <span style={{ color: selSlot.canAfford ? LIME : RED }}>{selSlot.focusItem.emoji} {selSlot.focusItem.name}</span>
-                  <span className="font-semibold" style={{ color: selSlot.canAfford ? LIME : RED }}>−{fmt$(selSlot.focusItem.cost)}</span>
-                </div>
-                <div className="border-t pt-2 flex justify-between items-center" style={{ borderColor: BORDER }}>
-                  <span style={{ color: MUTED }}>Yours after</span>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-lg font-bold" style={{ color: selSlot.canAfford ? LIME : RED }}>{fmt$(Math.max(0, selSlot.free - selSlot.focusItem.cost))}</span>
-                    {selSlot.canAfford && <span>✅</span>}
-                    {!selSlot.canAfford && <span style={{ color: RED }}>⚠️</span>}
-                  </div>
-                </div>
-              </>
-            )}
-            {selSlot.pushedItem && !selSlot.focusItem && (
-              <div className="pt-1 space-y-1.5">
-                <p className="text-xs" style={{ color: AMBER }}>{selSlot.pushedItem.emoji} {selSlot.pushedItem.name} pushed{selSlot.pushedTo ? ` → ${fmtDate(selSlot.pushedTo)}` : ""}</p>
-                <div className="flex justify-between"><span style={{ color: MUTED }}>Yours after</span><span className="text-lg font-bold">{fmt$(selSlot.free)}</span></div>
+    <div className="rounded-2xl overflow-hidden" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+      {visible.map((slot, idx) => {
+        const key      = format(slot.checkDate, "yyyy-MM-dd");
+        const isExp    = expanded === key;
+        const focus    = slot.focusItem;
+        const freeAft  = slot.free - (focus?.cost ?? 0);
+        const sc       = freeAft < 0 ? RED : freeAft < 100 ? AMBER : "#10B981";
+        const prevSlot = visible[idx - 1];
+        const newMonth = !prevSlot || format(prevSlot.checkDate, "MM-yyyy") !== format(slot.checkDate, "MM-yyyy");
+        return (
+          <div key={key}>
+            {newMonth && (
+              <div className="px-4 py-2" style={{ background: "rgba(124,92,252,0.03)", borderBottom: `1px solid ${BORDER}` }}>
+                <p className="text-xs font-semibold" style={{ color: MUTED, letterSpacing: "0.07em" }}>{format(slot.checkDate, "MMMM yyyy").toUpperCase()}</p>
               </div>
             )}
-            {!selSlot.focusItem && !selSlot.pushedItem && (
-              <div className="flex justify-between pt-1"><span style={{ color: MUTED }}>Yours after</span><span className="text-lg font-bold">{fmt$(selSlot.free)}</span></div>
+            <button onClick={() => setExpanded(isExp ? null : key)} className="w-full px-4 py-3.5 flex items-center justify-between text-left" style={{ borderBottom: `1px solid ${BORDER}` }}>
+              <div className="min-w-0">
+                <p className="text-sm font-bold" style={{ color: "var(--text)" }}>{format(slot.checkDate, "EEE, MMM d")}</p>
+                <p className="text-xs mt-0.5" style={{ color: MUTED }}>
+                  {focus
+                    ? `${focus.emoji} ${focus.name} · ${fmt$(focus.cost)}`
+                    : slot.dueBills.length > 0
+                    ? `${slot.dueBills.length} bill${slot.dueBills.length > 1 ? "s" : ""} due · ${fmt$(slot.billsTotal)}`
+                    : "No self-care scheduled"}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                <div className="text-right">
+                  <p className="text-sm font-bold" style={{ color: sc }}>{fmt$(Math.max(0, freeAft))}</p>
+                  <p className="text-xs" style={{ color: MUTED }}>free</p>
+                </div>
+                <ChevronDown size={13} style={{ color: MUTED, transform: isExp ? "rotate(180deg)" : "none", transition: "transform 0.15s" }} />
+              </div>
+            </button>
+            {isExp && (
+              <div className="px-4 py-3 space-y-2" style={{ background: "rgba(124,92,252,0.02)", borderBottom: `1px solid ${BORDER}` }}>
+                <div className="flex justify-between text-sm">
+                  <span style={{ color: MUTED }}>Paycheck</span>
+                  <span className="font-semibold" style={{ color: "var(--text)" }}>{fmt$(effectiveTakeHome)}</span>
+                </div>
+                {slot.savings > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span style={{ color: MUTED }}>Savings ({pc.savingsPercent}%)</span>
+                    <span className="font-semibold" style={{ color: "#10B981" }}>−{fmt$(slot.savings)}</span>
+                  </div>
+                )}
+                {budgetLines.map(l => (
+                  <div key={l.id} className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-1.5">
+                      <CatChip cat={l.category} />
+                      <span style={{ color: "var(--text)" }}>{l.label}</span>
+                    </div>
+                    <span className="font-semibold" style={{ color: AMBER }}>−{fmt$(l.amountPerCheck)}</span>
+                  </div>
+                ))}
+                {slot.billsTotal > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span style={{ color: MUTED }}>Bills ({slot.dueBills.map(b => b.name).join(", ")})</span>
+                    <span className="font-semibold" style={{ color: AMBER }}>−{fmt$(slot.billsTotal)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-sm pt-1.5" style={{ borderTop: `1px solid ${BORDER}` }}>
+                  <span className="font-semibold" style={{ color: "var(--text)" }}>Available</span>
+                  <span className="font-bold" style={{ color: "var(--text)" }}>{fmt$(slot.free)}</span>
+                </div>
+                {focus && (
+                  <div className="flex justify-between text-sm">
+                    <span style={{ color: slot.canAfford ? "#10B981" : RED }}>{focus.emoji} {focus.name}</span>
+                    <span className="font-semibold" style={{ color: slot.canAfford ? "#10B981" : RED }}>−{fmt$(focus.cost)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-sm pt-1.5" style={{ borderTop: `1px solid ${BORDER}` }}>
+                  <span className="font-semibold" style={{ color: "var(--text)" }}>Yours after</span>
+                  <span className="text-base font-bold" style={{ color: sc }}>{fmt$(Math.max(0, freeAft))}</span>
+                </div>
+              </div>
             )}
           </div>
-        </div>
+        );
+      })}
+      {!showAll && yearPlan.length > 8 && (
+        <button onClick={() => setShowAll(true)} className="w-full py-3 text-xs text-center" style={{ color: MUTED }}>
+          Show all {yearPlan.length} checks ▼
+        </button>
+      )}
+      {showAll && (
+        <button onClick={() => setShowAll(false)} className="w-full py-3 text-xs text-center" style={{ color: MUTED }}>
+          Show less ▲
+        </button>
       )}
     </div>
   );
@@ -1006,12 +981,12 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
         showToast={showToast}
       />
 
-      {/* ── YEAR CALENDAR ── */}
+      {/* ── UPCOMING CHECKS ── */}
       <div>
-        <p className="text-xs font-semibold mb-3" style={{ color: MUTED, letterSpacing: "0.08em" }}>YEAR CALENDAR</p>
-        <div className="rounded-2xl p-4" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
-          <YearCalendar yearPlan={yearPlan} effectiveTakeHome={effectiveTakeHome} budgetLines={budgetLines} pc={pc} />
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs font-semibold" style={{ color: MUTED, letterSpacing: "0.08em" }}>UPCOMING CHECKS</p>
         </div>
+        <UpcomingChecksCard yearPlan={yearPlan} effectiveTakeHome={effectiveTakeHome} budgetLines={budgetLines} pc={pc} />
       </div>
 
       {/* ── AI CHAT ── */}
