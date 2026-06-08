@@ -995,6 +995,17 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
         showToast={showToast}
       />
 
+      {/* ── SAVINGS CALIBRATION ── */}
+      <SavingsCalibrationCard
+        yearPlan={yearPlan}
+        paycheckPlans={paycheckPlans}
+        onUpdatePaycheckPlans={onUpdatePaycheckPlans}
+        effectiveTakeHome={effectiveTakeHome}
+        pc={pc}
+        budgetLines={budgetLines}
+        showToast={showToast}
+      />
+
       {/* ── YEAR CALENDAR ── */}
       <div>
         <p className="text-xs font-semibold mb-3" style={{ color: MUTED, letterSpacing: "0.08em" }}>YEAR CALENDAR</p>
@@ -1940,6 +1951,96 @@ function AIAdvisorCard({ pc, currentSlot, yearChecksRemaining, totalYearTreatmen
       )}
       <div className="flex justify-end mt-3">
         <p className="text-xs" style={{ color: "var(--text-light)" }}>powered by Claude</p>
+      </div>
+    </div>
+  );
+}
+
+// ── Savings Calibration Card ──────────────────────────────────────────────────
+function SavingsCalibrationCard({ yearPlan, paycheckPlans, onUpdatePaycheckPlans, effectiveTakeHome, pc, budgetLines, showToast }: {
+  yearPlan: CheckSlot[]; paycheckPlans: Record<string, PaycheckPlanData>;
+  onUpdatePaycheckPlans: (p: Record<string, PaycheckPlanData>) => void;
+  effectiveTakeHome: number; pc: PaycheckConfig; budgetLines: BudgetLine[];
+  showToast: (m: string) => void;
+}) {
+  const [showAll, setShowAll] = useState(false);
+  const MIN_BUFFER = 100;
+
+  const warnings = yearPlan.slice(0, 26).flatMap(slot => {
+    const key = format(slot.checkDate, "yyyy-MM-dd");
+    const plan = paycheckPlans[key] ?? { overrides: {}, oneTimeItems: [] };
+    if (plan.savingsOverride !== undefined) return []; // already handled
+    const income       = plan.incomeOverride ?? effectiveTakeHome;
+    const savings      = Math.round(income * pc.savingsPercent / 100);
+    const budget       = budgetLines.reduce((s, l) => s + (plan.overrides[l.id] ?? l.amountPerCheck), 0);
+    const oneTime      = plan.oneTimeItems.reduce((s, o) => s + o.amount, 0);
+    const focusCost    = slot.focusItem?.cost ?? 0;
+    const effectiveFree = income - savings - budget - slot.billsTotal - oneTime - focusCost;
+    if (effectiveFree >= MIN_BUFFER) return [];
+    const suggestedSavings = Math.max(0, income - budget - slot.billsTotal - oneTime - focusCost - MIN_BUFFER);
+    return [{ slot, key, effectiveFree, savings, suggestedSavings, isNeg: effectiveFree < 0 }];
+  });
+
+  const visible = showAll ? warnings : warnings.slice(0, 3);
+
+  if (warnings.length === 0) return (
+    <div className="rounded-2xl px-4 py-3 flex items-center gap-3" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+      <span className="text-lg">✓</span>
+      <div>
+        <p className="text-sm font-semibold" style={{ color: "#10B981" }}>Savings plan is solid</p>
+        <p className="text-xs mt-0.5" style={{ color: MUTED }}>All upcoming checks are feasible at your current savings rate</p>
+      </div>
+    </div>
+  );
+
+  const negCount = warnings.filter(w => w.isNeg).length;
+
+  return (
+    <div>
+      <p className="text-xs font-semibold mb-3" style={{ color: MUTED, letterSpacing: "0.08em" }}>SAVINGS CALIBRATION</p>
+      <div className="rounded-2xl overflow-hidden" style={{ background: CARD, border: `1px solid rgba(245,158,11,0.3)` }}>
+        <div className="px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}`, background: "rgba(245,158,11,0.04)" }}>
+          <p className="text-sm font-semibold" style={{ color: AMBER }}>
+            {negCount > 0 ? "⚠️" : "🔔"} {warnings.length} check{warnings.length !== 1 ? "s" : ""} need a savings adjustment
+          </p>
+          <p className="text-xs mt-0.5" style={{ color: MUTED }}>
+            At your current savings rate, these dates get tight. Tap Fix to reduce savings just for that check.
+          </p>
+        </div>
+        {visible.map(({ slot, key, effectiveFree, savings, suggestedSavings, isNeg }) => {
+          const skipped = savings - suggestedSavings;
+          return (
+            <div key={key} className="px-4 py-3.5 flex items-start justify-between gap-3" style={{ borderBottom: `1px solid ${BORDER}` }}>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold" style={{ color: isNeg ? RED : AMBER }}>
+                  {fmtDate(slot.checkDate)}
+                  {slot.focusItem ? ` · ${slot.focusItem.name}` : " · bills heavy"}
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: MUTED }}>
+                  {isNeg
+                    ? `Short by ${fmt$(Math.abs(effectiveFree))} — `
+                    : `Only ${fmt$(effectiveFree)} breathing room — `}
+                  save {fmt$(suggestedSavings)} instead{skipped > 0 ? ` (hold back ${fmt$(skipped)})` : ""}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  const existing = paycheckPlans[key] ?? { overrides: {}, oneTimeItems: [] };
+                  onUpdatePaycheckPlans({ ...paycheckPlans, [key]: { ...existing, savingsOverride: suggestedSavings } });
+                  showToast(`Savings adjusted for ${fmtDate(slot.checkDate)}`);
+                }}
+                className="text-xs px-3 py-1.5 rounded-lg font-semibold flex-shrink-0 mt-0.5"
+                style={{ background: "rgba(245,158,11,0.12)", color: AMBER, border: "1px solid rgba(245,158,11,0.25)" }}>
+                Fix it
+              </button>
+            </div>
+          );
+        })}
+        {warnings.length > 3 && (
+          <button onClick={() => setShowAll(!showAll)} className="w-full px-4 py-3 text-xs text-center" style={{ color: MUTED }}>
+            {showAll ? "Show less ▲" : `Show ${warnings.length - 3} more ▼`}
+          </button>
+        )}
       </div>
     </div>
   );
