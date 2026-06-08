@@ -105,6 +105,16 @@ function getCategoryEmoji(cat: BudgetLine["category"]) {
   };
   return map[cat] ?? "📌";
 }
+function autoDetectCategory(label: string): BudgetLine["category"] {
+  const l = label.toLowerCase();
+  if (/rent|mortgage|hoa/.test(l)) return "housing";
+  if (/car\s*(note|payment|loan)|auto|vehicle|gas|fuel|uber|lyft|transit|bus|train|parking|toll/.test(l)) return "transport";
+  if (/grocer|grocery|food|walmart|target|costco|trader\s*joe|whole\s*food|aldi|kroger|safeway|instacart/.test(l)) return "food";
+  if (/phone|internet|cable|electric|water|utility|utilities|ymca|gym|fitness/.test(l)) return "utilities";
+  if (/saving|emergency fund|invest|401k|roth|ira|sinking fund/.test(l)) return "savings";
+  if (/transfer|bofa|chase|wells\s*fargo|citi|deposit/.test(l)) return "transfer";
+  return "other";
+}
 
 function dueBillsInPeriod(bills: RecurringBill[], payday: Date): RecurringBill[] {
   const end = addDays(payday, 13);
@@ -915,6 +925,12 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
   const focus        = current.focusItem;
   const pushed       = current.pushedItem;
   const isPaid       = (b: RecurringBill) => !!(b.lastPaidDate && b.lastPaidDate >= paydayStr);
+  const thisPlan       = paycheckPlans[paydayStr] ?? { overrides: {}, oneTimeItems: [] };
+  const planIncome     = thisPlan.incomeOverride ?? effectiveTakeHome;
+  const planSavings    = thisPlan.savingsOverride !== undefined ? thisPlan.savingsOverride : Math.round(planIncome * pc.savingsPercent / 100);
+  const planLines      = budgetLines.map(l => ({ ...l, amountPerCheck: thisPlan.overrides[l.id] ?? l.amountPerCheck }));
+  const planBudgetTot  = planLines.reduce((s, l) => s + l.amountPerCheck, 0);
+  const planFree       = planIncome - planSavings - planBudgetTot - current.billsTotal;
   const prioritySlots = yearPlan.slice(1).filter(s => s.focusItem || s.pushedItem);
   const byMonth: { month: string; slots: { slot: CheckSlot; idx: number }[] }[] = [];
   for (let i = 0; i < prioritySlots.length; i++) {
@@ -1019,22 +1035,25 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
                 style={{ background: "rgba(124,92,252,0.12)", color: LIME, border: `1px solid rgba(124,92,252,0.3)` }}>Done ✓</button>
             </div>
             <div className="space-y-2 pt-4" style={{ borderTop: `1px solid ${BORDER}` }}>
-              {[
-                { label: "💵 Paycheck",  amount: effectiveTakeHome, color: "var(--text)" },
-                { label: "💰 Savings",   amount: current.savings,   color: "#9B7FFF" },
-                ...budgetLines.map(l => ({ label: `${getCategoryEmoji(l.category)} ${l.label}`, amount: l.amountPerCheck, color: AMBER })),
-                { label: "🧾 Bills",     amount: current.billsTotal, color: AMBER },
-                { label: `${focus.emoji} ${focus.name}`, amount: focus.cost, color: current.canAfford ? LIME : RED },
-              ].filter(r => r.amount > 0).map(r => (
-                <div key={r.label} className="flex justify-between text-sm">
-                  <span style={{ color: MUTED }}>{r.label}</span>
-                  <span className="font-semibold" style={{ color: r.color }}>{r.label === "💵 Paycheck" ? fmt$(r.amount) : `−${fmt$(r.amount)}`}</span>
+              {([
+                { label: "Paycheck",  amount: planIncome,    color: "var(--text)", isIncome: true },
+                { label: "Savings",   amount: planSavings,   color: "#9B7FFF",     isIncome: false, cat: "savings" as BudgetLine["category"] },
+                ...planLines.map(l => ({ label: l.label, amount: l.amountPerCheck, color: AMBER, isIncome: false, cat: l.category })),
+                { label: "Bills",     amount: current.billsTotal, color: AMBER,    isIncome: false, cat: undefined },
+                { label: focus.name,  amount: focus.cost,    color: current.canAfford ? LIME : RED, isIncome: false, cat: undefined },
+              ] as { label: string; amount: number; color: string; isIncome: boolean; cat?: BudgetLine["category"] }[]).filter(r => r.amount > 0).map(r => (
+                <div key={r.label} className="flex justify-between text-sm items-center gap-2">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    {r.cat && <CatChip cat={r.cat} />}
+                    <span className="truncate" style={{ color: "var(--text)" }}>{r.label}</span>
+                  </div>
+                  <span className="font-semibold flex-shrink-0" style={{ color: r.color }}>{r.isIncome ? fmt$(r.amount) : `−${fmt$(r.amount)}`}</span>
                 </div>
               ))}
               <div className="flex justify-between items-center pt-2" style={{ borderTop: `1px solid ${BORDER}` }}>
                 <span className="text-sm" style={{ color: MUTED }}>Yours after</span>
-                <span className="text-2xl font-bold" style={{ color: current.free - focus.cost >= 0 ? LIME : RED }}>
-                  {fmt$(Math.max(0, current.free - focus.cost))}
+                <span className="text-2xl font-bold" style={{ color: planFree - focus.cost >= 0 ? LIME : RED }}>
+                  {fmt$(Math.max(0, planFree - focus.cost))}
                 </span>
               </div>
             </div>
@@ -1243,7 +1262,10 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
               <p className="text-xs font-semibold" style={{ color: MUTED, letterSpacing: "0.08em" }}>PAYCHECK BREAKDOWN</p>
               <p className="text-xs mt-0.5" style={{ color: "var(--text-light)" }}>Where your check goes each pay period</p>
             </div>
-            <button onClick={() => setShowBudgetForm(!showBudgetForm)} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg" style={{ background: "rgba(200,255,0,0.1)", color: LIME, border: `1px solid rgba(200,255,0,0.2)` }}><Plus size={12} /> Add</button>
+            <div className="flex items-center gap-2">
+              <button onClick={() => onUpdateBudgetLines(budgetLines.map(l => ({ ...l, category: autoDetectCategory(l.label) })))} className="text-xs px-2 py-1.5 rounded-lg" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Auto-fix</button>
+              <button onClick={() => setShowBudgetForm(!showBudgetForm)} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg" style={{ background: "rgba(200,255,0,0.1)", color: LIME, border: `1px solid rgba(200,255,0,0.2)` }}><Plus size={12} /> Add</button>
+            </div>
           </div>
           {(insights?.paycheckSplits ?? []).filter(s => !budgetLines.some(l => l.isDetected && l.toAccount === s.toAccount)).length > 0 && (
             <div className="rounded-2xl px-4 py-3 mb-3" style={{ background: "rgba(200,255,0,0.04)", border: `1px solid rgba(200,255,0,0.15)` }}>
@@ -1287,7 +1309,7 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
           {showBudgetForm && (
             <div className="rounded-2xl p-4 mt-2" style={{ background: CARD, border: `1px solid rgba(200,255,0,0.2)` }}>
               <div className="space-y-2 mb-3">
-                <input value={budgetLabel} onChange={e => setBudgetLabel(e.target.value)} placeholder="Label (e.g. Rent, BofA Transfer)" className="w-full rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+                <input value={budgetLabel} onChange={e => { setBudgetLabel(e.target.value); setBudgetCat(autoDetectCategory(e.target.value)); }} placeholder="Label (e.g. Rent, BofA Transfer)" className="w-full rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
                 <div className="grid grid-cols-2 gap-2">
                   <input type="number" value={budgetAmt} onChange={e => setBudgetAmt(e.target.value)} placeholder="Per check ($)" className="rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
                   <select value={budgetCat} onChange={e => setBudgetCat(e.target.value as BudgetLine["category"])} className="rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }}>
@@ -2075,7 +2097,7 @@ function PaycheckPlanCard({ paydayStr, budgetLines, effectiveTakeHome, pc, paych
           </button>
           {showForm && (
             <div className="mt-2 space-y-2">
-              <input value={oneLabel} onChange={e => setOneLabel(e.target.value)} placeholder="Label (e.g. Car repair, Birthday gift)" className="w-full rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+              <input value={oneLabel} onChange={e => { setOneLabel(e.target.value); setOneCat(autoDetectCategory(e.target.value)); }} placeholder="Label (e.g. Car repair, Birthday gift)" className="w-full rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
               <div className="grid grid-cols-2 gap-2">
                 <input type="number" value={oneAmt} onChange={e => setOneAmt(e.target.value)} placeholder="Amount ($)" className="rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
                 <select value={oneCat} onChange={e => setOneCat(e.target.value as BudgetLine["category"])} className="rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }}>
