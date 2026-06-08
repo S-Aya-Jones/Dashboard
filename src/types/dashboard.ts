@@ -615,7 +615,7 @@ export interface DashboardData {
   budgetCategories: BudgetCategory[];
   financesConfig: FinancesConfig;
   paycheckConfig?: PaycheckConfig;
-  paycheckPlans?: Record<string, { overrides: Record<string, number>; savingsOverride?: number; incomeOverride?: number; oneTimeItems: { id: string; label: string; amount: number; category: string }[] }>;
+  paycheckPlans?: Record<string, { overrides: Record<string, number>; savingsOverride?: number; incomeOverride?: number; oneTimeItems: { id: string; label: string; amount: number; category: string }[]; checkIns?: Record<string, { checkedAt: string; actualAmount?: number }> }>;
   selfCareItems?: SelfCareItem[];
   recurringBills?: RecurringBill[];
   budgetLines?: BudgetLine[];

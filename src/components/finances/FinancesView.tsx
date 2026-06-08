@@ -47,7 +47,7 @@ interface SavingsAlert {
   savePerCheck: number;
   checksUntil: number;
 }
-type PaycheckPlanData = { overrides: Record<string, number>; savingsOverride?: number; incomeOverride?: number; oneTimeItems: { id: string; label: string; amount: number; category: string }[] };
+type PaycheckPlanData = { overrides: Record<string, number>; savingsOverride?: number; incomeOverride?: number; oneTimeItems: { id: string; label: string; amount: number; category: string }[]; checkIns?: Record<string, { checkedAt: string; actualAmount?: number }> };
 interface PlaidAccount {
   accountId: string; name: string; mask?: string | null; type: string; subtype?: string | null;
   balances: { current?: number | null; available?: number | null; limit?: number | null };
@@ -2059,22 +2059,34 @@ function CatChip({ cat }: { cat: BudgetLine["category"] }) {
   );
 }
 
+function CheckCircle({ checked, onToggle }: { checked: boolean; onToggle: () => void }) {
+  return (
+    <button onClick={onToggle} className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center transition-all"
+      style={{ background: checked ? "#10B981" : "transparent", border: `2px solid ${checked ? "#10B981" : "rgba(124,92,252,0.25)"}` }}>
+      {checked && <Check size={12} color="#fff" strokeWidth={3} />}
+    </button>
+  );
+}
+
 function PaycheckPlanCard({ paydayStr, budgetLines, effectiveTakeHome, pc, paycheckPlans, onUpdatePaycheckPlans, showToast }: {
   paydayStr: string; budgetLines: BudgetLine[]; effectiveTakeHome: number; pc: PaycheckConfig;
   paycheckPlans: Record<string, PaycheckPlanData>; onUpdatePaycheckPlans: (p: Record<string, PaycheckPlanData>) => void;
   showToast: (m: string) => void;
 }) {
   const plan = paycheckPlans[paydayStr] ?? { overrides: {}, oneTimeItems: [] };
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editVal,   setEditVal]   = useState("");
-  const [editSav,   setEditSav]   = useState(false);
-  const [savVal,    setSavVal]    = useState("");
-  const [editInc,   setEditInc]   = useState(false);
-  const [incVal,    setIncVal]    = useState("");
-  const [showForm,  setShowForm]  = useState(false);
-  const [oneLabel,  setOneLabel]  = useState("");
-  const [oneAmt,    setOneAmt]    = useState("");
-  const [oneCat,    setOneCat]    = useState<BudgetLine["category"]>("other");
+  const checkIns = plan.checkIns ?? {};
+  const [editingId,    setEditingId]    = useState<string | null>(null);
+  const [editVal,      setEditVal]      = useState("");
+  const [editSav,      setEditSav]      = useState(false);
+  const [savVal,       setSavVal]       = useState("");
+  const [editInc,      setEditInc]      = useState(false);
+  const [incVal,       setIncVal]       = useState("");
+  const [showForm,     setShowForm]     = useState(false);
+  const [oneLabel,     setOneLabel]     = useState("");
+  const [oneAmt,       setOneAmt]       = useState("");
+  const [oneCat,       setOneCat]       = useState<BudgetLine["category"]>("other");
+  const [actualEditId, setActualEditId] = useState<string | null>(null);
+  const [actualVal,    setActualVal]    = useState("");
 
   const savePlan      = (next: PaycheckPlanData) => onUpdatePaycheckPlans({ ...paycheckPlans, [paydayStr]: next });
   const setOverride   = (lineId: string, amount: number) => savePlan({ ...plan, overrides: { ...plan.overrides, [lineId]: amount } });
@@ -2084,21 +2096,48 @@ function PaycheckPlanCard({ paydayStr, budgetLines, effectiveTakeHome, pc, paych
     savePlan({ ...plan, oneTimeItems: [...plan.oneTimeItems, { id: id(), label: oneLabel, amount: parseFloat(oneAmt), category: oneCat }] });
     setOneLabel(""); setOneAmt(""); setShowForm(false); showToast("Added!");
   };
-  const removeOneTime = (oid: string) => savePlan({ ...plan, oneTimeItems: plan.oneTimeItems.filter(o => o.id !== oid) });
+  const removeOneTime  = (oid: string) => savePlan({ ...plan, oneTimeItems: plan.oneTimeItems.filter(o => o.id !== oid) });
+
+  const toggleCheckIn = (itemId: string, budgetedAmt: number) => {
+    const next = { ...checkIns };
+    if (next[itemId]) { delete next[itemId]; }
+    else { next[itemId] = { checkedAt: new Date().toISOString(), actualAmount: budgetedAmt }; }
+    savePlan({ ...plan, checkIns: next });
+  };
+  const saveActual = (itemId: string, amount: number) => {
+    savePlan({ ...plan, checkIns: { ...checkIns, [itemId]: { ...(checkIns[itemId] ?? { checkedAt: new Date().toISOString() }), actualAmount: amount } } });
+    setActualEditId(null);
+  };
 
   const income       = plan.incomeOverride ?? effectiveTakeHome;
   const savingsDed   = plan.savingsOverride !== undefined ? plan.savingsOverride : Math.round(income * pc.savingsPercent / 100);
   const totalBudget  = budgetLines.reduce((s, l) => s + (plan.overrides[l.id] ?? l.amountPerCheck), 0);
   const totalOneTime = plan.oneTimeItems.reduce((s, o) => s + o.amount, 0);
   const remaining    = income - savingsDed - totalBudget - totalOneTime;
+
+  const totalItems   = budgetLines.length + plan.oneTimeItems.length + (pc.savingsPercent > 0 ? 1 : 0);
+  const checkedCount = Object.keys(checkIns).length;
+
   const tx = { color: "var(--text)" } as const;
   const mx = { color: MUTED } as const;
 
   return (
     <div className="mb-5">
-      <div className="mb-3">
-        <p className="text-xs font-semibold" style={{ color: MUTED, letterSpacing: "0.08em" }}>THIS PAYCHECK</p>
-        <p className="text-xs mt-0.5" style={mx}>{fmtDate(parseISO(paydayStr))} · tap Edit on any line to adjust for this check only</p>
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <p className="text-xs font-semibold" style={{ color: MUTED, letterSpacing: "0.08em" }}>THIS PAYCHECK</p>
+          <p className="text-xs mt-0.5" style={mx}>{fmtDate(parseISO(paydayStr))} · tap circle to check in when paid</p>
+        </div>
+        {totalItems > 0 && (
+          <div className="flex items-center gap-1.5">
+            <div className="h-1.5 w-20 rounded-full overflow-hidden" style={{ background: "rgba(124,92,252,0.12)" }}>
+              <div className="h-full rounded-full transition-all" style={{ width: `${Math.round(checkedCount / totalItems * 100)}%`, background: "#10B981" }} />
+            </div>
+            <p className="text-xs font-semibold" style={{ color: checkedCount === totalItems ? "#10B981" : MUTED }}>
+              {checkedCount}/{totalItems}
+            </p>
+          </div>
+        )}
       </div>
       <div className="rounded-2xl overflow-hidden" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
 
@@ -2123,19 +2162,24 @@ function PaycheckPlanCard({ paydayStr, budgetLines, effectiveTakeHome, pc, paych
 
         {/* Savings */}
         {pc.savingsPercent > 0 && (
-          <div className="px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}` }}>
+          <div className="px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}`, opacity: checkIns["__savings__"] ? 0.6 : 1 }}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
+                <CheckCircle checked={!!checkIns["__savings__"]} onToggle={() => toggleCheckIn("__savings__", savingsDed)} />
                 <CatChip cat="savings" />
                 <p className="text-sm" style={tx}>Savings ({pc.savingsPercent}%)</p>
                 {plan.savingsOverride !== undefined && <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ background: "rgba(245,158,11,0.15)", color: AMBER }}>edited</span>}
               </div>
               <div className="flex items-center gap-2">
-                <p className="text-sm font-semibold" style={{ color: "#10B981" }}>−{fmt$(savingsDed)}</p>
+                {checkIns["__savings__"] ? (
+                  <span className="text-xs font-semibold" style={{ color: "#10B981" }}>Transferred ✓</span>
+                ) : (
+                  <p className="text-sm font-semibold" style={{ color: "#10B981" }}>−{fmt$(savingsDed)}</p>
+                )}
                 <button onClick={() => { setEditSav(!editSav); setSavVal(String(savingsDed)); }} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Edit</button>
               </div>
             </div>
-            {plan.savingsOverride !== undefined && !editSav && <p className="text-xs mt-1" style={mx}>Standard: {fmt$(Math.round(income * pc.savingsPercent / 100))}</p>}
+            {plan.savingsOverride !== undefined && !editSav && <p className="text-xs mt-1 ml-8" style={mx}>Standard: {fmt$(Math.round(income * pc.savingsPercent / 100))}</p>}
             {editSav && (
               <div className="mt-2 flex gap-2">
                 <input type="number" value={savVal} onChange={e => setSavVal(e.target.value)} className="flex-1 rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} placeholder="Savings this check ($)" />
@@ -2148,48 +2192,79 @@ function PaycheckPlanCard({ paydayStr, budgetLines, effectiveTakeHome, pc, paych
 
         {/* Budget lines */}
         {budgetLines.map(line => {
-          const isEditing   = editingId === line.id;
-          const hasOverride = plan.overrides[line.id] !== undefined;
-          const displayAmt  = hasOverride ? plan.overrides[line.id] : line.amountPerCheck;
+          const isEditing    = editingId === line.id;
+          const hasOverride  = plan.overrides[line.id] !== undefined;
+          const displayAmt   = hasOverride ? plan.overrides[line.id] : line.amountPerCheck;
+          const ci           = checkIns[line.id];
+          const isChecked    = !!ci;
+          const actualDiffers = ci && ci.actualAmount !== undefined && ci.actualAmount !== displayAmt;
+          const isActualEdit = actualEditId === line.id;
           return (
-            <div key={line.id} className="px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}` }}>
+            <div key={line.id} className="px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}`, opacity: isChecked ? 0.65 : 1 }}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 min-w-0">
+                  <CheckCircle checked={isChecked} onToggle={() => toggleCheckIn(line.id, displayAmt)} />
                   <CatChip cat={line.category} />
                   <p className="text-sm truncate" style={tx}>{line.label}</p>
-                  {hasOverride && <span className="text-xs px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: "rgba(245,158,11,0.15)", color: AMBER }}>edited</span>}
+                  {hasOverride && !isChecked && <span className="text-xs px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: "rgba(245,158,11,0.15)", color: AMBER }}>edited</span>}
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  <p className="text-sm font-semibold" style={{ color: RED }}>−{fmt$(displayAmt)}</p>
-                  <button onClick={() => { setEditingId(isEditing ? null : line.id); setEditVal(String(displayAmt)); }} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Edit</button>
+                  {isChecked ? (
+                    <button onClick={() => { setActualEditId(isActualEdit ? null : line.id); setActualVal(String(ci.actualAmount ?? displayAmt)); }}
+                      className="text-xs font-semibold" style={{ color: "#10B981" }}>
+                      Paid {fmt$(ci.actualAmount ?? displayAmt)} {actualDiffers ? `(budget ${fmt$(displayAmt)})` : "✓"}
+                    </button>
+                  ) : (
+                    <>
+                      <p className="text-sm font-semibold" style={{ color: RED }}>−{fmt$(displayAmt)}</p>
+                      <button onClick={() => { setEditingId(isEditing ? null : line.id); setEditVal(String(displayAmt)); }} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Edit</button>
+                    </>
+                  )}
                 </div>
               </div>
-              {isEditing && (
-                <div className="mt-2 flex gap-2">
+              {isActualEdit && (
+                <div className="mt-2 flex gap-2 ml-8">
+                  <input type="number" value={actualVal} onChange={e => setActualVal(e.target.value)} className="flex-1 rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} placeholder="Actual amount paid" />
+                  <button onClick={() => saveActual(line.id, parseFloat(actualVal) || displayAmt)} className="px-3 py-2 rounded-xl text-sm font-semibold" style={{ background: "#10B981", color: "#fff" }}>Save</button>
+                </div>
+              )}
+              {isEditing && !isChecked && (
+                <div className="mt-2 flex gap-2 ml-8">
                   <input type="number" value={editVal} onChange={e => setEditVal(e.target.value)} className="flex-1 rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} placeholder="This paycheck amount" />
                   <button onClick={() => { setOverride(line.id, parseFloat(editVal) || 0); setEditingId(null); showToast("Updated!"); }} className="px-3 py-2 rounded-xl text-sm font-semibold" style={{ background: LIME, color: "#fff" }}>Save</button>
                   {hasOverride && <button onClick={() => { clearOverride(line.id); setEditingId(null); showToast("Reset to standard"); }} className="px-3 py-2 rounded-xl text-sm" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Reset</button>}
                 </div>
               )}
-              {hasOverride && !isEditing && <p className="text-xs mt-1" style={mx}>Standard: {fmt$(line.amountPerCheck)}</p>}
+              {hasOverride && !isEditing && !isChecked && <p className="text-xs mt-1 ml-8" style={mx}>Standard: {fmt$(line.amountPerCheck)}</p>}
             </div>
           );
         })}
 
         {/* One-time items */}
-        {plan.oneTimeItems.map(o => (
-          <div key={o.id} className="flex items-center justify-between px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}` }}>
-            <div className="flex items-center gap-2 min-w-0">
-              <CatChip cat={o.category as BudgetLine["category"]} />
-              <p className="text-sm truncate" style={tx}>{o.label}</p>
-              <span className="text-xs px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: "rgba(232,121,249,0.15)", color: "#E879F9" }}>once</span>
+        {plan.oneTimeItems.map(o => {
+          const ci        = checkIns[o.id];
+          const isChecked = !!ci;
+          return (
+            <div key={o.id} className="px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}`, opacity: isChecked ? 0.65 : 1 }}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                  <CheckCircle checked={isChecked} onToggle={() => toggleCheckIn(o.id, o.amount)} />
+                  <CatChip cat={o.category as BudgetLine["category"]} />
+                  <p className="text-sm truncate" style={tx}>{o.label}</p>
+                  <span className="text-xs px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: "rgba(232,121,249,0.15)", color: "#E879F9" }}>once</span>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {isChecked ? (
+                    <span className="text-xs font-semibold" style={{ color: "#10B981" }}>Paid {fmt$(ci.actualAmount ?? o.amount)} ✓</span>
+                  ) : (
+                    <p className="text-sm font-semibold" style={{ color: RED }}>−{fmt$(o.amount)}</p>
+                  )}
+                  {!isChecked && <button onClick={() => removeOneTime(o.id)}><Trash2 size={11} style={{ color: MUTED }} /></button>}
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <p className="text-sm font-semibold" style={{ color: RED }}>−{fmt$(o.amount)}</p>
-              <button onClick={() => removeOneTime(o.id)}><Trash2 size={11} style={{ color: MUTED }} /></button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
 
         {/* Add one-time */}
         <div className="px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}` }}>
