@@ -484,6 +484,7 @@ export interface MCATQuestion {
   correctLetter: string;
   explanation: string;
   createdAt: string;
+  folder?: string;
 }
 
 export interface MCATQuizAttempt {
