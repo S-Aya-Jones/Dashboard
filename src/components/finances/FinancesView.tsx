@@ -47,7 +47,7 @@ interface SavingsAlert {
   savePerCheck: number;
   checksUntil: number;
 }
-type PaycheckPlanData = { overrides: Record<string, number>; oneTimeItems: { id: string; label: string; amount: number; category: string }[] };
+type PaycheckPlanData = { overrides: Record<string, number>; savingsOverride?: number; incomeOverride?: number; oneTimeItems: { id: string; label: string; amount: number; category: string }[] };
 interface PlaidAccount {
   accountId: string; name: string; mask?: string | null; type: string; subtype?: string | null;
   balances: { current?: number | null; available?: number | null; limit?: number | null };
@@ -968,6 +968,17 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
 
   return (
     <div className="space-y-5">
+      {/* ── THIS PAYCHECK PLAN ── */}
+      <PaycheckPlanCard
+        paydayStr={paydayStr}
+        budgetLines={budgetLines}
+        effectiveTakeHome={effectiveTakeHome}
+        pc={pc}
+        paycheckPlans={paycheckPlans}
+        onUpdatePaycheckPlans={onUpdatePaycheckPlans}
+        showToast={showToast}
+      />
+
       {/* ── YEAR CALENDAR ── */}
       <div>
         <p className="text-xs font-semibold mb-3" style={{ color: MUTED, letterSpacing: "0.08em" }}>YEAR CALENDAR</p>
@@ -1289,17 +1300,6 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
             </div>
           )}
         </div>
-
-        {/* Paycheck Plan */}
-        <PaycheckPlanCard
-          paydayStr={paydayStr}
-          budgetLines={budgetLines}
-          effectiveTakeHome={effectiveTakeHome}
-          pc={pc}
-          paycheckPlans={paycheckPlans}
-          onUpdatePaycheckPlans={onUpdatePaycheckPlans}
-          showToast={showToast}
-        />
 
         {/* Self-care rotation */}
         <div className="mb-5">
@@ -1924,6 +1924,18 @@ function AIAdvisorCard({ pc, currentSlot, yearChecksRemaining, totalYearTreatmen
 }
 
 // ── Paycheck Plan Card ────────────────────────────────────────────────────────
+const CAT_COLORS: Record<BudgetLine["category"], string> = {
+  housing: "#7C5CFC", transfer: "#6366F1", food: "#10B981",
+  transport: "#FB923C", utilities: "#F59E0B", savings: "#10B981", other: "#7C6FAE",
+};
+function CatChip({ cat }: { cat: BudgetLine["category"] }) {
+  const c = CAT_COLORS[cat] ?? "#7C6FAE";
+  return (
+    <span className="text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 capitalize"
+      style={{ background: `${c}22`, color: c }}>{cat}</span>
+  );
+}
+
 function PaycheckPlanCard({ paydayStr, budgetLines, effectiveTakeHome, pc, paycheckPlans, onUpdatePaycheckPlans, showToast }: {
   paydayStr: string; budgetLines: BudgetLine[]; effectiveTakeHome: number; pc: PaycheckConfig;
   paycheckPlans: Record<string, PaycheckPlanData>; onUpdatePaycheckPlans: (p: Record<string, PaycheckPlanData>) => void;
@@ -1932,54 +1944,96 @@ function PaycheckPlanCard({ paydayStr, budgetLines, effectiveTakeHome, pc, paych
   const plan = paycheckPlans[paydayStr] ?? { overrides: {}, oneTimeItems: [] };
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editVal,   setEditVal]   = useState("");
+  const [editSav,   setEditSav]   = useState(false);
+  const [savVal,    setSavVal]    = useState("");
+  const [editInc,   setEditInc]   = useState(false);
+  const [incVal,    setIncVal]    = useState("");
   const [showForm,  setShowForm]  = useState(false);
   const [oneLabel,  setOneLabel]  = useState("");
   const [oneAmt,    setOneAmt]    = useState("");
   const [oneCat,    setOneCat]    = useState<BudgetLine["category"]>("other");
 
-  const savePlan = (next: PaycheckPlanData) => onUpdatePaycheckPlans({ ...paycheckPlans, [paydayStr]: next });
-  const setOverride  = (lineId: string, amount: number) => savePlan({ ...plan, overrides: { ...plan.overrides, [lineId]: amount } });
+  const savePlan      = (next: PaycheckPlanData) => onUpdatePaycheckPlans({ ...paycheckPlans, [paydayStr]: next });
+  const setOverride   = (lineId: string, amount: number) => savePlan({ ...plan, overrides: { ...plan.overrides, [lineId]: amount } });
   const clearOverride = (lineId: string) => { const next = { ...plan.overrides }; delete next[lineId]; savePlan({ ...plan, overrides: next }); };
-  const addOneTime   = () => {
+  const addOneTime    = () => {
     if (!oneLabel || !oneAmt) return;
     savePlan({ ...plan, oneTimeItems: [...plan.oneTimeItems, { id: id(), label: oneLabel, amount: parseFloat(oneAmt), category: oneCat }] });
     setOneLabel(""); setOneAmt(""); setShowForm(false); showToast("Added!");
   };
   const removeOneTime = (oid: string) => savePlan({ ...plan, oneTimeItems: plan.oneTimeItems.filter(o => o.id !== oid) });
 
-  const savingsDed  = Math.round(effectiveTakeHome * pc.savingsPercent / 100);
-  const totalBudget = budgetLines.reduce((s, l) => s + (plan.overrides[l.id] ?? l.amountPerCheck), 0);
+  const income       = plan.incomeOverride ?? effectiveTakeHome;
+  const savingsDed   = plan.savingsOverride !== undefined ? plan.savingsOverride : Math.round(income * pc.savingsPercent / 100);
+  const totalBudget  = budgetLines.reduce((s, l) => s + (plan.overrides[l.id] ?? l.amountPerCheck), 0);
   const totalOneTime = plan.oneTimeItems.reduce((s, o) => s + o.amount, 0);
-  const remaining   = effectiveTakeHome - savingsDed - totalBudget - totalOneTime;
+  const remaining    = income - savingsDed - totalBudget - totalOneTime;
+  const tx = { color: "var(--text)" } as const;
+  const mx = { color: MUTED } as const;
 
   return (
     <div className="mb-5">
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <p className="text-xs font-semibold" style={{ color: MUTED, letterSpacing: "0.08em" }}>PAYCHECK PLAN</p>
-          <p className="text-xs mt-0.5" style={{ color: "var(--text-light)" }}>Override amounts just for {fmtDate(parseISO(paydayStr))}</p>
-        </div>
+      <div className="mb-3">
+        <p className="text-xs font-semibold" style={{ color: MUTED, letterSpacing: "0.08em" }}>THIS PAYCHECK</p>
+        <p className="text-xs mt-0.5" style={mx}>{fmtDate(parseISO(paydayStr))} · tap Edit on any line to adjust for this check only</p>
       </div>
       <div className="rounded-2xl overflow-hidden" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
-        <div className="flex items-center justify-between px-4 py-3.5" style={{ borderBottom: `1px solid ${BORDER}` }}>
-          <p className="text-sm font-semibold text-white">💵 {fmtDate(parseISO(paydayStr))}</p>
-          <p className="text-sm font-bold text-white">{fmt$(effectiveTakeHome)}</p>
+
+        {/* Income */}
+        <div className="px-4 py-3.5" style={{ borderBottom: `1px solid ${BORDER}` }}>
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold" style={tx}>Paycheck income</p>
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-bold" style={tx}>{fmt$(income)}</p>
+              <button onClick={() => { setEditInc(!editInc); setIncVal(String(income)); }} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Edit</button>
+            </div>
+          </div>
+          {plan.incomeOverride !== undefined && !editInc && <p className="text-xs mt-1" style={mx}>Standard: {fmt$(effectiveTakeHome)}</p>}
+          {editInc && (
+            <div className="mt-2 flex gap-2">
+              <input type="number" value={incVal} onChange={e => setIncVal(e.target.value)} className="flex-1 rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} placeholder="Take-home this check" />
+              <button onClick={() => { savePlan({ ...plan, incomeOverride: parseFloat(incVal) || undefined }); setEditInc(false); showToast("Updated!"); }} className="px-3 py-2 rounded-xl text-sm font-semibold" style={{ background: LIME, color: "#fff" }}>Save</button>
+              {plan.incomeOverride !== undefined && <button onClick={() => { savePlan({ ...plan, incomeOverride: undefined }); setEditInc(false); showToast("Reset"); }} className="px-3 py-2 rounded-xl text-sm" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Reset</button>}
+            </div>
+          )}
         </div>
+
+        {/* Savings */}
         {pc.savingsPercent > 0 && (
-          <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}` }}>
-            <p className="text-sm" style={{ color: "#9B7FFF" }}>💰 Savings ({pc.savingsPercent}%)</p>
-            <p className="text-sm font-semibold" style={{ color: "#9B7FFF" }}>−{fmt$(savingsDed)}</p>
+          <div className="px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}` }}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CatChip cat="savings" />
+                <p className="text-sm" style={tx}>Savings ({pc.savingsPercent}%)</p>
+                {plan.savingsOverride !== undefined && <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ background: "rgba(245,158,11,0.15)", color: AMBER }}>edited</span>}
+              </div>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-semibold" style={{ color: "#10B981" }}>−{fmt$(savingsDed)}</p>
+                <button onClick={() => { setEditSav(!editSav); setSavVal(String(savingsDed)); }} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Edit</button>
+              </div>
+            </div>
+            {plan.savingsOverride !== undefined && !editSav && <p className="text-xs mt-1" style={mx}>Standard: {fmt$(Math.round(income * pc.savingsPercent / 100))}</p>}
+            {editSav && (
+              <div className="mt-2 flex gap-2">
+                <input type="number" value={savVal} onChange={e => setSavVal(e.target.value)} className="flex-1 rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} placeholder="Savings this check ($)" />
+                <button onClick={() => { savePlan({ ...plan, savingsOverride: parseFloat(savVal) || 0 }); setEditSav(false); showToast("Updated!"); }} className="px-3 py-2 rounded-xl text-sm font-semibold" style={{ background: LIME, color: "#fff" }}>Save</button>
+                {plan.savingsOverride !== undefined && <button onClick={() => { savePlan({ ...plan, savingsOverride: undefined }); setEditSav(false); showToast("Reset"); }} className="px-3 py-2 rounded-xl text-sm" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Reset</button>}
+              </div>
+            )}
           </div>
         )}
+
+        {/* Budget lines */}
         {budgetLines.map(line => {
-          const isEditing    = editingId === line.id;
-          const hasOverride  = plan.overrides[line.id] !== undefined;
-          const displayAmt   = hasOverride ? plan.overrides[line.id] : line.amountPerCheck;
+          const isEditing   = editingId === line.id;
+          const hasOverride = plan.overrides[line.id] !== undefined;
+          const displayAmt  = hasOverride ? plan.overrides[line.id] : line.amountPerCheck;
           return (
             <div key={line.id} className="px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}` }}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 min-w-0">
-                  <p className="text-sm text-white truncate">{getCategoryEmoji(line.category)} {line.label}</p>
+                  <CatChip cat={line.category} />
+                  <p className="text-sm truncate" style={tx}>{line.label}</p>
                   {hasOverride && <span className="text-xs px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: "rgba(245,158,11,0.15)", color: AMBER }}>edited</span>}
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
@@ -1990,26 +2044,31 @@ function PaycheckPlanCard({ paydayStr, budgetLines, effectiveTakeHome, pc, paych
               {isEditing && (
                 <div className="mt-2 flex gap-2">
                   <input type="number" value={editVal} onChange={e => setEditVal(e.target.value)} className="flex-1 rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} placeholder="This paycheck amount" />
-                  <button onClick={() => { setOverride(line.id, parseFloat(editVal) || 0); setEditingId(null); showToast("Updated for this check!"); }} className="px-3 py-2 rounded-xl text-sm font-semibold" style={{ background: LIME, color: "#fff" }}>Save</button>
+                  <button onClick={() => { setOverride(line.id, parseFloat(editVal) || 0); setEditingId(null); showToast("Updated!"); }} className="px-3 py-2 rounded-xl text-sm font-semibold" style={{ background: LIME, color: "#fff" }}>Save</button>
                   {hasOverride && <button onClick={() => { clearOverride(line.id); setEditingId(null); showToast("Reset to standard"); }} className="px-3 py-2 rounded-xl text-sm" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Reset</button>}
                 </div>
               )}
-              {hasOverride && !isEditing && <p className="text-xs mt-1" style={{ color: MUTED }}>Standard: {fmt$(line.amountPerCheck)}</p>}
+              {hasOverride && !isEditing && <p className="text-xs mt-1" style={mx}>Standard: {fmt$(line.amountPerCheck)}</p>}
             </div>
           );
         })}
+
+        {/* One-time items */}
         {plan.oneTimeItems.map(o => (
           <div key={o.id} className="flex items-center justify-between px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}` }}>
-            <div className="flex items-center gap-2">
-              <p className="text-sm text-white">{getCategoryEmoji(o.category as BudgetLine["category"])} {o.label}</p>
-              <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ background: "rgba(232,121,249,0.15)", color: "#E879F9" }}>once</span>
+            <div className="flex items-center gap-2 min-w-0">
+              <CatChip cat={o.category as BudgetLine["category"]} />
+              <p className="text-sm truncate" style={tx}>{o.label}</p>
+              <span className="text-xs px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: "rgba(232,121,249,0.15)", color: "#E879F9" }}>once</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0">
               <p className="text-sm font-semibold" style={{ color: RED }}>−{fmt$(o.amount)}</p>
               <button onClick={() => removeOneTime(o.id)}><Trash2 size={11} style={{ color: MUTED }} /></button>
             </div>
           </div>
         ))}
+
+        {/* Add one-time */}
         <div className="px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}` }}>
           <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg" style={{ background: "rgba(232,121,249,0.1)", color: "#E879F9", border: "1px solid rgba(232,121,249,0.2)" }}>
             <Plus size={12} /> One-time item this check
@@ -2020,16 +2079,18 @@ function PaycheckPlanCard({ paydayStr, budgetLines, effectiveTakeHome, pc, paych
               <div className="grid grid-cols-2 gap-2">
                 <input type="number" value={oneAmt} onChange={e => setOneAmt(e.target.value)} placeholder="Amount ($)" className="rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
                 <select value={oneCat} onChange={e => setOneCat(e.target.value as BudgetLine["category"])} className="rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }}>
-                  <option value="housing">🏠 Housing</option><option value="transfer">🏦 Transfer</option><option value="food">🛒 Food</option><option value="transport">🚗 Transport</option><option value="utilities">💡 Utilities</option><option value="savings">💰 Savings</option><option value="other">📌 Other</option>
+                  <option value="housing">Housing</option><option value="transfer">Transfer</option><option value="food">Food</option><option value="transport">Transport</option><option value="utilities">Utilities</option><option value="savings">Savings</option><option value="other">Other</option>
                 </select>
               </div>
               <button onClick={addOneTime} disabled={!oneLabel || !oneAmt} className="w-full py-2 rounded-xl text-sm font-semibold disabled:opacity-40" style={{ background: "#E879F9", color: "#fff" }}>Add This Check Only</button>
             </div>
           )}
         </div>
-        <div className="flex items-center justify-between px-4 py-3.5" style={{ background: remaining >= 0 ? "rgba(200,255,0,0.03)" : "rgba(239,68,68,0.04)" }}>
-          <p className="text-sm font-semibold" style={{ color: remaining >= 0 ? LIME : RED }}>{remaining >= 0 ? "Yours to spend" : "Over budget"}</p>
-          <p className="text-lg font-bold" style={{ color: remaining >= 0 ? LIME : RED }}>{remaining >= 0 ? fmt$(remaining) : "−" + fmt$(Math.abs(remaining))}</p>
+
+        {/* Remaining */}
+        <div className="flex items-center justify-between px-4 py-3.5" style={{ background: remaining >= 0 ? "rgba(16,185,129,0.04)" : "rgba(239,68,68,0.04)" }}>
+          <p className="text-sm font-semibold" style={{ color: remaining >= 0 ? "#10B981" : RED }}>{remaining >= 0 ? "Yours to spend" : "Over budget"}</p>
+          <p className="text-lg font-bold" style={{ color: remaining >= 0 ? "#10B981" : RED }}>{remaining >= 0 ? fmt$(remaining) : "−" + fmt$(Math.abs(remaining))}</p>
         </div>
       </div>
     </div>
