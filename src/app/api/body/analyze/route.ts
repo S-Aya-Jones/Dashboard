@@ -4,8 +4,8 @@ import Anthropic from "@anthropic-ai/sdk";
 const client = new Anthropic();
 
 export async function POST(req: NextRequest) {
-  const { imageBase64, mimeType, height, weight, age } = await req.json();
-  if (!imageBase64) return NextResponse.json({ error: "No image provided" }, { status: 400 });
+  const { images, height, weight, age } = await req.json();
+  if (!images?.length) return NextResponse.json({ error: "No images provided" }, { status: 400 });
 
   const context = [
     height ? `Height: ${height}` : "",
@@ -13,32 +13,37 @@ export async function POST(req: NextRequest) {
     age ? `Age: ${age}` : "",
   ].filter(Boolean).join(", ");
 
-  const prompt = `You are an expert fitness coach, sports medicine professional, and body composition analyst. Analyze the visible body composition in this photo. Be honest and specific — this is for fitness tracking and improvement.
+  const angleLabels = images.map((img: { label?: string }, i: number) => img.label || `Photo ${i + 1}`).join(", ");
+
+  const prompt = `You are an expert fitness coach, sports medicine professional, and body composition analyst. You have been provided ${images.length} photo(s) of this person from the following angles: ${angleLabels}.
+
+Use ALL provided angles to give the most accurate body composition assessment possible. Multiple angles allow you to assess depth, muscularity, fat distribution, and posture far more accurately than a single photo.
 
 ${context ? `User-provided context: ${context}` : ""}
 
-ACCURACY RULE: Only describe what is genuinely visible. Do not invent muscle development that is not there, but also do not under-credit what clearly exists. Body fat % is a visual estimate — give an honest range, not a number you cannot actually verify.
+ACCURACY RULE: Only describe what is genuinely visible across the photos. Use all angles together — for example, a side view reveals core and lower back fat that a front view hides. Be honest about what each angle reveals. Do not invent muscle development, but do not discount what clearly exists.
 
 Return ONLY a valid JSON object. All string values must be single-line:
 
 {
   "bodyType": "<Ectomorph/Mesomorph/Endomorph/Skinny Fat/Mixed>",
-  "visualAssessment": "<2-3 honest sentences on what you see: fat distribution, visible muscle, overall composition>",
+  "visualAssessment": "<2-3 honest sentences on overall composition using insights from all angles>",
   "bodyFatEstimate": {
     "low": <lower bound % as number>,
     "high": <upper bound % as number>,
     "category": "<Essential/Athletic/Fitness/Average/Above Average>",
-    "note": "<what specific visual cues lead to this estimate>"
+    "note": "<what specific visual cues across the angles lead to this estimate>"
   },
   "muscleDefinition": <1-10 score>,
-  "compositionScore": <1-10 overall composition score — be calibrated, average is 4-6>,
+  "compositionScore": <1-10 overall score, average is 4-6>,
   "potentialScore": <realistic achievable score with consistent work>,
   "visibleMuscle": [
-    { "group": "<muscle group name>", "development": "<underdeveloped/average/developed>", "note": "<specific observation>" }
+    { "group": "<muscle group name>", "development": "<underdeveloped/average/developed>", "note": "<specific observation from any angle>" }
   ],
+  "posture": "<posture assessment based on the photos>",
   "strengths": ["<genuine visible strength>"],
   "areas": ["<area with clear room for improvement>"],
-  "honestAssessment": "<3-4 sentences of direct truth: current state, main limiting factors, realistic ceiling>",
+  "honestAssessment": "<3-4 sentences of direct truth using all angles: current state, main limiting factors, realistic ceiling>",
   "protocol": {
     "training": ["<specific training recommendation based on what you see>"],
     "diet": ["<specific diet adjustment>"],
@@ -64,13 +69,18 @@ Return ONLY a valid JSON object. All string values must be single-line:
 }`;
 
   try {
+    const imageBlocks = images.map((img: { imageBase64: string; mimeType?: string }) => ({
+      type: "image" as const,
+      source: { type: "base64" as const, media_type: (img.mimeType ?? "image/jpeg") as "image/jpeg", data: img.imageBase64 },
+    }));
+
     const msg = await client.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 3000,
       messages: [{
         role: "user",
         content: [
-          { type: "image", source: { type: "base64", media_type: mimeType ?? "image/jpeg", data: imageBase64 } },
+          ...imageBlocks,
           { type: "text", text: prompt },
         ],
       }],
