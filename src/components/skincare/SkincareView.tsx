@@ -2,8 +2,8 @@
 
 import { useState, useRef } from "react";
 import { format, parseISO } from "date-fns";
-import { Plus, Trash2, Sparkles, Camera, ChevronDown, ChevronUp, RefreshCw, Send } from "lucide-react";
-import { DashboardData, SkincareProduct } from "@/types/dashboard";
+import { Plus, Trash2, Sparkles, Camera, ChevronDown, ChevronUp, RefreshCw, Send, ChevronRight } from "lucide-react";
+import { DashboardData, SkincareProduct, BeautyAnalysisEntry } from "@/types/dashboard";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
@@ -75,6 +75,26 @@ const GOLD_BG = "rgba(232,197,71,0.06)";
 const GOLD_BG_LIGHT = "rgba(232,197,71,0.04)";
 const GOLD_BORDER = "rgba(232,197,71,0.15)";
 const GOLD_PILL_BG = "rgba(232,197,71,0.1)";
+
+async function createThumb(dataUrl: string, size = 80): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { resolve(dataUrl); return; }
+      const min = Math.min(img.width, img.height);
+      const sx = (img.width - min) / 2;
+      const sy = (img.height - min) / 2;
+      ctx.drawImage(img, sx, sy, min, min, 0, 0, size, size);
+      resolve(canvas.toDataURL("image/jpeg", 0.7));
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
 
 function Section({ title, icon, children, defaultOpen = false }: { title: string; icon: string; children: React.ReactNode; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -165,7 +185,6 @@ function AnalysisCard({ analysis, photo, onReset }: { analysis: Analysis; photo:
             <p className="text-sm leading-snug" style={{ color: "var(--text)" }}>{analysis.skinAssessment.summary.slice(0, 90)}…</p>
           </div>
         </div>
-        {/* Score row */}
         <div className="grid grid-cols-3 gap-3">
           <div className="rounded-xl p-3 text-center" style={{ background: "rgba(124,92,252,0.06)" }}>
             <p className="text-xs mb-1" style={{ color: "var(--text-muted)" }}>Skin Score</p>
@@ -192,7 +211,6 @@ function AnalysisCard({ analysis, photo, onReset }: { analysis: Analysis; photo:
         <RatingBar label="Facial Harmony" value={analysis.featureAnalysis.standouts.length >= 3 ? 8 : analysis.featureAnalysis.standouts.length >= 2 ? 7 : 6} color="#E8A87C" />
       </div>
 
-      {/* Introduction */}
       <Section title="Introduction" icon="✦" defaultOpen>
         <p className="text-sm leading-relaxed" style={{ color: "var(--text)" }}>{analysis.skinAssessment.summary}</p>
         <div className="grid grid-cols-2 gap-3 mt-2">
@@ -207,7 +225,6 @@ function AnalysisCard({ analysis, photo, onReset }: { analysis: Analysis; photo:
         </div>
       </Section>
 
-      {/* Facial Assessments */}
       <Section title="Facial Assessments" icon="◈">
         <div className="flex items-center gap-2 mb-2">
           <span className="text-xs px-2.5 py-1 rounded-full font-medium capitalize"
@@ -222,7 +239,6 @@ function AnalysisCard({ analysis, photo, onReset }: { analysis: Analysis; photo:
         </div>
       </Section>
 
-      {/* Features Analysis */}
       <Section title="Features Analysis" icon="◇">
         {analysis.skinAssessment.strengths.length > 0 && (
           <div>
@@ -250,7 +266,6 @@ function AnalysisCard({ analysis, photo, onReset }: { analysis: Analysis; photo:
         )}
       </Section>
 
-      {/* Hairstyle */}
       {analysis.hairstyleAnalysis && (
         <Section title="Hairstyle Analysis" icon="✂">
           <div className="p-3 rounded-xl mb-3" style={{ background: "rgba(124,92,252,0.05)" }}>
@@ -266,7 +281,6 @@ function AnalysisCard({ analysis, photo, onReset }: { analysis: Analysis; photo:
             </span>
           </div>
           <p className="text-xs mb-3" style={{ color: "var(--text)" }}>{analysis.hairstyleAnalysis.suitabilityNote}</p>
-
           {analysis.hairstyleAnalysis.recommendedStyles.length > 0 && (
             <div className="mb-3">
               <p className="text-xs font-semibold mb-2" style={{ color: GOLD }}>Recommended for your face shape</p>
@@ -280,7 +294,6 @@ function AnalysisCard({ analysis, photo, onReset }: { analysis: Analysis; photo:
               </div>
             </div>
           )}
-
           {analysis.hairstyleAnalysis.colorRecommendations.length > 0 && (
             <div className="mb-3">
               <p className="text-xs font-semibold mb-2" style={{ color: "#9B7FFF" }}>Color recommendations</p>
@@ -293,7 +306,6 @@ function AnalysisCard({ analysis, photo, onReset }: { analysis: Analysis; photo:
               </ul>
             </div>
           )}
-
           {analysis.hairstyleAnalysis.stylingTips.length > 0 && (
             <div className="mb-3">
               <p className="text-xs font-semibold mb-2" style={{ color: "#E8A87C" }}>Styling tips</p>
@@ -306,7 +318,6 @@ function AnalysisCard({ analysis, photo, onReset }: { analysis: Analysis; photo:
               </ul>
             </div>
           )}
-
           {analysis.hairstyleAnalysis.avoid.length > 0 && (
             <div>
               <p className="text-xs font-semibold mb-2" style={{ color: "#DA667B" }}>Avoid</p>
@@ -322,13 +333,11 @@ function AnalysisCard({ analysis, photo, onReset }: { analysis: Analysis; photo:
         </Section>
       )}
 
-      {/* Surgical Considerations */}
       {hasSurgical && (
         <Section title="Surgical Considerations" icon="⚕">
           <p className="text-xs mb-3" style={{ color: "var(--text-muted)" }}>
-            Procedures ranked by impact relative to your specific features. These are investment-level decisions — do your research and consult a board-certified surgeon.
+            Procedures ranked by impact relative to your specific features. Consult a board-certified surgeon before any decisions.
           </p>
-
           {(analysis.surgicalConsiderations!.highYield?.length ?? 0) > 0 && (
             <div className="mb-3">
               <p className="text-xs font-semibold mb-2" style={{ color: GOLD }}>High-Yield Procedures</p>
@@ -346,7 +355,6 @@ function AnalysisCard({ analysis, photo, onReset }: { analysis: Analysis; photo:
               </div>
             </div>
           )}
-
           {(analysis.surgicalConsiderations!.longTerm?.length ?? 0) > 0 && (
             <div className="mb-3">
               <p className="text-xs font-semibold mb-2" style={{ color: "#9B7FFF" }}>Long-Term Investments</p>
@@ -364,7 +372,6 @@ function AnalysisCard({ analysis, photo, onReset }: { analysis: Analysis; photo:
               </div>
             </div>
           )}
-
           {(analysis.surgicalConsiderations!.notRecommended?.length ?? 0) > 0 && (
             <div>
               <p className="text-xs font-semibold mb-2" style={{ color: "#DA667B" }}>Not Recommended For You</p>
@@ -380,19 +387,15 @@ function AnalysisCard({ analysis, photo, onReset }: { analysis: Analysis; photo:
         </Section>
       )}
 
-      {/* Beauty Roadmap */}
       {analysis.roadmap && (
         <Section title="Beauty Roadmap" icon="◎">
-          {/* Honest assessment */}
           <div className="p-3 rounded-xl mb-4" style={{ background: "rgba(218,102,123,0.06)", border: "1px solid rgba(218,102,123,0.15)" }}>
             <p className="text-xs font-semibold mb-1.5" style={{ color: "#DA667B" }}>Honest Assessment</p>
             <p className="text-xs leading-relaxed" style={{ color: "var(--text)" }}>{analysis.roadmap.honestAssessment}</p>
           </div>
 
-          {/* Trajectory */}
           <div className="mb-4 p-3 rounded-xl" style={{ background: GOLD_BG_LIGHT, border: `1px solid ${GOLD_BORDER}` }}>
             <p className="text-xs mb-2" style={{ color: "var(--text-muted)" }}>Your trajectory</p>
-            {/* Natural ceiling bar */}
             <div className="flex items-center gap-2 mb-1">
               <span className="text-lg font-bold w-12 flex-shrink-0" style={{ color: "#DA667B" }}>{analysis.roadmap.currentRating}/10</span>
               <div className="flex-1 h-2 rounded-full" style={{ background: "rgba(124,92,252,0.1)" }}>
@@ -404,7 +407,6 @@ function AnalysisCard({ analysis, photo, onReset }: { analysis: Analysis; photo:
               <p className="text-xs" style={{ color: "var(--text-muted)" }}>Now</p>
               <p className="text-xs font-medium" style={{ color: GOLD }}>Natural ceiling</p>
             </div>
-            {/* Surgical ceiling bar */}
             {analysis.roadmap.absoluteCeiling && analysis.roadmap.absoluteCeiling > analysis.roadmap.potentialRating && (
               <>
                 <div className="flex items-center gap-2 mb-1">
@@ -422,7 +424,6 @@ function AnalysisCard({ analysis, photo, onReset }: { analysis: Analysis; photo:
             )}
           </div>
 
-          {/* Timeline cards */}
           {[
             { key: "thirtyDay", label: "30 Days", color: "#9B7FFF", bg: "rgba(124,92,252,0.06)", border: "rgba(124,92,252,0.15)", data: analysis.roadmap.thirtyDay },
             { key: "ninetyDay", label: "90 Days", color: "#E8A87C", bg: "rgba(232,168,124,0.06)", border: "rgba(232,168,124,0.15)", data: analysis.roadmap.ninetyDay },
@@ -448,7 +449,6 @@ function AnalysisCard({ analysis, photo, onReset }: { analysis: Analysis; photo:
         </Section>
       )}
 
-      {/* Protocol */}
       <Section title="Protocol" icon="▸">
         {analysis.protocol.immediate.length > 0 && (
           <div>
@@ -500,7 +500,6 @@ function AnalysisCard({ analysis, photo, onReset }: { analysis: Analysis; photo:
         )}
       </Section>
 
-      {/* Ask a Question */}
       <Section title="Ask the Analyst" icon="💬">
         <p className="text-xs mb-3" style={{ color: "var(--text-muted)" }}>
           Ask anything about your results — specific concerns, whether a treatment makes sense, what to prioritize first.
@@ -545,12 +544,81 @@ function AnalysisCard({ analysis, photo, onReset }: { analysis: Analysis; photo:
         </div>
       </Section>
 
-      {/* Re-analyze */}
       <div className="p-4 flex justify-center" style={{ borderTop: "1px solid rgba(124,92,252,0.1)" }}>
         <button onClick={onReset} className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl"
           style={{ background: "rgba(124,92,252,0.08)", color: "var(--text-muted)" }}>
           <RefreshCw size={14} /> New Analysis
         </button>
+      </div>
+    </div>
+  );
+}
+
+function AnalysisHistory({ entries, onSelect }: { entries: BeautyAnalysisEntry[]; onSelect: (e: BeautyAnalysisEntry) => void }) {
+  const sorted = [...entries].sort((a, b) => b.date.localeCompare(a.date));
+  if (sorted.length === 0) return null;
+
+  const ratingColor = (r: number) => r >= 8 ? GOLD : r >= 6 ? "#9B7FFF" : "#E8A87C";
+
+  return (
+    <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.15)" }}>
+      <div className="px-4 py-3" style={{ borderBottom: "1px solid rgba(124,92,252,0.1)" }}>
+        <p className="text-xs font-semibold" style={{ color: "var(--text-muted)", letterSpacing: "0.08em" }}>ANALYSIS HISTORY</p>
+        <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>Track your progress over time</p>
+      </div>
+
+      {/* Score trend if 2+ entries */}
+      {sorted.length >= 2 && (
+        <div className="px-4 py-3" style={{ borderBottom: "1px solid rgba(124,92,252,0.08)" }}>
+          <p className="text-xs font-medium mb-2" style={{ color: "var(--text-muted)" }}>Rating trend</p>
+          <div className="flex items-end gap-1.5 h-10">
+            {sorted.slice().reverse().map((e, i) => {
+              const h = Math.max(4, (e.overallRating / 10) * 40);
+              const color = ratingColor(e.overallRating);
+              return (
+                <div key={e.id} className="flex-1 flex flex-col items-center gap-1">
+                  <div className="w-full rounded-t-sm" style={{ height: `${h}px`, background: color, opacity: i === sorted.length - 1 ? 1 : 0.4 }} />
+                  <p className="text-xs font-bold" style={{ color }}>{e.overallRating}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="divide-y divide-[rgba(124,92,252,0.08)]">
+        {sorted.map((entry, idx) => {
+          const delta = idx < sorted.length - 1
+            ? entry.overallRating - sorted[idx + 1].overallRating
+            : null;
+          return (
+            <button key={entry.id} onClick={() => onSelect(entry)}
+              className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[rgba(124,92,252,0.03)] transition-colors">
+              <img src={entry.photoThumb} alt="Analysis" className="w-12 h-12 rounded-xl object-cover flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <p className="text-xs font-semibold" style={{ color: "var(--text)" }}>
+                    {format(parseISO(entry.date), "MMM d, yyyy")}
+                  </p>
+                  {idx === 0 && (
+                    <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ background: "rgba(124,92,252,0.1)", color: "#9B7FFF" }}>Latest</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-bold" style={{ color: ratingColor(entry.overallRating) }}>{entry.overallRating}/10</span>
+                  <span className="text-xs" style={{ color: "var(--text-muted)" }}>Skin {entry.skinScore}</span>
+                  <span className="text-xs" style={{ color: "var(--text-muted)" }}>Looks {entry.apparentAge}y</span>
+                  {delta !== null && (
+                    <span className="text-xs font-semibold" style={{ color: delta > 0 ? GOLD : delta < 0 ? "#DA667B" : "var(--text-muted)" }}>
+                      {delta > 0 ? `+${delta.toFixed(1)}` : delta < 0 ? delta.toFixed(1) : "—"}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <ChevronRight size={14} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -572,6 +640,7 @@ export function SkincareView({ data, update }: Props) {
   const amProducts = data.skincareProducts.filter((p) => p.routine === "am" || p.routine === "both").sort((a, b) => a.order - b.order);
   const pmProducts = data.skincareProducts.filter((p) => p.routine === "pm" || p.routine === "both").sort((a, b) => a.order - b.order);
   const testingProducts = data.skincareProducts.filter((p) => p.isTesting);
+  const savedAnalyses = data.beautyAnalyses ?? [];
 
   const addProduct = () => {
     if (!productForm.name.trim()) return;
@@ -600,12 +669,12 @@ export function SkincareView({ data, update }: Props) {
       const result = ev.target?.result as string;
       const base64 = result.split(",")[1];
       setPhoto(result);
-      runAnalysis(base64, file.type || "image/jpeg");
+      runAnalysis(result, base64, file.type || "image/jpeg");
     };
     reader.readAsDataURL(file);
   };
 
-  const runAnalysis = async (base64: string, mime: string) => {
+  const runAnalysis = async (dataUrl: string, base64: string, mime: string) => {
     setAnalyzing(true);
     setAnalyzeError("");
     setAnalysis(null);
@@ -622,7 +691,21 @@ export function SkincareView({ data, update }: Props) {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error);
-      setAnalysis(json.analysis);
+      const a: Analysis = json.analysis;
+      setAnalysis(a);
+
+      // Save to history
+      const thumb = await createThumb(dataUrl);
+      const entry: BeautyAnalysisEntry = {
+        id: id(),
+        date: new Date().toISOString().slice(0, 10),
+        photoThumb: thumb,
+        skinScore: a.skinScore,
+        overallRating: a.overallRating,
+        apparentAge: a.apparentAge.estimated,
+        analysis: a,
+      };
+      update((d) => ({ ...d, beautyAnalyses: [...(d.beautyAnalyses ?? []), entry] }));
     } catch (e: unknown) {
       setAnalyzeError(e instanceof Error ? e.message : "Analysis failed");
     } finally {
@@ -635,6 +718,11 @@ export function SkincareView({ data, update }: Props) {
     setAnalysis(null);
     setAnalyzeError("");
     if (fileRef.current) fileRef.current.value = "";
+  };
+
+  const loadHistoricAnalysis = (entry: BeautyAnalysisEntry) => {
+    setAnalysis(entry.analysis as Analysis);
+    setPhoto(entry.photoThumb);
   };
 
   const renderProductList = (products: SkincareProduct[], label: string) => (
@@ -728,6 +816,11 @@ export function SkincareView({ data, update }: Props) {
 
           <input ref={fileRef} type="file" accept="image/*" capture="user" className="hidden" onChange={handlePhotoSelect} />
         </div>
+      )}
+
+      {/* Analysis History */}
+      {savedAnalyses.length > 0 && (
+        <AnalysisHistory entries={savedAnalyses} onSelect={loadHistoricAnalysis} />
       )}
 
       {testingProducts.length > 0 && (

@@ -561,6 +561,17 @@ export interface DiagnosticSession {
   totalScore?: number;    // 472–528
 }
 
+export interface BeautyAnalysisEntry {
+  id: string;
+  date: string;
+  photoThumb: string;
+  skinScore: number;
+  overallRating: number;
+  apparentAge: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  analysis: any;
+}
+
 export interface DashboardData {
   userId: string;
   updatedAt: string;
@@ -607,6 +618,7 @@ export interface DashboardData {
   // Skincare
   skincareProducts: SkincareProduct[];
   skinCheckIns: SkinCheckIn[];
+  beautyAnalyses?: BeautyAnalysisEntry[];
 
   // Finances
   creditCards: CreditCard[];
