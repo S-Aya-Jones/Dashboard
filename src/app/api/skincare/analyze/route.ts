@@ -19,33 +19,33 @@ export async function POST(req: NextRequest) {
       ).join("\n")}`
     : "No check-in history yet.";
 
-  const prompt = `You are a brutally honest aesthetic analyst, dermatologist, and hair stylist. Your job is to give real, unfiltered feedback — not flattery. The person asking WANTS honest truth so they can actually improve. Do not sugarcoat. Do not say "beautiful" unless it's genuinely true. Call out real problems directly. Be specific about what's holding them back and what their realistic potential is if they put in the work.
+  const prompt = `You are a brutally honest aesthetic analyst, dermatologist, and hair stylist. Your job is to give real, unfiltered feedback, not flattery. The person asking WANTS honest truth so they can actually improve. Do not sugarcoat. Do not say "beautiful" unless it is genuinely true. Call out real problems directly. Be specific about what is holding them back and what their realistic potential is if they put in the work.
 
 ${routineContext}
 ${checkInContext}
 
-Return ONLY a JSON object with exactly this structure:
+Return ONLY a valid JSON object with exactly this structure. All string values must be on a single line with no literal newline characters inside them:
 
 {
-  "skinScore": <number 0-100, be honest — average skin is 50-65>,
-  "overallRating": <number 1-10 with one decimal — be calibrated: most people are 4-7, reserve 8+ for genuinely above average>,
+  "skinScore": <number 0-100, be honest, average skin is 50-65>,
+  "overallRating": <number 1-10 with one decimal, be calibrated: most people are 4-7, reserve 8+ for genuinely above average>,
   "apparentAge": {
-    "estimated": <number — the age this person appears based on skin, features, and hair>,
+    "estimated": <number, the age this person appears based on skin, features, and hair>,
     "note": "<be specific: what exact features are aging or youthening them>"
   },
   "skinAssessment": {
-    "summary": "<honest 2-3 sentence overview — name the actual problems visible>",
-    "texture": "<specific texture assessment — mention unevenness, pores, roughness if present>",
+    "summary": "<honest 2-3 sentence overview, name the actual problems visible>",
+    "texture": "<specific texture assessment, mention unevenness, pores, roughness if present>",
     "hydration": "<honest hydration assessment>",
-    "concerns": ["<real concern>", ...],
-    "strengths": ["<genuine strength only>", ...]
+    "concerns": ["<real concern>"],
+    "strengths": ["<genuine strength only>"]
   },
   "featureAnalysis": {
-    "summary": "<honest 2-3 sentences — what's working and what isn't, be direct>",
+    "summary": "<honest 2-3 sentences, what is working and what is not, be direct>",
     "faceShape": "<oval/round/square/heart/diamond/oblong>",
-    "harmony": "<specific harmony assessment — note any asymmetry, proportion issues>",
-    "standouts": ["<genuinely notable feature>", ...],
-    "areas": ["<specific area holding them back>", ...]
+    "harmony": "<specific harmony assessment, note any asymmetry, proportion issues>",
+    "standouts": ["<genuinely notable feature>"],
+    "areas": ["<specific area holding them back>"]
   },
   "hairstyleAnalysis": {
     "currentStyle": "<exact description of current hairstyle>",
@@ -56,20 +56,20 @@ Return ONLY a JSON object with exactly this structure:
       { "name": "<hairstyle name>", "why": "<specific reason>" },
       { "name": "<hairstyle name>", "why": "<specific reason>" }
     ],
-    "colorRecommendations": ["<specific color that would complement their skin tone>", ...],
-    "stylingTips": ["<specific actionable tip>", ...],
-    "avoid": ["<style or habit that's actively hurting their look and why>", ...]
+    "colorRecommendations": ["<specific color that would complement their skin tone>"],
+    "stylingTips": ["<specific actionable tip>"],
+    "avoid": ["<style or habit that is actively hurting their look and why>"]
   },
   "protocol": {
-    "immediate": ["<action to take this week>", ...],
-    "routineAdjustments": ["<specific product or routine change>", ...],
-    "lifestyle": ["<lifestyle change that will visibly impact appearance>", ...],
-    "treatments": ["<professional treatment worth investing in>", ...]
+    "immediate": ["<action to take this week>"],
+    "routineAdjustments": ["<specific product or routine change>"],
+    "lifestyle": ["<lifestyle change that will visibly impact appearance>"],
+    "treatments": ["<professional treatment worth investing in>"]
   },
   "roadmap": {
-    "honestAssessment": "<2-3 sentences of unfiltered truth: where they currently are, what's realistically holding them back, and what their ceiling looks like if they commit — do not be mean but do not lie>",
+    "honestAssessment": "<2-3 sentences of unfiltered truth: where they currently are, what is realistically holding them back, and what their ceiling looks like if they commit>",
     "currentRating": <their current overall rating number>,
-    "potentialRating": <realistic achievable rating with consistent effort — be honest, most people can gain 1-2 points max>,
+    "potentialRating": <realistic achievable rating with consistent effort, be honest, most people can gain 1-2 points max>,
     "thirtyDay": {
       "focus": "<the single most impactful thing to focus on this month>",
       "expectedChange": "<what will visibly improve in 30 days if they commit>",
@@ -91,7 +91,7 @@ Return ONLY a JSON object with exactly this structure:
   try {
     const msg = await client.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 2000,
+      max_tokens: 4096,
       messages: [{
         role: "user",
         content: [
@@ -106,7 +106,19 @@ Return ONLY a JSON object with exactly this structure:
 
     const text = msg.content[0].type === "text" ? msg.content[0].text : "{}";
     const jsonMatch = text.match(/\{[\s\S]*\}/);
-    const analysis = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+    if (!jsonMatch) throw new Error("No JSON found in response");
+
+    // Escape literal control chars that appear inside JSON string values
+    const cleaned = jsonMatch[0].replace(/"(?:[^"\\]|\\.)*"/g, (match) =>
+      match.replace(/\n/g, "\\n").replace(/\r/g, "\\r").replace(/\t/g, "\\t")
+    );
+
+    let analysis;
+    try {
+      analysis = JSON.parse(cleaned);
+    } catch {
+      throw new Error("Response JSON malformed — try again");
+    }
     if (!analysis) throw new Error("No valid analysis returned");
 
     return NextResponse.json({ analysis });
