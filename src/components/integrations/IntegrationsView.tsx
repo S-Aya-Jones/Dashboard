@@ -332,6 +332,25 @@ function GmailTab() {
             </button>
           )}
         </div>
+        <div className="flex gap-2">
+          <span className="text-xs self-center flex-shrink-0" style={{ color: MUTED }}>Batch delete:</span>
+          {[12, 18].map(n => (
+            <button key={n} onClick={() => deleteThreads(visible.slice(0, n).map(t => t.id))}
+              disabled={deleting || visible.length === 0}
+              className="px-3 py-1.5 rounded-xl text-xs font-semibold disabled:opacity-40"
+              style={{ background: "rgba(239,68,68,0.08)", color: RED, border: `1px solid rgba(239,68,68,0.2)` }}>
+              Top {n}
+            </button>
+          ))}
+          {visible.length > 0 && (
+            <button onClick={() => deleteThreads(visible.map(t => t.id))}
+              disabled={deleting}
+              className="px-3 py-1.5 rounded-xl text-xs font-semibold disabled:opacity-40"
+              style={{ background: "rgba(239,68,68,0.08)", color: RED, border: `1px solid rgba(239,68,68,0.2)` }}>
+              All {visible.length}
+            </button>
+          )}
+        </div>
         <div className="flex gap-1.5 overflow-x-auto scrollbar-none">
           {tabs.map(t => {
             const count = t === "all" ? threads.length : threads.filter(x => x.category === t).length;

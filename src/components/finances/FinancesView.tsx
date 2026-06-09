@@ -919,6 +919,9 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
   const [budgetLabel, setBudgetLabel] = useState(""); const [budgetAmt, setBudgetAmt] = useState("");
   const [budgetCat,   setBudgetCat]   = useState<BudgetLine["category"]>("other");
   const [budgetToAcct,setBudgetToAcct]= useState("");
+  const [budgetAICmd,  setBudgetAICmd]  = useState("");
+  const [budgetAIBusy, setBudgetAIBusy] = useState(false);
+  const [budgetAISummary, setBudgetAISummary] = useState("");
   const [p2pPerson,  setP2pPerson]  = useState(""); const [p2pAmount,   setP2pAmount]   = useState("");
   const [p2pDir,     setP2pDir]     = useState<"sent"|"received">("sent");
   const [p2pPlatform,setP2pPlatform]= useState<P2PTransfer["platform"]>("zelle");
@@ -973,6 +976,24 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
     onUpdateBills([...bills, { id: id(), name: billName, amount: parseFloat(billAmt), dayOfMonth: parseInt(billDay) }]);
     setBillName(""); setBillAmt(""); setBillDay("1"); setShowBillForm(false); showToast("Bill added!");
   };
+  const runBudgetAI = async () => {
+    if (!budgetAICmd.trim() || budgetAIBusy || !budgetLines.length) return;
+    setBudgetAIBusy(true); setBudgetAISummary("");
+    try {
+      const res = await fetch("/api/ai/budget", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ budgetLines, command: budgetAICmd.trim(), takeHome: effectiveTakeHome }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      onUpdateBudgetLines(data.updatedLines);
+      setBudgetAISummary(data.summary);
+      setBudgetAICmd("");
+      showToast("Budget updated!");
+    } catch { setBudgetAISummary("Couldn't update — try again."); }
+    finally { setBudgetAIBusy(false); }
+  };
+
   const addBudgetLine = () => {
     if (!budgetLabel || !budgetAmt) return;
     onUpdateBudgetLines([...budgetLines, { id: id(), label: budgetLabel, amountPerCheck: parseFloat(budgetAmt), category: budgetCat, toAccount: budgetToAcct || undefined }]);
@@ -1337,6 +1358,31 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
                 <input value={budgetToAcct} onChange={e => setBudgetToAcct(e.target.value)} placeholder="To account (optional)" className="w-full rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
               </div>
               <button onClick={addBudgetLine} disabled={!budgetLabel || !budgetAmt} className="w-full py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40" style={{ background: LIME, color: "#fff"}}>Add to Breakdown</button>
+            </div>
+          )}
+
+          {/* AI Budget Adjuster */}
+          {budgetLines.length > 0 && (
+            <div className="rounded-2xl p-4 mt-2" style={{ background: CARD, border: `1px solid rgba(124,92,252,0.2)` }}>
+              <p className="text-xs font-semibold mb-1" style={{ color: MUTED, letterSpacing: "0.08em" }}>AI ADJUST BUDGET</p>
+              <p className="text-xs mb-2" style={{ color: "var(--text-light)" }}>
+                &ldquo;Put half toward hair&rdquo; · &ldquo;Move $50 from food to savings&rdquo;
+              </p>
+              <div className="flex gap-2">
+                <input value={budgetAICmd} onChange={e => setBudgetAICmd(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && runBudgetAI()}
+                  placeholder="Tell me how to adjust…"
+                  className="flex-1 rounded-xl px-3 py-2.5 text-sm outline-none"
+                  style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}`, color: "var(--text)" }} />
+                <button onClick={runBudgetAI} disabled={budgetAIBusy || !budgetAICmd.trim()}
+                  className="px-4 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40"
+                  style={{ background: "rgba(124,92,252,0.12)", color: LIME }}>
+                  {budgetAIBusy ? "…" : "Go"}
+                </button>
+              </div>
+              {budgetAISummary && (
+                <p className="text-xs mt-2" style={{ color: budgetAISummary.includes("Couldn") ? RED : LIME }}>{budgetAISummary}</p>
+              )}
             </div>
           )}
         </div>
