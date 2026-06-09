@@ -47,6 +47,14 @@ interface Analysis {
     lifestyle: string[];
     treatments: string[];
   };
+  roadmap: {
+    honestAssessment: string;
+    currentRating: number;
+    potentialRating: number;
+    thirtyDay: { focus: string; expectedChange: string; actions: string[] };
+    ninetyDay: { focus: string; expectedChange: string; actions: string[] };
+    sixMonth: { focus: string; expectedChange: string; actions: string[] };
+  };
 }
 
 
@@ -263,6 +271,59 @@ function AnalysisCard({ analysis, photo, onReset }: { analysis: Analysis; photo:
               </ul>
             </div>
           )}
+        </Section>
+      )}
+
+      {/* Beauty Roadmap */}
+      {analysis.roadmap && (
+        <Section title="Beauty Roadmap" icon="◎">
+          {/* Honest assessment */}
+          <div className="p-3 rounded-xl mb-4" style={{ background: "rgba(218,102,123,0.06)", border: "1px solid rgba(218,102,123,0.15)" }}>
+            <p className="text-xs font-semibold mb-1.5" style={{ color: "#DA667B" }}>Honest Assessment</p>
+            <p className="text-xs leading-relaxed" style={{ color: "var(--text)" }}>{analysis.roadmap.honestAssessment}</p>
+          </div>
+
+          {/* Potential */}
+          <div className="flex items-center gap-3 mb-4 p-3 rounded-xl" style={{ background: "rgba(200,255,0,0.04)", border: "1px solid rgba(200,255,0,0.12)" }}>
+            <div className="flex-1">
+              <p className="text-xs mb-2" style={{ color: "var(--text-muted)" }}>Your trajectory</p>
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-bold" style={{ color: "#DA667B" }}>{analysis.roadmap.currentRating}/10</span>
+                <div className="flex-1 h-2 rounded-full mx-1" style={{ background: "rgba(124,92,252,0.1)" }}>
+                  <div className="h-full rounded-full" style={{ width: `${(analysis.roadmap.currentRating / 10) * 100}%`, background: "linear-gradient(90deg, #DA667B, #C8FF00)" }} />
+                </div>
+                <span className="text-lg font-bold" style={{ color: "#C8FF00" }}>{analysis.roadmap.potentialRating}/10</span>
+              </div>
+              <div className="flex justify-between mt-1">
+                <p className="text-xs" style={{ color: "var(--text-muted)" }}>Now</p>
+                <p className="text-xs" style={{ color: "#C8FF00" }}>Your ceiling</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Timeline cards */}
+          {[
+            { key: "thirtyDay", label: "30 Days", color: "#9B7FFF", bg: "rgba(124,92,252,0.06)", border: "rgba(124,92,252,0.15)", data: analysis.roadmap.thirtyDay },
+            { key: "ninetyDay", label: "90 Days", color: "#E8A87C", bg: "rgba(232,168,124,0.06)", border: "rgba(232,168,124,0.15)", data: analysis.roadmap.ninetyDay },
+            { key: "sixMonth", label: "6 Months", color: "#C8FF00", bg: "rgba(200,255,0,0.04)", border: "rgba(200,255,0,0.15)", data: analysis.roadmap.sixMonth },
+          ].map(({ label, color, bg, border, data }) => (
+            <div key={label} className="mb-3 rounded-xl overflow-hidden" style={{ background: bg, border: `1px solid ${border}` }}>
+              <div className="px-3 pt-3 pb-2" style={{ borderBottom: `1px solid ${border}` }}>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-bold" style={{ color }}>{label}</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: `${color}15`, color }}>{data.focus}</span>
+                </div>
+                <p className="text-xs" style={{ color: "var(--text-muted)" }}>{data.expectedChange}</p>
+              </div>
+              <ul className="px-3 py-2.5 space-y-1.5">
+                {data.actions.map((a, i) => (
+                  <li key={i} className="flex gap-2 text-xs" style={{ color: "var(--text)" }}>
+                    <span style={{ color, flexShrink: 0 }}>→</span> {a}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </Section>
       )}
 
