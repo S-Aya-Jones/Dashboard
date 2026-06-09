@@ -6,9 +6,12 @@ import { useDashboard } from "@/hooks/useDashboard";
 import { FitnessView } from "@/components/fitness/FitnessView";
 import { WorkoutView } from "@/components/workout/WorkoutView";
 
+import { BodyScanView } from "@/components/fitness/BodyScanView";
+
 const TABS = [
   { id: "sleep",   label: "Sleep & Stats" },
   { id: "workout", label: "Training" },
+  { id: "body",    label: "Body Scan" },
 ] as const;
 
 type TabId = typeof TABS[number]["id"];
@@ -66,6 +69,13 @@ export default function Page() {
         {tab === "workout" && (
           <div className="flex-1 overflow-hidden min-h-0">
             <WorkoutView data={data} update={update} />
+          </div>
+        )}
+        {tab === "body" && (
+          <div className="flex-1 overflow-y-auto">
+            <div className="max-w-2xl mx-auto px-4 py-6">
+              <BodyScanView />
+            </div>
           </div>
         )}
       </div>

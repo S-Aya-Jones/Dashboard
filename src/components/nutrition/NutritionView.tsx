@@ -7,8 +7,10 @@ import { RecipeVault } from "./RecipeVault";
 import { GroceryList } from "./GroceryList";
 import { PantryTracker } from "./PantryTracker";
 import { WeeklyFoodReview } from "./WeeklyFoodReview";
+import { MealScanView } from "./MealScanView";
 
 const TABS = [
+  { id: "scan",     label: "Meal Scan" },
   { id: "meals",    label: "Meal Log" },
   { id: "recipes",  label: "Recipe Vault" },
   { id: "grocery",  label: "Grocery List" },
@@ -100,6 +102,7 @@ export function NutritionView({
 
       {/* Content */}
       <div>
+        {tab === "scan"    && <MealScanView />}
         {tab === "meals"   && <MealLog       nutrition={nutrition} onUpdate={onUpdate} />}
         {tab === "recipes" && <RecipeVault   nutrition={nutrition} onUpdate={onUpdate} />}
         {tab === "grocery" && <GroceryList   nutrition={nutrition} onUpdate={onUpdate} />}
