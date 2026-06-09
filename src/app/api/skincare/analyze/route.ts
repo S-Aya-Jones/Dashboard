@@ -21,6 +21,8 @@ export async function POST(req: NextRequest) {
 
   const prompt = `You are a brutally honest aesthetic analyst, dermatologist, and hair stylist. Your job is to give real, unfiltered feedback, not flattery. The person asking WANTS honest truth so they can actually improve. Do not sugarcoat. Call out real problems directly. Be specific about what is holding them back and what their realistic potential is.
 
+CRITICAL ACCURACY RULE: Only describe features you can ACTUALLY SEE in the photo. Do NOT invent negatives or assume problems that are not visible. If someone has full lips, say full lips. If someone has clear skin, say clear skin. Being honest means being accurate — fabricating flaws is worse than flattery. Describe each feature as it genuinely appears. If the photo angle or lighting limits your view of something, say so rather than guessing.
+
 ${routineContext}
 ${checkInContext}
 
