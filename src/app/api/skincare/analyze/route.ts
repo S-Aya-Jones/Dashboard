@@ -19,42 +19,59 @@ export async function POST(req: NextRequest) {
       ).join("\n")}`
     : "No check-in history yet.";
 
-  const prompt = `You are a professional aesthetic and skincare analyst. Analyze this photo and provide a structured beauty assessment. Be specific, honest, and constructive — like a knowledgeable dermatologist friend.
+  const prompt = `You are a professional aesthetic analyst, dermatologist, and hair stylist combined. Analyze this photo thoroughly and return a complete beauty assessment. Be specific, honest, encouraging, and constructive.
 
 ${routineContext}
-
 ${checkInContext}
 
-Return your analysis as a JSON object with exactly this structure:
+Return ONLY a JSON object with exactly this structure:
+
 {
   "skinScore": <number 0-100>,
+  "overallRating": <number 1-10 with one decimal, e.g. 7.4>,
+  "apparentAge": {
+    "estimated": <number — the age this person appears>,
+    "note": "<brief note on what's aging or youthening their appearance>"
+  },
   "skinAssessment": {
-    "summary": "<2-3 sentence overview of current skin condition>",
-    "texture": "<assessment of skin texture>",
-    "hydration": "<hydration level assessment>",
-    "concerns": ["<concern 1>", "<concern 2>", ...],
-    "strengths": ["<strength 1>", "<strength 2>", ...]
+    "summary": "<2-3 sentence overview>",
+    "texture": "<texture assessment>",
+    "hydration": "<hydration level>",
+    "concerns": ["<concern>", ...],
+    "strengths": ["<strength>", ...]
   },
   "featureAnalysis": {
     "summary": "<2-3 sentence overview of facial features>",
-    "harmony": "<facial harmony and proportion notes>",
-    "standouts": ["<notable feature 1>", "<notable feature 2>", ...],
-    "areas": ["<area to enhance 1>", "<area to enhance 2>", ...]
+    "faceShape": "<oval/round/square/heart/diamond/oblong>",
+    "harmony": "<harmony and proportion notes>",
+    "standouts": ["<notable feature>", ...],
+    "areas": ["<area that could be enhanced>", ...]
+  },
+  "hairstyleAnalysis": {
+    "currentStyle": "<description of current hairstyle — length, texture, shape, color>",
+    "suitsFaceShape": <true or false>,
+    "suitabilityNote": "<why or why not the current style works for their face shape>",
+    "recommendedStyles": [
+      { "name": "<hairstyle name>", "why": "<why it would suit them>" },
+      { "name": "<hairstyle name>", "why": "<why it would suit them>" },
+      { "name": "<hairstyle name>", "why": "<why it would suit them>" }
+    ],
+    "colorRecommendations": ["<color recommendation>", ...],
+    "stylingTips": ["<tip>", ...],
+    "avoid": ["<style or technique to avoid and why>", ...]
   },
   "protocol": {
-    "immediate": ["<action to take now 1>", "<action 2>", ...],
-    "routineAdjustments": ["<routine change 1>", "<routine change 2>", ...],
-    "lifestyle": ["<lifestyle tip 1>", "<lifestyle tip 2>", ...],
-    "treatments": ["<professional treatment to consider 1>", ...]
+    "immediate": ["<action>", ...],
+    "routineAdjustments": ["<routine change>", ...],
+    "lifestyle": ["<lifestyle tip>", ...],
+    "treatments": ["<professional treatment>", ...]
   }
-}
-
-Return only the JSON, no other text.`;
+}`;
 
   try {
     const msg = await client.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 1500,
+      max_tokens: 2000,
       messages: [{
         role: "user",
         content: [

@@ -16,6 +16,8 @@ interface Props {
 
 interface Analysis {
   skinScore: number;
+  overallRating: number;
+  apparentAge: { estimated: number; note: string };
   skinAssessment: {
     summary: string;
     texture: string;
@@ -25,9 +27,19 @@ interface Analysis {
   };
   featureAnalysis: {
     summary: string;
+    faceShape: string;
     harmony: string;
     standouts: string[];
     areas: string[];
+  };
+  hairstyleAnalysis: {
+    currentStyle: string;
+    suitsFaceShape: boolean;
+    suitabilityNote: string;
+    recommendedStyles: { name: string; why: string }[];
+    colorRecommendations: string[];
+    stylingTips: string[];
+    avoid: string[];
   };
   protocol: {
     immediate: string[];
@@ -37,22 +49,6 @@ interface Analysis {
   };
 }
 
-function ScoreRing({ score }: { score: number }) {
-  const r = 28;
-  const circ = 2 * Math.PI * r;
-  const filled = (score / 100) * circ;
-  const color = score >= 75 ? "#C8FF00" : score >= 50 ? "#E8A87C" : "#DA667B";
-  return (
-    <div className="relative w-16 h-16 flex items-center justify-center">
-      <svg width="64" height="64" viewBox="0 0 64 64" className="-rotate-90">
-        <circle cx="32" cy="32" r={r} fill="none" stroke="rgba(124,92,252,0.1)" strokeWidth="5" />
-        <circle cx="32" cy="32" r={r} fill="none" stroke={color} strokeWidth="5"
-          strokeDasharray={`${filled} ${circ - filled}`} strokeLinecap="round" />
-      </svg>
-      <span className="absolute text-sm font-bold" style={{ color }}>{score}</span>
-    </div>
-  );
-}
 
 function Section({ title, icon, children, defaultOpen = false }: { title: string; icon: string; children: React.ReactNode; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -84,20 +80,60 @@ function Pill({ text, variant }: { text: string; variant: "concern" | "strength"
   );
 }
 
+function RatingBar({ label, value, max = 10, color }: { label: string; value: number; max?: number; color: string }) {
+  const pct = Math.min(100, (value / max) * 100);
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-1">
+        <p className="text-xs" style={{ color: "var(--text-muted)" }}>{label}</p>
+        <p className="text-xs font-bold" style={{ color }}>{value}{max === 10 ? "/10" : ""}</p>
+      </div>
+      <div className="h-1.5 rounded-full" style={{ background: "rgba(124,92,252,0.1)" }}>
+        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: color }} />
+      </div>
+    </div>
+  );
+}
+
 function AnalysisCard({ analysis, photo, onReset }: { analysis: Analysis; photo: string; onReset: () => void }) {
+  const ratingColor = analysis.overallRating >= 8 ? "#C8FF00" : analysis.overallRating >= 6 ? "#9B7FFF" : "#E8A87C";
+
   return (
     <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.15)" }}>
       {/* Header */}
-      <div className="flex items-center gap-4 p-4" style={{ borderBottom: "1px solid rgba(124,92,252,0.1)" }}>
-        <img src={photo} alt="Analysis photo" className="w-14 h-14 rounded-xl object-cover flex-shrink-0" />
-        <div className="flex-1 min-w-0">
-          <p className="text-xs font-semibold mb-1" style={{ color: "var(--text-muted)", letterSpacing: "0.08em" }}>BEAUTY ANALYSIS</p>
-          <p className="text-sm" style={{ color: "var(--text)" }}>{analysis.skinAssessment.summary.slice(0, 80)}…</p>
+      <div className="p-4" style={{ borderBottom: "1px solid rgba(124,92,252,0.1)" }}>
+        <div className="flex items-center gap-4 mb-4">
+          <img src={photo} alt="Analysis" className="w-16 h-16 rounded-2xl object-cover flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold mb-1" style={{ color: "var(--text-muted)", letterSpacing: "0.08em" }}>BEAUTY ANALYSIS</p>
+            <p className="text-sm leading-snug" style={{ color: "var(--text)" }}>{analysis.skinAssessment.summary.slice(0, 90)}…</p>
+          </div>
         </div>
-        <div className="flex flex-col items-center gap-1 flex-shrink-0">
-          <ScoreRing score={analysis.skinScore} />
-          <p className="text-xs" style={{ color: "var(--text-muted)" }}>Skin Score</p>
+        {/* Score row */}
+        <div className="grid grid-cols-3 gap-3">
+          <div className="rounded-xl p-3 text-center" style={{ background: "rgba(124,92,252,0.06)" }}>
+            <p className="text-xs mb-1" style={{ color: "var(--text-muted)" }}>Skin Score</p>
+            <p className="text-xl font-bold" style={{ color: analysis.skinScore >= 75 ? "#C8FF00" : analysis.skinScore >= 50 ? "#E8A87C" : "#DA667B" }}>{analysis.skinScore}</p>
+          </div>
+          <div className="rounded-xl p-3 text-center" style={{ background: "rgba(124,92,252,0.06)" }}>
+            <p className="text-xs mb-1" style={{ color: "var(--text-muted)" }}>Rating</p>
+            <p className="text-xl font-bold" style={{ color: ratingColor }}>{analysis.overallRating}<span className="text-sm font-normal">/10</span></p>
+          </div>
+          <div className="rounded-xl p-3 text-center" style={{ background: "rgba(124,92,252,0.06)" }}>
+            <p className="text-xs mb-1" style={{ color: "var(--text-muted)" }}>Looks</p>
+            <p className="text-xl font-bold" style={{ color: "#9B7FFF" }}>{analysis.apparentAge.estimated}<span className="text-xs font-normal ml-0.5">yrs</span></p>
+          </div>
         </div>
+        {analysis.apparentAge.note && (
+          <p className="text-xs mt-2 px-1" style={{ color: "var(--text-muted)" }}>{analysis.apparentAge.note}</p>
+        )}
+      </div>
+
+      {/* Score bars */}
+      <div className="px-4 py-3 space-y-2.5" style={{ borderBottom: "1px solid rgba(124,92,252,0.1)" }}>
+        <RatingBar label="Overall Aesthetic" value={analysis.overallRating} color={ratingColor} />
+        <RatingBar label="Skin Health" value={Math.round(analysis.skinScore / 10)} color="#9B7FFF" />
+        <RatingBar label="Facial Harmony" value={analysis.featureAnalysis.standouts.length >= 3 ? 8 : analysis.featureAnalysis.standouts.length >= 2 ? 7 : 6} color="#E8A87C" />
       </div>
 
       {/* Introduction */}
@@ -117,9 +153,15 @@ function AnalysisCard({ analysis, photo, onReset }: { analysis: Analysis; photo:
 
       {/* Facial Assessments */}
       <Section title="Facial Assessments" icon="◈">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-xs px-2.5 py-1 rounded-full font-medium capitalize"
+            style={{ background: "rgba(124,92,252,0.1)", color: "#9B7FFF" }}>
+            {analysis.featureAnalysis.faceShape} face
+          </span>
+        </div>
         <p className="text-sm leading-relaxed" style={{ color: "var(--text)" }}>{analysis.featureAnalysis.summary}</p>
-        <div className="mt-2">
-          <p className="text-xs font-medium mb-1.5" style={{ color: "var(--text-muted)" }}>Harmony</p>
+        <div className="mt-2 p-3 rounded-xl" style={{ background: "rgba(124,92,252,0.05)" }}>
+          <p className="text-xs font-medium mb-1" style={{ color: "var(--text-muted)" }}>Harmony</p>
           <p className="text-xs" style={{ color: "var(--text)" }}>{analysis.featureAnalysis.harmony}</p>
         </div>
       </Section>
@@ -134,7 +176,7 @@ function AnalysisCard({ analysis, photo, onReset }: { analysis: Analysis; photo:
         )}
         {analysis.skinAssessment.concerns.length > 0 && (
           <div>
-            <p className="text-xs font-medium mb-2" style={{ color: "var(--text-muted)" }}>Areas to address</p>
+            <p className="text-xs font-medium mb-2" style={{ color: "var(--text-muted)" }}>Skin concerns</p>
             <div>{analysis.skinAssessment.concerns.map((c, i) => <Pill key={i} text={c} variant="concern" />)}</div>
           </div>
         )}
@@ -144,7 +186,85 @@ function AnalysisCard({ analysis, photo, onReset }: { analysis: Analysis; photo:
             <div>{analysis.featureAnalysis.standouts.map((s, i) => <Pill key={i} text={s} variant="strength" />)}</div>
           </div>
         )}
+        {analysis.featureAnalysis.areas.length > 0 && (
+          <div>
+            <p className="text-xs font-medium mb-2" style={{ color: "var(--text-muted)" }}>Enhancement opportunities</p>
+            <div>{analysis.featureAnalysis.areas.map((a, i) => <Pill key={i} text={a} variant="action" />)}</div>
+          </div>
+        )}
       </Section>
+
+      {/* Hairstyle */}
+      {analysis.hairstyleAnalysis && (
+        <Section title="Hairstyle Analysis" icon="✂">
+          <div className="p-3 rounded-xl mb-3" style={{ background: "rgba(124,92,252,0.05)" }}>
+            <p className="text-xs font-medium mb-1" style={{ color: "var(--text-muted)" }}>Current style</p>
+            <p className="text-xs" style={{ color: "var(--text)" }}>{analysis.hairstyleAnalysis.currentStyle}</p>
+          </div>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-xs px-2.5 py-1 rounded-full font-medium"
+              style={analysis.hairstyleAnalysis.suitsFaceShape
+                ? { background: "rgba(200,255,0,0.1)", color: "#C8FF00" }
+                : { background: "rgba(232,168,124,0.1)", color: "#E8A87C" }}>
+              {analysis.hairstyleAnalysis.suitsFaceShape ? "✓ Suits your face shape" : "⚠ Could be optimized"}
+            </span>
+          </div>
+          <p className="text-xs mb-3" style={{ color: "var(--text)" }}>{analysis.hairstyleAnalysis.suitabilityNote}</p>
+
+          {analysis.hairstyleAnalysis.recommendedStyles.length > 0 && (
+            <div className="mb-3">
+              <p className="text-xs font-semibold mb-2" style={{ color: "#C8FF00" }}>Recommended for your face shape</p>
+              <div className="space-y-2">
+                {analysis.hairstyleAnalysis.recommendedStyles.map((s, i) => (
+                  <div key={i} className="p-2.5 rounded-xl" style={{ background: "rgba(200,255,0,0.04)", border: "1px solid rgba(200,255,0,0.1)" }}>
+                    <p className="text-xs font-semibold mb-0.5" style={{ color: "#C8FF00" }}>{s.name}</p>
+                    <p className="text-xs" style={{ color: "var(--text-muted)" }}>{s.why}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {analysis.hairstyleAnalysis.colorRecommendations.length > 0 && (
+            <div className="mb-3">
+              <p className="text-xs font-semibold mb-2" style={{ color: "#9B7FFF" }}>Color recommendations</p>
+              <ul className="space-y-1">
+                {analysis.hairstyleAnalysis.colorRecommendations.map((c, i) => (
+                  <li key={i} className="flex gap-2 text-xs" style={{ color: "var(--text)" }}>
+                    <span style={{ color: "#9B7FFF" }}>→</span> {c}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {analysis.hairstyleAnalysis.stylingTips.length > 0 && (
+            <div className="mb-3">
+              <p className="text-xs font-semibold mb-2" style={{ color: "#E8A87C" }}>Styling tips</p>
+              <ul className="space-y-1">
+                {analysis.hairstyleAnalysis.stylingTips.map((t, i) => (
+                  <li key={i} className="flex gap-2 text-xs" style={{ color: "var(--text)" }}>
+                    <span style={{ color: "#E8A87C" }}>→</span> {t}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {analysis.hairstyleAnalysis.avoid.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold mb-2" style={{ color: "#DA667B" }}>Avoid</p>
+              <ul className="space-y-1">
+                {analysis.hairstyleAnalysis.avoid.map((a, i) => (
+                  <li key={i} className="flex gap-2 text-xs" style={{ color: "var(--text)" }}>
+                    <span style={{ color: "#DA667B" }}>✕</span> {a}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </Section>
+      )}
 
       {/* Protocol */}
       <Section title="Protocol" icon="▸">
