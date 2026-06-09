@@ -34,7 +34,7 @@ export default function Page() {
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: "var(--bg)" }}>
       <Sidebar saving={saving} />
-      <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+      <div className="flex-1 flex flex-col overflow-hidden min-h-0 pb-20 md:pb-0">
         {/* Tab bar */}
         <div
           className="flex-shrink-0 flex items-center gap-1 px-5 pt-4 pb-0"

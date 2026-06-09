@@ -657,7 +657,7 @@ export function FinancesView({ data, update }: Props) {
   return (
     <div style={{ background: BG, minHeight: "100%" }}>
       {/* Header */}
-      <div className="px-5 pt-8 pb-5">
+      <div className="px-4 md:px-5 pt-5 md:pt-8 pb-4 md:pb-5">
         <div className="flex items-start justify-between mb-5">
           <div>
             <p className="text-xs font-semibold mb-1" style={{ color: LIME, letterSpacing: "0.1em" }}>FINANCES</p>
@@ -688,7 +688,7 @@ export function FinancesView({ data, update }: Props) {
         <div className="flex gap-1 rounded-xl p-1" style={{ background: "rgba(124,92,252,0.05)", border: `1px solid ${BORDER}` }}>
           {(["health","flow","credit","debt"] as const).map(k => (
             <button key={k} onClick={() => setTab(k)}
-              className="flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all"
+              className="flex-1 py-2 md:py-1.5 rounded-lg text-xs font-semibold transition-all"
               style={tab === k ? { background: LIME, color: "#fff"} : { color: MUTED }}>
               {TAB_LABELS[k]}
             </button>
@@ -715,7 +715,7 @@ export function FinancesView({ data, update }: Props) {
         />
       )}
 
-      <div className="px-5 pb-16">
+      <div className="px-4 md:px-5 pb-16">
         {tab === "health" && (
           <HealthTab
             health={health}
@@ -1883,7 +1883,7 @@ function SetupFlow({ insights, insightsLoading, onDone }: {
               </div>
               <div>
                 <label className="text-xs mb-2 block" style={{ color: MUTED }}>Save per check (%)</label>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-4 gap-1.5 md:gap-2">
                   {["5","10","15","20"].map(p => (
                     <button key={p} onClick={() => setSavingsPct(p)}
                       className="py-3 rounded-2xl text-sm font-semibold transition-all"

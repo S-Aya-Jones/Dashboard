@@ -314,7 +314,7 @@ function GmailTab() {
   return (
     <div className="flex flex-col h-full">
       {/* Toolbar */}
-      <div className="px-4 pt-3 pb-2 space-y-2" style={{ borderBottom: `1px solid ${BORDER}` }}>
+      <div className="px-3 md:px-4 pt-3 pb-2 space-y-2" style={{ borderBottom: `1px solid ${BORDER}` }}>
         <div className="flex gap-2">
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search mail…"
             className="flex-1 rounded-xl px-3 py-2 text-sm outline-none"
@@ -541,11 +541,11 @@ export function IntegrationsView() {
   };
 
   return (
-    <div className="flex flex-col rounded-2xl overflow-hidden" style={{ background: "var(--bg)", border: `1px solid ${BORDER}`, height: "calc(100vh - 180px)", minHeight: 500 }}>
-      <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: `1px solid ${BORDER}`, background: "var(--surface)" }}>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center rounded-full w-9 h-9" style={{ background: "rgba(124,92,252,0.12)" }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+    <div className="flex flex-col overflow-hidden" style={{ background: "var(--bg)", height: "100%", minHeight: 0 }}>
+      <div className="flex items-center justify-between px-3 md:px-5 py-3 md:py-4" style={{ borderBottom: `1px solid ${BORDER}`, background: "var(--surface)" }}>
+        <div className="flex items-center gap-2 md:gap-3">
+          <div className="flex items-center justify-center rounded-full w-8 h-8 md:w-9 md:h-9 flex-shrink-0" style={{ background: "rgba(124,92,252,0.12)" }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <rect x="3" y="3" width="8" height="8" rx="1.5" stroke={LIME} strokeWidth="1.8" fill="none" />
               <rect x="13" y="3" width="8" height="8" rx="1.5" stroke={LIME} strokeWidth="1.8" fill="none" />
               <rect x="3" y="13" width="8" height="8" rx="1.5" stroke={LIME} strokeWidth="1.8" fill="none" />
@@ -553,8 +553,8 @@ export function IntegrationsView() {
             </svg>
           </div>
           <div>
-            <h2 className="font-semibold text-base" style={{ color: "var(--text)" }}>Integrations</h2>
-            <p className="text-xs" style={{ color: MUTED }}>{status === "connected" ? "Google connected" : "Connect your Google account"}</p>
+            <h2 className="font-semibold text-sm md:text-base" style={{ color: "var(--text)" }}>Integrations</h2>
+            <p className="text-xs" style={{ color: MUTED }}>{status === "connected" ? "Google connected" : "Connect Google"}</p>
           </div>
         </div>
         {status === "connected" && (
