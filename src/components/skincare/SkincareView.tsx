@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { format, parseISO } from "date-fns";
-import { Plus, Trash2, Sparkles, Camera, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
+import { Plus, Trash2, Sparkles, Camera, ChevronDown, ChevronUp, RefreshCw, Send } from "lucide-react";
 import { DashboardData, SkincareProduct } from "@/types/dashboard";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -12,6 +12,13 @@ import { today as todayStr, id } from "@/lib/utils";
 interface Props {
   data: DashboardData;
   update: (fn: (d: DashboardData) => DashboardData) => void;
+}
+
+interface SurgicalProcedure {
+  name: string;
+  impact: string;
+  cost: string;
+  timing: string;
 }
 
 interface Analysis {
@@ -47,16 +54,27 @@ interface Analysis {
     lifestyle: string[];
     treatments: string[];
   };
+  surgicalConsiderations?: {
+    highYield: SurgicalProcedure[];
+    longTerm: SurgicalProcedure[];
+    notRecommended: string[];
+  };
   roadmap: {
     honestAssessment: string;
     currentRating: number;
     potentialRating: number;
+    absoluteCeiling?: number;
     thirtyDay: { focus: string; expectedChange: string; actions: string[] };
     ninetyDay: { focus: string; expectedChange: string; actions: string[] };
     sixMonth: { focus: string; expectedChange: string; actions: string[] };
   };
 }
 
+const GOLD = "#E8C547";
+const GOLD_BG = "rgba(232,197,71,0.06)";
+const GOLD_BG_LIGHT = "rgba(232,197,71,0.04)";
+const GOLD_BORDER = "rgba(232,197,71,0.15)";
+const GOLD_PILL_BG = "rgba(232,197,71,0.1)";
 
 function Section({ title, icon, children, defaultOpen = false }: { title: string; icon: string; children: React.ReactNode; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -78,7 +96,7 @@ function Section({ title, icon, children, defaultOpen = false }: { title: string
 function Pill({ text, variant }: { text: string; variant: "concern" | "strength" | "action" }) {
   const styles = {
     concern: { background: "rgba(218,102,123,0.1)", color: "#DA667B" },
-    strength: { background: "rgba(200,255,0,0.1)", color: "#C8FF00" },
+    strength: { background: GOLD_PILL_BG, color: GOLD },
     action: { background: "rgba(124,92,252,0.1)", color: "#9B7FFF" },
   };
   return (
@@ -104,7 +122,37 @@ function RatingBar({ label, value, max = 10, color }: { label: string; value: nu
 }
 
 function AnalysisCard({ analysis, photo, onReset }: { analysis: Analysis; photo: string; onReset: () => void }) {
-  const ratingColor = analysis.overallRating >= 8 ? "#C8FF00" : analysis.overallRating >= 6 ? "#9B7FFF" : "#E8A87C";
+  const [qaInput, setQaInput] = useState("");
+  const [qaLoading, setQaLoading] = useState(false);
+  const [qaHistory, setQaHistory] = useState<{ question: string; answer: string }[]>([]);
+
+  const ratingColor = analysis.overallRating >= 8 ? GOLD : analysis.overallRating >= 6 ? "#9B7FFF" : "#E8A87C";
+
+  const askQuestion = async () => {
+    if (!qaInput.trim() || qaLoading) return;
+    const question = qaInput.trim();
+    setQaInput("");
+    setQaLoading(true);
+    try {
+      const res = await fetch("/api/skincare/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question, analysis }),
+      });
+      const json = await res.json();
+      setQaHistory(h => [...h, { question, answer: json.answer || json.error || "No response" }]);
+    } catch {
+      setQaHistory(h => [...h, { question, answer: "Failed to get answer — try again" }]);
+    } finally {
+      setQaLoading(false);
+    }
+  };
+
+  const hasSurgical = analysis.surgicalConsiderations && (
+    (analysis.surgicalConsiderations.highYield?.length ?? 0) > 0 ||
+    (analysis.surgicalConsiderations.longTerm?.length ?? 0) > 0 ||
+    (analysis.surgicalConsiderations.notRecommended?.length ?? 0) > 0
+  );
 
   return (
     <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.15)" }}>
@@ -121,7 +169,7 @@ function AnalysisCard({ analysis, photo, onReset }: { analysis: Analysis; photo:
         <div className="grid grid-cols-3 gap-3">
           <div className="rounded-xl p-3 text-center" style={{ background: "rgba(124,92,252,0.06)" }}>
             <p className="text-xs mb-1" style={{ color: "var(--text-muted)" }}>Skin Score</p>
-            <p className="text-xl font-bold" style={{ color: analysis.skinScore >= 75 ? "#C8FF00" : analysis.skinScore >= 50 ? "#E8A87C" : "#DA667B" }}>{analysis.skinScore}</p>
+            <p className="text-xl font-bold" style={{ color: analysis.skinScore >= 75 ? GOLD : analysis.skinScore >= 50 ? "#E8A87C" : "#DA667B" }}>{analysis.skinScore}</p>
           </div>
           <div className="rounded-xl p-3 text-center" style={{ background: "rgba(124,92,252,0.06)" }}>
             <p className="text-xs mb-1" style={{ color: "var(--text-muted)" }}>Rating</p>
@@ -212,7 +260,7 @@ function AnalysisCard({ analysis, photo, onReset }: { analysis: Analysis; photo:
           <div className="flex items-center gap-2 mb-3">
             <span className="text-xs px-2.5 py-1 rounded-full font-medium"
               style={analysis.hairstyleAnalysis.suitsFaceShape
-                ? { background: "rgba(200,255,0,0.1)", color: "#C8FF00" }
+                ? { background: GOLD_PILL_BG, color: GOLD }
                 : { background: "rgba(232,168,124,0.1)", color: "#E8A87C" }}>
               {analysis.hairstyleAnalysis.suitsFaceShape ? "✓ Suits your face shape" : "⚠ Could be optimized"}
             </span>
@@ -221,11 +269,11 @@ function AnalysisCard({ analysis, photo, onReset }: { analysis: Analysis; photo:
 
           {analysis.hairstyleAnalysis.recommendedStyles.length > 0 && (
             <div className="mb-3">
-              <p className="text-xs font-semibold mb-2" style={{ color: "#C8FF00" }}>Recommended for your face shape</p>
+              <p className="text-xs font-semibold mb-2" style={{ color: GOLD }}>Recommended for your face shape</p>
               <div className="space-y-2">
                 {analysis.hairstyleAnalysis.recommendedStyles.map((s, i) => (
-                  <div key={i} className="p-2.5 rounded-xl" style={{ background: "rgba(200,255,0,0.04)", border: "1px solid rgba(200,255,0,0.1)" }}>
-                    <p className="text-xs font-semibold mb-0.5" style={{ color: "#C8FF00" }}>{s.name}</p>
+                  <div key={i} className="p-2.5 rounded-xl" style={{ background: GOLD_BG_LIGHT, border: `1px solid ${GOLD_BORDER}` }}>
+                    <p className="text-xs font-semibold mb-0.5" style={{ color: GOLD }}>{s.name}</p>
                     <p className="text-xs" style={{ color: "var(--text-muted)" }}>{s.why}</p>
                   </div>
                 ))}
@@ -274,6 +322,64 @@ function AnalysisCard({ analysis, photo, onReset }: { analysis: Analysis; photo:
         </Section>
       )}
 
+      {/* Surgical Considerations */}
+      {hasSurgical && (
+        <Section title="Surgical Considerations" icon="⚕">
+          <p className="text-xs mb-3" style={{ color: "var(--text-muted)" }}>
+            Procedures ranked by impact relative to your specific features. These are investment-level decisions — do your research and consult a board-certified surgeon.
+          </p>
+
+          {(analysis.surgicalConsiderations!.highYield?.length ?? 0) > 0 && (
+            <div className="mb-3">
+              <p className="text-xs font-semibold mb-2" style={{ color: GOLD }}>High-Yield Procedures</p>
+              <div className="space-y-2">
+                {analysis.surgicalConsiderations!.highYield.map((p, i) => (
+                  <div key={i} className="p-3 rounded-xl" style={{ background: GOLD_BG, border: `1px solid ${GOLD_BORDER}` }}>
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                      <p className="text-xs font-semibold" style={{ color: GOLD }}>{p.name}</p>
+                      <span className="text-xs px-1.5 py-0.5 rounded-full flex-shrink-0 font-medium" style={{ background: GOLD_PILL_BG, color: GOLD }}>{p.cost}</span>
+                    </div>
+                    <p className="text-xs mb-1" style={{ color: "var(--text)" }}>{p.impact}</p>
+                    <p className="text-xs" style={{ color: "var(--text-muted)" }}>Timing: {p.timing}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {(analysis.surgicalConsiderations!.longTerm?.length ?? 0) > 0 && (
+            <div className="mb-3">
+              <p className="text-xs font-semibold mb-2" style={{ color: "#9B7FFF" }}>Long-Term Investments</p>
+              <div className="space-y-2">
+                {analysis.surgicalConsiderations!.longTerm.map((p, i) => (
+                  <div key={i} className="p-3 rounded-xl" style={{ background: "rgba(124,92,252,0.05)", border: "1px solid rgba(124,92,252,0.12)" }}>
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                      <p className="text-xs font-semibold" style={{ color: "#9B7FFF" }}>{p.name}</p>
+                      <span className="text-xs px-1.5 py-0.5 rounded-full flex-shrink-0 font-medium" style={{ background: "rgba(124,92,252,0.1)", color: "#9B7FFF" }}>{p.cost}</span>
+                    </div>
+                    <p className="text-xs mb-1" style={{ color: "var(--text)" }}>{p.impact}</p>
+                    <p className="text-xs" style={{ color: "var(--text-muted)" }}>Timing: {p.timing}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {(analysis.surgicalConsiderations!.notRecommended?.length ?? 0) > 0 && (
+            <div>
+              <p className="text-xs font-semibold mb-2" style={{ color: "#DA667B" }}>Not Recommended For You</p>
+              <ul className="space-y-1.5">
+                {analysis.surgicalConsiderations!.notRecommended.map((p, i) => (
+                  <li key={i} className="flex gap-2 text-xs" style={{ color: "var(--text)" }}>
+                    <span style={{ color: "#DA667B", flexShrink: 0 }}>✕</span> {p}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </Section>
+      )}
+
       {/* Beauty Roadmap */}
       {analysis.roadmap && (
         <Section title="Beauty Roadmap" icon="◎">
@@ -283,29 +389,44 @@ function AnalysisCard({ analysis, photo, onReset }: { analysis: Analysis; photo:
             <p className="text-xs leading-relaxed" style={{ color: "var(--text)" }}>{analysis.roadmap.honestAssessment}</p>
           </div>
 
-          {/* Potential */}
-          <div className="flex items-center gap-3 mb-4 p-3 rounded-xl" style={{ background: "rgba(200,255,0,0.04)", border: "1px solid rgba(200,255,0,0.12)" }}>
-            <div className="flex-1">
-              <p className="text-xs mb-2" style={{ color: "var(--text-muted)" }}>Your trajectory</p>
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-bold" style={{ color: "#DA667B" }}>{analysis.roadmap.currentRating}/10</span>
-                <div className="flex-1 h-2 rounded-full mx-1" style={{ background: "rgba(124,92,252,0.1)" }}>
-                  <div className="h-full rounded-full" style={{ width: `${(analysis.roadmap.currentRating / 10) * 100}%`, background: "linear-gradient(90deg, #DA667B, #C8FF00)" }} />
-                </div>
-                <span className="text-lg font-bold" style={{ color: "#C8FF00" }}>{analysis.roadmap.potentialRating}/10</span>
+          {/* Trajectory */}
+          <div className="mb-4 p-3 rounded-xl" style={{ background: GOLD_BG_LIGHT, border: `1px solid ${GOLD_BORDER}` }}>
+            <p className="text-xs mb-2" style={{ color: "var(--text-muted)" }}>Your trajectory</p>
+            {/* Natural ceiling bar */}
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-lg font-bold w-12 flex-shrink-0" style={{ color: "#DA667B" }}>{analysis.roadmap.currentRating}/10</span>
+              <div className="flex-1 h-2 rounded-full" style={{ background: "rgba(124,92,252,0.1)" }}>
+                <div className="h-full rounded-full" style={{ width: `${(analysis.roadmap.potentialRating / 10) * 100}%`, background: `linear-gradient(90deg, #DA667B, ${GOLD})` }} />
               </div>
-              <div className="flex justify-between mt-1">
-                <p className="text-xs" style={{ color: "var(--text-muted)" }}>Now</p>
-                <p className="text-xs" style={{ color: "#C8FF00" }}>Your ceiling</p>
-              </div>
+              <span className="text-lg font-bold w-12 flex-shrink-0 text-right" style={{ color: GOLD }}>{analysis.roadmap.potentialRating}/10</span>
             </div>
+            <div className="flex justify-between mb-2">
+              <p className="text-xs" style={{ color: "var(--text-muted)" }}>Now</p>
+              <p className="text-xs font-medium" style={{ color: GOLD }}>Natural ceiling</p>
+            </div>
+            {/* Surgical ceiling bar */}
+            {analysis.roadmap.absoluteCeiling && analysis.roadmap.absoluteCeiling > analysis.roadmap.potentialRating && (
+              <>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-sm font-bold w-12 flex-shrink-0" style={{ color: GOLD }}>{analysis.roadmap.potentialRating}/10</span>
+                  <div className="flex-1 h-1.5 rounded-full" style={{ background: "rgba(124,92,252,0.1)" }}>
+                    <div className="h-full rounded-full" style={{ width: `${(analysis.roadmap.absoluteCeiling / 10) * 100}%`, background: `linear-gradient(90deg, ${GOLD}, #9B7FFF)` }} />
+                  </div>
+                  <span className="text-sm font-bold w-12 flex-shrink-0 text-right" style={{ color: "#9B7FFF" }}>{analysis.roadmap.absoluteCeiling}/10</span>
+                </div>
+                <div className="flex justify-between">
+                  <p className="text-xs" style={{ color: "var(--text-muted)" }}>With skincare</p>
+                  <p className="text-xs font-medium" style={{ color: "#9B7FFF" }}>With procedures</p>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Timeline cards */}
           {[
             { key: "thirtyDay", label: "30 Days", color: "#9B7FFF", bg: "rgba(124,92,252,0.06)", border: "rgba(124,92,252,0.15)", data: analysis.roadmap.thirtyDay },
             { key: "ninetyDay", label: "90 Days", color: "#E8A87C", bg: "rgba(232,168,124,0.06)", border: "rgba(232,168,124,0.15)", data: analysis.roadmap.ninetyDay },
-            { key: "sixMonth", label: "6 Months", color: "#C8FF00", bg: "rgba(200,255,0,0.04)", border: "rgba(200,255,0,0.15)", data: analysis.roadmap.sixMonth },
+            { key: "sixMonth", label: "6 Months", color: GOLD, bg: GOLD_BG, border: GOLD_BORDER, data: analysis.roadmap.sixMonth },
           ].map(({ label, color, bg, border, data }) => (
             <div key={label} className="mb-3 rounded-xl overflow-hidden" style={{ background: bg, border: `1px solid ${border}` }}>
               <div className="px-3 pt-3 pb-2" style={{ borderBottom: `1px solid ${border}` }}>
@@ -331,7 +452,7 @@ function AnalysisCard({ analysis, photo, onReset }: { analysis: Analysis; photo:
       <Section title="Protocol" icon="▸">
         {analysis.protocol.immediate.length > 0 && (
           <div>
-            <p className="text-xs font-semibold mb-2" style={{ color: "#C8FF00" }}>Immediate Actions</p>
+            <p className="text-xs font-semibold mb-2" style={{ color: GOLD }}>Immediate Actions</p>
             <ul className="space-y-1.5">
               {analysis.protocol.immediate.map((a, i) => (
                 <li key={i} className="flex gap-2 text-xs" style={{ color: "var(--text)" }}>
@@ -377,6 +498,51 @@ function AnalysisCard({ analysis, photo, onReset }: { analysis: Analysis; photo:
             </ul>
           </div>
         )}
+      </Section>
+
+      {/* Ask a Question */}
+      <Section title="Ask the Analyst" icon="💬">
+        <p className="text-xs mb-3" style={{ color: "var(--text-muted)" }}>
+          Ask anything about your results — specific concerns, whether a treatment makes sense, what to prioritize first.
+        </p>
+        {qaHistory.length > 0 && (
+          <div className="space-y-4 mb-3">
+            {qaHistory.map((qa, i) => (
+              <div key={i} className="space-y-2">
+                <div className="flex gap-2">
+                  <span className="text-xs font-semibold flex-shrink-0" style={{ color: "#9B7FFF" }}>You</span>
+                  <p className="text-xs" style={{ color: "var(--text)" }}>{qa.question}</p>
+                </div>
+                <div className="p-3 rounded-xl" style={{ background: "rgba(124,92,252,0.05)", border: "1px solid rgba(124,92,252,0.1)" }}>
+                  <p className="text-xs leading-relaxed" style={{ color: "var(--text)" }}>{qa.answer}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={qaInput}
+            onChange={e => setQaInput(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter" && !qaLoading) askQuestion(); }}
+            placeholder="e.g. Should I try retinol? What about lip fillers?"
+            className="flex-1 text-xs px-3 py-2.5 rounded-xl outline-none"
+            style={{ background: "rgba(124,92,252,0.08)", border: "1px solid rgba(124,92,252,0.15)", color: "var(--text)" }}
+          />
+          <button
+            onClick={askQuestion}
+            disabled={qaLoading || !qaInput.trim()}
+            className="flex items-center justify-center w-10 h-10 rounded-xl flex-shrink-0 transition-opacity disabled:opacity-40"
+            style={{ background: "rgba(124,92,252,0.15)", color: "#9B7FFF" }}
+          >
+            {qaLoading ? (
+              <div className="w-3 h-3 rounded-full border border-current border-t-transparent animate-spin" />
+            ) : (
+              <Send size={14} />
+            )}
+          </button>
+        </div>
       </Section>
 
       {/* Re-analyze */}
@@ -433,7 +599,7 @@ export function SkincareView({ data, update }: Props) {
     reader.onload = (ev) => {
       const result = ev.target?.result as string;
       const base64 = result.split(",")[1];
-      setPhoto(result); // data URL for preview
+      setPhoto(result);
       runAnalysis(base64, file.type || "image/jpeg");
     };
     reader.readAsDataURL(file);
@@ -514,14 +680,14 @@ export function SkincareView({ data, update }: Props) {
         </div>
       </div>
 
-      {/* ── Beauty Analysis ── */}
+      {/* Beauty Analysis */}
       {analysis && photo ? (
         <AnalysisCard analysis={analysis} photo={photo} onReset={resetAnalysis} />
       ) : (
         <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.15)" }}>
           <div className="p-4" style={{ borderBottom: "1px solid rgba(124,92,252,0.1)" }}>
             <p className="text-xs font-semibold mb-0.5" style={{ color: "var(--text-muted)", letterSpacing: "0.08em" }}>AI BEAUTY ANALYSIS</p>
-            <p className="text-xs" style={{ color: "var(--text-muted)" }}>Upload a clear selfie — skin assessment, feature analysis & personalized protocol</p>
+            <p className="text-xs" style={{ color: "var(--text-muted)" }}>Upload a clear selfie — skin assessment, feature analysis, surgical options & personalized protocol</p>
           </div>
 
           {!photo && !analyzing && (

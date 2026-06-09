@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
 
   const routineContext = products?.length
     ? `Current skincare routine:\n${products.map((p: { name: string; brand?: string; routine: string; isTesting?: boolean }) =>
-        `- ${p.name}${p.brand ? ` (${p.brand})` : ""} — ${p.routine}${p.isTesting ? " [testing]" : ""}`
+        `- ${p.name}${p.brand ? ` (${p.brand})` : ""} - ${p.routine}${p.isTesting ? " [testing]" : ""}`
       ).join("\n")}`
     : "No skincare routine logged yet.";
 
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
       ).join("\n")}`
     : "No check-in history yet.";
 
-  const prompt = `You are a brutally honest aesthetic analyst, dermatologist, and hair stylist. Your job is to give real, unfiltered feedback, not flattery. The person asking WANTS honest truth so they can actually improve. Do not sugarcoat. Do not say "beautiful" unless it is genuinely true. Call out real problems directly. Be specific about what is holding them back and what their realistic potential is if they put in the work.
+  const prompt = `You are a brutally honest aesthetic analyst, dermatologist, and hair stylist. Your job is to give real, unfiltered feedback, not flattery. The person asking WANTS honest truth so they can actually improve. Do not sugarcoat. Call out real problems directly. Be specific about what is holding them back and what their realistic potential is.
 
 ${routineContext}
 ${checkInContext}
@@ -27,17 +27,17 @@ ${checkInContext}
 Return ONLY a valid JSON object with exactly this structure. All string values must be on a single line with no literal newline characters inside them:
 
 {
-  "skinScore": <number 0-100, be honest, average skin is 50-65>,
-  "overallRating": <number 1-10 with one decimal, be calibrated: most people are 4-7, reserve 8+ for genuinely above average>,
+  "skinScore": <number 0-100, average skin is 50-65>,
+  "overallRating": <number 1-10 with one decimal, most people are 4-7, reserve 8+ for genuinely above average>,
   "apparentAge": {
-    "estimated": <number, the age this person appears based on skin, features, and hair>,
-    "note": "<be specific: what exact features are aging or youthening them>"
+    "estimated": <number, age this person appears based on skin, features, and hair>,
+    "note": "<specific: what exact features are aging or youthening them>"
   },
   "skinAssessment": {
-    "summary": "<honest 2-3 sentence overview, name the actual problems visible>",
+    "summary": "<honest 2-3 sentence overview, name actual problems visible>",
     "texture": "<specific texture assessment, mention unevenness, pores, roughness if present>",
     "hydration": "<honest hydration assessment>",
-    "concerns": ["<real concern>"],
+    "concerns": ["<real concern>", "<real concern>"],
     "strengths": ["<genuine strength only>"]
   },
   "featureAnalysis": {
@@ -64,12 +64,22 @@ Return ONLY a valid JSON object with exactly this structure. All string values m
     "immediate": ["<action to take this week>"],
     "routineAdjustments": ["<specific product or routine change>"],
     "lifestyle": ["<lifestyle change that will visibly impact appearance>"],
-    "treatments": ["<professional treatment worth investing in>"]
+    "treatments": ["<professional non-surgical treatment worth investing in>"]
+  },
+  "surgicalConsiderations": {
+    "highYield": [
+      { "name": "<procedure name>", "impact": "<exactly what this addresses on their specific face>", "cost": "<rough cost range e.g. $500-1500>", "timing": "<when to consider e.g. after building skincare foundation>" }
+    ],
+    "longTerm": [
+      { "name": "<procedure name>", "impact": "<what this specifically addresses for them>", "cost": "<rough cost range>", "timing": "<longer-term consideration after high-yield steps>" }
+    ],
+    "notRecommended": ["<procedure that would be wrong for their specific features and why>"]
   },
   "roadmap": {
-    "honestAssessment": "<2-3 sentences of unfiltered truth: where they currently are, what is realistically holding them back, and what their ceiling looks like if they commit>",
+    "honestAssessment": "<2-3 sentences of unfiltered truth: where they currently are, what is holding them back, and what their ceiling looks like if they commit>",
     "currentRating": <their current overall rating number>,
-    "potentialRating": <realistic achievable rating with consistent effort, be honest, most people can gain 1-2 points max>,
+    "potentialRating": <realistic achievable rating with consistent skincare and lifestyle effort, most people gain 1-2 points max>,
+    "absoluteCeiling": <maximum realistic rating with optimal non-surgical AND surgical interventions combined, be honest>,
     "thirtyDay": {
       "focus": "<the single most impactful thing to focus on this month>",
       "expectedChange": "<what will visibly improve in 30 days if they commit>",
@@ -108,7 +118,7 @@ Return ONLY a valid JSON object with exactly this structure. All string values m
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error("No JSON found in response");
 
-    // Escape literal control chars that appear inside JSON string values
+    // Escape literal control chars inside JSON string values
     const cleaned = jsonMatch[0].replace(/"(?:[^"\\]|\\.)*"/g, (match) =>
       match.replace(/\n/g, "\\n").replace(/\r/g, "\\r").replace(/\t/g, "\\t")
     );
