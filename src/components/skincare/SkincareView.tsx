@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { format, parseISO } from "date-fns";
-import { Plus, Trash2, Sparkles } from "lucide-react";
+import { Plus, Trash2, Sparkles, Camera, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
 import { DashboardData, SkincareProduct } from "@/types/dashboard";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -14,13 +14,214 @@ interface Props {
   update: (fn: (d: DashboardData) => DashboardData) => void;
 }
 
+interface Analysis {
+  skinScore: number;
+  skinAssessment: {
+    summary: string;
+    texture: string;
+    hydration: string;
+    concerns: string[];
+    strengths: string[];
+  };
+  featureAnalysis: {
+    summary: string;
+    harmony: string;
+    standouts: string[];
+    areas: string[];
+  };
+  protocol: {
+    immediate: string[];
+    routineAdjustments: string[];
+    lifestyle: string[];
+    treatments: string[];
+  };
+}
+
+function ScoreRing({ score }: { score: number }) {
+  const r = 28;
+  const circ = 2 * Math.PI * r;
+  const filled = (score / 100) * circ;
+  const color = score >= 75 ? "#C8FF00" : score >= 50 ? "#E8A87C" : "#DA667B";
+  return (
+    <div className="relative w-16 h-16 flex items-center justify-center">
+      <svg width="64" height="64" viewBox="0 0 64 64" className="-rotate-90">
+        <circle cx="32" cy="32" r={r} fill="none" stroke="rgba(124,92,252,0.1)" strokeWidth="5" />
+        <circle cx="32" cy="32" r={r} fill="none" stroke={color} strokeWidth="5"
+          strokeDasharray={`${filled} ${circ - filled}`} strokeLinecap="round" />
+      </svg>
+      <span className="absolute text-sm font-bold" style={{ color }}>{score}</span>
+    </div>
+  );
+}
+
+function Section({ title, icon, children, defaultOpen = false }: { title: string; icon: string; children: React.ReactNode; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="border-b border-[rgba(124,92,252,0.1)] last:border-0">
+      <button onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-4 py-3.5 text-left">
+        <div className="flex items-center gap-2.5">
+          <span className="text-base">{icon}</span>
+          <span className="text-sm font-semibold" style={{ color: "var(--text)" }}>{title}</span>
+        </div>
+        {open ? <ChevronUp size={16} style={{ color: "var(--text-muted)" }} /> : <ChevronDown size={16} style={{ color: "var(--text-muted)" }} />}
+      </button>
+      {open && <div className="px-4 pb-4 space-y-3">{children}</div>}
+    </div>
+  );
+}
+
+function Pill({ text, variant }: { text: string; variant: "concern" | "strength" | "action" }) {
+  const styles = {
+    concern: { background: "rgba(218,102,123,0.1)", color: "#DA667B" },
+    strength: { background: "rgba(200,255,0,0.1)", color: "#C8FF00" },
+    action: { background: "rgba(124,92,252,0.1)", color: "#9B7FFF" },
+  };
+  return (
+    <span className="inline-block px-2.5 py-1 rounded-full text-xs font-medium mr-1.5 mb-1.5" style={styles[variant]}>
+      {text}
+    </span>
+  );
+}
+
+function AnalysisCard({ analysis, photo, onReset }: { analysis: Analysis; photo: string; onReset: () => void }) {
+  return (
+    <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.15)" }}>
+      {/* Header */}
+      <div className="flex items-center gap-4 p-4" style={{ borderBottom: "1px solid rgba(124,92,252,0.1)" }}>
+        <img src={photo} alt="Analysis photo" className="w-14 h-14 rounded-xl object-cover flex-shrink-0" />
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-semibold mb-1" style={{ color: "var(--text-muted)", letterSpacing: "0.08em" }}>BEAUTY ANALYSIS</p>
+          <p className="text-sm" style={{ color: "var(--text)" }}>{analysis.skinAssessment.summary.slice(0, 80)}…</p>
+        </div>
+        <div className="flex flex-col items-center gap-1 flex-shrink-0">
+          <ScoreRing score={analysis.skinScore} />
+          <p className="text-xs" style={{ color: "var(--text-muted)" }}>Skin Score</p>
+        </div>
+      </div>
+
+      {/* Introduction */}
+      <Section title="Introduction" icon="✦" defaultOpen>
+        <p className="text-sm leading-relaxed" style={{ color: "var(--text)" }}>{analysis.skinAssessment.summary}</p>
+        <div className="grid grid-cols-2 gap-3 mt-2">
+          <div className="rounded-xl p-3" style={{ background: "rgba(124,92,252,0.05)" }}>
+            <p className="text-xs font-medium mb-1" style={{ color: "var(--text-muted)" }}>Texture</p>
+            <p className="text-xs" style={{ color: "var(--text)" }}>{analysis.skinAssessment.texture}</p>
+          </div>
+          <div className="rounded-xl p-3" style={{ background: "rgba(124,92,252,0.05)" }}>
+            <p className="text-xs font-medium mb-1" style={{ color: "var(--text-muted)" }}>Hydration</p>
+            <p className="text-xs" style={{ color: "var(--text)" }}>{analysis.skinAssessment.hydration}</p>
+          </div>
+        </div>
+      </Section>
+
+      {/* Facial Assessments */}
+      <Section title="Facial Assessments" icon="◈">
+        <p className="text-sm leading-relaxed" style={{ color: "var(--text)" }}>{analysis.featureAnalysis.summary}</p>
+        <div className="mt-2">
+          <p className="text-xs font-medium mb-1.5" style={{ color: "var(--text-muted)" }}>Harmony</p>
+          <p className="text-xs" style={{ color: "var(--text)" }}>{analysis.featureAnalysis.harmony}</p>
+        </div>
+      </Section>
+
+      {/* Features Analysis */}
+      <Section title="Features Analysis" icon="◇">
+        {analysis.skinAssessment.strengths.length > 0 && (
+          <div>
+            <p className="text-xs font-medium mb-2" style={{ color: "var(--text-muted)" }}>Strengths</p>
+            <div>{analysis.skinAssessment.strengths.map((s, i) => <Pill key={i} text={s} variant="strength" />)}</div>
+          </div>
+        )}
+        {analysis.skinAssessment.concerns.length > 0 && (
+          <div>
+            <p className="text-xs font-medium mb-2" style={{ color: "var(--text-muted)" }}>Areas to address</p>
+            <div>{analysis.skinAssessment.concerns.map((c, i) => <Pill key={i} text={c} variant="concern" />)}</div>
+          </div>
+        )}
+        {analysis.featureAnalysis.standouts.length > 0 && (
+          <div>
+            <p className="text-xs font-medium mb-2" style={{ color: "var(--text-muted)" }}>Standout features</p>
+            <div>{analysis.featureAnalysis.standouts.map((s, i) => <Pill key={i} text={s} variant="strength" />)}</div>
+          </div>
+        )}
+      </Section>
+
+      {/* Protocol */}
+      <Section title="Protocol" icon="▸">
+        {analysis.protocol.immediate.length > 0 && (
+          <div>
+            <p className="text-xs font-semibold mb-2" style={{ color: "#C8FF00" }}>Immediate Actions</p>
+            <ul className="space-y-1.5">
+              {analysis.protocol.immediate.map((a, i) => (
+                <li key={i} className="flex gap-2 text-xs" style={{ color: "var(--text)" }}>
+                  <span style={{ color: "#9B7FFF" }}>→</span> {a}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {analysis.protocol.routineAdjustments.length > 0 && (
+          <div>
+            <p className="text-xs font-semibold mb-2" style={{ color: "#9B7FFF" }}>Routine Adjustments</p>
+            <ul className="space-y-1.5">
+              {analysis.protocol.routineAdjustments.map((a, i) => (
+                <li key={i} className="flex gap-2 text-xs" style={{ color: "var(--text)" }}>
+                  <span style={{ color: "#9B7FFF" }}>→</span> {a}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {analysis.protocol.lifestyle.length > 0 && (
+          <div>
+            <p className="text-xs font-semibold mb-2" style={{ color: "#E8A87C" }}>Lifestyle</p>
+            <ul className="space-y-1.5">
+              {analysis.protocol.lifestyle.map((a, i) => (
+                <li key={i} className="flex gap-2 text-xs" style={{ color: "var(--text)" }}>
+                  <span style={{ color: "#E8A87C" }}>→</span> {a}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {analysis.protocol.treatments.length > 0 && (
+          <div>
+            <p className="text-xs font-semibold mb-2" style={{ color: "#DA667B" }}>Professional Treatments</p>
+            <ul className="space-y-1.5">
+              {analysis.protocol.treatments.map((a, i) => (
+                <li key={i} className="flex gap-2 text-xs" style={{ color: "var(--text)" }}>
+                  <span style={{ color: "#DA667B" }}>→</span> {a}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </Section>
+
+      {/* Re-analyze */}
+      <div className="p-4 flex justify-center" style={{ borderTop: "1px solid rgba(124,92,252,0.1)" }}>
+        <button onClick={onReset} className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl"
+          style={{ background: "rgba(124,92,252,0.08)", color: "var(--text-muted)" }}>
+          <RefreshCw size={14} /> New Analysis
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function SkincareView({ data, update }: Props) {
   const [productOpen, setProductOpen] = useState(false);
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [productForm, setProductForm] = useState<{ name: string; brand: string; routine: "am" | "pm" | "both"; isTesting: boolean; startDate: string; notes: string }>({ name: "", brand: "", routine: "am", isTesting: false, startDate: "", notes: "" });
   const [checkInForm, setCheckInForm] = useState({ breakouts: false, observations: "", changes: "" });
-  const today = todayStr();
 
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysis, setAnalysis] = useState<Analysis | null>(null);
+  const [analyzeError, setAnalyzeError] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const today = todayStr();
   const amProducts = data.skincareProducts.filter((p) => p.routine === "am" || p.routine === "both").sort((a, b) => a.order - b.order);
   const pmProducts = data.skincareProducts.filter((p) => p.routine === "pm" || p.routine === "both").sort((a, b) => a.order - b.order);
   const testingProducts = data.skincareProducts.filter((p) => p.isTesting);
@@ -42,6 +243,51 @@ export function SkincareView({ data, update }: Props) {
     update((d) => ({ ...d, skinCheckIns: [...d.skinCheckIns, { ...checkInForm, id: id(), date: today }] }));
     setCheckInForm({ breakouts: false, observations: "", changes: "" });
     setCheckInOpen(false);
+  };
+
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const result = ev.target?.result as string;
+      const base64 = result.split(",")[1];
+      setPhoto(result); // data URL for preview
+      runAnalysis(base64, file.type || "image/jpeg");
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const runAnalysis = async (base64: string, mime: string) => {
+    setAnalyzing(true);
+    setAnalyzeError("");
+    setAnalysis(null);
+    try {
+      const res = await fetch("/api/skincare/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          imageBase64: base64,
+          mimeType: mime,
+          products: data.skincareProducts,
+          checkIns: data.skinCheckIns,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error);
+      setAnalysis(json.analysis);
+    } catch (e: unknown) {
+      setAnalyzeError(e instanceof Error ? e.message : "Analysis failed");
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  const resetAnalysis = () => {
+    setPhoto(null);
+    setAnalysis(null);
+    setAnalyzeError("");
+    if (fileRef.current) fileRef.current.value = "";
   };
 
   const renderProductList = (products: SkincareProduct[], label: string) => (
@@ -86,6 +332,56 @@ export function SkincareView({ data, update }: Props) {
           </Button>
         </div>
       </div>
+
+      {/* ── Beauty Analysis ── */}
+      {analysis && photo ? (
+        <AnalysisCard analysis={analysis} photo={photo} onReset={resetAnalysis} />
+      ) : (
+        <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.15)" }}>
+          <div className="p-4" style={{ borderBottom: "1px solid rgba(124,92,252,0.1)" }}>
+            <p className="text-xs font-semibold mb-0.5" style={{ color: "var(--text-muted)", letterSpacing: "0.08em" }}>AI BEAUTY ANALYSIS</p>
+            <p className="text-xs" style={{ color: "var(--text-muted)" }}>Upload a clear selfie — skin assessment, feature analysis & personalized protocol</p>
+          </div>
+
+          {!photo && !analyzing && (
+            <button onClick={() => fileRef.current?.click()}
+              className="w-full flex flex-col items-center justify-center gap-3 py-10 transition-colors hover:bg-purple-50/10">
+              <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                style={{ background: "rgba(124,92,252,0.1)", border: "1.5px dashed rgba(124,92,252,0.3)" }}>
+                <Camera size={24} style={{ color: "#9B7FFF" }} />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-medium" style={{ color: "var(--text)" }}>Upload a selfie</p>
+                <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>Best results with good lighting, face centered</p>
+              </div>
+            </button>
+          )}
+
+          {photo && analyzing && (
+            <div className="flex flex-col items-center gap-4 py-10">
+              <img src={photo} alt="Uploading" className="w-20 h-20 rounded-2xl object-cover opacity-60" />
+              <div className="flex flex-col items-center gap-2">
+                <div className="flex gap-1">
+                  {[0, 150, 300].map(d => (
+                    <div key={d} className="w-2 h-2 rounded-full animate-bounce"
+                      style={{ background: "#9B7FFF", animationDelay: `${d}ms` }} />
+                  ))}
+                </div>
+                <p className="text-sm" style={{ color: "var(--text-muted)" }}>Analyzing your skin…</p>
+              </div>
+            </div>
+          )}
+
+          {analyzeError && (
+            <div className="px-4 pb-4">
+              <p className="text-xs text-center py-3 rounded-xl" style={{ background: "rgba(218,102,123,0.08)", color: "#DA667B" }}>{analyzeError}</p>
+              <button onClick={resetAnalysis} className="w-full text-xs text-center mt-2" style={{ color: "var(--text-muted)" }}>Try again</button>
+            </div>
+          )}
+
+          <input ref={fileRef} type="file" accept="image/*" capture="user" className="hidden" onChange={handlePhotoSelect} />
+        </div>
+      )}
 
       {testingProducts.length > 0 && (
         <Card title="Currently Testing" subtitle="Products on trial">
