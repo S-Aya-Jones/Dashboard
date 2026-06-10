@@ -355,7 +355,7 @@ export function BodyScanView({ data, update }: Props) {
         return { ...d, workout: { ...wd, bodyScanPhotos: [...(wd.bodyScanPhotos ?? []), newPhoto] } };
       });
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : typeof e === "string" ? e : "Scan failed. Try again.";
+      const msg = e instanceof Error ? e.message : typeof e === "string" ? e : JSON.stringify(e) || "Scan failed. Try again.";
       setError(msg);
     } finally {
       setAnalyzing(false);
