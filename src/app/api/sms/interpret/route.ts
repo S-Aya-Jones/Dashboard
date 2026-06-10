@@ -103,6 +103,20 @@ Return ONLY valid JSON with these optional fields (only include fields you can e
       data.sleepLogs = [...existing.filter((s) => s.date !== today), sleepLog];
     }
 
+    // Mood
+    if (parsed.mood) {
+      (data as Record<string, unknown>).todayMood = parsed.mood;
+    }
+
+    // General note — append to today's notes
+    if (parsed.note) {
+      const notes = (data as Record<string, unknown>).notes as { date: string; text: string }[] ?? [];
+      (data as Record<string, unknown>).notes = [
+        ...notes.filter((n) => n.date !== today),
+        { date: today, text: parsed.note as string },
+      ];
+    }
+
     // Store message in SMS log
     const sms = data.sms ?? { phoneNumber: "siri", enabled: true, messages: [], reminders: [] };
     sms.messages = [
@@ -124,7 +138,9 @@ Return ONLY valid JSON with these optional fields (only include fields you can e
     data.sms = sms;
 
     await saveData(data);
-  } catch { /* non-fatal — still return reply */ }
+  } catch (e) {
+    console.error("interpret save error:", e);
+  }
 
   return NextResponse.json({ reply, parsed });
 }
