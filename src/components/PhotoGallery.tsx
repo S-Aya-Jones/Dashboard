@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronUp, Trash2, Download } from "lucide-react";
+import { ChevronDown, ChevronUp, Trash2, Download, MessageSquare } from "lucide-react";
 import { BodyScanPhoto, FormCheckPhoto } from "@/types/dashboard";
 import { format, parseISO } from "date-fns";
 
@@ -11,11 +11,12 @@ interface Props {
   photos: Photo[];
   type: "bodyscan" | "formcheck";
   onDelete: (id: string) => void;
+  onViewAnalysis?: (photo: BodyScanPhoto) => void;
 }
 
 const isBodyScanPhoto = (p: Photo): p is BodyScanPhoto => "angle" in p;
 
-export function PhotoGallery({ photos, type, onDelete }: Props) {
+export function PhotoGallery({ photos, type, onDelete, onViewAnalysis }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -85,21 +86,49 @@ export function PhotoGallery({ photos, type, onDelete }: Props) {
                   <p className="text-xs" style={{ color: "var(--text-muted)" }}>
                     Angle: <span className="font-semibold" style={{ color: "var(--text)" }}>{selected.angle === "all" ? "Multiple" : selected.angle}</span>
                   </p>
-                  {selected.analysis && (
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="rounded-lg p-2" style={{ background: "rgba(124,92,252,0.1)" }}>
-                        <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Body Fat</p>
-                        <p className="text-xs font-bold" style={{ color: "#7C5CFC" }}>
-                          {selected.analysis.bodyFat.low}–{selected.analysis.bodyFat.high}%
-                        </p>
+                  {selected.analysis ? (
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="rounded-lg p-2" style={{ background: "rgba(124,92,252,0.1)" }}>
+                          <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Body Fat</p>
+                          <p className="text-xs font-bold" style={{ color: "#7C5CFC" }}>
+                            {selected.analysis.bodyFat.low}–{selected.analysis.bodyFat.high}%
+                          </p>
+                        </div>
+                        <div className="rounded-lg p-2" style={{ background: "rgba(124,92,252,0.1)" }}>
+                          <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Score</p>
+                          <p className="text-xs font-bold" style={{ color: "#7C5CFC" }}>
+                            {selected.analysis.compositionScore}/10
+                          </p>
+                          {selected.analysis.potentialScore && (
+                            <p className="text-[9px]" style={{ color: "var(--text-light)" }}>
+                              (Potential: {selected.analysis.potentialScore}/10)
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      <div className="rounded-lg p-2" style={{ background: "rgba(124,92,252,0.1)" }}>
-                        <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Score</p>
-                        <p className="text-xs font-bold" style={{ color: "#7C5CFC" }}>
-                          {selected.analysis.compositionScore}/10
-                        </p>
-                      </div>
+                      {selected.analysis.honestAssessment && (
+                        <div className="rounded-lg p-2" style={{ background: "rgba(218,102,123,0.08)" }}>
+                          <p className="text-[10px] font-semibold" style={{ color: "#DA667B" }}>Assessment</p>
+                          <p className="text-xs mt-1 leading-snug" style={{ color: "var(--text-muted)" }}>
+                            {selected.analysis.honestAssessment.substring(0, 120)}...
+                          </p>
+                        </div>
+                      )}
+                      {onViewAnalysis && (
+                        <button
+                          onClick={() => onViewAnalysis(selected as BodyScanPhoto)}
+                          className="w-full py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
+                          style={{ background: "rgba(124,92,252,0.15)", color: "#7C5CFC" }}>
+                          <MessageSquare size={12} />
+                          View Full Analysis & Chat
+                        </button>
+                      )}
                     </div>
+                  ) : (
+                    <p className="text-xs" style={{ color: "var(--text-light)" }}>
+                      (Analysis pending - check back later)
+                    </p>
                   )}
                 </>
               )}

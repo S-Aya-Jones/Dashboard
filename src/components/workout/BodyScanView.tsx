@@ -49,15 +49,16 @@ export function BodyScanView({ data, update }: Props) {
   const bodyScanPhotos = w.bodyScanPhotos ?? [];
 
   const handlePhotoCapture = async (photoData: string) => {
+    const photoId = id();
     const newPhoto: BodyScanPhoto = {
-      id: id(),
+      id: photoId,
       date: format(new Date(), "yyyy-MM-dd"),
       timestamp: new Date().toISOString(),
       angle: selectedAngle,
       photoData,
     };
 
-    // Store the photo
+    // Store the photo (without analysis yet)
     update((d) => {
       const wd = d.workout ?? { sessionLogs: [], walkingLogs: [], measurements: [], bodyWeight: [] };
       return {
@@ -88,8 +89,35 @@ export function BodyScanView({ data, update }: Props) {
 
       if (!res.ok) throw new Error("Analysis failed");
       const data = await res.json();
-      setAnalysisResult(data.analysis);
+      const analysis = data.analysis;
+
+      setAnalysisResult(analysis);
       setShowChat(true);
+
+      // Update photo with analysis data
+      update((d) => {
+        const wd = d.workout ?? { sessionLogs: [], walkingLogs: [], measurements: [], bodyWeight: [] };
+        const photos = (wd.bodyScanPhotos ?? []).map((p) =>
+          p.id === photoId
+            ? {
+                ...p,
+                analysis: {
+                  bodyFat: analysis.bodyFatEstimate,
+                  compositionScore: analysis.compositionScore,
+                  potentialScore: analysis.potentialScore,
+                  honestAssessment: analysis.honestAssessment,
+                  strengths: analysis.strengths,
+                  areas: analysis.areas,
+                  roadmap: analysis.roadmap,
+                },
+              }
+            : p
+        );
+        return {
+          ...d,
+          workout: { ...wd, bodyScanPhotos: photos },
+        };
+      });
     } catch (e) {
       console.error("Analysis error:", e);
       alert("Could not analyze photo. Try again.");
@@ -109,6 +137,38 @@ export function BodyScanView({ data, update }: Props) {
         },
       };
     });
+  };
+
+  const handleViewAnalysis = (photo: BodyScanPhoto) => {
+    if (photo.analysis) {
+      // Reconstruct analysis data from stored photo analysis
+      const reconstructedAnalysis: AnalysisData = {
+        bodyType: "Mixed",
+        visualAssessment: "",
+        bodyFatEstimate: {
+          low: photo.analysis.bodyFat.low,
+          high: photo.analysis.bodyFat.high,
+          category: photo.analysis.bodyFat.category || "Average",
+          note: photo.analysis.bodyFat.note || "Based on visual assessment",
+        },
+        muscleDefinition: 5,
+        compositionScore: photo.analysis.compositionScore,
+        potentialScore: photo.analysis.potentialScore || 8,
+        visibleMuscle: [],
+        posture: "Neutral",
+        strengths: photo.analysis.strengths || [],
+        areas: photo.analysis.areas || [],
+        honestAssessment: photo.analysis.honestAssessment || "Analysis available",
+        protocol: { training: [], diet: [], recovery: [] },
+        roadmap: {
+          thirtyDay: photo.analysis.roadmap?.thirtyDay || { focus: "Progress review", expectedChange: "See gallery for changes", actions: [] },
+          ninetyDay: photo.analysis.roadmap?.ninetyDay || { focus: "Progress review", expectedChange: "See gallery for changes", actions: [] },
+          sixMonth: photo.analysis.roadmap?.sixMonth || { focus: "Progress review", expectedChange: "See gallery for changes", actions: [] },
+        },
+      };
+      setAnalysisResult(reconstructedAnalysis);
+      setShowChat(true);
+    }
   };
 
   return (
@@ -168,7 +228,7 @@ export function BodyScanView({ data, update }: Props) {
           </div>
 
           {/* Photo gallery */}
-          <PhotoGallery photos={bodyScanPhotos} type="bodyscan" onDelete={handleDelete} />
+          <PhotoGallery photos={bodyScanPhotos} type="bodyscan" onDelete={handleDelete} onViewAnalysis={handleViewAnalysis} />
         </div>
       </div>
 

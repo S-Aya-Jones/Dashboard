@@ -724,8 +724,17 @@ export interface BodyScanPhoto {
   angle: "front" | "back" | "left" | "right" | "all"; // angle or "all" if multiple
   photoData: string; // base64 image data
   analysis?: {
-    bodyFat: { low: number; high: number };
+    bodyFat: { low: number; high: number; category?: string; note?: string };
     compositionScore: number;
+    potentialScore?: number;
+    honestAssessment?: string;
+    strengths?: string[];
+    areas?: string[];
+    roadmap?: {
+      thirtyDay?: { focus: string; expectedChange: string; actions: string[] };
+      ninetyDay?: { focus: string; expectedChange: string; actions: string[] };
+      sixMonth?: { focus: string; expectedChange: string; actions: string[] };
+    };
   };
 }
 
