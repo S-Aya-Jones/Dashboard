@@ -709,11 +709,67 @@ export interface BodyWeightEntry {
   weight: number; // lbs
 }
 
+export interface ExercisePR {
+  exerciseId: string;
+  exerciseName: string;
+  maxWeight: number; // heaviest weight lifted
+  reps: number; // reps at that weight
+  achievedDate: string; // YYYY-MM-DD
+}
+
+export interface BodyScanPhoto {
+  id: string;
+  date: string; // YYYY-MM-DD
+  timestamp: string; // ISO datetime
+  angle: "front" | "back" | "left" | "right" | "all"; // angle or "all" if multiple
+  photoData: string; // base64 image data
+  height?: number; // inches or cm (user's height when photo taken)
+  weight?: number; // lbs or kg (optional weight at time of photo)
+  analysis?: {
+    bodyFat: { low: number; high: number; category?: string; note?: string };
+    compositionScore: number;
+    potentialScore?: number;
+    honestAssessment?: string;
+    strengths?: string[];
+    areas?: string[];
+    roadmap?: {
+      thirtyDay?: { focus: string; expectedChange: string; actions: string[] };
+      ninetyDay?: { focus: string; expectedChange: string; actions: string[] };
+      sixMonth?: { focus: string; expectedChange: string; actions: string[] };
+    };
+  };
+}
+
+export interface FormCheckPhoto {
+  id: string;
+  date: string; // YYYY-MM-DD
+  timestamp: string; // ISO datetime
+  exerciseName: string;
+  exerciseId: string;
+  photoData: string; // base64 image data
+  formScore?: number; // 0-100
+  corrections?: string[];
+}
+
+export interface AvatarVideoUrl {
+  exerciseId: string;
+  exerciseName: string;
+  videoUrl: string; // HeyGen video URL
+  generatedAt: string; // ISO datetime
+  avatarPrompt?: string; // The prompt used to generate this video
+}
+
 export interface WorkoutData {
   sessionLogs: WorkoutSessionLog[];
   walkingLogs: WalkingLog[];
   measurements: MeasurementEntry[];
   bodyWeight: BodyWeightEntry[];
+  personalRecords?: ExercisePR[]; // PR tracking per exercise
+  bodyScanPhotos?: BodyScanPhoto[]; // Body scan photo history for progress tracking
+  formCheckPhotos?: FormCheckPhoto[]; // Form check photo history
+  avatarVideoUrls?: AvatarVideoUrl[]; // HeyGen avatar video URLs for exercises
+  lastAPTCheckDate?: string; // YYYY-MM-DD
+  lastMeasurementReminder?: string; // YYYY-MM-DD
   goalWeight?: number;
   programStartDate?: string; // YYYY-MM-DD
 }

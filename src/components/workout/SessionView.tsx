@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { X, Volume2, SkipForward, Pause, Play, Plus, ChevronLeft, ChevronRight, ExternalLink, ChevronsRight } from "lucide-react";
-import { ProgramDay, ProgramExercise, CORE_PRIMER, HIP_FLEXOR_UNLOCK, getWeekPhase, suggestWeight, CATEGORY_CUES, UNIVERSAL_CUES } from "./program";
-import { ExerciseSessionLog, WorkoutSetLog } from "@/types/dashboard";
+import { ProgramDay, ProgramExercise, getWeekPhase, suggestWeight, CATEGORY_CUES, UNIVERSAL_CUES, getPhaseEmojiAndColor, getPhaseCoachingMessage } from "./program";
+import { DashboardData, ExerciseSessionLog, WorkoutSetLog } from "@/types/dashboard";
+import { AvatarCoach } from "./AvatarCoach";
+import { FormChecker } from "./FormChecker";
 
 interface Props {
   day: ProgramDay;
@@ -15,6 +17,8 @@ interface Props {
   prepTime: number;
   onComplete: (logs: ExerciseSessionLog[]) => void;
   onExit: () => void;
+  update: (fn: (d: DashboardData) => DashboardData) => void;
+  data: DashboardData;
 }
 
 interface WorkoutSection {
@@ -140,16 +144,22 @@ function VideoBlock({ ex, animKey }: { ex: ProgramExercise; animKey: number }) {
   );
 }
 
+// ── Helper: Get avatar video URL for exercise ───────────────────────────────────
+function getExerciseVideoUrl(exerciseId: string, data: DashboardData): string | undefined {
+  const videoUrls = data.workout?.avatarVideoUrls ?? [];
+  return videoUrls.find((v) => v.exerciseId === exerciseId)?.videoUrl;
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 
-export function SessionView({ day, weekNum, lastWeights, streak, totalCompleted, isSunday, prepTime, onComplete, onExit }: Props) {
+export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepTime, onComplete, onExit, update, data }: Props) {
   const [customExList, setCustomExList] = useState<ProgramExercise[]>([]);
 
   // ── Sections ─────────────────────────────────────────────────────────────────
   const sections = useMemo((): WorkoutSection[] => [
-    { id: "core",  label: "Core Primer",  color: "#DA667B", exercises: CORE_PRIMER },
-    ...(day.isGluteDay ? [{ id: "hip", label: "Hip Flexors", color: "#C99A5C", exercises: HIP_FLEXOR_UNLOCK }] : []),
-    { id: "main",  label: "Main Work",    color: "#7C5CFC", exercises: [...day.mainExercises, ...customExList] },
+    ...(day.warmupExercises.length > 0 ? [{ id: "warmup", label: "Activation", color: "#DA667B", exercises: day.warmupExercises }] : []),
+    { id: "main", label: "Main Work", color: "#7C5CFC", exercises: [...day.mainExercises, ...customExList] },
+    ...(day.cooldownExercises.length > 0 ? [{ id: "cooldown", label: "Cooldown", color: "#C99A5C", exercises: day.cooldownExercises }] : []),
   ], [day, customExList]);
 
   const exercises = useMemo(() => sections.flatMap((s) => s.exercises), [sections]);
@@ -183,6 +193,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, totalCompleted,
 
   // Slide animation
   const [anim, setAnim] = useState<{ key: number; dir: "forward" | "back" }>({ key: 0, dir: "forward" });
+  const [showFormChecker, setShowFormChecker] = useState(false);
 
   const timerRef      = useRef<ReturnType<typeof setInterval> | null>(null);
   const onRestDoneRef = useRef<(() => void) | null>(null);
@@ -466,46 +477,82 @@ export function SessionView({ day, weekNum, lastWeights, streak, totalCompleted,
 
   // ── Done screen ───────────────────────────────────────────────────────────────
   if (done) {
-    const sessionNum = totalCompleted + 1;
+    const completedExercises = exercises.filter((e) => (loggedSets[e.id]?.length ?? 0) > 0);
+    const avgWeightPerSet = completedExercises.length > 0
+      ? Math.round(
+          completedExercises.reduce((sum, ex) => {
+            const sets = loggedSets[ex.id] ?? [];
+            const avgWeight = sets.length > 0 ? sets.reduce((s, set) => s + set.weight, 0) / sets.length : 0;
+            return sum + avgWeight;
+          }, 0) / completedExercises.length
+        )
+      : 0;
+
+    const { emoji: phaseEmoji, color: phaseColor } = getPhaseEmojiAndColor(weekNum);
+
     return (
-      <div className="flex flex-col h-full items-center justify-center gap-6 p-8 text-center"
+      <div className="flex flex-col h-full items-center justify-center gap-5 p-8 text-center overflow-y-auto"
         style={{ animation: "popIn 0.35s ease-out" }}>
-        {/* Session number badge */}
-        <div className="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest"
-          style={{ background: "rgba(124,92,252,0.1)", border: "1px solid rgba(124,92,252,0.25)", color: "#7C5CFC" }}>
-          Session #{sessionNum}
+
+        {/* Celebration */}
+        <div style={{ fontSize: "4rem", animation: "bounce 0.6s ease-out" }}>✓</div>
+        <div className="space-y-1.5">
+          <h2 className="font-serif text-3xl text-ink">{day.label}</h2>
+          <p className="text-sm" style={{ color: "rgba(30,19,64,0.45)" }}>Complete.</p>
         </div>
-        <div style={{ fontSize: "3.5rem", animation: "pulseGreen 1s ease-out", color: "#7C5CFC" }}>✓</div>
-        <div className="space-y-1">
-          <h2 className="font-serif text-3xl text-ink">{day.label} complete</h2>
-          <p className="text-sm" style={{ color: "rgba(30,19,64,0.45)" }}>You showed up. That&apos;s the whole game.</p>
-        </div>
-        <div className="grid grid-cols-3 gap-3 w-full max-w-xs">
-          <div className="rounded-2xl p-4 text-center" style={{ background: "var(--surface2)" }}>
-            <p className="font-serif text-2xl text-ink">{sessionNum}</p>
-            <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>sessions</p>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
+          <div className="rounded-2xl p-4 text-center" style={{ background: "rgba(124,92,252,0.08)", border: "1px solid rgba(124,92,252,0.15)" }}>
+            <p className="font-serif text-2xl text-ink">{completedExercises.length}</p>
+            <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>exercises</p>
           </div>
-          {totalVolume > 0 && (
-            <div className="rounded-2xl p-4 text-center" style={{ background: "var(--surface2)" }}>
-              <p className="font-serif text-lg text-ink">{totalVolume >= 1000 ? `${(totalVolume / 1000).toFixed(1)}k` : totalVolume}</p>
-              <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>lbs lifted</p>
-            </div>
-          )}
-          {streak > 0 && (
-            <div className="rounded-2xl p-4 text-center" style={{ background: "var(--surface2)" }}>
-              <p className="font-serif text-2xl text-ink">{streak + 1}</p>
-              <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>day streak</p>
-            </div>
-          )}
+          <div className="rounded-2xl p-4 text-center" style={{ background: "rgba(124,92,252,0.08)", border: "1px solid rgba(124,92,252,0.15)" }}>
+            <p className="font-serif text-2xl text-ink">{completedSets}</p>
+            <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>sets done</p>
+          </div>
+          <div className="rounded-2xl p-4 text-center" style={{ background: "rgba(124,92,252,0.08)", border: "1px solid rgba(124,92,252,0.15)" }}>
+            <p className="font-serif text-2xl text-ink">{totalVolume >= 1000 ? `${(totalVolume / 1000).toFixed(1)}k` : totalVolume}</p>
+            <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>lbs</p>
+          </div>
+          <div className="rounded-2xl p-4 text-center" style={{ background: "rgba(124,92,252,0.08)", border: "1px solid rgba(124,92,252,0.15)" }}>
+            <p className="font-serif text-2xl text-ink">{avgWeightPerSet}</p>
+            <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>avg lbs</p>
+          </div>
         </div>
-        {isSunday && (
-          <div className="w-full max-w-xs px-4 py-3 rounded-2xl text-sm text-center"
-            style={{ background: "rgba(124,92,252,0.08)", border: "1px solid rgba(124,92,252,0.2)", color: "#7C5CFC" }}>
-            Time to measure — track your hourglass progress
+
+        {/* Streak Badge */}
+        {streak > 0 && (
+          <div className="flex items-center justify-center gap-2 px-4 py-3 rounded-full w-full max-w-sm"
+            style={{ background: "rgba(218,102,123,0.1)", border: "1px solid rgba(218,102,123,0.25)" }}>
+            <span style={{ fontSize: "1.5rem" }}>🔥</span>
+            <div>
+              <p className="font-semibold text-ink">{streak + 1} day streak</p>
+              <p className="text-xs" style={{ color: "rgba(30,19,64,0.45)" }}>Keep showing up</p>
+            </div>
           </div>
         )}
+
+        {/* Phase Message */}
+        {weekNum > 0 && (
+          <div className="w-full max-w-sm px-4 py-3 rounded-2xl text-sm"
+            style={{ background: `${phaseColor}15`, border: `1px solid ${phaseColor}33`, color: phaseColor }}>
+            <p className="font-semibold mb-1.5">{phaseEmoji} Week {weekNum}</p>
+            <p className="text-xs leading-relaxed">{getPhaseCoachingMessage(weekNum)}</p>
+          </div>
+        )}
+
+        {/* Sunday Reminder */}
+        {isSunday && (
+          <div className="w-full max-w-sm px-4 py-3 rounded-2xl text-sm text-center"
+            style={{ background: "rgba(201,154,92,0.1)", border: "1px solid rgba(201,154,92,0.25)", color: "#C99A5C" }}>
+            📏 Measure your waist + hips. Same time, same day. Track your hourglass progress.
+          </div>
+        )}
+
+        {/* CTA */}
         <button onClick={() => finishSession()}
-          className="px-10 py-4 rounded-2xl font-semibold text-lg active:scale-95 transition-transform"
+          className="w-full max-w-sm py-4 rounded-2xl font-semibold text-lg active:scale-95 transition-transform"
           style={{ background: "#7C5CFC", color: "#fff", animation: "pulseGreen 2s ease-out 0.5s" }}>
           Save Workout
         </button>
@@ -648,6 +695,9 @@ export function SessionView({ day, weekNum, lastWeights, streak, totalCompleted,
           );
         })()}
 
+        {/* AI Avatar Coach */}
+        <AvatarCoach exercise={ex} setIndex={setIdx} totalSets={ex.sets} isPlaying={!paused && !rest} videoUrl={getExerciseVideoUrl(ex.id, data)} />
+
         {/* Video */}
         <VideoBlock ex={ex} animKey={anim.key} />
 
@@ -708,12 +758,19 @@ export function SessionView({ day, weekNum, lastWeights, streak, totalCompleted,
         </div>
 
         {/* Form cue */}
-        <div className="flex items-start gap-3 px-4 py-3 rounded-xl"
-          style={{ background: "rgba(30,19,64,0.04)", border: "1px solid rgba(124,92,252,0.06)" }}>
-          <p className="text-sm flex-1 leading-relaxed" style={{ color: "rgba(30,19,64,0.55)" }}>{ex.formCue}</p>
-          <button onClick={() => speak(`${ex.name}. ${ex.formCue}`)}
-            className="flex-shrink-0 mt-0.5 active:scale-90 transition-transform" style={{ color: "rgba(30,19,64,0.3)" }}>
-            <Volume2 size={14} />
+        <div className="space-y-2.5">
+          <div className="flex items-start gap-3 px-4 py-3 rounded-xl"
+            style={{ background: "rgba(30,19,64,0.04)", border: "1px solid rgba(124,92,252,0.06)" }}>
+            <p className="text-sm flex-1 leading-relaxed" style={{ color: "rgba(30,19,64,0.55)" }}>{ex.formCue}</p>
+            <button onClick={() => speak(`${ex.name}. ${ex.formCue}`)}
+              className="flex-shrink-0 mt-0.5 active:scale-90 transition-transform" style={{ color: "rgba(30,19,64,0.3)" }}>
+              <Volume2 size={14} />
+            </button>
+          </div>
+          <button onClick={() => setShowFormChecker(true)}
+            className="w-full py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 active:scale-95 transition-transform"
+            style={{ background: "rgba(124,92,252,0.08)", color: "#7C5CFC", border: "1px solid rgba(124,92,252,0.2)" }}>
+            📹 Check My Form
           </button>
         </div>
 
@@ -918,6 +975,11 @@ export function SessionView({ day, weekNum, lastWeights, streak, totalCompleted,
             </button>
           </div>
         </div>
+      )}
+
+      {/* Form Checker Modal */}
+      {showFormChecker && ex && (
+        <FormChecker exercise={ex} onClose={() => setShowFormChecker(false)} update={update} />
       )}
     </div>
   );

@@ -3,8 +3,9 @@ import Anthropic from "@anthropic-ai/sdk";
 
 const client = new Anthropic();
 
+
 export async function POST(req: NextRequest) {
-  const { images, height, weight, age } = await req.json();
+  const { images, height, weight, age, goalBodyType } = await req.json();
   if (!images?.length) return NextResponse.json({ error: "No images provided" }, { status: 400 });
 
   const context = [
@@ -13,59 +14,89 @@ export async function POST(req: NextRequest) {
     age ? `Age: ${age}` : "",
   ].filter(Boolean).join(", ");
 
-  const angleLabels = images.map((img: { label?: string }, i: number) => img.label || `Photo ${i + 1}`).join(", ");
+  const userImages = images.filter((img: { label?: string }) => !img.label?.startsWith("GOAL INSPIRATION"));
+  const angleLabels = userImages.map((img: { label?: string }, i: number) => img.label || `Photo ${i + 1}`).join(", ");
 
-  const prompt = `You are an expert fitness coach, sports medicine professional, and body composition analyst. You have been provided ${images.length} photo(s) of this person from the following angles: ${angleLabels}.
+  const goalSection = goalBodyType ? `
+GOAL BODY INSPIRATION: ${goalBodyType === "custom-photo"
+    ? "The LAST image provided is NOT the user's body — it is a reference/inspiration photo of the physique the user wants to achieve. Analyze ONLY the user's own photos for body composition. Use the inspiration photo solely to understand the target look."
+    : goalBodyType}
 
-Use ALL provided angles to give the most accurate body composition assessment possible. Multiple angles allow you to assess depth, muscularity, fat distribution, and posture far more accurately than a single photo.
+You MUST include a "goalBodyAssessment" field in your JSON response assessing:
+1. How feasible this goal is for THIS specific person based on their visible genetics, body type, current state vs the goal physique
+2. A specific calorie plan to get there (calculate based on height/weight if provided, otherwise estimate from visual)
+3. A detailed workout plan structure
+
+Be honest — if their genetics make this very hard, say so. If they're already close, say so. Give real numbers.` : "";
+
+  const prompt = `You are an expert fitness coach, sports medicine professional, and body composition analyst. You have been provided ${userImages.length} photo(s) of this person from the following angles: ${angleLabels}.${goalBodyType === "custom-photo" ? " The final image is a GOAL INSPIRATION REFERENCE (not the user's body) — use it to understand what physique they want to achieve." : ""}
+
+Use ALL provided angles to give the most accurate body composition assessment possible.
 
 ${context ? `User-provided context: ${context}` : ""}
+${goalSection}
 
-ACCURACY RULE: Only describe what is genuinely visible across the photos. Use all angles together — for example, a side view reveals core and lower back fat that a front view hides. Be honest about what each angle reveals. Do not invent muscle development, but do not discount what clearly exists.
+ACCURACY RULE: Only describe what is genuinely visible. Be honest. Do not invent muscle development, but do not discount what clearly exists.
 
-Return ONLY a valid JSON object. All string values must be single-line:
+Return ONLY a valid JSON object. All string values must be single-line (no newlines inside strings):
 
 {
   "bodyType": "<Ectomorph/Mesomorph/Endomorph/Skinny Fat/Mixed>",
-  "visualAssessment": "<2-3 honest sentences on overall composition using insights from all angles>",
+  "visualAssessment": "<2-3 honest sentences on overall composition>",
   "bodyFatEstimate": {
-    "low": <lower bound % as number>,
-    "high": <upper bound % as number>,
+    "low": <number>,
+    "high": <number>,
     "category": "<Essential/Athletic/Fitness/Average/Above Average>",
-    "note": "<what specific visual cues across the angles lead to this estimate>"
+    "note": "<visual cues that led to this estimate>"
   },
-  "muscleDefinition": <1-10 score>,
-  "compositionScore": <1-10 overall score, average is 4-6>,
-  "potentialScore": <realistic achievable score with consistent work>,
+  "muscleDefinition": <1-10>,
+  "compositionScore": <1-10>,
+  "potentialScore": <1-10>,
   "visibleMuscle": [
-    { "group": "<muscle group name>", "development": "<underdeveloped/average/developed>", "note": "<specific observation from any angle>" }
+    { "group": "<name>", "development": "<underdeveloped/average/developed>", "note": "<observation>" }
   ],
-  "posture": "<posture assessment based on the photos>",
-  "strengths": ["<genuine visible strength>"],
-  "areas": ["<area with clear room for improvement>"],
-  "honestAssessment": "<3-4 sentences of direct truth using all angles: current state, main limiting factors, realistic ceiling>",
+  "posture": "<posture assessment>",
+  "strengths": ["<strength>"],
+  "areas": ["<area for improvement>"],
+  "honestAssessment": "<3-4 sentences of direct truth: current state, limiting factors, realistic ceiling>",
   "protocol": {
-    "training": ["<specific training recommendation based on what you see>"],
-    "diet": ["<specific diet adjustment>"],
-    "recovery": ["<recovery or lifestyle tip>"]
+    "training": ["<recommendation>"],
+    "diet": ["<recommendation>"],
+    "recovery": ["<tip>"]
   },
   "roadmap": {
-    "thirtyDay": {
-      "focus": "<highest-impact focus for month 1>",
-      "expectedChange": "<realistic visible change in 30 days>",
-      "actions": ["<specific action>", "<specific action>", "<specific action>", "<specific action>"]
+    "thirtyDay": { "focus": "<focus>", "expectedChange": "<change>", "actions": ["<action>", "<action>", "<action>"] },
+    "ninetyDay": { "focus": "<focus>", "expectedChange": "<change>", "actions": ["<action>", "<action>", "<action>"] },
+    "sixMonth": { "focus": "<focus>", "expectedChange": "<change>", "actions": ["<action>", "<action>", "<action>"] }
+  }${goalBodyType ? `,
+  "goalBodyAssessment": {
+    "goalType": "${goalBodyType}",
+    "feasibility": <0-100 percent how achievable for this specific person based on genetics and current state>,
+    "feasibilityLabel": "<Very Achievable/Achievable/Challenging/Very Challenging>",
+    "geneticNotes": "<2-3 sentences: what their visible genetics suggest about reaching this goal, what works in their favor, what works against them>",
+    "timelineEstimate": "<realistic time to achieve with full consistency, e.g. '6-9 months' or '12-18 months'>",
+    "calorieplan": {
+      "dailyCalories": <number based on their stats and goal>,
+      "protein": <grams per day>,
+      "carbs": <grams per day>,
+      "fats": <grams per day>,
+      "deficit": <calorie deficit or surplus — negative means cut, positive means bulk>,
+      "notes": "<one sentence explaining the approach>"
     },
-    "ninetyDay": {
-      "focus": "<month 3 focus>",
-      "expectedChange": "<realistic 90-day visible change>",
-      "actions": ["<specific action>", "<specific action>", "<specific action>", "<specific action>"]
-    },
-    "sixMonth": {
-      "focus": "<6-month goal>",
-      "expectedChange": "<what they could look like at 6 months with full commitment>",
-      "actions": ["<specific action>", "<specific action>", "<specific action>", "<specific action>"]
+    "workoutPlan": {
+      "daysPerWeek": <number>,
+      "focus": "<primary training focus for this goal>",
+      "weeklyStructure": [
+        { "day": "Mon", "focus": "<session type>", "exercises": ["<exercise>", "<exercise>", "<exercise>"] },
+        { "day": "Tue", "focus": "<session type>", "exercises": ["<exercise>", "<exercise>", "<exercise>"] },
+        { "day": "Wed", "focus": "<session type>", "exercises": ["<exercise>", "<exercise>"] },
+        { "day": "Thu", "focus": "<session type>", "exercises": ["<exercise>", "<exercise>", "<exercise>"] },
+        { "day": "Fri", "focus": "<session type>", "exercises": ["<exercise>", "<exercise>", "<exercise>"] }
+      ],
+      "cardio": "<cardio recommendation>",
+      "keyPrinciples": ["<principle>", "<principle>", "<principle>"]
     }
-  }
+  }` : ""}
 }`;
 
   try {
@@ -76,7 +107,7 @@ Return ONLY a valid JSON object. All string values must be single-line:
 
     const msg = await client.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 3000,
+      max_tokens: 4000,
       messages: [{
         role: "user",
         content: [
