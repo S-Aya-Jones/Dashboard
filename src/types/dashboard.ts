@@ -709,11 +709,22 @@ export interface BodyWeightEntry {
   weight: number; // lbs
 }
 
+export interface ExercisePR {
+  exerciseId: string;
+  exerciseName: string;
+  maxWeight: number; // heaviest weight lifted
+  reps: number; // reps at that weight
+  achievedDate: string; // YYYY-MM-DD
+}
+
 export interface WorkoutData {
   sessionLogs: WorkoutSessionLog[];
   walkingLogs: WalkingLog[];
   measurements: MeasurementEntry[];
   bodyWeight: BodyWeightEntry[];
+  personalRecords: ExercisePR[]; // PR tracking per exercise
+  lastAPTCheckDate?: string; // YYYY-MM-DD
+  lastMeasurementReminder?: string; // YYYY-MM-DD
   goalWeight?: number;
   programStartDate?: string; // YYYY-MM-DD
 }

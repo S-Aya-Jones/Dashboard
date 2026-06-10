@@ -7,6 +7,7 @@ import { DashboardData, ExerciseSessionLog, WorkoutSessionLog, MeasurementEntry,
 import {
   PROGRAM, WEEK_DAYS,
   todayWeekday, getProgramDay, getCurrentWeek, getWeekPhase, buildFullExerciseList,
+  getPhaseCoachingMessage, getPhaseEmojiAndColor, calculateWeeklyVolume, getMeasurementTrend, getProteinTarget,
 } from "./program";
 import { SessionView } from "./SessionView";
 import { HistoryView } from "./HistoryView";
@@ -52,8 +53,8 @@ function ProgramOverview({ onClose }: { onClose: () => void }) {
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 flex-shrink-0 border-b" style={{ borderColor: "var(--border)" }}>
         <div>
-          <h2 className="font-serif text-xl" style={{ color: "var(--text)" }}>6-Week Program</h2>
-          <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>Full schedule — tap a day to expand</p>
+          <h2 className="font-serif text-xl" style={{ color: "var(--text)" }}>7-Week Hourglass Program</h2>
+          <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>Complete schedule — tap a day to expand</p>
         </div>
         <button onClick={onClose} className="p-2 rounded-xl" style={{ color: "var(--text-muted)" }}>
           <X size={18} />
@@ -66,10 +67,10 @@ function ProgramOverview({ onClose }: { onClose: () => void }) {
         <div className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-widest px-1" style={{ color: "var(--text-muted)" }}>Week Phases</p>
           {[
-            { weeks: "Weeks 1–2", label: "Building the Foundation", color: "#7C5CFC", desc: "Focus on form and mind-muscle connection. Moderate weight." },
-            { weeks: "Weeks 3–4", label: "Progressive Overload", color: "#9B7FFF", desc: "Add weight every session. Last reps should be hard." },
-            { weeks: "Week 4", label: "Deload — Let It Grow", color: "#DA667B", desc: "Drop all weights by 40%. Your body grows during recovery." },
-            { weeks: "Weeks 5–6", label: "Peak Intensity", color: "#C99A5C", desc: "Heaviest weights yet. Push every set to near failure." },
+            { weeks: "Weeks 1–2", label: "Foundation", color: "#7C5CFC", desc: "Learn every movement. Build mind-muscle connection. Zero ego on weight." },
+            { weeks: "Weeks 3–4", label: "Build", color: "#9B7FFF", desc: "Add load progressively. Volume rises. Visible shape change typically starts here." },
+            { weeks: "Weeks 5–6", label: "Peak Intensity", color: "#C99A5C", desc: "Heaviest weights yet. Maximum stimulus with perfect form. Push every set." },
+            { weeks: "Week 7", label: "Deload — Let It Grow", color: "#DA667B", desc: "50% of week 6 weight, same reps. Growth consolidates during recovery." },
           ].map(({ weeks, label, color, desc }) => (
             <div key={weeks} className="rounded-xl px-4 py-3 flex items-start gap-3" style={{ background: "#FAF8FF", border: "1px solid var(--border)" }}>
               <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1.5" style={{ background: color }} />
@@ -484,14 +485,14 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
           <div className="space-y-1.5">
             <div className="flex justify-between items-center">
               <p className="text-xs font-semibold" style={{ color: phase?.isDeload ? "#DA667B" : "#7C5CFC" }}>
-                Week {weekNum} of 6{phase?.isDeload ? " — DELOAD" : ` · ${phase?.label}`}
+                Week {weekNum} of 7{phase?.isDeload ? " — DELOAD" : ` · ${phase?.label}`}
               </p>
               <button onClick={onViewProgram} className="text-xs" style={{ color: "var(--text-light)" }}>
                 Full plan →
               </button>
             </div>
             <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(124,92,252,0.08)" }}>
-              <div className="h-full rounded-full transition-all" style={{ width: `${(weekNum / 6) * 100}%`, background: phase?.isDeload ? "#DA667B" : "#7C5CFC" }} />
+              <div className="h-full rounded-full transition-all" style={{ width: `${(weekNum / 7) * 100}%`, background: phase?.isDeload ? "#DA667B" : "#7C5CFC" }} />
             </div>
             <p className="text-[11px]" style={{ color: "var(--text-light)" }}>
               {weekDone}/{PROGRAM.length} workouts this week · {phase?.guidance}
@@ -541,8 +542,8 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
         {/* ── No program banner ── */}
         {!w.programStartDate && (
           <div className="rounded-2xl p-5 text-center space-y-3" style={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.2)" }}>
-            <p className="font-serif text-xl" style={{ color: "var(--text)" }}>Start the 6-Week Program</p>
-            <p className="text-sm" style={{ color: "var(--text-muted)" }}>Heavy glutes, flat stomach, no bulk. Track your transformation.</p>
+            <p className="font-serif text-xl" style={{ color: "var(--text)" }}>Start the 7-Week Hourglass Program</p>
+            <p className="text-sm" style={{ color: "var(--text-muted)" }}>Maximum glutes, flat stomach, zero bulk. Built for transformation.</p>
             <div className="flex gap-2 justify-center">
               <button onClick={startProgram}
                 className="px-6 py-3 rounded-2xl font-semibold active:scale-95 transition-transform"
@@ -632,6 +633,108 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
             </button>
           </div>
         </div>
+
+        {/* ── PHASE COACHING ── */}
+        {weekNum > 0 && phase && (
+          <>
+            {/* Phase badge */}
+            {phase.isDeload && (
+              <div className="rounded-2xl p-5 space-y-3 relative overflow-hidden"
+                style={{ background: "linear-gradient(135deg,#f9e8eb 0%,#f4e8f0 100%)", border: "2px solid #DA667B" }}>
+                <div className="absolute top-2 right-3 text-4xl opacity-15">🌱</div>
+                <div className="relative">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-2xl">🌱</span>
+                    <span className="text-xs font-bold uppercase tracking-widest" style={{ color: "#DA667B" }}>Week {weekNum} — DELOAD</span>
+                  </div>
+                  <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>Growth happens during recovery</p>
+                  <p className="text-xs mt-2 leading-relaxed" style={{ color: "var(--text-muted)" }}>
+                    Use 50% weight. Same reps, same intensity mentally. Your body consolidates gains this week — trust the process.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {!phase.isDeload && (
+              <div className="rounded-2xl p-5 space-y-3"
+                style={{
+                  background: `${getPhaseEmojiAndColor(weekNum).color}08`,
+                  border: `1px solid ${getPhaseEmojiAndColor(weekNum).color}33`,
+                }}>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>
+                      {getPhaseEmojiAndColor(weekNum).emoji} Week {weekNum} — {phase.label}
+                    </p>
+                    <p className="text-xs mt-2 leading-relaxed" style={{ color: "var(--text-muted)" }}>
+                      {phase.guidance}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* APT Checkup Reminder */}
+            <div className="rounded-2xl p-5 space-y-3" style={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.2)" }}>
+              <div className="flex items-start gap-3">
+                <span className="text-2xl">🔍</span>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>APT Self-Check</p>
+                  <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
+                    Before your workout, check: Is your lower-back exaggerated? Belly sticking out? If yes, do 2 activation sets first.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Weekly Volume */}
+            {w.sessionLogs.length > 0 && (
+              <div className="rounded-2xl p-5 space-y-3" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+                <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>This Week&apos;s Volume</p>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-end">
+                    <span className="font-serif text-3xl" style={{ color: "#7C5CFC" }}>
+                      {Math.round(calculateWeeklyVolume(w.sessionLogs, format(subDays(new Date(), 6), "yyyy-MM-dd")) / 1000)}k
+                    </span>
+                    <span className="text-xs" style={{ color: "var(--text-muted)" }}>lbs lifted</span>
+                  </div>
+                  <div className="h-2 rounded-full overflow-hidden" style={{ background: "rgba(124,92,252,0.07)" }}>
+                    <div className="h-full rounded-full" style={{ width: "65%", background: "#7C5CFC" }} />
+                  </div>
+                  <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+                    {weekDone}/{PROGRAM.length} workouts this week
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Incline Walk Reminder */}
+            <div className="rounded-2xl p-5 space-y-3" style={{ background: "rgba(201,154,92,0.08)", border: "1px solid rgba(201,154,92,0.25)" }}>
+              <div className="flex items-start gap-3">
+                <span className="text-2xl">🚶</span>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>Incline Walk Daily</p>
+                  <p className="text-xs mt-1" style={{ color: "#C99A5C" }}>
+                    25–30 min, 8–12% incline, 3.0–3.5 mph. Your fat-loss engine. Do it every day — rest days included.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Protein Target */}
+            {w.bodyWeight.length > 0 && (
+              <div className="rounded-2xl p-5 space-y-3" style={{ background: "rgba(218,102,123,0.08)", border: "1px solid rgba(218,102,123,0.25)" }}>
+                <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>Daily Protein Target</p>
+                <p className="font-serif text-2xl mt-2" style={{ color: "#DA667B" }}>
+                  {getProteinTarget(w.bodyWeight[w.bodyWeight.length - 1]?.weight)}
+                </p>
+                <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+                  Spread across 3–4 meals. Protects muscle in deficit, drives growth, keeps you full.
+                </p>
+              </div>
+            )}
+          </>
+        )}
 
         <MeasurementsCard data={data} update={update} />
         <WeightCard data={data} update={update} />

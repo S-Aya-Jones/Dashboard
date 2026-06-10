@@ -1151,3 +1151,84 @@ export function suggestWeight(lastWeight: number, weekNum: number): number {
   if (weekNum >= 3) return lastWeight + 5;
   return lastWeight;
 }
+
+// ── Helper functions for UX enhancements ──────────────────────────────────
+
+export function getPhaseCoachingMessage(weekNum: number): string {
+  const phase = getWeekPhase(weekNum);
+  if (weekNum === 7) {
+    return "Deload week: 50% weight, same reps. Your glutes grow during recovery — this is when consolidation happens. Trust the process.";
+  }
+  if (weekNum >= 5) {
+    return "Peak intensity week: Heaviest loads yet. Every set should be a genuine challenge. Push hard, but protect your form.";
+  }
+  if (weekNum >= 3) {
+    return "Build week: Add 5 lbs every session or two when form holds perfectly. Volume is rising — visible change starts now.";
+  }
+  return "Foundation week: Learn the movement. Build mind-muscle connection. Weight is irrelevant — feel matters most.";
+}
+
+export function getPhaseEmojiAndColor(weekNum: number): { emoji: string; color: string } {
+  const phase = getWeekPhase(weekNum);
+  if (weekNum === 7) return { emoji: "🌱", color: "#C99A5C" };  // Deload = rest/growth
+  if (weekNum >= 5) return { emoji: "⚡", color: "#DA667B" };    // Peak = fire
+  if (weekNum >= 3) return { emoji: "📈", color: "#7C5CFC" };    // Build = growth
+  return { emoji: "🏗️", color: "#9B7FFF" };                      // Foundation = building
+}
+
+export function calculateWeeklyVolume(
+  sessionLogs: { date: string; exercises: Array<{ sets: Array<{ weight: number; reps: number }> }> }[],
+  startOfWeekDate: string
+): number {
+  const weekStart = parseISO(startOfWeekDate);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+
+  return sessionLogs
+    .filter((log) => {
+      const logDate = parseISO(log.date);
+      return logDate >= weekStart && logDate <= weekEnd;
+    })
+    .reduce((total, log) => {
+      return (
+        total +
+        log.exercises.reduce((exTotal, ex) => {
+          return (
+            exTotal +
+            ex.sets.reduce((setTotal, set) => setTotal + set.weight * set.reps, 0)
+          );
+        }, 0)
+      );
+    }, 0);
+}
+
+export function getMeasurementTrend(
+  measurements: Array<{ date: string; waist: number; hips: number }>,
+  days: number = 14
+): { waistTrend: string; hipsTrend: string } {
+  if (measurements.length < 2) return { waistTrend: "→", hipsTrend: "→" };
+
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+
+  const recent = measurements.filter((m) => parseISO(m.date) >= cutoff);
+  if (recent.length < 2) return { waistTrend: "→", hipsTrend: "→" };
+
+  const oldest = recent[0];
+  const newest = recent[recent.length - 1];
+
+  const waistDiff = oldest.waist - newest.waist;
+  const hipsDiff = newest.hips - oldest.hips;
+
+  return {
+    waistTrend: waistDiff > 0.25 ? "↓" : waistDiff < -0.25 ? "↑" : "→",
+    hipsTrend: hipsDiff > 0.25 ? "↑" : hipsDiff < -0.25 ? "↓" : "→",
+  };
+}
+
+export function getProteinTarget(bodyWeightLbs?: number): string {
+  if (!bodyWeightLbs || bodyWeightLbs <= 0) return "0.7-1g per lb bodyweight";
+  const low = Math.round(bodyWeightLbs * 0.7);
+  const high = Math.round(bodyWeightLbs * 1);
+  return `${low}–${high}g daily`;
+}
