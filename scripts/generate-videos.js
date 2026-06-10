@@ -129,8 +129,22 @@ async function generateVideo(exercise, index, total) {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      console.error(`   ❌ Failed: ${error.error?.message || response.statusText}`);
+      const contentType = response.headers.get("content-type");
+      let errorMsg = response.statusText;
+
+      try {
+        if (contentType && contentType.includes("application/json")) {
+          const error = await response.json();
+          errorMsg = error.error?.message || error.message || response.statusText;
+        } else {
+          const text = await response.text();
+          errorMsg = `${response.status} - ${text.substring(0, 200)}`;
+        }
+      } catch (e) {
+        // If parsing fails, just use status text
+      }
+
+      console.error(`   ❌ Failed: ${errorMsg}`);
       return null;
     }
 
