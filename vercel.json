@@ -1,4 +1,10 @@
 {
+  "crons": [
+    {
+      "path": "/api/sms/poll-replies",
+      "schedule": "*/2 * * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/sms-opt-in",
