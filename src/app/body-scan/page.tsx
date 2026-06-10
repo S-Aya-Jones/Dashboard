@@ -88,7 +88,11 @@ export default function BodyScanPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          images: photos,
+          images: photos.map(p => ({
+            imageBase64: p.imageBase64,
+            mimeType: p.mimeType,
+            label: p.angle === "front" ? "Front" : p.angle === "back" ? "Back" : p.angle === "left" ? "Left Side" : "Right Side",
+          })),
           height: height || undefined,
           weight: weight || undefined,
         }),
