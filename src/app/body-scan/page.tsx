@@ -43,7 +43,7 @@ interface Analysis {
 }
 
 export default function BodyScanPage() {
-  const { data, updateData } = useDashboard();
+  const { update } = useDashboard();
   const [currentAngleIndex, setCurrentAngleIndex] = useState(0);
   const [photos, setPhotos] = useState<PhotoData[]>([]);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
@@ -113,11 +113,11 @@ export default function BodyScanPage() {
         analysis: result.analysis,
       };
 
-      updateData((prev) => ({
+      update((prev) => ({
         ...prev,
         workout: {
-          ...prev.workout,
-          bodyScanPhotos: [...(prev.workout.bodyScanPhotos || []), scanPhoto],
+          ...(prev.workout || { sessionLogs: [], walkingLogs: [], measurements: [], bodyWeight: [] }),
+          bodyScanPhotos: [...((prev.workout?.bodyScanPhotos) || []), scanPhoto],
         },
       }));
     } catch (err) {

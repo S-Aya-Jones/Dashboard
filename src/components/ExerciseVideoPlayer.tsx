@@ -17,7 +17,6 @@ export function ExerciseVideoPlayer({
   autoPlay = true,
 }: ExerciseVideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [isPlaying, setIsPlaying] = useState(autoPlay);
   const [isMuted, setIsMuted] = useState(false);
 
   useEffect(() => {
@@ -37,8 +36,6 @@ export function ExerciseVideoPlayer({
             ref={videoRef}
             src={videoUrl}
             className="w-full h-auto max-h-[70vh] object-contain"
-            onPlay={() => setIsPlaying(true)}
-            onPause={() => setIsPlaying(false)}
           />
 
           {/* Controls */}
