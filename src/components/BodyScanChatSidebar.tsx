@@ -33,6 +33,7 @@ export function BodyScanChatSidebar({ analysis }: { analysis: Analysis }) {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const hasInitialized = useRef(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -41,6 +42,34 @@ export function BodyScanChatSidebar({ analysis }: { analysis: Analysis }) {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Auto-send initial feedback when analysis loads
+  useEffect(() => {
+    if (hasInitialized.current) return;
+    hasInitialized.current = true;
+
+    const initialPrompt = `Based on my body scan results — composition score ${analysis.compositionScore}/10, body fat ${analysis.bodyFatEstimate.low}–${analysis.bodyFatEstimate.high}%, body type ${analysis.bodyType} — give me your honest overall take and the single most important thing I should focus on right now.`;
+
+    setIsLoading(true);
+
+    fetch("/api/body/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        analysis,
+        userMessage: initialPrompt,
+        conversationHistory: [],
+      }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setMessages([{ role: "assistant", content: data.message }]);
+      })
+      .catch(() => {
+        setMessages([{ role: "assistant", content: "Hey! I've reviewed your scan. Ask me anything about your results, training, or what to focus on next." }]);
+      })
+      .finally(() => setIsLoading(false));
+  }, [analysis]);
 
   const sendMessage = async () => {
     if (!input.trim()) return;
