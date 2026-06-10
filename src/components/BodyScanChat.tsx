@@ -55,7 +55,7 @@ interface Message {
 
 interface Props {
   analysis: AnalysisData;
-  onClose: () => void;
+  onClose?: () => void;
 }
 
 export function BodyScanChat({ analysis, onClose }: Props) {
