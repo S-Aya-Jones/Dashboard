@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Volume2 } from "lucide-react";
+import { Volume2, Play } from "lucide-react";
 import { ProgramExercise } from "./program";
 import { getFormCuesForExercise } from "@/lib/formCues";
 
@@ -10,11 +10,13 @@ interface Props {
   setIndex: number;
   totalSets: number;
   isPlaying: boolean;
+  videoUrl?: string;
 }
 
-export function AvatarCoach({ exercise, setIndex, totalSets, isPlaying }: Props) {
+export function AvatarCoach({ exercise, setIndex, totalSets, isPlaying, videoUrl }: Props) {
   const [currentCueIndex, setCurrentCueIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [showVideo, setShowVideo] = useState(false);
 
   const cues = getFormCuesForExercise(exercise.id, exercise.category);
 
@@ -52,18 +54,43 @@ export function AvatarCoach({ exercise, setIndex, totalSets, isPlaying }: Props)
 
   return (
     <div className="rounded-3xl overflow-hidden border-2" style={{ borderColor: "#7C5CFC", background: "linear-gradient(135deg, #2a1a3a 0%, #1a0f2e 100%)" }}>
-      {/* Avatar placeholder - where HeyGen video will go */}
-      <div className="relative aspect-square bg-gradient-to-b from-purple-900 to-black flex items-center justify-center">
-        {/* Placeholder for AI avatar video */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center space-y-4">
-            <div className="w-24 h-24 rounded-full mx-auto bg-gradient-to-br from-amber-600 via-red-500 to-purple-600 flex items-center justify-center text-5xl">
-              🧑‍🦱
-            </div>
-            <p className="text-xs text-purple-300 font-semibold">AI Coach Ready</p>
-            <p className="text-[10px] text-purple-400">HeyGen Avatar Loading</p>
+      {/* Avatar video container */}
+      <div className="relative aspect-square bg-gradient-to-b from-purple-900 to-black flex items-center justify-center group">
+        {videoUrl && !showVideo ? (
+          // Video thumbnail with play button
+          <div className="absolute inset-0 flex items-center justify-center cursor-pointer" onClick={() => setShowVideo(true)}>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowVideo(true);
+              }}
+              className="z-10 w-16 h-16 rounded-full bg-white/90 flex items-center justify-center hover:bg-white transition-all transform group-hover:scale-110"
+            >
+              <Play size={28} style={{ color: "#7C5CFC" }} fill="#7C5CFC" />
+            </button>
+            <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-all" />
           </div>
-        </div>
+        ) : videoUrl && showVideo ? (
+          // Video player
+          <video
+            src={videoUrl}
+            controls
+            autoPlay
+            className="absolute inset-0 w-full h-full object-cover"
+            onEnded={() => setShowVideo(false)}
+          />
+        ) : (
+          // Placeholder for video loading or no video available
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="text-center space-y-4">
+              <div className="w-24 h-24 rounded-full mx-auto bg-gradient-to-br from-amber-600 via-red-500 to-purple-600 flex items-center justify-center text-5xl">
+                👩
+              </div>
+              <p className="text-xs text-purple-300 font-semibold">AI Coach Ready</p>
+              <p className="text-[10px] text-purple-400">{videoUrl ? "Video Available" : "Form Cues Below"}</p>
+            </div>
+          </div>
+        )}
 
         {/* Overlay badge */}
         <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full text-xs font-bold" style={{ background: "rgba(124,92,252,0.2)", color: "#9B7FFF" }}>

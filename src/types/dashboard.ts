@@ -740,6 +740,14 @@ export interface FormCheckPhoto {
   corrections?: string[];
 }
 
+export interface AvatarVideoUrl {
+  exerciseId: string;
+  exerciseName: string;
+  videoUrl: string; // HeyGen video URL
+  generatedAt: string; // ISO datetime
+  avatarPrompt?: string; // The prompt used to generate this video
+}
+
 export interface WorkoutData {
   sessionLogs: WorkoutSessionLog[];
   walkingLogs: WalkingLog[];
@@ -748,6 +756,7 @@ export interface WorkoutData {
   personalRecords?: ExercisePR[]; // PR tracking per exercise
   bodyScanPhotos?: BodyScanPhoto[]; // Body scan photo history for progress tracking
   formCheckPhotos?: FormCheckPhoto[]; // Form check photo history
+  avatarVideoUrls?: AvatarVideoUrl[]; // HeyGen avatar video URLs for exercises
   lastAPTCheckDate?: string; // YYYY-MM-DD
   lastMeasurementReminder?: string; // YYYY-MM-DD
   goalWeight?: number;

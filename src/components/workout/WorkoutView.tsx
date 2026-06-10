@@ -815,6 +815,7 @@ export function WorkoutView({ data, update }: Props) {
           onComplete={handleComplete}
           onExit={() => { setSessionDayId(null); setTab("home"); }}
           update={update}
+          data={data}
         />
       </div>
     );

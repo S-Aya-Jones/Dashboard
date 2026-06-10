@@ -18,6 +18,7 @@ interface Props {
   onComplete: (logs: ExerciseSessionLog[]) => void;
   onExit: () => void;
   update: (fn: (d: DashboardData) => DashboardData) => void;
+  data: DashboardData;
 }
 
 interface WorkoutSection {
@@ -143,9 +144,15 @@ function VideoBlock({ ex, animKey }: { ex: ProgramExercise; animKey: number }) {
   );
 }
 
+// ── Helper: Get avatar video URL for exercise ───────────────────────────────────
+function getExerciseVideoUrl(exerciseId: string, data: DashboardData): string | undefined {
+  const videoUrls = data.workout?.avatarVideoUrls ?? [];
+  return videoUrls.find((v) => v.exerciseId === exerciseId)?.videoUrl;
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 
-export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepTime, onComplete, onExit, update }: Props) {
+export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepTime, onComplete, onExit, update, data }: Props) {
   const [customExList, setCustomExList] = useState<ProgramExercise[]>([]);
 
   // ── Sections ─────────────────────────────────────────────────────────────────
@@ -689,7 +696,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
         })()}
 
         {/* AI Avatar Coach */}
-        <AvatarCoach exercise={ex} setIndex={setIdx} totalSets={ex.sets} isPlaying={!paused && !rest} />
+        <AvatarCoach exercise={ex} setIndex={setIdx} totalSets={ex.sets} isPlaying={!paused && !rest} videoUrl={getExerciseVideoUrl(ex.id, data)} />
 
         {/* Video */}
         <VideoBlock ex={ex} animKey={anim.key} />
