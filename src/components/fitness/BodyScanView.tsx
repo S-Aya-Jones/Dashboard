@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Camera, ChevronDown, ChevronUp, RefreshCw, X } from "lucide-react";
+import { Camera, ChevronDown, ChevronUp, RefreshCw, X, MessageSquare, TrendingUp, Trash2 } from "lucide-react";
+import { DashboardData, BodyScanPhoto } from "@/types/dashboard";
+import { id } from "@/lib/utils";
+import { format, parseISO, differenceInDays } from "date-fns";
 
 interface BodyAnalysis {
   bodyType: string;
@@ -70,7 +73,7 @@ function Section({ title, icon, children, defaultOpen = false }: { title: string
 const devColor = (d: string) =>
   d === "developed" ? GOLD : d === "average" ? PURPLE : PEACH;
 
-function ResultCard({ analysis, thumbs, onReset }: { analysis: BodyAnalysis; thumbs: string[]; onReset: () => void }) {
+function ResultCard({ analysis, thumbs, onReset, onChat }: { analysis: BodyAnalysis; thumbs: string[]; onReset: () => void; onChat: () => void }) {
   const scoreColor = analysis.compositionScore >= 8 ? GOLD : analysis.compositionScore >= 6 ? PURPLE : PEACH;
   const bfMid = ((analysis.bodyFatEstimate.low + analysis.bodyFatEstimate.high) / 2).toFixed(1);
 
@@ -236,6 +239,10 @@ function ResultCard({ analysis, thumbs, onReset }: { analysis: BodyAnalysis; thu
       </Section>
 
       <div className="p-4 space-y-3">
+        <button onClick={onChat} className="w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
+          style={{ background: PURPLE, color: "#fff" }}>
+          <MessageSquare size={16} /> Ask Aya About Your Results
+        </button>
         <p className="text-xs text-center" style={{ color: "var(--text-muted)" }}>
           Visual AI estimate only. For accurate body fat %, use DEXA scan or hydrostatic weighing.
         </p>
@@ -250,7 +257,12 @@ function ResultCard({ analysis, thumbs, onReset }: { analysis: BodyAnalysis; thu
   );
 }
 
-export function BodyScanView() {
+interface Props {
+  data: DashboardData;
+  update: (fn: (d: DashboardData) => DashboardData) => void;
+}
+
+export function BodyScanView({ data, update }: Props) {
   const [photos, setPhotos] = useState<Partial<Record<SlotKey, string>>>({});
   const [analyzing, setAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<BodyAnalysis | null>(null);
@@ -258,7 +270,16 @@ export function BodyScanView() {
   const [error, setError] = useState("");
   const [height, setHeight] = useState("");
   const [weight, setWeight] = useState("");
+  const [showChat, setShowChat] = useState(false);
+  const [chatMessages, setChatMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [activeAnalysis, setActiveAnalysis] = useState<BodyAnalysis | null>(null);
   const fileRefs = useRef<Partial<Record<SlotKey, HTMLInputElement | null>>>({});
+
+  const w = data.workout ?? { sessionLogs: [], walkingLogs: [], measurements: [], bodyWeight: [] };
+  const savedPhotos = (w.bodyScanPhotos ?? []).sort((a, b) => b.timestamp.localeCompare(a.timestamp));
 
   const photoCount = Object.keys(photos).length;
 
@@ -284,16 +305,15 @@ export function BodyScanView() {
     setError("");
     setAnalysis(null);
 
-    const images = SLOTS
-      .filter(s => photos[s.key])
-      .map(s => {
-        const dataUrl = photos[s.key]!;
-        const [header, base64] = dataUrl.split(",");
-        const mime = header.match(/data:([^;]+)/)?.[1] ?? "image/jpeg";
-        return { imageBase64: base64, mimeType: mime, label: s.label };
-      });
+    const filledSlots = SLOTS.filter(s => photos[s.key]);
+    const images = filledSlots.map(s => {
+      const dataUrl = photos[s.key]!;
+      const [header, base64] = dataUrl.split(",");
+      const mime = header.match(/data:([^;]+)/)?.[1] ?? "image/jpeg";
+      return { imageBase64: base64, mimeType: mime, label: s.label };
+    });
 
-    const thumbs = images.map((_, i) => photos[SLOTS.filter(s => photos[s.key])[i].key]!);
+    const thumbs = filledSlots.map(s => photos[s.key]!);
 
     try {
       const res = await fetch("/api/body/analyze", {
@@ -303,8 +323,37 @@ export function BodyScanView() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error);
-      setAnalysis(json.analysis);
+      const result: BodyAnalysis = json.analysis;
+      setAnalysis(result);
+      setActiveAnalysis(result);
       setResultThumbs(thumbs);
+      setChatMessages([]);
+
+      // Store photo with analysis
+      const photoId = id();
+      const newPhoto: BodyScanPhoto = {
+        id: photoId,
+        date: format(new Date(), "yyyy-MM-dd"),
+        timestamp: new Date().toISOString(),
+        angle: filledSlots.length > 1 ? "all" : filledSlots[0].key,
+        photoData: thumbs[0],
+        height: height ? parseFloat(height) : undefined,
+        weight: weight ? parseFloat(weight) : undefined,
+        analysis: {
+          bodyFat: result.bodyFatEstimate,
+          compositionScore: result.compositionScore,
+          potentialScore: result.potentialScore,
+          honestAssessment: result.honestAssessment,
+          strengths: result.strengths,
+          areas: result.areas,
+          roadmap: result.roadmap,
+        },
+      };
+
+      update((d) => {
+        const wd = d.workout ?? { sessionLogs: [], walkingLogs: [], measurements: [], bodyWeight: [] };
+        return { ...d, workout: { ...wd, bodyScanPhotos: [...(wd.bodyScanPhotos ?? []), newPhoto] } };
+      });
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Scan failed");
     } finally {
@@ -315,14 +364,311 @@ export function BodyScanView() {
   const reset = () => {
     setPhotos({});
     setAnalysis(null);
+    setActiveAnalysis(null);
     setResultThumbs([]);
     setError("");
+    setShowChat(false);
+    setChatMessages([]);
   };
 
-  if (analysis) return <ResultCard analysis={analysis} thumbs={resultThumbs} onReset={reset} />;
+  const sendChat = async () => {
+    if (!chatInput.trim() || !activeAnalysis) return;
+    const userMsg = chatInput.trim();
+    setChatInput("");
+    const newMessages = [...chatMessages, { role: "user" as const, content: userMsg }];
+    setChatMessages(newMessages);
+    setChatLoading(true);
+    try {
+      const res = await fetch("/api/body/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ analysis: activeAnalysis, userMessage: userMsg, conversationHistory: chatMessages }),
+      });
+      const json = await res.json();
+      setChatMessages([...newMessages, { role: "assistant", content: json.message || "I couldn't respond. Try again." }]);
+    } catch {
+      setChatMessages([...newMessages, { role: "assistant", content: "Connection error. Try again." }]);
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
+  const deletePhoto = (photoId: string) => {
+    update((d) => {
+      const wd = d.workout ?? { sessionLogs: [], walkingLogs: [], measurements: [], bodyWeight: [] };
+      return { ...d, workout: { ...wd, bodyScanPhotos: (wd.bodyScanPhotos ?? []).filter(p => p.id !== photoId) } };
+    });
+  };
+
+  if (analysis) return (
+    <>
+      <ResultCard analysis={analysis} thumbs={resultThumbs} onReset={reset} onChat={() => setShowChat(true)} />
+
+      {/* Chat modal */}
+      {showChat && (
+        <div className="fixed inset-0 flex items-end z-50" style={{ background: "rgba(0,0,0,0.5)" }} onClick={() => setShowChat(false)}>
+          <div className="w-full rounded-t-3xl p-5 space-y-4 max-h-[85vh] flex flex-col"
+            style={{ background: "var(--bg)" }} onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="font-serif text-xl" style={{ color: "var(--text)" }}>Ask Aya</h2>
+                <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>Ask anything about your body scan results</p>
+              </div>
+              <button onClick={() => setShowChat(false)} className="p-2 rounded-xl" style={{ color: "var(--text-light)" }}><X size={20} /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto space-y-3 min-h-0">
+              {chatMessages.length === 0 && (
+                <div className="rounded-xl p-3 text-xs" style={{ background: "rgba(124,92,252,0.06)", color: "var(--text-muted)" }}>
+                  Hi! I&apos;ve reviewed your body scan. Ask me anything — about your score, roadmap, diet, training, or what to focus on first.
+                </div>
+              )}
+              {chatMessages.map((m, i) => (
+                <div key={i} className={`rounded-xl p-3 text-sm leading-relaxed ${m.role === "user" ? "ml-8" : "mr-8"}`}
+                  style={{
+                    background: m.role === "user" ? PURPLE : "rgba(124,92,252,0.06)",
+                    color: m.role === "user" ? "#fff" : "var(--text)",
+                  }}>
+                  {m.content}
+                </div>
+              ))}
+              {chatLoading && (
+                <div className="flex gap-1 px-3 py-4">
+                  {[0, 150, 300].map(d => (
+                    <div key={d} className="w-2 h-2 rounded-full animate-bounce" style={{ background: PURPLE, animationDelay: `${d}ms` }} />
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <input
+                value={chatInput}
+                onChange={e => setChatInput(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && sendChat()}
+                placeholder="Ask about your results..."
+                className="flex-1 px-4 py-3 rounded-xl text-sm outline-none"
+                style={{ background: "var(--surface)", color: "var(--text)", border: "1px solid rgba(124,92,252,0.2)" }}
+              />
+              <button onClick={sendChat} disabled={!chatInput.trim() || chatLoading}
+                className="px-4 py-3 rounded-xl font-semibold text-sm disabled:opacity-40"
+                style={{ background: PURPLE, color: "#fff" }}>
+                Send
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
 
   return (
     <div className="space-y-4">
+      {/* Scan History */}
+      {savedPhotos.length > 0 && (
+        <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.15)" }}>
+          <button onClick={() => setShowHistory(!showHistory)}
+            className="w-full flex items-center justify-between px-4 py-3.5"
+            style={{ borderBottom: showHistory ? "1px solid rgba(124,92,252,0.1)" : "none" }}>
+            <div className="flex items-center gap-2">
+              <TrendingUp size={16} style={{ color: PURPLE }} />
+              <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>Scan History</p>
+              <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(124,92,252,0.1)", color: PURPLE }}>{savedPhotos.length}</span>
+            </div>
+            {showHistory ? <ChevronUp size={16} style={{ color: "var(--text-muted)" }} /> : <ChevronDown size={16} style={{ color: "var(--text-muted)" }} />}
+          </button>
+
+          {showHistory && (
+            <div className="p-4 space-y-3">
+              {savedPhotos.length > 1 && (() => {
+                const newest = savedPhotos[0];
+                const oldest = savedPhotos[savedPhotos.length - 1];
+                const days = differenceInDays(parseISO(newest.timestamp), parseISO(oldest.timestamp));
+                const scoreDiff = (newest.analysis?.compositionScore ?? 0) - (oldest.analysis?.compositionScore ?? 0);
+                return (
+                  <div className="rounded-xl p-3 grid grid-cols-3 gap-2 text-center"
+                    style={{ background: "rgba(124,92,252,0.06)", border: "1px solid rgba(124,92,252,0.12)" }}>
+                    <div>
+                      <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Scans</p>
+                      <p className="text-sm font-bold" style={{ color: PURPLE }}>{savedPhotos.length}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Days tracked</p>
+                      <p className="text-sm font-bold" style={{ color: PURPLE }}>{days}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Score change</p>
+                      <p className="text-sm font-bold" style={{ color: scoreDiff >= 0 ? PURPLE : ROSE }}>
+                        {scoreDiff >= 0 ? "+" : ""}{scoreDiff.toFixed(1)}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {savedPhotos.map(photo => (
+                <div key={photo.id} className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(124,92,252,0.12)" }}>
+                  <div className="flex gap-3 p-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={photo.photoData} alt="scan" className="w-14 h-18 rounded-lg object-cover flex-shrink-0" style={{ height: "4.5rem" }} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-xs font-semibold" style={{ color: "var(--text)" }}>
+                          {format(parseISO(photo.timestamp), "MMM d, yyyy")}
+                        </p>
+                        <button onClick={() => deletePhoto(photo.id)} className="p-1 rounded-lg flex-shrink-0"
+                          style={{ color: ROSE, background: "rgba(218,102,123,0.08)" }}>
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                      <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>
+                        {format(parseISO(photo.timestamp), "h:mm a")} · {photo.angle === "all" ? "Multiple angles" : photo.angle}
+                      </p>
+                      {photo.analysis && (
+                        <div className="mt-2 space-y-1">
+                          <div className="flex gap-2">
+                            <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "rgba(124,92,252,0.1)", color: PURPLE }}>
+                              Score: {photo.analysis.compositionScore}/10
+                            </span>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "rgba(232,168,124,0.1)", color: PEACH }}>
+                              BF: {photo.analysis.bodyFat.low}–{photo.analysis.bodyFat.high}%
+                            </span>
+                          </div>
+                          <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(124,92,252,0.08)" }}>
+                            <div className="h-full rounded-full" style={{ width: `${(photo.analysis.compositionScore / 10) * 100}%`, background: PURPLE }} />
+                          </div>
+                          <button
+                            onClick={() => {
+                              const reconstructed: BodyAnalysis = {
+                                bodyType: "Mixed",
+                                visualAssessment: photo.analysis!.honestAssessment || "",
+                                bodyFatEstimate: {
+                                  low: photo.analysis!.bodyFat.low,
+                                  high: photo.analysis!.bodyFat.high,
+                                  category: photo.analysis!.bodyFat.category || "Average",
+                                  note: photo.analysis!.bodyFat.note || "",
+                                },
+                                muscleDefinition: 5,
+                                compositionScore: photo.analysis!.compositionScore,
+                                potentialScore: photo.analysis!.potentialScore || 8,
+                                visibleMuscle: [],
+                                posture: undefined,
+                                strengths: photo.analysis!.strengths || [],
+                                areas: photo.analysis!.areas || [],
+                                honestAssessment: photo.analysis!.honestAssessment || "",
+                                protocol: { training: [], diet: [], recovery: [] },
+                                roadmap: {
+                                  thirtyDay: photo.analysis!.roadmap?.thirtyDay || { focus: "", expectedChange: "", actions: [] },
+                                  ninetyDay: photo.analysis!.roadmap?.ninetyDay || { focus: "", expectedChange: "", actions: [] },
+                                  sixMonth: photo.analysis!.roadmap?.sixMonth || { focus: "", expectedChange: "", actions: [] },
+                                },
+                              };
+                              setActiveAnalysis(reconstructed);
+                              setChatMessages([]);
+                              setShowChat(true);
+                            }}
+                            className="flex items-center gap-1 text-[10px] font-semibold"
+                            style={{ color: PURPLE }}>
+                            <MessageSquare size={10} /> Chat about this scan
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {/* Progress comparison */}
+              {savedPhotos.length >= 2 && savedPhotos[0].analysis && savedPhotos[savedPhotos.length - 1].analysis && (() => {
+                const newest = savedPhotos[0];
+                const oldest = savedPhotos[savedPhotos.length - 1];
+                const scoreDiff = (newest.analysis!.compositionScore) - (oldest.analysis!.compositionScore);
+                const bfOld = (oldest.analysis!.bodyFat.low + oldest.analysis!.bodyFat.high) / 2;
+                const bfNew = (newest.analysis!.bodyFat.low + newest.analysis!.bodyFat.high) / 2;
+                const bfDiff = bfNew - bfOld;
+                return (
+                  <div className="rounded-xl p-3 space-y-2" style={{ background: "rgba(124,92,252,0.04)", border: "1px solid rgba(124,92,252,0.12)" }}>
+                    <p className="text-xs font-semibold" style={{ color: "var(--text)" }}>📊 Progress Summary</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Composition Score</p>
+                        <p className="text-sm font-bold" style={{ color: scoreDiff >= 0 ? PURPLE : ROSE }}>
+                          {scoreDiff >= 0 ? "+" : ""}{scoreDiff.toFixed(1)} pts
+                        </p>
+                        <div className="h-1 rounded-full mt-1" style={{ background: "rgba(124,92,252,0.1)" }}>
+                          <div className="h-full rounded-full" style={{ width: `${(newest.analysis!.compositionScore / 10) * 100}%`, background: PURPLE }} />
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Body Fat</p>
+                        <p className="text-sm font-bold" style={{ color: bfDiff <= 0 ? PURPLE : ROSE }}>
+                          {bfDiff <= 0 ? "" : "+"}{bfDiff.toFixed(1)}%
+                        </p>
+                        <p className="text-[10px]" style={{ color: bfDiff <= 0 ? PURPLE : ROSE }}>
+                          {bfDiff <= 0 ? "✓ Decreasing" : "⚠ Increasing"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Chat modal (also accessible from history) */}
+      {showChat && activeAnalysis && (
+        <div className="fixed inset-0 flex items-end z-50" style={{ background: "rgba(0,0,0,0.5)" }} onClick={() => setShowChat(false)}>
+          <div className="w-full rounded-t-3xl p-5 space-y-4 max-h-[85vh] flex flex-col"
+            style={{ background: "var(--bg)" }} onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="font-serif text-xl" style={{ color: "var(--text)" }}>Ask Aya</h2>
+                <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>Ask anything about your body scan results</p>
+              </div>
+              <button onClick={() => setShowChat(false)} className="p-2 rounded-xl" style={{ color: "var(--text-light)" }}><X size={20} /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto space-y-3 min-h-0">
+              {chatMessages.length === 0 && (
+                <div className="rounded-xl p-3 text-xs" style={{ background: "rgba(124,92,252,0.06)", color: "var(--text-muted)" }}>
+                  Hi! I&apos;ve reviewed your body scan. Ask me anything — about your score, roadmap, diet, training, or what to focus on first.
+                </div>
+              )}
+              {chatMessages.map((m, i) => (
+                <div key={i} className={`rounded-xl p-3 text-sm leading-relaxed ${m.role === "user" ? "ml-8" : "mr-8"}`}
+                  style={{
+                    background: m.role === "user" ? PURPLE : "rgba(124,92,252,0.06)",
+                    color: m.role === "user" ? "#fff" : "var(--text)",
+                  }}>
+                  {m.content}
+                </div>
+              ))}
+              {chatLoading && (
+                <div className="flex gap-1 px-3 py-4">
+                  {[0, 150, 300].map(d => (
+                    <div key={d} className="w-2 h-2 rounded-full animate-bounce" style={{ background: PURPLE, animationDelay: `${d}ms` }} />
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <input
+                value={chatInput}
+                onChange={e => setChatInput(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && sendChat()}
+                placeholder="Ask about your results..."
+                className="flex-1 px-4 py-3 rounded-xl text-sm outline-none"
+                style={{ background: "var(--surface)", color: "var(--text)", border: "1px solid rgba(124,92,252,0.2)" }}
+              />
+              <button onClick={sendChat} disabled={!chatInput.trim() || chatLoading}
+                className="px-4 py-3 rounded-xl font-semibold text-sm disabled:opacity-40"
+                style={{ background: PURPLE, color: "#fff" }}>
+                Send
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.15)" }}>
         <div className="p-4" style={{ borderBottom: "1px solid rgba(124,92,252,0.1)" }}>
           <p className="text-xs font-semibold mb-0.5" style={{ color: "var(--text-muted)", letterSpacing: "0.08em" }}>BODY COMPOSITION SCAN</p>
