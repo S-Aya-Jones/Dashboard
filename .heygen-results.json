@@ -4,21 +4,21 @@
     "exerciseName": "Barbell Hip Thrust",
     "videoId": "007d7027164c49188ad8719cd4b8c417",
     "submittedAt": "2026-06-10T05:06:44.462Z",
-    "status": "processing"
+    "status": "failed"
   },
   {
     "exerciseId": "romanian-deadlift",
     "exerciseName": "Romanian Deadlift",
     "videoId": "96feb83ce05a477dabfe4e9a30926d47",
     "submittedAt": "2026-06-10T05:06:46.096Z",
-    "status": "processing"
+    "status": "failed"
   },
   {
     "exerciseId": "glute-bridge-hold",
     "exerciseName": "Glute Bridge Hold",
     "videoId": "af31e00b4aba42fda8fadceed220e89e",
     "submittedAt": "2026-06-10T05:06:47.896Z",
-    "status": "processing"
+    "status": "failed"
   },
   {
     "exerciseId": "dead-bug-main",
@@ -39,34 +39,34 @@
     "exerciseName": "Dumbbell Shoulder Press",
     "videoId": "c7980bb74c1841319947ce450ccd0e1f",
     "submittedAt": "2026-06-10T05:06:52.667Z",
-    "status": "processing"
+    "status": "failed"
   },
   {
     "exerciseId": "db-lateral-raise",
     "exerciseName": "Dumbbell Lateral Raise",
     "videoId": "6ec3ac69f29b44caa38036e47162216c",
     "submittedAt": "2026-06-10T05:06:54.280Z",
-    "status": "processing"
+    "status": "failed"
   },
   {
     "exerciseId": "face-pull",
     "exerciseName": "Face Pull",
     "videoId": "84a115aa32eb40389e9499b2cdb90f00",
     "submittedAt": "2026-06-10T05:06:55.999Z",
-    "status": "processing"
+    "status": "failed"
   },
   {
     "exerciseId": "lat-pulldown-mon",
     "exerciseName": "Lat Pulldown",
     "videoId": "f97fc3f3de6749289850f721252f1da7",
     "submittedAt": "2026-06-10T05:06:57.735Z",
-    "status": "processing"
+    "status": "failed"
   },
   {
     "exerciseId": "seated-cable-row",
     "exerciseName": "Seated Cable Row",
     "videoId": "6b0b460f328a49d7882c6854a09050b8",
     "submittedAt": "2026-06-10T05:06:59.308Z",
-    "status": "pending"
+    "status": "failed"
   }
 ]
