@@ -34,6 +34,9 @@ function parseIntent(raw: string): { reply: string; action: string; weightUpdate
   return { reply: "Got it! 👋 Reply HELP to see what I can track.", action: "" };
 }
 
+// Folders to search — Gmail stores everything in All Mail
+const FOLDERS_TO_CHECK = ["INBOX", "[Gmail]/All Mail", "All Mail"];
+
 export async function GET() {
   const user = process.env.GMAIL_USER;
   const pass = process.env.GMAIL_APP_PASSWORD;
@@ -49,56 +52,76 @@ export async function GET() {
 
   try {
     await client.connect();
-    await client.mailboxOpen("INBOX");
 
-    // Find unread emails from T-Mobile gateway in last 24h
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const messages: { uid: number; body: string; from: string }[] = [];
+    const messages: { uid: number; body: string; from: string; folder: string }[] = [];
+    const seenIds = new Set<string>();
 
-    for await (const msg of client.fetch(
-      { since, seen: false },
-      { envelope: true, bodyStructure: true, source: true }
-    )) {
-      const from = msg.envelope?.from?.[0]?.address ?? "";
-      if (from.includes(TMOBILE_SENDER_DOMAIN)) {
+    for (const folder of FOLDERS_TO_CHECK) {
+      try {
+        await client.mailboxOpen(folder);
+      } catch {
+        continue; // folder doesn't exist, skip
+      }
+
+      // Search all messages (read or unread) from T-Mobile in last 24h
+      for await (const msg of client.fetch(
+        { since },
+        { envelope: true, source: true }
+      )) {
+        const from = msg.envelope?.from?.[0]?.address ?? "";
+        if (!from.includes(TMOBILE_SENDER_DOMAIN)) continue;
+
+        const msgId = msg.envelope?.messageId ?? `${msg.uid}`;
+        if (seenIds.has(msgId)) continue;
+        seenIds.add(msgId);
+
         const source = msg.source?.toString() ?? "";
-        // Extract plain text body from email source
-        const textMatch = source.match(/\r\n\r\n([\s\S]+?)(\r\n--|\r\n\r\n--|$)/);
+        // Try multiple patterns to extract plain text body
+        const textMatch =
+          source.match(/Content-Type: text\/plain[^\r\n]*\r\n(?:[^\r\n]+\r\n)*\r\n([\s\S]+?)(?:\r\n--|\r\n\r\n--|$)/) ??
+          source.match(/\r\n\r\n([\s\S]+?)(?:\r\n--|$)/);
         const body = textMatch?.[1]?.trim() ?? "";
-        if (body) messages.push({ uid: msg.uid, body, from });
+        if (body) messages.push({ uid: msg.uid, body, from, folder });
       }
     }
 
     if (messages.length === 0) {
       await client.logout();
-      return NextResponse.json({ processed: 0 });
+      return NextResponse.json({ processed: 0, checked: FOLDERS_TO_CHECK });
     }
 
-    // Process each reply
     const data = await loadData();
     const sms = data.sms ?? { phoneNumber: user, enabled: true, messages: [], reminders: [] };
+
+    // Get already-processed message IDs to avoid duplicates
+    const existingIds = new Set((sms.messages ?? []).map(m => m.id));
     let processed = 0;
 
     for (const msg of messages) {
+      const msgKey = `tmobile-${msg.from}-${msg.body.slice(0, 20)}`;
+      // Skip if we already have a message with this same content from today
+      const today = new Date().toISOString().slice(0, 10);
+      const alreadyStored = (sms.messages ?? []).some(
+        m => m.direction === "inbound" && m.body === msg.body && m.timestamp.startsWith(today)
+      );
+      if (alreadyStored) continue;
+
       const { reply, action, weightUpdate, stepsUpdate } = parseIntent(msg.body);
 
-      // Update dashboard data
       if (weightUpdate !== undefined) {
-        const today = new Date().toISOString().slice(0, 10);
         const wd = data.workout ?? { sessionLogs: [], walkingLogs: [], measurements: [], bodyWeight: [] };
         wd.bodyWeight = [...(wd.bodyWeight ?? []).filter(b => b.date !== today), { date: today, weight: weightUpdate }];
         data.workout = wd;
       }
       if (stepsUpdate !== undefined) {
-        const today = new Date().toISOString().slice(0, 10);
         const wd = data.workout ?? { sessionLogs: [], walkingLogs: [], measurements: [], bodyWeight: [] };
         wd.walkingLogs = [...(wd.walkingLogs ?? []).filter(l => l.date !== today), { date: today, steps: stepsUpdate }];
         data.workout = wd;
       }
 
-      // Store inbound message
       const inbound: SmsMessage = {
-        id: `sms-${Date.now()}-${processed}`,
+        id: `sms-in-${Date.now()}-${processed}`,
         direction: "inbound",
         body: msg.body,
         timestamp: new Date().toISOString(),
@@ -106,23 +129,26 @@ export async function GET() {
       };
       sms.messages = [...(sms.messages ?? []), inbound];
 
-      // Send reply back via email gateway
-      await fetch(`${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/sms/send`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: reply }),
-      });
+      // Send reply back
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "";
+      if (appUrl) {
+        await fetch(`${appUrl}/api/sms/send`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: reply }),
+        }).catch(() => {});
+      }
 
-      // Mark as read
-      await client.messageFlagsAdd({ uid: msg.uid }, ["\\Seen"]);
       processed++;
     }
 
-    data.sms = sms;
-    await saveData(data);
-    await client.logout();
+    if (processed > 0) {
+      data.sms = sms;
+      await saveData(data);
+    }
 
-    return NextResponse.json({ processed });
+    await client.logout();
+    return NextResponse.json({ processed, found: messages.length });
   } catch (e) {
     try { await client.logout(); } catch { /* ignore */ }
     return NextResponse.json({ error: String(e) }, { status: 500 });
