@@ -5,7 +5,7 @@ import { format, parseISO, differenceInCalendarDays, subDays } from "date-fns";
 import { Play, Flame, TrendingUp, Home, ChevronRight, X } from "lucide-react";
 import { DashboardData, ExerciseSessionLog, WorkoutSessionLog, MeasurementEntry, BodyWeightEntry } from "@/types/dashboard";
 import {
-  PROGRAM, WEEK_DAYS, CORE_PRIMER, HIP_FLEXOR_UNLOCK,
+  PROGRAM, WEEK_DAYS,
   todayWeekday, getProgramDay, getCurrentWeek, getWeekPhase, buildFullExerciseList,
 } from "./program";
 import { SessionView } from "./SessionView";
@@ -110,28 +110,14 @@ function ProgramOverview({ onClose }: { onClose: () => void }) {
 
                 {isExpanded && (
                   <div className="px-4 pb-4 space-y-4 border-t" style={{ borderColor: "var(--border)" }}>
-                    {/* Core primer */}
-                    <div className="pt-3">
-                      <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: "#DA667B" }}>Core Primer (every session)</p>
-                      <div className="space-y-1.5">
-                        {CORE_PRIMER.map((ex) => (
-                          <div key={ex.id} className="flex items-center gap-2.5">
-                            <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "#DA667B" }} />
-                            <span className="text-sm" style={{ color: "var(--text)" }}>{ex.name}</span>
-                            <span className="ml-auto text-xs" style={{ color: "var(--text-light)" }}>{ex.sets}×{ex.reps}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Hip flexor unlock */}
-                    {day.isGluteDay && (
-                      <div>
-                        <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: "#C99A5C" }}>Hip Flexor Unlock (glute days)</p>
+                    {/* Warmup / Activation */}
+                    {day.warmupExercises.length > 0 && (
+                      <div className="pt-3">
+                        <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: "#DA667B" }}>Activation</p>
                         <div className="space-y-1.5">
-                          {HIP_FLEXOR_UNLOCK.map((ex) => (
+                          {day.warmupExercises.map((ex) => (
                             <div key={ex.id} className="flex items-center gap-2.5">
-                              <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "#C99A5C" }} />
+                              <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "#DA667B" }} />
                               <span className="text-sm" style={{ color: "var(--text)" }}>{ex.name}</span>
                               <span className="ml-auto text-xs" style={{ color: "var(--text-light)" }}>{ex.sets}×{ex.reps}</span>
                             </div>
@@ -141,7 +127,7 @@ function ProgramOverview({ onClose }: { onClose: () => void }) {
                     )}
 
                     {/* Main exercises */}
-                    <div>
+                    <div className={day.warmupExercises.length === 0 ? "pt-3" : ""}>
                       <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: "var(--text-muted)" }}>Main Work</p>
                       <div className="space-y-2">
                         {day.mainExercises.map((ex) => {
@@ -159,6 +145,22 @@ function ProgramOverview({ onClose }: { onClose: () => void }) {
                         })}
                       </div>
                     </div>
+
+                    {/* Cooldown */}
+                    {day.cooldownExercises.length > 0 && (
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: "#C99A5C" }}>Cooldown</p>
+                        <div className="space-y-1.5">
+                          {day.cooldownExercises.map((ex) => (
+                            <div key={ex.id} className="flex items-center gap-2.5">
+                              <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "#C99A5C" }} />
+                              <span className="text-sm" style={{ color: "var(--text)" }}>{ex.name}</span>
+                              <span className="ml-auto text-xs" style={{ color: "var(--text-light)" }}>{ex.sets}×{ex.reps}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -170,12 +172,13 @@ function ProgramOverview({ onClose }: { onClose: () => void }) {
         <div className="rounded-2xl p-4 space-y-3" style={{ background: "#FAF8FF", border: "1px solid var(--border)" }}>
           <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Program Rules</p>
           {[
-            { color: "#7C5CFC", rule: "Core Primer every session — non-negotiable." },
-            { color: "#7C5CFC", rule: "Hip Flexor Unlock before every glute day." },
-            { color: "#9B7FFF", rule: "Mind-muscle connection > weight. Feel it or it doesn't count." },
-            { color: "#9B7FFF", rule: "Add 5 lbs when 8 reps feel easy." },
-            { color: "#DA667B", rule: "Week 4 deload is mandatory — that's when you grow." },
-            { color: "#C99A5C", rule: "Measure waist + hips weekly. Same day, same time." },
+            { color: "#7C5CFC", rule: "Hip thrust: ribs down, 1-second squeeze, vertical shins at top. No exceptions." },
+            { color: "#7C5CFC", rule: "Activation block before every session — 10 rushed sets beats 6 on sleepy glutes." },
+            { color: "#9B7FFF", rule: "Dead Bug every session: lower back pressed flat the entire rep." },
+            { color: "#9B7FFF", rule: "Core work never gets weight added. Progress through time and reps only." },
+            { color: "#DA667B", rule: "Week 7 deload is mandatory — 50% weight, same reps. Growth consolidates here." },
+            { color: "#C99A5C", rule: "Incline walk daily: 8–12% incline, 3.0–3.5 mph. Your fat-loss engine." },
+            { color: "#C99A5C", rule: "Measure waist + hips every 2 weeks. Same time, same day." },
           ].map(({ color, rule }, i) => (
             <div key={i} className="flex items-start gap-3">
               <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1.5" style={{ background: color }} />

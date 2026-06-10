@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { X, Volume2, SkipForward, Pause, Play, Plus, ChevronLeft, ChevronRight, ExternalLink, ChevronsRight } from "lucide-react";
-import { ProgramDay, ProgramExercise, CORE_PRIMER, HIP_FLEXOR_UNLOCK, getWeekPhase, suggestWeight, CATEGORY_CUES, UNIVERSAL_CUES } from "./program";
+import { ProgramDay, ProgramExercise, getWeekPhase, suggestWeight, CATEGORY_CUES, UNIVERSAL_CUES } from "./program";
 import { ExerciseSessionLog, WorkoutSetLog } from "@/types/dashboard";
 
 interface Props {
@@ -147,9 +147,9 @@ export function SessionView({ day, weekNum, lastWeights, streak, totalCompleted,
 
   // ── Sections ─────────────────────────────────────────────────────────────────
   const sections = useMemo((): WorkoutSection[] => [
-    { id: "core",  label: "Core Primer",  color: "#DA667B", exercises: CORE_PRIMER },
-    ...(day.isGluteDay ? [{ id: "hip", label: "Hip Flexors", color: "#C99A5C", exercises: HIP_FLEXOR_UNLOCK }] : []),
-    { id: "main",  label: "Main Work",    color: "#7C5CFC", exercises: [...day.mainExercises, ...customExList] },
+    ...(day.warmupExercises.length > 0 ? [{ id: "warmup", label: "Activation", color: "#DA667B", exercises: day.warmupExercises }] : []),
+    { id: "main", label: "Main Work", color: "#7C5CFC", exercises: [...day.mainExercises, ...customExList] },
+    ...(day.cooldownExercises.length > 0 ? [{ id: "cooldown", label: "Cooldown", color: "#C99A5C", exercises: day.cooldownExercises }] : []),
   ], [day, customExList]);
 
   const exercises = useMemo(() => sections.flatMap((s) => s.exercises), [sections]);
