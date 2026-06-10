@@ -185,7 +185,11 @@ export default function TermsPage() {
 
           <Section title="Contact">
             <p>
-              Questions about these Terms of Service may be directed to the account holder.
+              Questions about these Terms of Service may be directed to the account holder,
+              Shaniqua Jones, at{" "}
+              <a href="mailto:shaniquaayajones@gmail.com" style={{ color: "#7C5CFC", textDecoration: "none" }}>
+                shaniquaayajones@gmail.com
+              </a>.
               As this is a personal single-user application, no formal legal or support
               team exists — all inquiries go to the individual who owns and operates this
               dashboard.

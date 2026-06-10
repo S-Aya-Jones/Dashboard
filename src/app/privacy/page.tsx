@@ -192,10 +192,14 @@ export default function PrivacyPage() {
 
           <Section title="Contact">
             <p>
-              Questions or concerns about this Privacy Policy can be directed to the account
-              holder directly. As this is a personal single-user application, no formal data
-              protection officer or privacy team exists — inquiries go to the individual who
-              owns and operates this dashboard.
+              Questions or concerns about this Privacy Policy can be directed to Shaniqua
+              Jones at{" "}
+              <a href="mailto:shaniquaayajones@gmail.com" style={{ color: "#7C5CFC", textDecoration: "none" }}>
+                shaniquaayajones@gmail.com
+              </a>.
+              As this is a personal single-user application, no formal data protection
+              officer or privacy team exists — inquiries go to the individual who owns and
+              operates this dashboard.
             </p>
           </Section>
 
