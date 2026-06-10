@@ -34,7 +34,7 @@ function parseIntent(raw: string): { reply: string; action: string; weightUpdate
   return { reply: "Got it! 👋 Reply HELP to see what I can track.", action: "" };
 }
 
-export async function POST() {
+export async function GET() {
   const user = process.env.GMAIL_USER;
   const pass = process.env.GMAIL_APP_PASSWORD;
   if (!user || !pass) return NextResponse.json({ error: "Gmail not configured" }, { status: 503 });
