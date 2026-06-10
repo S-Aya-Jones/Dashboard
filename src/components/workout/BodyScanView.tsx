@@ -6,6 +6,7 @@ import { DashboardData, BodyScanPhoto } from "@/types/dashboard";
 import { PhotoCapture } from "@/components/PhotoCapture";
 import { PhotoGallery } from "@/components/PhotoGallery";
 import { BodyScanChat } from "@/components/BodyScanChat";
+import { ProgressComparison } from "@/components/ProgressComparison";
 import { id } from "@/lib/utils";
 import { format } from "date-fns";
 
@@ -41,14 +42,22 @@ interface Props {
 
 export function BodyScanView({ data, update }: Props) {
   const [selectedAngle, setSelectedAngle] = useState<"front" | "back" | "left" | "right" | "all">("front");
+  const [height, setHeight] = useState<string>("");
+  const [weight, setWeight] = useState<string>("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisData | null>(null);
   const [showChat, setShowChat] = useState(false);
+  const [comparisonPhotos, setComparisonPhotos] = useState<{ before: BodyScanPhoto; after: BodyScanPhoto } | null>(null);
 
   const w = data.workout ?? { sessionLogs: [], walkingLogs: [], measurements: [], bodyWeight: [], bodyScanPhotos: [] };
   const bodyScanPhotos = w.bodyScanPhotos ?? [];
 
   const handlePhotoCapture = async (photoData: string) => {
+    if (!height) {
+      alert("Please enter your height first");
+      return;
+    }
+
     const photoId = id();
     const newPhoto: BodyScanPhoto = {
       id: photoId,
@@ -56,6 +65,8 @@ export function BodyScanView({ data, update }: Props) {
       timestamp: new Date().toISOString(),
       angle: selectedAngle,
       photoData,
+      height: parseFloat(height),
+      weight: weight ? parseFloat(weight) : undefined,
     };
 
     // Store the photo (without analysis yet)
@@ -84,6 +95,8 @@ export function BodyScanView({ data, update }: Props) {
               label: selectedAngle === "all" ? "Multiple angles" : selectedAngle.charAt(0).toUpperCase() + selectedAngle.slice(1),
             },
           ],
+          height: parseFloat(height),
+          weight: weight ? parseFloat(weight) : undefined,
         }),
       });
 
@@ -171,6 +184,13 @@ export function BodyScanView({ data, update }: Props) {
     }
   };
 
+  const handleCompare = (photo1: BodyScanPhoto, photo2: BodyScanPhoto) => {
+    // Ensure photo1 is before photo2
+    const before = new Date(photo1.timestamp) < new Date(photo2.timestamp) ? photo1 : photo2;
+    const after = new Date(photo1.timestamp) < new Date(photo2.timestamp) ? photo2 : photo1;
+    setComparisonPhotos({ before, after });
+  };
+
   return (
     <>
       <div className="h-full overflow-y-auto no-scrollbar">
@@ -179,7 +199,56 @@ export function BodyScanView({ data, update }: Props) {
           <div className="rounded-2xl p-5 space-y-4" style={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.15)" }}>
             <div>
               <p className="font-semibold text-sm" style={{ color: "var(--text)" }}>📸 Body Scan Analysis</p>
-              <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Get honest AI feedback on your body composition</p>
+              <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Height-based AI feedback on your body composition</p>
+            </div>
+
+            {/* Height & Weight inputs */}
+            <div className="space-y-2">
+              <p className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>Your measurements</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs" style={{ color: "var(--text-muted)" }}>Height (inches)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    placeholder="e.g., 68"
+                    value={height}
+                    onChange={(e) => setHeight(e.target.value)}
+                    style={{
+                      width: "100%",
+                      background: "var(--bg2)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "0.5rem",
+                      padding: "0.5rem",
+                      color: "var(--text)",
+                      fontSize: "0.875rem",
+                      marginTop: "0.25rem",
+                      outline: "none",
+                    }}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs" style={{ color: "var(--text-muted)" }}>Weight (lbs) - optional</label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    placeholder="e.g., 155"
+                    value={weight}
+                    onChange={(e) => setWeight(e.target.value)}
+                    style={{
+                      width: "100%",
+                      background: "var(--bg2)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "0.5rem",
+                      padding: "0.5rem",
+                      color: "var(--text)",
+                      fontSize: "0.875rem",
+                      marginTop: "0.25rem",
+                      outline: "none",
+                    }}
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Angle selector */}
@@ -228,12 +297,15 @@ export function BodyScanView({ data, update }: Props) {
           </div>
 
           {/* Photo gallery */}
-          <PhotoGallery photos={bodyScanPhotos} type="bodyscan" onDelete={handleDelete} onViewAnalysis={handleViewAnalysis} />
+          <PhotoGallery photos={bodyScanPhotos} type="bodyscan" onDelete={handleDelete} onViewAnalysis={handleViewAnalysis} onCompare={handleCompare} />
         </div>
       </div>
 
       {/* Chat with AI Coach */}
       {showChat && analysisResult && <BodyScanChat analysis={analysisResult} onClose={() => setShowChat(false)} />}
+
+      {/* Progress comparison */}
+      {comparisonPhotos && <ProgressComparison before={comparisonPhotos.before} after={comparisonPhotos.after} onClose={() => setComparisonPhotos(null)} />}
     </>
   );
 }

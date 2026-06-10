@@ -723,6 +723,8 @@ export interface BodyScanPhoto {
   timestamp: string; // ISO datetime
   angle: "front" | "back" | "left" | "right" | "all"; // angle or "all" if multiple
   photoData: string; // base64 image data
+  height?: number; // inches or cm (user's height when photo taken)
+  weight?: number; // lbs or kg (optional weight at time of photo)
   analysis?: {
     bodyFat: { low: number; high: number; category?: string; note?: string };
     compositionScore: number;

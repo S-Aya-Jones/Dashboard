@@ -12,13 +12,16 @@ interface Props {
   type: "bodyscan" | "formcheck";
   onDelete: (id: string) => void;
   onViewAnalysis?: (photo: BodyScanPhoto) => void;
+  onCompare?: (photo1: BodyScanPhoto, photo2: BodyScanPhoto) => void;
 }
 
 const isBodyScanPhoto = (p: Photo): p is BodyScanPhoto => "angle" in p;
 
-export function PhotoGallery({ photos, type, onDelete, onViewAnalysis }: Props) {
+export function PhotoGallery({ photos, type, onDelete, onViewAnalysis, onCompare }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [compareMode, setCompareMode] = useState(false);
+  const [selectedForComparison, setSelectedForComparison] = useState<string | null>(null);
 
   if (photos.length === 0) return null;
 
@@ -32,14 +35,34 @@ export function PhotoGallery({ photos, type, onDelete, onViewAnalysis }: Props) 
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center justify-between px-4 py-3.5 text-left border-b"
         style={{ borderColor: "rgba(124,92,252,0.1)" }}>
-        <div>
+        <div className="flex-1">
           <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>
             {type === "bodyscan" ? "📸 Body Scan History" : "📹 Form Check History"}
           </p>
           <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
             {photos.length} photo{photos.length > 1 ? "s" : ""} saved
+            {compareMode && selectedForComparison ? " • Select 2 to compare" : ""}
           </p>
         </div>
+        {type === "bodyscan" && photos.length > 1 && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (compareMode) {
+                setCompareMode(false);
+                setSelectedForComparison(null);
+              } else {
+                setCompareMode(true);
+              }
+            }}
+            className="px-3 py-1.5 rounded-lg text-xs font-semibold mr-2 active:scale-90 transition-transform"
+            style={{
+              background: compareMode ? "#7C5CFC" : "rgba(124,92,252,0.1)",
+              color: compareMode ? "#fff" : "#7C5CFC",
+            }}>
+            📊 Compare
+          </button>
+        )}
         {expanded ? <ChevronUp size={18} style={{ color: "var(--text-muted)" }} /> : <ChevronDown size={18} style={{ color: "var(--text-muted)" }} />}
       </button>
 
@@ -47,23 +70,52 @@ export function PhotoGallery({ photos, type, onDelete, onViewAnalysis }: Props) 
         <div className="p-4 space-y-3">
           {/* Timeline grid */}
           <div className="grid grid-cols-3 gap-2">
-            {sorted.map((photo) => (
-              <button
-                key={photo.id}
-                onClick={() => setSelectedId(selectedId === photo.id ? null : photo.id)}
-                className="rounded-lg overflow-hidden relative group active:scale-95 transition-transform"
-                style={{ aspectRatio: "1", border: selectedId === photo.id ? "2px solid #7C5CFC" : "1px solid rgba(124,92,252,0.2)" }}>
-                <img
-                  src={photo.photoData}
-                  alt={`${type} ${format(parseISO(photo.timestamp), "MMM dd, yyyy")}`}
-                  className="w-full h-full object-cover"
-                />
-                {/* Date label */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
-                  <p className="text-xs text-white font-semibold">{format(parseISO(photo.timestamp), "MMM d")}</p>
-                </div>
-              </button>
-            ))}
+            {sorted.map((photo) => {
+              const isSelected = selectedId === photo.id;
+              const isCompareSelected = selectedForComparison === photo.id;
+              return (
+                <button
+                  key={photo.id}
+                  onClick={() => {
+                    if (compareMode && isBodyScanPhoto(photo)) {
+                      const newSelection = isCompareSelected ? null : photo.id;
+                      setSelectedForComparison(newSelection);
+
+                      // Check if we have two photos selected for comparison
+                      if (selectedForComparison && newSelection && selectedForComparison !== newSelection) {
+                        const photo1 = sorted.find((p) => p.id === selectedForComparison) as BodyScanPhoto;
+                        const photo2 = photo as BodyScanPhoto;
+                        if (onCompare && photo1.analysis && photo2.analysis) {
+                          onCompare(photo1, photo2);
+                        }
+                      }
+                    } else {
+                      setSelectedId(isSelected ? null : photo.id);
+                    }
+                  }}
+                  className="rounded-lg overflow-hidden relative group active:scale-95 transition-transform"
+                  style={{
+                    aspectRatio: "1",
+                    border: compareMode && isCompareSelected ? "3px solid #7C5CFC" : isSelected ? "2px solid #7C5CFC" : "1px solid rgba(124,92,252,0.2)",
+                    opacity: compareMode && selectedForComparison && !isCompareSelected && selectedForComparison !== photo.id ? 0.5 : 1,
+                  }}>
+                  <img
+                    src={photo.photoData}
+                    alt={`${type} ${format(parseISO(photo.timestamp), "MMM dd, yyyy")}`}
+                    className="w-full h-full object-cover"
+                  />
+                  {/* Date label */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
+                    <p className="text-xs text-white font-semibold">{format(parseISO(photo.timestamp), "MMM d")}</p>
+                  </div>
+                  {compareMode && isCompareSelected && (
+                    <div className="absolute inset-0 flex items-center justify-center" style={{ background: "rgba(124,92,252,0.2)" }}>
+                      <p className="text-xl font-bold text-white">✓</p>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           {/* Selected photo details */}
