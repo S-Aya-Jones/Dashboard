@@ -114,7 +114,7 @@ async function generateVideo(exercise, index, total) {
   const script = buildCoachingScript(exercise);
 
   try {
-    const response = await fetch("https://api.heygen.com/v1/video_clips.submit", {
+    const response = await fetch("https://api.heygen.com/v1/video_requests.create", {
       method: "POST",
       headers: {
         "X-HEYGEN-API-KEY": API_KEY,
@@ -122,9 +122,12 @@ async function generateVideo(exercise, index, total) {
       },
       body: JSON.stringify({
         avatar_id: AVATAR_ID,
-        voice_id: VOICE_ID,
+        voice: {
+          voice_id: VOICE_ID,
+        },
         title: `${exercise.name} - Form Coaching`,
         script: script,
+        version: "latest",
       }),
     });
 
