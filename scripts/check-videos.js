@@ -20,10 +20,10 @@ if (!API_KEY) {
 
 async function checkVideoStatus(videoId) {
   try {
-    const response = await fetch(`https://api.heygen.com/v1/video_requests.get?video_id=${videoId}`, {
+    const response = await fetch(`https://api.heygen.com/v3/videos/${videoId}`, {
       method: "GET",
       headers: {
-        "X-HEYGEN-API-KEY": API_KEY,
+        "x-api-key": API_KEY,
       },
     });
 

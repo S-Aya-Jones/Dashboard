@@ -114,20 +114,18 @@ async function generateVideo(exercise, index, total) {
   const script = buildCoachingScript(exercise);
 
   try {
-    const response = await fetch("https://api.heygen.com/v1/video_requests.create", {
+    const response = await fetch("https://api.heygen.com/v3/videos", {
       method: "POST",
       headers: {
-        "X-HEYGEN-API-KEY": API_KEY,
+        "x-api-key": API_KEY,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        type: "avatar",
         avatar_id: AVATAR_ID,
-        voice: {
-          voice_id: VOICE_ID,
-        },
+        voice_id: VOICE_ID,
         title: `${exercise.name} - Form Coaching`,
         script: script,
-        version: "latest",
       }),
     });
 
@@ -168,10 +166,10 @@ async function generateVideo(exercise, index, total) {
 
 async function checkVideoStatus(videoId) {
   try {
-    const response = await fetch(`https://api.heygen.com/v1/video_clips/${videoId}`, {
+    const response = await fetch(`https://api.heygen.com/v3/videos/${videoId}`, {
       method: "GET",
       headers: {
-        "X-HEYGEN-API-KEY": API_KEY,
+        "x-api-key": API_KEY,
       },
     });
 
@@ -180,7 +178,7 @@ async function checkVideoStatus(videoId) {
     const data = await response.json();
     return {
       status: data.data.status,
-      videoUrl: data.data.download_url || data.data.video_url,
+      videoUrl: data.data.video_url,
     };
   } catch (error) {
     console.error(`Error checking status: ${error.message}`);
