@@ -145,6 +145,7 @@ export function FormChecker({ exercise, onClose, update }: Props) {
           <>
             {/* Image preview + analyze button */}
             <div className="space-y-4">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={image} alt="Form check" className="w-full rounded-2xl max-h-96 object-cover" />
               <button
                 onClick={analyzeForm}

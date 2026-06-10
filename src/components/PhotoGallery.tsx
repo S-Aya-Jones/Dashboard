@@ -99,6 +99,7 @@ export function PhotoGallery({ photos, type, onDelete, onViewAnalysis, onCompare
                     border: compareMode && isCompareSelected ? "3px solid #7C5CFC" : isSelected ? "2px solid #7C5CFC" : "1px solid rgba(124,92,252,0.2)",
                     opacity: compareMode && selectedForComparison && !isCompareSelected && selectedForComparison !== photo.id ? 0.5 : 1,
                   }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={photo.photoData}
                     alt={`${type} ${format(parseISO(photo.timestamp), "MMM dd, yyyy")}`}
