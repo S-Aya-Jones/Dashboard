@@ -13,6 +13,7 @@ export interface ProgramExercise {
   isBodyweight?: boolean;
   isGlute?: boolean;
   videoId?: string;
+  videoUrl?: string;
   motivCues?: string[];
 }
 
