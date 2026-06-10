@@ -142,7 +142,7 @@ function VideoBlock({ ex, animKey }: { ex: ProgramExercise; animKey: number }) {
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
-export function SessionView({ day, weekNum, lastWeights, streak, totalCompleted, isSunday, prepTime, onComplete, onExit }: Props) {
+export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepTime, onComplete, onExit }: Props) {
   const [customExList, setCustomExList] = useState<ProgramExercise[]>([]);
 
   // ── Sections ─────────────────────────────────────────────────────────────────
@@ -466,7 +466,6 @@ export function SessionView({ day, weekNum, lastWeights, streak, totalCompleted,
 
   // ── Done screen ───────────────────────────────────────────────────────────────
   if (done) {
-    const sessionNum = totalCompleted + 1;
     const completedExercises = exercises.filter((e) => (loggedSets[e.id]?.length ?? 0) > 0);
     const avgWeightPerSet = completedExercises.length > 0
       ? Math.round(

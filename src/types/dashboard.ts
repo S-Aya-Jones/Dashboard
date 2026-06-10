@@ -722,7 +722,7 @@ export interface WorkoutData {
   walkingLogs: WalkingLog[];
   measurements: MeasurementEntry[];
   bodyWeight: BodyWeightEntry[];
-  personalRecords: ExercisePR[]; // PR tracking per exercise
+  personalRecords?: ExercisePR[]; // PR tracking per exercise
   lastAPTCheckDate?: string; // YYYY-MM-DD
   lastMeasurementReminder?: string; // YYYY-MM-DD
   goalWeight?: number;

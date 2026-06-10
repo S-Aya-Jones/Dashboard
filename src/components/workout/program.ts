@@ -1155,7 +1155,6 @@ export function suggestWeight(lastWeight: number, weekNum: number): number {
 // ── Helper functions for UX enhancements ──────────────────────────────────
 
 export function getPhaseCoachingMessage(weekNum: number): string {
-  const phase = getWeekPhase(weekNum);
   if (weekNum === 7) {
     return "Deload week: 50% weight, same reps. Your glutes grow during recovery — this is when consolidation happens. Trust the process.";
   }
@@ -1169,7 +1168,6 @@ export function getPhaseCoachingMessage(weekNum: number): string {
 }
 
 export function getPhaseEmojiAndColor(weekNum: number): { emoji: string; color: string } {
-  const phase = getWeekPhase(weekNum);
   if (weekNum === 7) return { emoji: "🌱", color: "#C99A5C" };  // Deload = rest/growth
   if (weekNum >= 5) return { emoji: "⚡", color: "#DA667B" };    // Peak = fire
   if (weekNum >= 3) return { emoji: "📈", color: "#7C5CFC" };    // Build = growth

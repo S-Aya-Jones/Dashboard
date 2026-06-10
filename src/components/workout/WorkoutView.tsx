@@ -7,7 +7,7 @@ import { DashboardData, ExerciseSessionLog, WorkoutSessionLog, MeasurementEntry,
 import {
   PROGRAM, WEEK_DAYS,
   todayWeekday, getProgramDay, getCurrentWeek, getWeekPhase, buildFullExerciseList,
-  getPhaseCoachingMessage, getPhaseEmojiAndColor, calculateWeeklyVolume, getMeasurementTrend, getProteinTarget,
+  getPhaseEmojiAndColor, calculateWeeklyVolume, getProteinTarget,
 } from "./program";
 import { SessionView } from "./SessionView";
 import { HistoryView } from "./HistoryView";
