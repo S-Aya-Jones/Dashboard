@@ -20,7 +20,6 @@ export function ProgressComparison({ before, after, onClose }: Props) {
   const fatChangeNum = beforeFat && afterFat ? (afterFat.low + afterFat.high) / 2 - (beforeFat.low + beforeFat.high) / 2 : 0;
   const scoreChangeNum = afterScore - beforeScore;
 
-  const fatChange = fatChangeNum.toFixed(1);
   const scoreChange = scoreChangeNum.toFixed(1);
 
   const fatPercent = beforeFat && afterFat ? (((fatChangeNum / ((beforeFat.low + beforeFat.high) / 2)) * 100) || 0).toFixed(0) : 0;
