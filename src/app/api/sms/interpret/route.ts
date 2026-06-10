@@ -105,13 +105,14 @@ Return ONLY valid JSON with these optional fields (only include fields you can e
 
     // Mood
     if (parsed.mood) {
-      (data as Record<string, unknown>).todayMood = parsed.mood;
+      ((data as unknown) as Record<string, unknown>).todayMood = parsed.mood;
     }
 
     // General note — append to today's notes
     if (parsed.note) {
-      const notes = (data as Record<string, unknown>).notes as { date: string; text: string }[] ?? [];
-      (data as Record<string, unknown>).notes = [
+      const dataAny = (data as unknown) as Record<string, unknown>;
+      const notes = dataAny.notes as { date: string; text: string }[] ?? [];
+      dataAny.notes = [
         ...notes.filter((n) => n.date !== today),
         { date: today, text: parsed.note as string },
       ];
