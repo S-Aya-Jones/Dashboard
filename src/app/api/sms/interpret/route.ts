@@ -75,20 +75,18 @@ Return ONLY valid JSON with these optional fields (only include fields you can e
       data.workout = wd;
     }
 
-    // Workout session
+    // Workout session — store in fitnessSessions
     const wo = parsed.workout as Record<string, unknown> | undefined;
     if (wo?.completed) {
-      const wd = data.workout ?? { sessionLogs: [], walkingLogs: [], measurements: [], bodyWeight: [] };
       const newSession = {
         id: `session-${Date.now()}`,
         date: today,
-        type: (wo.type as string) ?? "gym",
+        type: (wo.type as "gym" | "tennis" | "walk" | "other") ?? "gym",
         durationMinutes: 60,
         notes: (wo.notes as string) ?? message,
-        completed: true,
       };
-      wd.sessionLogs = [...(wd.sessionLogs ?? []), newSession];
-      data.workout = wd;
+      const existing = ((data as unknown) as Record<string, unknown>).fitnessSessions as typeof newSession[] ?? [];
+      ((data as unknown) as Record<string, unknown>).fitnessSessions = [...existing.filter((s) => s.id !== newSession.id), newSession];
     }
 
     // Sleep
@@ -101,13 +99,8 @@ Return ONLY valid JSON with these optional fields (only include fields you can e
         quality: (sl.quality as number) ?? 3,
         notes: (sl.notes as string) ?? undefined,
       };
-      const existing = data.fitnessSleepLogs ?? data.sleepLogs ?? [];
-      const filtered = existing.filter((s: { date: string }) => s.date !== today);
-      if ("fitnessSleepLogs" in data) {
-        (data as Record<string, unknown>).fitnessSleepLogs = [...filtered, sleepLog];
-      } else {
-        (data as Record<string, unknown>).sleepLogs = [...filtered, sleepLog];
-      }
+      const existing = data.sleepLogs ?? [];
+      data.sleepLogs = [...existing.filter((s) => s.date !== today), sleepLog];
     }
 
     // Store message in SMS log
