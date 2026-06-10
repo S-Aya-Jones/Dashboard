@@ -160,6 +160,7 @@ export const APT_RESET: ProgramExercise[] = [
     category: "mobility",
     isBodyweight: true,
     videoId: "UGEpQ1vGq4A",
+    videoUrl: "/videos/kneeling-hip-flexor-stretch.mp4",
   },
   {
     id: "apt-dead-bug",
@@ -171,6 +172,7 @@ export const APT_RESET: ProgramExercise[] = [
     category: "core",
     isBodyweight: true,
     videoId: "EiRC80FJbHU",
+    videoUrl: "/videos/dead-bug.mp4",
   },
   {
     id: "apt-pelvic-tuck",
@@ -181,6 +183,7 @@ export const APT_RESET: ProgramExercise[] = [
     formCue: "Hands on hips. Tilt the pelvis backward — tuck tailbone under — hold 3 seconds, release. Teaching your body where neutral is.",
     category: "core",
     isBodyweight: true,
+    videoUrl: "/videos/standing-pelvic-tuck.mp4",
   },
   {
     id: "apt-glute-squeeze",
@@ -192,6 +195,7 @@ export const APT_RESET: ProgramExercise[] = [
     category: "core",
     isBodyweight: true,
     isGlute: true,
+    videoUrl: "/videos/glute-squeeze-hold.mp4",
   },
 ];
 
@@ -208,6 +212,7 @@ export const HIP_FLEXOR_UNLOCK: ProgramExercise[] = [
     category: "mobility",
     isBodyweight: true,
     videoId: "UGEpQ1vGq4A",
+    videoUrl: "/videos/kneeling-hip-flexor-stretch.mp4",
   },
 ];
 
@@ -230,6 +235,7 @@ export const PROGRAM: ProgramDay[] = [
         formCue: "Standing, hands on hips. Opens the hip joint before loading.",
         category: "mobility",
         isBodyweight: true,
+        videoUrl: "/videos/hip-circles.mp4",
       },
       {
         id: "mon-glute-bridge-hold",
@@ -242,6 +248,7 @@ export const PROGRAM: ProgramDay[] = [
         isBodyweight: true,
         isGlute: true,
         videoId: "OB2JPUxbBDs",
+        videoUrl: "/videos/glute-bridge-hold.mp4",
       },
       {
         id: "mon-banded-clamshell",
@@ -253,6 +260,7 @@ export const PROGRAM: ProgramDay[] = [
         category: "isolation",
         isBodyweight: true,
         isGlute: true,
+        videoUrl: "/videos/banded-clamshell.mp4",
       },
       {
         id: "mon-cat-cow",
@@ -264,6 +272,7 @@ export const PROGRAM: ProgramDay[] = [
         category: "mobility",
         isBodyweight: true,
         videoId: "kqnua4rHVVA",
+        videoUrl: "/videos/cat-cow.mp4",
       },
       {
         id: "mon-dead-bug-warmup",
@@ -275,6 +284,7 @@ export const PROGRAM: ProgramDay[] = [
         category: "core",
         isBodyweight: true,
         videoId: "EiRC80FJbHU",
+        videoUrl: "/videos/dead-bug.mp4",
       },
     ],
     mainExercises: [
@@ -368,6 +378,7 @@ export const PROGRAM: ProgramDay[] = [
         category: "mobility",
         isBodyweight: true,
         videoId: "UGEpQ1vGq4A",
+        videoUrl: "/videos/kneeling-hip-flexor-stretch.mp4",
       },
       {
         id: "mon-childs-pose",
@@ -411,6 +422,7 @@ export const PROGRAM: ProgramDay[] = [
         category: "core",
         isBodyweight: true,
         videoId: "EiRC80FJbHU",
+        videoUrl: "/videos/dead-bug.mp4",
       },
       {
         id: "tue-cat-cow",
@@ -422,6 +434,7 @@ export const PROGRAM: ProgramDay[] = [
         category: "mobility",
         isBodyweight: true,
         videoId: "kqnua4rHVVA",
+        videoUrl: "/videos/cat-cow.mp4",
       },
       {
         id: "tue-thoracic-rotation",
@@ -445,6 +458,7 @@ export const PROGRAM: ProgramDay[] = [
         category: "core",
         isBodyweight: true,
         videoId: "EiRC80FJbHU",
+        videoUrl: "/videos/dead-bug.mp4",
         motivCues: [
           "Lower back GLUED to the floor. That's non-negotiable.",
           "Exhale fully as the limbs extend. The breath is the mechanism.",
@@ -462,6 +476,7 @@ export const PROGRAM: ProgramDay[] = [
         category: "core",
         isBodyweight: false,
         videoId: "AH_QZLm_0-s",
+        videoUrl: "/videos/pallof-press.mp4",
         motivCues: [
           "Don't let it rotate you. You are stronger than the cable.",
           "This is building your anti-rotation corset. It flattens your waist.",
@@ -563,6 +578,7 @@ export const PROGRAM: ProgramDay[] = [
         formCue: "Opens the chest after pressing. Corrects forward shoulders.",
         category: "flexibility",
         isBodyweight: true,
+        videoUrl: "/videos/doorway-chest-stretch.mp4",
       },
       {
         id: "tue-hip-flexor-cooldown",
@@ -574,6 +590,7 @@ export const PROGRAM: ProgramDay[] = [
         category: "mobility",
         isBodyweight: true,
         videoId: "UGEpQ1vGq4A",
+        videoUrl: "/videos/kneeling-hip-flexor-stretch.mp4",
       },
       {
         id: "tue-figure-4",
@@ -638,6 +655,7 @@ export const PROGRAM: ProgramDay[] = [
         formCue: "Opens the hip joint.",
         category: "mobility",
         isBodyweight: true,
+        videoUrl: "/videos/hip-circles.mp4",
       },
       {
         id: "wed-dead-bug-warmup",
@@ -649,6 +667,7 @@ export const PROGRAM: ProgramDay[] = [
         category: "core",
         isBodyweight: true,
         videoId: "EiRC80FJbHU",
+        videoUrl: "/videos/dead-bug.mp4",
       },
     ],
     mainExercises: [
@@ -760,6 +779,7 @@ export const PROGRAM: ProgramDay[] = [
         category: "mobility",
         isBodyweight: true,
         videoId: "UGEpQ1vGq4A",
+        videoUrl: "/videos/kneeling-hip-flexor-stretch.mp4",
       },
       {
         id: "wed-forward-fold",
@@ -825,6 +845,7 @@ export const PROGRAM: ProgramDay[] = [
         category: "mobility",
         isBodyweight: true,
         videoId: "UGEpQ1vGq4A",
+        videoUrl: "/videos/kneeling-hip-flexor-stretch.mp4",
       },
       {
         id: "thu-figure-4",
@@ -846,6 +867,7 @@ export const PROGRAM: ProgramDay[] = [
         category: "mobility",
         isBodyweight: true,
         videoId: "kqnua4rHVVA",
+        videoUrl: "/videos/cat-cow.mp4",
       },
       {
         id: "thu-childs-pose",
@@ -891,6 +913,7 @@ export const PROGRAM: ProgramDay[] = [
         isBodyweight: true,
         isGlute: true,
         videoId: "OB2JPUxbBDs",
+        videoUrl: "/videos/glute-bridge-hold.mp4",
       },
       {
         id: "fri-good-morning",
@@ -912,6 +935,7 @@ export const PROGRAM: ProgramDay[] = [
         category: "isolation",
         isBodyweight: true,
         isGlute: true,
+        videoUrl: "/videos/banded-clamshell.mp4",
       },
       {
         id: "fri-dead-bug-warmup",
@@ -923,6 +947,7 @@ export const PROGRAM: ProgramDay[] = [
         category: "core",
         isBodyweight: true,
         videoId: "EiRC80FJbHU",
+        videoUrl: "/videos/dead-bug.mp4",
       },
     ],
     mainExercises: [
@@ -987,6 +1012,7 @@ export const PROGRAM: ProgramDay[] = [
         category: "core",
         isBodyweight: true,
         videoId: "EiRC80FJbHU",
+        videoUrl: "/videos/dead-bug.mp4",
       },
       {
         id: "plank",
@@ -1046,6 +1072,7 @@ export const PROGRAM: ProgramDay[] = [
         category: "mobility",
         isBodyweight: true,
         videoId: "UGEpQ1vGq4A",
+        videoUrl: "/videos/kneeling-hip-flexor-stretch.mp4",
       },
     ],
   },
