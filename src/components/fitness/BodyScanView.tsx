@@ -1,10 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Camera, ChevronDown, ChevronUp, RefreshCw, X, MessageSquare, TrendingUp, Trash2 } from "lucide-react";
-import { DashboardData, BodyScanPhoto } from "@/types/dashboard";
-import { id } from "@/lib/utils";
-import { format, parseISO, differenceInDays } from "date-fns";
+import { Camera, ChevronDown, ChevronUp, RefreshCw, X, MessageSquare } from "lucide-react";
 
 interface BodyAnalysis {
   bodyType: string;
@@ -257,12 +254,7 @@ function ResultCard({ analysis, thumbs, onReset, onChat }: { analysis: BodyAnaly
   );
 }
 
-interface Props {
-  data: DashboardData;
-  update: (fn: (d: DashboardData) => DashboardData) => void;
-}
-
-export function BodyScanView({ data, update }: Props) {
+export function BodyScanView() {
   const [photos, setPhotos] = useState<Partial<Record<SlotKey, string>>>({});
   const [analyzing, setAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<BodyAnalysis | null>(null);
@@ -274,12 +266,8 @@ export function BodyScanView({ data, update }: Props) {
   const [chatMessages, setChatMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
   const [activeAnalysis, setActiveAnalysis] = useState<BodyAnalysis | null>(null);
   const fileRefs = useRef<Partial<Record<SlotKey, HTMLInputElement | null>>>({});
-
-  const w = data.workout ?? { sessionLogs: [], walkingLogs: [], measurements: [], bodyWeight: [] };
-  const savedPhotos = (w.bodyScanPhotos ?? []).sort((a, b) => b.timestamp.localeCompare(a.timestamp));
 
   const photoCount = Object.keys(photos).length;
 
@@ -328,32 +316,7 @@ export function BodyScanView({ data, update }: Props) {
       setActiveAnalysis(result);
       setResultThumbs(thumbs);
       setChatMessages([]);
-
-      // Store photo with analysis
-      const photoId = id();
-      const newPhoto: BodyScanPhoto = {
-        id: photoId,
-        date: format(new Date(), "yyyy-MM-dd"),
-        timestamp: new Date().toISOString(),
-        angle: filledSlots.length > 1 ? "all" : filledSlots[0].key,
-        photoData: thumbs[0],
-        height: height ? parseFloat(height) : undefined,
-        weight: weight ? parseFloat(weight) : undefined,
-        analysis: {
-          bodyFat: result.bodyFatEstimate,
-          compositionScore: result.compositionScore,
-          potentialScore: result.potentialScore,
-          honestAssessment: result.honestAssessment,
-          strengths: result.strengths,
-          areas: result.areas,
-          roadmap: result.roadmap,
-        },
-      };
-
-      update((d) => {
-        const wd = d.workout ?? { sessionLogs: [], walkingLogs: [], measurements: [], bodyWeight: [] };
-        return { ...d, workout: { ...wd, bodyScanPhotos: [...(wd.bodyScanPhotos ?? []), newPhoto] } };
-      });
+      // No photo storage — scans are session-only, not tied to user profile
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : typeof e === "string" ? e : JSON.stringify(e) || "Scan failed. Try again.";
       setError(msg);
@@ -394,12 +357,6 @@ export function BodyScanView({ data, update }: Props) {
     }
   };
 
-  const deletePhoto = (photoId: string) => {
-    update((d) => {
-      const wd = d.workout ?? { sessionLogs: [], walkingLogs: [], measurements: [], bodyWeight: [] };
-      return { ...d, workout: { ...wd, bodyScanPhotos: (wd.bodyScanPhotos ?? []).filter(p => p.id !== photoId) } };
-    });
-  };
 
   if (analysis) return (
     <>
@@ -463,158 +420,6 @@ export function BodyScanView({ data, update }: Props) {
 
   return (
     <div className="space-y-4">
-      {/* Scan History */}
-      {savedPhotos.length > 0 && (
-        <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.15)" }}>
-          <button onClick={() => setShowHistory(!showHistory)}
-            className="w-full flex items-center justify-between px-4 py-3.5"
-            style={{ borderBottom: showHistory ? "1px solid rgba(124,92,252,0.1)" : "none" }}>
-            <div className="flex items-center gap-2">
-              <TrendingUp size={16} style={{ color: PURPLE }} />
-              <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>Scan History</p>
-              <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(124,92,252,0.1)", color: PURPLE }}>{savedPhotos.length}</span>
-            </div>
-            {showHistory ? <ChevronUp size={16} style={{ color: "var(--text-muted)" }} /> : <ChevronDown size={16} style={{ color: "var(--text-muted)" }} />}
-          </button>
-
-          {showHistory && (
-            <div className="p-4 space-y-3">
-              {savedPhotos.length > 1 && (() => {
-                const newest = savedPhotos[0];
-                const oldest = savedPhotos[savedPhotos.length - 1];
-                const days = differenceInDays(parseISO(newest.timestamp), parseISO(oldest.timestamp));
-                const scoreDiff = (newest.analysis?.compositionScore ?? 0) - (oldest.analysis?.compositionScore ?? 0);
-                return (
-                  <div className="rounded-xl p-3 grid grid-cols-3 gap-2 text-center"
-                    style={{ background: "rgba(124,92,252,0.06)", border: "1px solid rgba(124,92,252,0.12)" }}>
-                    <div>
-                      <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Scans</p>
-                      <p className="text-sm font-bold" style={{ color: PURPLE }}>{savedPhotos.length}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Days tracked</p>
-                      <p className="text-sm font-bold" style={{ color: PURPLE }}>{days}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Score change</p>
-                      <p className="text-sm font-bold" style={{ color: scoreDiff >= 0 ? PURPLE : ROSE }}>
-                        {scoreDiff >= 0 ? "+" : ""}{scoreDiff.toFixed(1)}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {savedPhotos.map(photo => (
-                <div key={photo.id} className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(124,92,252,0.12)" }}>
-                  <div className="flex gap-3 p-3">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={photo.photoData} alt="scan" className="w-14 h-18 rounded-lg object-cover flex-shrink-0" style={{ height: "4.5rem" }} />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-xs font-semibold" style={{ color: "var(--text)" }}>
-                          {format(parseISO(photo.timestamp), "MMM d, yyyy")}
-                        </p>
-                        <button onClick={() => deletePhoto(photo.id)} className="p-1 rounded-lg flex-shrink-0"
-                          style={{ color: ROSE, background: "rgba(218,102,123,0.08)" }}>
-                          <Trash2 size={12} />
-                        </button>
-                      </div>
-                      <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>
-                        {format(parseISO(photo.timestamp), "h:mm a")} · {photo.angle === "all" ? "Multiple angles" : photo.angle}
-                      </p>
-                      {photo.analysis && (
-                        <div className="mt-2 space-y-1">
-                          <div className="flex gap-2">
-                            <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "rgba(124,92,252,0.1)", color: PURPLE }}>
-                              Score: {photo.analysis.compositionScore}/10
-                            </span>
-                            <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "rgba(232,168,124,0.1)", color: PEACH }}>
-                              BF: {photo.analysis.bodyFat.low}–{photo.analysis.bodyFat.high}%
-                            </span>
-                          </div>
-                          <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(124,92,252,0.08)" }}>
-                            <div className="h-full rounded-full" style={{ width: `${(photo.analysis.compositionScore / 10) * 100}%`, background: PURPLE }} />
-                          </div>
-                          <button
-                            onClick={() => {
-                              const reconstructed: BodyAnalysis = {
-                                bodyType: "Mixed",
-                                visualAssessment: photo.analysis!.honestAssessment || "",
-                                bodyFatEstimate: {
-                                  low: photo.analysis!.bodyFat.low,
-                                  high: photo.analysis!.bodyFat.high,
-                                  category: photo.analysis!.bodyFat.category || "Average",
-                                  note: photo.analysis!.bodyFat.note || "",
-                                },
-                                muscleDefinition: 5,
-                                compositionScore: photo.analysis!.compositionScore,
-                                potentialScore: photo.analysis!.potentialScore || 8,
-                                visibleMuscle: [],
-                                posture: undefined,
-                                strengths: photo.analysis!.strengths || [],
-                                areas: photo.analysis!.areas || [],
-                                honestAssessment: photo.analysis!.honestAssessment || "",
-                                protocol: { training: [], diet: [], recovery: [] },
-                                roadmap: {
-                                  thirtyDay: photo.analysis!.roadmap?.thirtyDay || { focus: "", expectedChange: "", actions: [] },
-                                  ninetyDay: photo.analysis!.roadmap?.ninetyDay || { focus: "", expectedChange: "", actions: [] },
-                                  sixMonth: photo.analysis!.roadmap?.sixMonth || { focus: "", expectedChange: "", actions: [] },
-                                },
-                              };
-                              setActiveAnalysis(reconstructed);
-                              setChatMessages([]);
-                              setShowChat(true);
-                            }}
-                            className="flex items-center gap-1 text-[10px] font-semibold"
-                            style={{ color: PURPLE }}>
-                            <MessageSquare size={10} /> Chat about this scan
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              {/* Progress comparison */}
-              {savedPhotos.length >= 2 && savedPhotos[0].analysis && savedPhotos[savedPhotos.length - 1].analysis && (() => {
-                const newest = savedPhotos[0];
-                const oldest = savedPhotos[savedPhotos.length - 1];
-                const scoreDiff = (newest.analysis!.compositionScore) - (oldest.analysis!.compositionScore);
-                const bfOld = (oldest.analysis!.bodyFat.low + oldest.analysis!.bodyFat.high) / 2;
-                const bfNew = (newest.analysis!.bodyFat.low + newest.analysis!.bodyFat.high) / 2;
-                const bfDiff = bfNew - bfOld;
-                return (
-                  <div className="rounded-xl p-3 space-y-2" style={{ background: "rgba(124,92,252,0.04)", border: "1px solid rgba(124,92,252,0.12)" }}>
-                    <p className="text-xs font-semibold" style={{ color: "var(--text)" }}>📊 Progress Summary</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Composition Score</p>
-                        <p className="text-sm font-bold" style={{ color: scoreDiff >= 0 ? PURPLE : ROSE }}>
-                          {scoreDiff >= 0 ? "+" : ""}{scoreDiff.toFixed(1)} pts
-                        </p>
-                        <div className="h-1 rounded-full mt-1" style={{ background: "rgba(124,92,252,0.1)" }}>
-                          <div className="h-full rounded-full" style={{ width: `${(newest.analysis!.compositionScore / 10) * 100}%`, background: PURPLE }} />
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Body Fat</p>
-                        <p className="text-sm font-bold" style={{ color: bfDiff <= 0 ? PURPLE : ROSE }}>
-                          {bfDiff <= 0 ? "" : "+"}{bfDiff.toFixed(1)}%
-                        </p>
-                        <p className="text-[10px]" style={{ color: bfDiff <= 0 ? PURPLE : ROSE }}>
-                          {bfDiff <= 0 ? "✓ Decreasing" : "⚠ Increasing"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Chat modal (also accessible from history) */}
       {showChat && activeAnalysis && (
