@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { format, parseISO, differenceInCalendarDays, subDays } from "date-fns";
+import { format, parseISO, differenceInCalendarDays, subDays, addDays } from "date-fns";
 import { Play, Flame, TrendingUp, Home, ChevronRight, X, Camera } from "lucide-react";
 import { DashboardData, ExerciseSessionLog, WorkoutSessionLog, MeasurementEntry, BodyWeightEntry } from "@/types/dashboard";
 import {
@@ -264,53 +264,215 @@ function MeasurementsCard({ data, update }: Props) {
 // ── Weight Tracker ─────────────────────────────────────────────────────────────
 
 function WeightCard({ data, update }: Props) {
-  const w     = data.workout ?? { sessionLogs: [], walkingLogs: [], measurements: [], bodyWeight: [] };
-  const today = todayStr();
-  const [input, setInput]  = useState("");
-  const [goal,  setGoalIn] = useState(w.goalWeight ? String(w.goalWeight) : "");
-  const [saved, setSaved]  = useState(false);
+  const w       = data.workout ?? { sessionLogs: [], walkingLogs: [], measurements: [], bodyWeight: [] };
+  const today   = todayStr();
+  const START_DATE = "2026-06-13"; // This Friday
 
-  const latest  = [...w.bodyWeight].sort((a, b) => b.date.localeCompare(a.date))[0];
+  const [input,    setInput]   = useState("");
+  const [goal,     setGoalIn]  = useState(w.goalWeight ? String(w.goalWeight) : "");
+  const [saved,    setSaved]   = useState(false);
+  const [showSetup, setShowSetup] = useState(false);
+
+  const sorted  = [...w.bodyWeight].sort((a, b) => b.date.localeCompare(a.date));
+  const latest  = sorted[0];
   const current = latest?.weight ?? 0;
+  const startWeight = sorted[sorted.length - 1]?.weight ?? current;
   const goalW   = w.goalWeight ?? 0;
-  const pct     = goalW && current ? Math.min(100, Math.round((1 - Math.abs(current - goalW) / Math.abs((w.bodyWeight[0]?.weight ?? current) - goalW || 1)) * 100)) : 0;
+
+  // Progress
+  const totalToLose  = startWeight - goalW;
+  const lostSoFar    = startWeight - current;
+  const pct          = goalW && startWeight && totalToLose > 0
+    ? Math.min(100, Math.max(0, Math.round((lostSoFar / totalToLose) * 100)))
+    : 0;
+  const lbsLeft      = Math.max(0, current - goalW);
+
+  // Roadmap — safe rate 1–1.5 lbs/week
+  const weeksToGoal  = goalW && current ? Math.ceil(lbsLeft / 1.25) : 0;
+  const endDate      = weeksToGoal > 0 ? addDays(new Date(START_DATE), weeksToGoal * 7) : null;
+
+  // Milestones every 25%
+  const milestones = goalW && startWeight && totalToLose > 0
+    ? [25, 50, 75, 100].map((pctMile) => ({
+        pct: pctMile,
+        weight: +(startWeight - (totalToLose * pctMile) / 100).toFixed(1),
+        reached: lostSoFar / totalToLose >= pctMile / 100,
+      }))
+    : [];
+
+  // Weekly log — last 8 weeks
+  const weeklyLog = Array.from({ length: 8 }, (_, i) => {
+    const d = format(subDays(new Date(), (7 - i) * 7), "yyyy-MM-dd");
+    const entry = w.bodyWeight.find((b) => b.date >= d && b.date <= format(addDays(new Date(d), 6), "yyyy-MM-dd"));
+    return { week: i + 1, weight: entry?.weight ?? null };
+  }).filter(w => w.weight !== null);
 
   const save = () => {
-    const val = parseFloat(input); if (!val) return;
+    const val  = parseFloat(input); if (!val) return;
     const gVal = parseFloat(goal);
     update((d) => {
       const wd = d.workout ?? { sessionLogs: [], walkingLogs: [], measurements: [], bodyWeight: [] };
-      return { ...d, workout: { ...wd, bodyWeight: [...wd.bodyWeight.filter((b) => b.date !== today), { date: today, weight: val } as BodyWeightEntry], goalWeight: gVal || wd.goalWeight } };
+      return {
+        ...d,
+        workout: {
+          ...wd,
+          bodyWeight:  [...wd.bodyWeight.filter((b) => b.date !== today), { date: today, weight: val } as BodyWeightEntry],
+          goalWeight:  gVal || wd.goalWeight,
+          programStartDate: wd.programStartDate ?? START_DATE,
+        },
+      };
     });
-    setInput(""); setSaved(true); setTimeout(() => setSaved(false), 2000);
+    setInput(""); setShowSetup(false); setSaved(true); setTimeout(() => setSaved(false), 2000);
   };
 
+  const needsSetup = !current || !goalW;
+
   return (
-    <div className="rounded-2xl p-5 space-y-3" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>Body Weight</p>
-        {current > 0 && <span className="font-serif text-xl" style={{ color: "var(--text)" }}>{current} lbs</span>}
+    <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+
+      {/* Header */}
+      <div className="px-5 pt-5 pb-3 flex items-center justify-between">
+        <div>
+          <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>Weight Roadmap</p>
+          <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
+            Starting Friday Jun 13
+          </p>
+        </div>
+        <div className="text-right">
+          {current > 0 && <p className="font-serif text-2xl" style={{ color: "var(--text)" }}>{current}<span className="text-sm font-sans ml-1" style={{ color: "var(--text-muted)" }}>lbs</span></p>}
+          {goalW > 0 && <p className="text-xs" style={{ color: "#9B7FFF" }}>Goal: {goalW} lbs</p>}
+        </div>
       </div>
+
+      {/* Progress bar */}
       {goalW > 0 && current > 0 && (
-        <div className="space-y-1.5">
+        <div className="px-5 pb-3 space-y-1.5">
           <div className="flex justify-between text-xs" style={{ color: "var(--text-muted)" }}>
-            <span>Goal: {goalW} lbs</span>
-            <span>{Math.abs(current - goalW).toFixed(1)} lbs to go</span>
+            <span>{lbsLeft > 0 ? `${lbsLeft.toFixed(1)} lbs to go` : "🎉 Goal reached!"}</span>
+            <span style={{ color: "#9B7FFF" }}>{pct}%</span>
           </div>
-          <div className="h-2 rounded-full overflow-hidden" style={{ background: "rgba(124,92,252,0.07)" }}>
-            <div className="h-full rounded-full" style={{ width: `${Math.max(pct, 3)}%`, background: "#9B7FFF" }} />
+          <div className="h-3 rounded-full overflow-hidden" style={{ background: "rgba(124,92,252,0.08)" }}>
+            <div className="h-full rounded-full transition-all"
+              style={{ width: `${Math.max(pct, 2)}%`, background: "linear-gradient(90deg, #7C5CFC, #9B7FFF)" }} />
+          </div>
+          {/* Milestone markers */}
+          {milestones.length > 0 && (
+            <div className="flex justify-between mt-2">
+              {milestones.map((m) => (
+                <div key={m.pct} className="flex flex-col items-center gap-0.5">
+                  <div className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold"
+                    style={{
+                      background: m.reached ? "#7C5CFC" : "rgba(124,92,252,0.1)",
+                      color: m.reached ? "#fff" : "var(--text-muted)",
+                    }}>
+                    {m.reached ? "✓" : `${m.pct}%`}
+                  </div>
+                  <p className="text-[9px]" style={{ color: "var(--text-light)" }}>{m.weight}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Roadmap timeline */}
+      {weeksToGoal > 0 && endDate && (
+        <div className="mx-5 mb-3 rounded-xl p-3 space-y-2" style={{ background: "rgba(124,92,252,0.05)", border: "1px solid rgba(124,92,252,0.12)" }}>
+          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#9B7FFF" }}>Your Roadmap</p>
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div>
+              <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Start</p>
+              <p className="text-xs font-bold" style={{ color: "var(--text)" }}>Jun 13</p>
+              <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>{startWeight} lbs</p>
+            </div>
+            <div>
+              <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Rate</p>
+              <p className="text-xs font-bold" style={{ color: "#9B7FFF" }}>~1.25/wk</p>
+              <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>{weeksToGoal} weeks</p>
+            </div>
+            <div>
+              <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Goal Date</p>
+              <p className="text-xs font-bold" style={{ color: "var(--text)" }}>{format(endDate, "MMM d")}</p>
+              <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>{goalW} lbs</p>
+            </div>
+          </div>
+
+          {/* Weekly breakdown — 30/60/90 day checkpoints */}
+          <div className="space-y-1 pt-1" style={{ borderTop: "1px solid rgba(124,92,252,0.1)" }}>
+            {[
+              { label: "30 days", weeks: 4 },
+              { label: "60 days", weeks: 9 },
+              { label: "90 days", weeks: 13 },
+            ].filter(c => c.weeks <= weeksToGoal + 2).map(checkpoint => {
+              const projectedWeight = +(startWeight - (1.25 * checkpoint.weeks)).toFixed(1);
+              const checkDate = format(addDays(new Date(START_DATE), checkpoint.weeks * 7), "MMM d");
+              const alreadyPast = current <= projectedWeight;
+              return (
+                <div key={checkpoint.label} className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full" style={{ background: alreadyPast ? "#7C5CFC" : "rgba(124,92,252,0.3)" }} />
+                    <span style={{ color: "var(--text-muted)" }}>{checkpoint.label} · {checkDate}</span>
+                  </div>
+                  <span className="font-semibold" style={{ color: alreadyPast ? "#9B7FFF" : "var(--text)" }}>
+                    {alreadyPast ? "✓ " : ""}{Math.max(projectedWeight, goalW)} lbs
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
-      <div className="flex gap-2">
-        <input type="number" step="0.5" placeholder="Today's weight" value={input} onChange={(e) => setInput(e.target.value)}
-          style={{ flex: 1, background: "rgba(124,92,252,0.06)", border: "1px solid var(--border)", borderRadius: "0.75rem", padding: "0.5rem 0.75rem", color: "var(--text)", fontSize: "0.875rem", outline: "none" }} />
-        <input type="number" step="0.5" placeholder="Goal" value={goal} onChange={(e) => setGoalIn(e.target.value)}
-          style={{ width: 80, background: "rgba(124,92,252,0.06)", border: "1px solid var(--border)", borderRadius: "0.75rem", padding: "0.5rem 0.75rem", color: "var(--text)", fontSize: "0.875rem", outline: "none" }} />
-        <button onClick={save} className="px-4 py-2 rounded-xl text-sm font-semibold"
-          style={{ background: saved ? "#9B7FFF" : "#7C5CFC", color: "#fff", flexShrink: 0 }}>
-          {saved ? "✓" : "Log"}
-        </button>
+
+      {/* Weekly history sparkline */}
+      {weeklyLog.length > 1 && (
+        <div className="px-5 pb-3">
+          <p className="text-[10px] font-semibold mb-2 uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Weekly trend</p>
+          <div className="flex items-end gap-1 h-10">
+            {weeklyLog.map((w, i) => {
+              const allWeights = weeklyLog.map(x => x.weight as number);
+              const minW = Math.min(...allWeights);
+              const maxW = Math.max(...allWeights);
+              const range = maxW - minW || 1;
+              const barH = Math.max(15, Math.round(((w.weight as number) - minW) / range * 32) + 8);
+              const isLatest = i === weeklyLog.length - 1;
+              return (
+                <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
+                  <div className="w-full rounded-sm" style={{
+                    height: barH,
+                    background: isLatest ? "#7C5CFC" : "rgba(124,92,252,0.25)",
+                  }} />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Log weight */}
+      <div className="px-5 pb-5">
+        {needsSetup || showSetup ? (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>
+              {needsSetup ? "Set your starting weight & goal to unlock your roadmap" : "Log weight"}
+            </p>
+            <div className="flex gap-2">
+              <input type="number" step="0.5" placeholder="Current lbs" value={input} onChange={(e) => setInput(e.target.value)}
+                style={{ flex: 1, background: "rgba(124,92,252,0.06)", border: "1px solid var(--border)", borderRadius: "0.75rem", padding: "0.5rem 0.75rem", color: "var(--text)", fontSize: "0.875rem", outline: "none" }} />
+              <input type="number" step="0.5" placeholder="Goal lbs" value={goal} onChange={(e) => setGoalIn(e.target.value)}
+                style={{ width: 90, background: "rgba(124,92,252,0.06)", border: "1px solid var(--border)", borderRadius: "0.75rem", padding: "0.5rem 0.75rem", color: "var(--text)", fontSize: "0.875rem", outline: "none" }} />
+              <button onClick={save} className="px-4 py-2 rounded-xl text-sm font-semibold"
+                style={{ background: saved ? "#9B7FFF" : "#7C5CFC", color: "#fff", flexShrink: 0 }}>
+                {saved ? "✓" : "Save"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button onClick={() => setShowSetup(true)}
+            className="w-full py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
+            style={{ background: "rgba(124,92,252,0.08)", color: "#9B7FFF" }}>
+            + Log Today&apos;s Weight
+          </button>
+        )}
       </div>
     </div>
   );
