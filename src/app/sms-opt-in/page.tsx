@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function SmsOptInPage() {
   return (
-    <div style={{ background: "#F4F0FE", minHeight: "100vh", fontFamily: "'Inter', system-ui, sans-serif", color: "#1E1340" }}>
+    <div style={{ background: "#F4F0FE", minHeight: "100vh", overflowY: "auto", fontFamily: "'Inter', system-ui, sans-serif", color: "#1E1340" }}>
       <div style={{ maxWidth: "560px", margin: "0 auto", padding: "3rem 1.5rem 5rem" }}>
 
         {/* Brand header */}
