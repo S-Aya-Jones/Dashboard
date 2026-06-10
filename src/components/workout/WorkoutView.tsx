@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { format, parseISO, differenceInCalendarDays, subDays } from "date-fns";
-import { Play, Flame, TrendingUp, Home, ChevronRight, X } from "lucide-react";
+import { Play, Flame, TrendingUp, Home, ChevronRight, X, Camera } from "lucide-react";
 import { DashboardData, ExerciseSessionLog, WorkoutSessionLog, MeasurementEntry, BodyWeightEntry } from "@/types/dashboard";
 import {
   PROGRAM, WEEK_DAYS,
@@ -11,6 +11,7 @@ import {
 } from "./program";
 import { SessionView } from "./SessionView";
 import { HistoryView } from "./HistoryView";
+import { BodyScanView } from "./BodyScanView";
 import { id } from "@/lib/utils";
 
 interface Props {
@@ -747,7 +748,7 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
 
 // ── Main WorkoutView ───────────────────────────────────────────────────────────
 
-type Tab = "home" | "today" | "history";
+type Tab = "home" | "today" | "history" | "bodyscans";
 
 export function WorkoutView({ data, update }: Props) {
   const [tab,           setTab]           = useState<Tab>("home");
@@ -813,6 +814,7 @@ export function WorkoutView({ data, update }: Props) {
           prepTime={prepTime}
           onComplete={handleComplete}
           onExit={() => { setSessionDayId(null); setTab("home"); }}
+          update={update}
         />
       </div>
     );
@@ -829,11 +831,12 @@ export function WorkoutView({ data, update }: Props) {
             onViewProgram={() => setShowProgram(true)} />
         )}
         {tab === "history" && <HistoryView data={data} />}
+        {tab === "bodyscans" && <BodyScanView data={data} update={update} />}
       </div>
 
       {/* Bottom nav */}
       <div className="flex-shrink-0 flex border-t" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
-        {([["home", "Home", Home], ["today", "Today", Play], ["history", "History", TrendingUp]] as const).map(([tid, label, Icon]) => {
+        {([["home", "Home", Home], ["today", "Today", Play], ["bodyscans", "Scans", Camera], ["history", "History", TrendingUp]] as const).map(([tid, label, Icon]) => {
           const active = tab === tid;
           return (
             <button key={tid}

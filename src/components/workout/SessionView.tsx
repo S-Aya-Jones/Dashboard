@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { X, Volume2, SkipForward, Pause, Play, Plus, ChevronLeft, ChevronRight, ExternalLink, ChevronsRight } from "lucide-react";
 import { ProgramDay, ProgramExercise, getWeekPhase, suggestWeight, CATEGORY_CUES, UNIVERSAL_CUES, getPhaseEmojiAndColor, getPhaseCoachingMessage } from "./program";
-import { ExerciseSessionLog, WorkoutSetLog } from "@/types/dashboard";
+import { DashboardData, ExerciseSessionLog, WorkoutSetLog } from "@/types/dashboard";
 import { AvatarCoach } from "./AvatarCoach";
 import { FormChecker } from "./FormChecker";
 
@@ -17,6 +17,7 @@ interface Props {
   prepTime: number;
   onComplete: (logs: ExerciseSessionLog[]) => void;
   onExit: () => void;
+  update: (fn: (d: DashboardData) => DashboardData) => void;
 }
 
 interface WorkoutSection {
@@ -144,7 +145,7 @@ function VideoBlock({ ex, animKey }: { ex: ProgramExercise; animKey: number }) {
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
-export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepTime, onComplete, onExit }: Props) {
+export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepTime, onComplete, onExit, update }: Props) {
   const [customExList, setCustomExList] = useState<ProgramExercise[]>([]);
 
   // ── Sections ─────────────────────────────────────────────────────────────────
@@ -971,7 +972,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
 
       {/* Form Checker Modal */}
       {showFormChecker && ex && (
-        <FormChecker exercise={ex} onClose={() => setShowFormChecker(false)} />
+        <FormChecker exercise={ex} onClose={() => setShowFormChecker(false)} update={update} />
       )}
     </div>
   );

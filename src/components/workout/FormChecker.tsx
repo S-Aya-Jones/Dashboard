@@ -1,12 +1,17 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { Camera, CheckCircle, AlertCircle, X } from "lucide-react";
+import { useState } from "react";
+import { CheckCircle, AlertCircle, X } from "lucide-react";
+import { DashboardData, FormCheckPhoto } from "@/types/dashboard";
 import { ProgramExercise } from "./program";
+import { PhotoCapture } from "@/components/PhotoCapture";
+import { id } from "@/lib/utils";
+import { format } from "date-fns";
 
 interface Props {
   exercise: ProgramExercise;
   onClose: () => void;
+  update: (fn: (d: DashboardData) => DashboardData) => void;
 }
 
 interface FormAnalysis {
@@ -22,19 +27,10 @@ interface FormAnalysis {
   encouragement: string;
 }
 
-export function FormChecker({ exercise, onClose }: Props) {
+export function FormChecker({ exercise, onClose, update }: Props) {
   const [image, setImage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<FormAnalysis | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleImageCapture = async (file: File) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setImage(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
-  };
 
   const analyzeForm = async () => {
     if (!image) return;
@@ -52,7 +48,7 @@ export function FormChecker({ exercise, onClose }: Props) {
 
       if (!res.ok) throw new Error("Form analysis failed");
 
-      const data = await res.json();
+      const apiData = await res.json();
 
       // Parse the response to extract form-specific feedback
       const analysis: FormAnalysis = {
@@ -66,11 +62,34 @@ export function FormChecker({ exercise, onClose }: Props) {
             fix: "Check the detailed feedback below",
           },
         ],
-        summary: data.summary || "Form analysis complete",
-        encouragement: data.encouragement || "Keep going!",
+        summary: apiData.summary || "Form analysis complete",
+        encouragement: apiData.encouragement || "Keep going!",
       };
 
       setAnalysis(analysis);
+
+      // Store photo in workout data
+      const formCheckPhoto: FormCheckPhoto = {
+        id: id(),
+        date: format(new Date(), "yyyy-MM-dd"),
+        timestamp: new Date().toISOString(),
+        exerciseName: exercise.name,
+        exerciseId: exercise.id,
+        photoData: image,
+        formScore: analysis.score,
+        corrections: analysis.corrections.map((c) => `${c.issue}: ${c.fix}`),
+      };
+
+      update((d) => {
+        const wd = d.workout ?? { sessionLogs: [], walkingLogs: [], measurements: [], bodyWeight: [] };
+        return {
+          ...d,
+          workout: {
+            ...wd,
+            formCheckPhotos: [...(wd.formCheckPhotos ?? []), formCheckPhoto],
+          },
+        };
+      });
     } catch (e) {
       console.error(e);
     } finally {
@@ -104,27 +123,12 @@ export function FormChecker({ exercise, onClose }: Props) {
 
         {!image ? (
           <>
-            {/* Upload instruction */}
-            <div className="rounded-2xl p-6 text-center space-y-4" style={{ background: "var(--surface)", border: "2px dashed rgba(124,92,252,0.25)" }}>
-              <Camera size={32} style={{ margin: "0 auto", color: "#7C5CFC" }} />
-              <div>
-                <p className="font-semibold" style={{ color: "var(--text)" }}>Upload a Photo or Video Frame</p>
-                <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>Clear, side angle showing your full body position and movement range.</p>
-              </div>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="px-6 py-3 rounded-xl font-semibold active:scale-95 transition-transform"
-                style={{ background: "#7C5CFC", color: "#fff" }}>
-                Choose Photo
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={(e) => e.target.files?.[0] && handleImageCapture(e.target.files[0])}
-                className="hidden"
-              />
-            </div>
+            {/* Photo capture */}
+            <PhotoCapture
+              onPhotoCapture={setImage}
+              label="Capture your form"
+              maxSizeMB={10}
+            />
 
             {/* Tips */}
             <div className="rounded-2xl p-4 space-y-2" style={{ background: "rgba(124,92,252,0.05)" }}>

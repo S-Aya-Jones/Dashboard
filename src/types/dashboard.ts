@@ -717,12 +717,37 @@ export interface ExercisePR {
   achievedDate: string; // YYYY-MM-DD
 }
 
+export interface BodyScanPhoto {
+  id: string;
+  date: string; // YYYY-MM-DD
+  timestamp: string; // ISO datetime
+  angle: "front" | "back" | "left" | "right" | "all"; // angle or "all" if multiple
+  photoData: string; // base64 image data
+  analysis?: {
+    bodyFat: { low: number; high: number };
+    compositionScore: number;
+  };
+}
+
+export interface FormCheckPhoto {
+  id: string;
+  date: string; // YYYY-MM-DD
+  timestamp: string; // ISO datetime
+  exerciseName: string;
+  exerciseId: string;
+  photoData: string; // base64 image data
+  formScore?: number; // 0-100
+  corrections?: string[];
+}
+
 export interface WorkoutData {
   sessionLogs: WorkoutSessionLog[];
   walkingLogs: WalkingLog[];
   measurements: MeasurementEntry[];
   bodyWeight: BodyWeightEntry[];
   personalRecords?: ExercisePR[]; // PR tracking per exercise
+  bodyScanPhotos?: BodyScanPhoto[]; // Body scan photo history for progress tracking
+  formCheckPhotos?: FormCheckPhoto[]; // Form check photo history
   lastAPTCheckDate?: string; // YYYY-MM-DD
   lastMeasurementReminder?: string; // YYYY-MM-DD
   goalWeight?: number;
