@@ -45,14 +45,6 @@ interface BodyAnalysis {
   };
 }
 
-const GOAL_BODY_TYPES = [
-  { id: "athletic-lean", label: "Athletic & Lean", emoji: "⚡", desc: "Defined muscles, low body fat, strong" },
-  { id: "hourglass", label: "Hourglass", emoji: "⏳", desc: "Cinched waist, full glutes & chest" },
-  { id: "toned-fit", label: "Toned & Fit", emoji: "💪", desc: "Visible muscle tone, healthy weight" },
-  { id: "slim-trim", label: "Slim & Trim", emoji: "🌿", desc: "Lean frame, minimal bulk" },
-  { id: "curvy-fit", label: "Curvy & Fit", emoji: "✨", desc: "Full curves with muscle definition" },
-  { id: "bodybuilder", label: "Bodybuilder", emoji: "🏆", desc: "Maximum muscle mass, stage-ready" },
-];
 
 type SlotKey = "front" | "back" | "left" | "right";
 
@@ -269,11 +261,10 @@ function ResultCard({ analysis, thumbs, onReset, onChat }: { analysis: BodyAnaly
       {/* Goal body type assessment */}
       {analysis.goalBodyAssessment && (() => {
         const g = analysis.goalBodyAssessment!;
-        const goalInfo = GOAL_BODY_TYPES.find(x => x.id === g.goalType);
         const feasColor = g.feasibility >= 75 ? GOLD : g.feasibility >= 50 ? PURPLE : g.feasibility >= 30 ? PEACH : ROSE;
         return (
           <div style={{ borderTop: "1px solid rgba(124,92,252,0.1)" }}>
-            <Section title={`Goal: ${goalInfo?.label ?? g.goalType} ${goalInfo?.emoji ?? ""}`} icon="🎯" defaultOpen>
+            <Section title="Goal Body Assessment" icon="🎯" defaultOpen>
               {/* Feasibility */}
               <div className="rounded-xl p-3 space-y-2" style={{ background: `${feasColor}10`, border: `1px solid ${feasColor}30` }}>
                 <div className="flex items-center justify-between">
@@ -381,7 +372,8 @@ export function BodyScanView() {
   const [error, setError] = useState("");
   const [height, setHeight] = useState("");
   const [weight, setWeight] = useState("");
-  const [goalBodyType, setGoalBodyType] = useState<string>("");
+  const [goalPhoto, setGoalPhoto] = useState<string>("");
+  const goalPhotoRef = useRef<HTMLInputElement | null>(null);
   const [showChat, setShowChat] = useState(false);
   const [chatMessages, setChatMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
   const [chatInput, setChatInput] = useState("");
@@ -421,13 +413,20 @@ export function BodyScanView() {
       return { imageBase64: base64, mimeType: mime, label: s.label };
     });
 
+    // Append goal inspiration photo as a reference image (not user's body)
+    if (goalPhoto) {
+      const [header, base64] = goalPhoto.split(",");
+      const mime = header.match(/data:([^;]+)/)?.[1] ?? "image/jpeg";
+      images.push({ imageBase64: base64, mimeType: mime, label: "GOAL INSPIRATION (Reference Only — Not User's Body)" });
+    }
+
     const thumbs = filledSlots.map(s => photos[s.key]!);
 
     try {
       const res = await fetch("/api/body/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ images, height, weight, goalBodyType: goalBodyType || undefined }),
+        body: JSON.stringify({ images, height, weight, goalBodyType: goalPhoto ? "custom-photo" : undefined }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(typeof json.error === "string" ? json.error : "Analysis failed — please try again.");
@@ -453,6 +452,7 @@ export function BodyScanView() {
     setError("");
     setShowChat(false);
     setChatMessages([]);
+    setGoalPhoto("");
   };
 
   const sendChat = async () => {
@@ -664,32 +664,54 @@ export function BodyScanView() {
           </div>
         </div>
 
-        {/* Goal body type selector */}
-        <div className="px-4 pb-2 space-y-2">
-          <p className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>Goal body type <span style={{ color: "var(--text-light)" }}>(optional)</span></p>
-          <div className="grid grid-cols-2 gap-2">
-            {GOAL_BODY_TYPES.map(g => (
-              <button
-                key={g.id}
-                onClick={() => setGoalBodyType(prev => prev === g.id ? "" : g.id)}
-                className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-left transition-all"
-                style={{
-                  background: goalBodyType === g.id ? "rgba(155,127,255,0.15)" : "rgba(124,92,252,0.05)",
-                  border: goalBodyType === g.id ? "1.5px solid #9B7FFF" : "1.5px solid rgba(124,92,252,0.15)",
-                }}>
-                <span className="text-base">{g.emoji}</span>
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold truncate" style={{ color: goalBodyType === g.id ? PURPLE : "var(--text)" }}>{g.label}</p>
-                  <p className="text-[10px] truncate" style={{ color: "var(--text-muted)" }}>{g.desc}</p>
-                </div>
-              </button>
-            ))}
+        {/* Goal inspiration photo upload */}
+        <div className="px-4 pb-3 space-y-2" style={{ borderTop: "1px solid rgba(124,92,252,0.08)" }}>
+          <div className="pt-3">
+            <p className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>Goal body inspiration <span style={{ fontWeight: 400, color: "var(--text-light)" }}>(optional)</span></p>
+            <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>Upload a photo of a body you want to achieve — Aya will tell you how realistic it is for your genetics and build a plan.</p>
           </div>
-          {goalBodyType && (
-            <p className="text-[10px] text-center" style={{ color: PURPLE }}>
-              ✓ Aya will assess how achievable <strong>{GOAL_BODY_TYPES.find(g => g.id === goalBodyType)?.label}</strong> is for your genetics
-            </p>
+          {goalPhoto ? (
+            <div className="relative rounded-2xl overflow-hidden" style={{ maxHeight: 200 }}>
+              <img src={goalPhoto} alt="Goal inspiration" className="w-full object-cover rounded-2xl" style={{ maxHeight: 200 }} />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent rounded-2xl" />
+              <div className="absolute bottom-2 left-3 right-8">
+                <p className="text-xs font-semibold text-white">Goal Inspiration</p>
+                <p className="text-[10px] text-white/70">Aya will compare this to your body scan</p>
+              </div>
+              <button
+                onClick={() => setGoalPhoto("")}
+                className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center"
+                style={{ background: "rgba(0,0,0,0.5)" }}>
+                <X size={13} color="white" />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => goalPhotoRef.current?.click()}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all"
+              style={{ background: "rgba(124,92,252,0.05)", border: "1.5px dashed rgba(124,92,252,0.2)" }}>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(124,92,252,0.1)" }}>
+                <Camera size={17} style={{ color: PURPLE }} />
+              </div>
+              <div>
+                <p className="text-xs font-semibold" style={{ color: "var(--text)" }}>Upload inspiration photo</p>
+                <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>A celebrity, athlete, or any physique goal</p>
+              </div>
+            </button>
           )}
+          <input
+            ref={goalPhotoRef}
+            type="file" accept="image/*"
+            className="hidden"
+            onChange={e => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              const reader = new FileReader();
+              reader.onload = ev => setGoalPhoto(ev.target?.result as string);
+              reader.readAsDataURL(file);
+              e.target.value = "";
+            }}
+          />
         </div>
 
         {/* Analyze button */}

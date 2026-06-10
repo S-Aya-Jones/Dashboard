@@ -3,14 +3,6 @@ import Anthropic from "@anthropic-ai/sdk";
 
 const client = new Anthropic();
 
-const GOAL_BODY_LABELS: Record<string, string> = {
-  "athletic-lean": "Athletic & Lean (defined muscles, low body fat, strong)",
-  "hourglass": "Hourglass (cinched waist, full glutes and chest, feminine curves)",
-  "toned-fit": "Toned & Fit (visible muscle tone, healthy weight, energetic)",
-  "slim-trim": "Slim & Trim (lean frame, minimal bulk, light and agile)",
-  "curvy-fit": "Curvy & Fit (full curves with muscle definition underneath)",
-  "bodybuilder": "Bodybuilder (maximum muscle mass, very low body fat, stage-ready)",
-};
 
 export async function POST(req: NextRequest) {
   const { images, height, weight, age, goalBodyType } = await req.json();
@@ -22,19 +14,22 @@ export async function POST(req: NextRequest) {
     age ? `Age: ${age}` : "",
   ].filter(Boolean).join(", ");
 
-  const angleLabels = images.map((img: { label?: string }, i: number) => img.label || `Photo ${i + 1}`).join(", ");
+  const userImages = images.filter((img: { label?: string }) => !img.label?.startsWith("GOAL INSPIRATION"));
+  const angleLabels = userImages.map((img: { label?: string }, i: number) => img.label || `Photo ${i + 1}`).join(", ");
 
   const goalSection = goalBodyType ? `
-GOAL BODY TYPE REQUESTED: ${GOAL_BODY_LABELS[goalBodyType] || goalBodyType}
+GOAL BODY INSPIRATION: ${goalBodyType === "custom-photo"
+    ? "The LAST image provided is NOT the user's body — it is a reference/inspiration photo of the physique the user wants to achieve. Analyze ONLY the user's own photos for body composition. Use the inspiration photo solely to understand the target look."
+    : goalBodyType}
 
 You MUST include a "goalBodyAssessment" field in your JSON response assessing:
-1. How feasible this goal is for THIS specific person based on their visible genetics, body type, current state
+1. How feasible this goal is for THIS specific person based on their visible genetics, body type, current state vs the goal physique
 2. A specific calorie plan to get there (calculate based on height/weight if provided, otherwise estimate from visual)
 3. A detailed workout plan structure
 
 Be honest — if their genetics make this very hard, say so. If they're already close, say so. Give real numbers.` : "";
 
-  const prompt = `You are an expert fitness coach, sports medicine professional, and body composition analyst. You have been provided ${images.length} photo(s) of this person from the following angles: ${angleLabels}.
+  const prompt = `You are an expert fitness coach, sports medicine professional, and body composition analyst. You have been provided ${userImages.length} photo(s) of this person from the following angles: ${angleLabels}.${goalBodyType === "custom-photo" ? " The final image is a GOAL INSPIRATION REFERENCE (not the user's body) — use it to understand what physique they want to achieve." : ""}
 
 Use ALL provided angles to give the most accurate body composition assessment possible.
 
