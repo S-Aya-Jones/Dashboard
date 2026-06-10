@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { X, Volume2, SkipForward, Pause, Play, Plus, ChevronLeft, ChevronRight, ExternalLink, ChevronsRight } from "lucide-react";
-import { ProgramDay, ProgramExercise, getWeekPhase, suggestWeight, CATEGORY_CUES, UNIVERSAL_CUES, getPhaseCoachingMessage, getPhaseEmojiAndColor } from "./program";
+import { ProgramDay, ProgramExercise, getWeekPhase, suggestWeight, CATEGORY_CUES, UNIVERSAL_CUES, getPhaseEmojiAndColor, getPhaseCoachingMessage } from "./program";
 import { ExerciseSessionLog, WorkoutSetLog } from "@/types/dashboard";
+import { AvatarCoach } from "./AvatarCoach";
+import { FormChecker } from "./FormChecker";
 
 interface Props {
   day: ProgramDay;
@@ -183,6 +185,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
 
   // Slide animation
   const [anim, setAnim] = useState<{ key: number; dir: "forward" | "back" }>({ key: 0, dir: "forward" });
+  const [showFormChecker, setShowFormChecker] = useState(false);
 
   const timerRef      = useRef<ReturnType<typeof setInterval> | null>(null);
   const onRestDoneRef = useRef<(() => void) | null>(null);
@@ -684,6 +687,9 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
           );
         })()}
 
+        {/* AI Avatar Coach */}
+        <AvatarCoach exercise={ex} setIndex={setIdx} totalSets={ex.sets} isPlaying={!paused && !rest} />
+
         {/* Video */}
         <VideoBlock ex={ex} animKey={anim.key} />
 
@@ -744,12 +750,19 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
         </div>
 
         {/* Form cue */}
-        <div className="flex items-start gap-3 px-4 py-3 rounded-xl"
-          style={{ background: "rgba(30,19,64,0.04)", border: "1px solid rgba(124,92,252,0.06)" }}>
-          <p className="text-sm flex-1 leading-relaxed" style={{ color: "rgba(30,19,64,0.55)" }}>{ex.formCue}</p>
-          <button onClick={() => speak(`${ex.name}. ${ex.formCue}`)}
-            className="flex-shrink-0 mt-0.5 active:scale-90 transition-transform" style={{ color: "rgba(30,19,64,0.3)" }}>
-            <Volume2 size={14} />
+        <div className="space-y-2.5">
+          <div className="flex items-start gap-3 px-4 py-3 rounded-xl"
+            style={{ background: "rgba(30,19,64,0.04)", border: "1px solid rgba(124,92,252,0.06)" }}>
+            <p className="text-sm flex-1 leading-relaxed" style={{ color: "rgba(30,19,64,0.55)" }}>{ex.formCue}</p>
+            <button onClick={() => speak(`${ex.name}. ${ex.formCue}`)}
+              className="flex-shrink-0 mt-0.5 active:scale-90 transition-transform" style={{ color: "rgba(30,19,64,0.3)" }}>
+              <Volume2 size={14} />
+            </button>
+          </div>
+          <button onClick={() => setShowFormChecker(true)}
+            className="w-full py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 active:scale-95 transition-transform"
+            style={{ background: "rgba(124,92,252,0.08)", color: "#7C5CFC", border: "1px solid rgba(124,92,252,0.2)" }}>
+            📹 Check My Form
           </button>
         </div>
 
@@ -954,6 +967,11 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
             </button>
           </div>
         </div>
+      )}
+
+      {/* Form Checker Modal */}
+      {showFormChecker && ex && (
+        <FormChecker exercise={ex} onClose={() => setShowFormChecker(false)} />
       )}
     </div>
   );
