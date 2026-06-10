@@ -21,7 +21,38 @@ interface BodyAnalysis {
     ninetyDay: { focus: string; expectedChange: string; actions: string[] };
     sixMonth: { focus: string; expectedChange: string; actions: string[] };
   };
+  goalBodyAssessment?: {
+    goalType: string;
+    feasibility: number; // 0-100
+    feasibilityLabel: string; // "Very Achievable" | "Achievable" | "Challenging" | "Very Challenging"
+    geneticNotes: string;
+    timelineEstimate: string;
+    calorieplan: {
+      dailyCalories: number;
+      protein: number;
+      carbs: number;
+      fats: number;
+      deficit: number;
+      notes: string;
+    };
+    workoutPlan: {
+      daysPerWeek: number;
+      focus: string;
+      weeklyStructure: { day: string; focus: string; exercises: string[] }[];
+      cardio: string;
+      keyPrinciples: string[];
+    };
+  };
 }
+
+const GOAL_BODY_TYPES = [
+  { id: "athletic-lean", label: "Athletic & Lean", emoji: "⚡", desc: "Defined muscles, low body fat, strong" },
+  { id: "hourglass", label: "Hourglass", emoji: "⏳", desc: "Cinched waist, full glutes & chest" },
+  { id: "toned-fit", label: "Toned & Fit", emoji: "💪", desc: "Visible muscle tone, healthy weight" },
+  { id: "slim-trim", label: "Slim & Trim", emoji: "🌿", desc: "Lean frame, minimal bulk" },
+  { id: "curvy-fit", label: "Curvy & Fit", emoji: "✨", desc: "Full curves with muscle definition" },
+  { id: "bodybuilder", label: "Bodybuilder", emoji: "🏆", desc: "Maximum muscle mass, stage-ready" },
+];
 
 type SlotKey = "front" | "back" | "left" | "right";
 
@@ -235,6 +266,94 @@ function ResultCard({ analysis, thumbs, onReset, onChat }: { analysis: BodyAnaly
         ))}
       </Section>
 
+      {/* Goal body type assessment */}
+      {analysis.goalBodyAssessment && (() => {
+        const g = analysis.goalBodyAssessment!;
+        const goalInfo = GOAL_BODY_TYPES.find(x => x.id === g.goalType);
+        const feasColor = g.feasibility >= 75 ? GOLD : g.feasibility >= 50 ? PURPLE : g.feasibility >= 30 ? PEACH : ROSE;
+        return (
+          <div style={{ borderTop: "1px solid rgba(124,92,252,0.1)" }}>
+            <Section title={`Goal: ${goalInfo?.label ?? g.goalType} ${goalInfo?.emoji ?? ""}`} icon="🎯" defaultOpen>
+              {/* Feasibility */}
+              <div className="rounded-xl p-3 space-y-2" style={{ background: `${feasColor}10`, border: `1px solid ${feasColor}30` }}>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-bold" style={{ color: feasColor }}>{g.feasibilityLabel}</p>
+                  <p className="text-lg font-bold" style={{ color: feasColor }}>{g.feasibility}%</p>
+                </div>
+                <div className="h-2.5 rounded-full overflow-hidden" style={{ background: "rgba(0,0,0,0.1)" }}>
+                  <div className="h-full rounded-full transition-all" style={{ width: `${g.feasibility}%`, background: feasColor }} />
+                </div>
+                <p className="text-xs leading-relaxed" style={{ color: "var(--text)" }}>{g.geneticNotes}</p>
+                <div className="flex items-center gap-1.5 pt-1">
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: `${feasColor}20`, color: feasColor }}>
+                    ⏱ {g.timelineEstimate}
+                  </span>
+                </div>
+              </div>
+
+              {/* Calorie plan */}
+              <div>
+                <p className="text-xs font-bold mb-2" style={{ color: "var(--text-muted)" }}>📊 Your Calorie Plan</p>
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  <div className="rounded-xl p-3 text-center" style={{ background: "rgba(124,92,252,0.08)" }}>
+                    <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Daily Calories</p>
+                    <p className="text-xl font-bold" style={{ color: PURPLE }}>{g.calorieplan.dailyCalories}</p>
+                    <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>kcal/day</p>
+                  </div>
+                  <div className="rounded-xl p-3 text-center" style={{ background: "rgba(218,102,123,0.08)" }}>
+                    <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Deficit</p>
+                    <p className="text-xl font-bold" style={{ color: ROSE }}>{g.calorieplan.deficit > 0 ? `-${g.calorieplan.deficit}` : `+${Math.abs(g.calorieplan.deficit)}`}</p>
+                    <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>kcal/day</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2 mb-2">
+                  {[
+                    { label: "Protein", val: g.calorieplan.protein, color: GOLD, unit: "g" },
+                    { label: "Carbs", val: g.calorieplan.carbs, color: PURPLE, unit: "g" },
+                    { label: "Fats", val: g.calorieplan.fats, color: PEACH, unit: "g" },
+                  ].map(m => (
+                    <div key={m.label} className="rounded-xl p-2 text-center" style={{ background: `${m.color}10` }}>
+                      <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>{m.label}</p>
+                      <p className="text-sm font-bold" style={{ color: m.color }}>{m.val}{m.unit}</p>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>{g.calorieplan.notes}</p>
+              </div>
+
+              {/* Workout plan */}
+              <div>
+                <p className="text-xs font-bold mb-2" style={{ color: "var(--text-muted)" }}>🏋️ Your Workout Plan</p>
+                <div className="rounded-xl p-3 mb-2" style={{ background: "rgba(124,92,252,0.06)", border: "1px solid rgba(124,92,252,0.12)" }}>
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-xs font-semibold" style={{ color: PURPLE }}>{g.workoutPlan.daysPerWeek}x per week</p>
+                    <p className="text-xs" style={{ color: "var(--text-muted)" }}>{g.workoutPlan.focus}</p>
+                  </div>
+                  <p className="text-xs" style={{ color: "var(--text-muted)" }}>Cardio: {g.workoutPlan.cardio}</p>
+                </div>
+                <div className="space-y-1.5 mb-2">
+                  {g.workoutPlan.weeklyStructure.map((day, i) => (
+                    <div key={i} className="flex items-start gap-2 text-xs">
+                      <span className="font-bold flex-shrink-0 w-8" style={{ color: PURPLE }}>{day.day}</span>
+                      <span className="font-semibold flex-shrink-0" style={{ color: "var(--text)" }}>{day.focus}:</span>
+                      <span style={{ color: "var(--text-muted)" }}>{day.exercises.join(", ")}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="space-y-1">
+                  {g.workoutPlan.keyPrinciples.map((p, i) => (
+                    <div key={i} className="flex gap-2 text-xs">
+                      <span style={{ color: PURPLE, flexShrink: 0 }}>→</span>
+                      <span style={{ color: "var(--text-muted)" }}>{p}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </Section>
+          </div>
+        );
+      })()}
+
       <div className="p-4 space-y-3">
         <button onClick={onChat} className="w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
           style={{ background: PURPLE, color: "#fff" }}>
@@ -262,6 +381,7 @@ export function BodyScanView() {
   const [error, setError] = useState("");
   const [height, setHeight] = useState("");
   const [weight, setWeight] = useState("");
+  const [goalBodyType, setGoalBodyType] = useState<string>("");
   const [showChat, setShowChat] = useState(false);
   const [chatMessages, setChatMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
   const [chatInput, setChatInput] = useState("");
@@ -307,7 +427,7 @@ export function BodyScanView() {
       const res = await fetch("/api/body/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ images, height, weight }),
+        body: JSON.stringify({ images, height, weight, goalBodyType: goalBodyType || undefined }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(typeof json.error === "string" ? json.error : "Analysis failed — please try again.");
@@ -542,6 +662,34 @@ export function BodyScanView() {
               );
             })}
           </div>
+        </div>
+
+        {/* Goal body type selector */}
+        <div className="px-4 pb-2 space-y-2">
+          <p className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>Goal body type <span style={{ color: "var(--text-light)" }}>(optional)</span></p>
+          <div className="grid grid-cols-2 gap-2">
+            {GOAL_BODY_TYPES.map(g => (
+              <button
+                key={g.id}
+                onClick={() => setGoalBodyType(prev => prev === g.id ? "" : g.id)}
+                className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-left transition-all"
+                style={{
+                  background: goalBodyType === g.id ? "rgba(155,127,255,0.15)" : "rgba(124,92,252,0.05)",
+                  border: goalBodyType === g.id ? "1.5px solid #9B7FFF" : "1.5px solid rgba(124,92,252,0.15)",
+                }}>
+                <span className="text-base">{g.emoji}</span>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold truncate" style={{ color: goalBodyType === g.id ? PURPLE : "var(--text)" }}>{g.label}</p>
+                  <p className="text-[10px] truncate" style={{ color: "var(--text-muted)" }}>{g.desc}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+          {goalBodyType && (
+            <p className="text-[10px] text-center" style={{ color: PURPLE }}>
+              ✓ Aya will assess how achievable <strong>{GOAL_BODY_TYPES.find(g => g.id === goalBodyType)?.label}</strong> is for your genetics
+            </p>
+          )}
         </div>
 
         {/* Analyze button */}
