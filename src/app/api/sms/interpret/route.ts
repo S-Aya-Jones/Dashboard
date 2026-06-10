@@ -143,5 +143,18 @@ Return ONLY valid JSON with these optional fields (only include fields you can e
     console.error("interpret save error:", e);
   }
 
+  // Send reply back as a text
+  try {
+    const user = process.env.GMAIL_USER;
+    const pass = process.env.GMAIL_APP_PASSWORD;
+    const phone = process.env.USER_PHONE_NUMBER ?? "6156811609";
+    if (user && pass) {
+      const nodemailer = await import("nodemailer");
+      const digits = phone.replace(/\D/g, "").replace(/^1/, "");
+      const transporter = nodemailer.default.createTransport({ service: "gmail", auth: { user, pass } });
+      await transporter.sendMail({ from: user, to: `${digits}@tmomail.net`, subject: "", text: reply });
+    }
+  } catch { /* non-fatal */ }
+
   return NextResponse.json({ reply, parsed });
 }
