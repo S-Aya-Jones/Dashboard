@@ -322,7 +322,7 @@ export function BodyScanView({ data, update }: Props) {
         body: JSON.stringify({ images, height, weight }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error);
+      if (!res.ok) throw new Error(typeof json.error === "string" ? json.error : "Analysis failed — please try again.");
       const result: BodyAnalysis = json.analysis;
       setAnalysis(result);
       setActiveAnalysis(result);
@@ -355,7 +355,8 @@ export function BodyScanView({ data, update }: Props) {
         return { ...d, workout: { ...wd, bodyScanPhotos: [...(wd.bodyScanPhotos ?? []), newPhoto] } };
       });
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Scan failed");
+      const msg = e instanceof Error ? e.message : typeof e === "string" ? e : "Scan failed. Try again.";
+      setError(msg);
     } finally {
       setAnalyzing(false);
     }
