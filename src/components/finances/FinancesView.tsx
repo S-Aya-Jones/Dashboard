@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { usePlaidLink } from "react-plaid-link";
 import { RefreshCw, Unlink, Plus, Trash2, Check, ChevronDown, ChevronUp, RotateCcw } from "lucide-react";
-import { DashboardData, PaycheckConfig, SelfCareItem, RecurringBill, P2PTransfer, AccountTransfer, BudgetLine, CreditScoreEntry } from "@/types/dashboard";
+import { DashboardData, PaycheckConfig, SelfCareItem, RecurringBill, P2PTransfer, AccountTransfer, BudgetLine, CreditScoreEntry, BaseBudgetItem, BudgetPlan, BudgetPlanItem } from "@/types/dashboard";
 import { id } from "@/lib/utils";
 import { parseISO, format, addDays, differenceInDays } from "date-fns";
 
@@ -757,6 +757,10 @@ export function FinancesView({ data, update }: Props) {
             onUpdateBudgetLines={(bl) => update(d => ({ ...d, budgetLines: bl }))}
             onUpdatePc={(p) => update(d => ({ ...d, paycheckConfig: p }))}
             onUpdatePaycheckPlans={(plans) => update(d => ({ ...d, paycheckPlans: plans }))}
+            baseBudget={data.baseBudget ?? []}
+            budgetPlans={data.budgetPlans ?? []}
+            onUpdateBaseBudget={(b) => update(d => ({ ...d, baseBudget: b }))}
+            onUpdateBudgetPlans={(p) => update(d => ({ ...d, budgetPlans: p }))}
             showToast={showToast}
           />
         )}
@@ -888,18 +892,22 @@ function EditCareInline({ item, onSave }: { item: SelfCareItem; onSave: (cost: n
 }
 
 // ── Flow Tab ──────────────────────────────────────────────────────────────────
-function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, budgetLines, bills, selfCare, insights, p2pTransfers, liabilities, creditScores, paycheckPlans, onMarkBillPaid, onMarkFocusDone, onAddP2P, onRemoveP2P, onUpdateCare, onUpdateBills, onUpdateBudgetLines, onUpdatePc, onUpdatePaycheckPlans, showToast }: {
+function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, budgetLines, bills, selfCare, insights, p2pTransfers, liabilities, creditScores, paycheckPlans, baseBudget, budgetPlans, onMarkBillPaid, onMarkFocusDone, onAddP2P, onRemoveP2P, onUpdateCare, onUpdateBills, onUpdateBudgetLines, onUpdatePc, onUpdatePaycheckPlans, onUpdateBaseBudget, onUpdateBudgetPlans, showToast }: {
   yearPlan: CheckSlot[]; savingsAlerts: SavingsAlert[];
   pc: PaycheckConfig; effectiveTakeHome: number; paydayStr: string;
   budgetLines: BudgetLine[]; bills: RecurringBill[]; selfCare: SelfCareItem[];
   insights: InsightsData | null; p2pTransfers: P2PTransfer[];
   liabilities: LiabilitiesData | null; creditScores: CreditScoreEntry[];
   paycheckPlans: Record<string, PaycheckPlanData>;
+  baseBudget: BaseBudgetItem[];
+  budgetPlans: BudgetPlan[];
   onMarkBillPaid: (id: string) => void; onMarkFocusDone: (id: string) => void;
   onAddP2P: (t: P2PTransfer) => void; onRemoveP2P: (tid: string) => void;
   onUpdateCare: (i: SelfCareItem[]) => void; onUpdateBills: (b: RecurringBill[]) => void;
   onUpdateBudgetLines: (bl: BudgetLine[]) => void; onUpdatePc: (p: PaycheckConfig) => void;
   onUpdatePaycheckPlans: (p: Record<string, PaycheckPlanData>) => void;
+  onUpdateBaseBudget: (b: BaseBudgetItem[]) => void;
+  onUpdateBudgetPlans: (p: BudgetPlan[]) => void;
   showToast: (m: string) => void;
 }) {
   const [expanded,       setExpanded]       = useState<number | null>(null);
@@ -1548,7 +1556,421 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
           )}
           {p2pTransfers.length === 0 && !showP2P && <p className="text-xs text-center py-2" style={{ color: MUTED }}>No transfers logged yet</p>}
         </div>
+
+        {/* ── Base Budget ── */}
+        <BaseBudgetCard baseBudget={baseBudget} onUpdate={onUpdateBaseBudget} showToast={showToast} />
+
+        {/* ── Budget Planner ── */}
+        <BudgetPlannerCard budgetPlans={budgetPlans} onUpdate={onUpdateBudgetPlans} showToast={showToast} />
+
       </div>
+    </div>
+  );
+}
+
+// ── Base Budget Card ──────────────────────────────────────────────────────────
+const BASE_BUDGET_DEFAULTS = [
+  { emoji: "🏠", category: "Housing" },
+  { emoji: "🛒", category: "Groceries" },
+  { emoji: "🍽️", category: "Eating Out" },
+  { emoji: "⛽", category: "Gas" },
+  { emoji: "👗", category: "Shopping" },
+  { emoji: "💊", category: "Health" },
+  { emoji: "🎉", category: "Fun / Entertainment" },
+  { emoji: "📦", category: "Subscriptions" },
+  { emoji: "💇", category: "Self-Care" },
+  { emoji: "✈️", category: "Travel" },
+];
+
+function BaseBudgetCard({ baseBudget, onUpdate, showToast }: {
+  baseBudget: BaseBudgetItem[];
+  onUpdate: (b: BaseBudgetItem[]) => void;
+  showToast: (m: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [addEmoji, setAddEmoji] = useState("📌");
+  const [addCat, setAddCat] = useState("");
+  const [addAmt, setAddAmt] = useState("");
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editVal, setEditVal] = useState("");
+
+  const total = baseBudget.reduce((s, b) => s + b.monthlyLimit, 0);
+
+  function saveEdit(itemId: string) {
+    const val = parseFloat(editVal);
+    if (!isNaN(val) && val >= 0) {
+      onUpdate(baseBudget.map(b => b.id === itemId ? { ...b, monthlyLimit: val } : b));
+      showToast("Updated!");
+    }
+    setEditing(null);
+  }
+
+  function addItem() {
+    if (!addCat || !addAmt) return;
+    const newItem: BaseBudgetItem = { id: id(), category: addCat, emoji: addEmoji, monthlyLimit: parseFloat(addAmt) };
+    onUpdate([...baseBudget, newItem]);
+    setAddCat(""); setAddAmt(""); setAddEmoji("📌"); setShowAddForm(false);
+    showToast("Added!");
+  }
+
+  function loadDefaults() {
+    const existing = new Set(baseBudget.map(b => b.category.toLowerCase()));
+    const toAdd = BASE_BUDGET_DEFAULTS
+      .filter(d => !existing.has(d.category.toLowerCase()))
+      .map(d => ({ id: id(), category: d.category, emoji: d.emoji, monthlyLimit: 0 }));
+    if (toAdd.length) { onUpdate([...baseBudget, ...toAdd]); showToast("Defaults loaded — set your amounts!"); }
+    else showToast("All defaults already added");
+  }
+
+  return (
+    <div className="mb-5">
+      <button onClick={() => setOpen(v => !v)} className="w-full flex items-center justify-between mb-3">
+        <div>
+          <p className="text-xs font-semibold text-left" style={{ color: MUTED, letterSpacing: "0.08em" }}>MY BASE BUDGET</p>
+          <p className="text-xs mt-0.5 text-left" style={{ color: "var(--text-light)" }}>
+            {baseBudget.length > 0 ? `${baseBudget.length} categories · ${fmt$(total)}/mo` : "Set your monthly spending limits"}
+          </p>
+        </div>
+        <span style={{ color: MUTED, fontSize: 16 }}>{open ? "▲" : "▼"}</span>
+      </button>
+
+      {open && (
+        <>
+          {baseBudget.length === 0 && (
+            <div className="rounded-2xl p-5 text-center mb-3" style={{ background: CARD, border: `1px dashed ${BORDER}` }}>
+              <p className="text-sm mb-3" style={{ color: MUTED }}>No budget set yet. Load defaults or add categories.</p>
+              <button onClick={loadDefaults} className="text-xs px-4 py-2 rounded-xl font-semibold" style={{ background: "rgba(124,92,252,0.1)", color: LIME }}>
+                Load Common Categories
+              </button>
+            </div>
+          )}
+
+          {baseBudget.length > 0 && (
+            <div className="rounded-2xl overflow-hidden mb-2" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+              {baseBudget.map((item, i) => (
+                <div key={item.id} className="flex items-center justify-between px-4 py-3" style={{ borderBottom: i < baseBudget.length - 1 ? `1px solid ${BORDER}` : undefined }}>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span>{item.emoji}</span>
+                    <p className="text-sm truncate" style={{ color: "var(--text)" }}>{item.category}</p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {editing === item.id ? (
+                      <>
+                        <div className="relative">
+                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs" style={{ color: MUTED }}>$</span>
+                          <input autoFocus type="number" value={editVal} onChange={e => setEditVal(e.target.value)}
+                            onBlur={() => saveEdit(item.id)}
+                            onKeyDown={e => { if (e.key === "Enter") saveEdit(item.id); if (e.key === "Escape") setEditing(null); }}
+                            className="w-24 pl-5 pr-2 py-1 rounded-lg text-sm outline-none"
+                            style={{ background: "rgba(124,92,252,0.07)", border: `1px solid rgba(124,92,252,0.3)` }} />
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <button onClick={() => { setEditing(item.id); setEditVal(String(item.monthlyLimit)); }}
+                          className="text-sm font-semibold px-2 py-1 rounded-lg"
+                          style={{ color: item.monthlyLimit > 0 ? LIME : MUTED, background: "rgba(124,92,252,0.05)" }}>
+                          {item.monthlyLimit > 0 ? fmt$(item.monthlyLimit) : "Set"}
+                        </button>
+                        <span className="text-xs" style={{ color: MUTED }}>/mo</span>
+                        <button onClick={() => { onUpdate(baseBudget.filter(b => b.id !== item.id)); }}><Trash2 size={11} style={{ color: MUTED }} /></button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+              <div className="flex items-center justify-between px-4 py-3" style={{ background: "rgba(124,92,252,0.04)" }}>
+                <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>Total</p>
+                <p className="text-sm font-bold" style={{ color: LIME }}>{fmt$(total)}/mo</p>
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <button onClick={() => setShowAddForm(v => !v)}
+              className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg"
+              style={{ background: "rgba(200,255,0,0.1)", color: LIME, border: `1px solid rgba(200,255,0,0.2)` }}>
+              <Plus size={12} /> Add Category
+            </button>
+            {baseBudget.length === 0 && (
+              <button onClick={loadDefaults} className="text-xs px-3 py-1.5 rounded-lg" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>
+                Load Defaults
+              </button>
+            )}
+          </div>
+
+          {showAddForm && (
+            <div className="rounded-2xl p-4 mt-2" style={{ background: CARD, border: `1px solid rgba(200,255,0,0.2)` }}>
+              <div className="grid grid-cols-[48px_1fr] gap-2 mb-2">
+                <input value={addEmoji} onChange={e => setAddEmoji(e.target.value)} maxLength={2}
+                  className="rounded-xl px-2 py-2.5 text-xl text-center outline-none"
+                  style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+                <input value={addCat} onChange={e => setAddCat(e.target.value)} placeholder="Category name"
+                  className="rounded-xl px-3 py-2.5 text-sm outline-none"
+                  style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+              </div>
+              <div className="relative mb-3">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold" style={{ color: MUTED }}>$</span>
+                <input type="number" value={addAmt} onChange={e => setAddAmt(e.target.value)} placeholder="Monthly limit"
+                  className="w-full pl-7 pr-3 py-2.5 rounded-xl text-sm outline-none"
+                  style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+              </div>
+              <button onClick={addItem} disabled={!addCat || !addAmt}
+                className="w-full py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40"
+                style={{ background: LIME, color: "#fff" }}>
+                Add to Budget
+              </button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── Budget Planner Card ───────────────────────────────────────────────────────
+const PLAN_CATEGORY_DEFAULTS = [
+  { emoji: "🏠", category: "Housing" },
+  { emoji: "🛒", category: "Groceries" },
+  { emoji: "🍽️", category: "Eating Out" },
+  { emoji: "⛽", category: "Gas" },
+  { emoji: "💊", category: "Health" },
+  { emoji: "🎉", category: "Fun" },
+  { emoji: "💇", category: "Self-Care" },
+  { emoji: "📦", category: "Subscriptions" },
+  { emoji: "💰", category: "Savings" },
+];
+
+function BudgetPlannerCard({ budgetPlans, onUpdate, showToast }: {
+  budgetPlans: BudgetPlan[];
+  onUpdate: (p: BudgetPlan[]) => void;
+  showToast: (m: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [activePlanId, setActivePlanId] = useState<string | null>(null);
+  const [newPlanName, setNewPlanName] = useState("");
+  const [newPlanIncome, setNewPlanIncome] = useState("");
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingItem, setEditingItem] = useState<string | null>(null);
+  const [editItemVal, setEditItemVal] = useState("");
+  const [addItemEmoji, setAddItemEmoji] = useState("📌");
+  const [addItemCat, setAddItemCat] = useState("");
+  const [addItemAmt, setAddItemAmt] = useState("");
+  const [showAddItem, setShowAddItem] = useState(false);
+
+  const activePlan = budgetPlans.find(p => p.id === activePlanId) ?? budgetPlans[0] ?? null;
+
+  function createPlan() {
+    if (!newPlanName) return;
+    const defaultItems: BudgetPlanItem[] = PLAN_CATEGORY_DEFAULTS.map(d => ({
+      id: id(), category: d.category, emoji: d.emoji, plannedMonthly: 0,
+    }));
+    const plan: BudgetPlan = {
+      id: id(), name: newPlanName,
+      createdAt: new Date().toISOString(),
+      monthlyIncome: parseFloat(newPlanIncome) || 0,
+      items: defaultItems,
+    };
+    onUpdate([...budgetPlans, plan]);
+    setActivePlanId(plan.id);
+    setNewPlanName(""); setNewPlanIncome(""); setShowCreateForm(false);
+    showToast("Budget plan created!");
+  }
+
+  function updatePlanItem(planId: string, itemId: string, amount: number) {
+    onUpdate(budgetPlans.map(p => p.id !== planId ? p : {
+      ...p, items: p.items.map(i => i.id === itemId ? { ...i, plannedMonthly: amount } : i),
+    }));
+  }
+
+  function addPlanItem(planId: string) {
+    if (!addItemCat || !addItemAmt) return;
+    const newItem: BudgetPlanItem = { id: id(), category: addItemCat, emoji: addItemEmoji, plannedMonthly: parseFloat(addItemAmt) };
+    onUpdate(budgetPlans.map(p => p.id !== planId ? p : { ...p, items: [...p.items, newItem] }));
+    setAddItemCat(""); setAddItemAmt(""); setAddItemEmoji("📌"); setShowAddItem(false);
+    showToast("Added!");
+  }
+
+  function deletePlan(planId: string) {
+    onUpdate(budgetPlans.filter(p => p.id !== planId));
+    if (activePlanId === planId) setActivePlanId(null);
+    showToast("Plan deleted");
+  }
+
+  return (
+    <div className="mb-5">
+      <button onClick={() => setOpen(v => !v)} className="w-full flex items-center justify-between mb-3">
+        <div>
+          <p className="text-xs font-semibold text-left" style={{ color: MUTED, letterSpacing: "0.08em" }}>BUDGET PLANNER</p>
+          <p className="text-xs mt-0.5 text-left" style={{ color: "var(--text-light)" }}>
+            {budgetPlans.length > 0 ? `${budgetPlans.length} plan${budgetPlans.length > 1 ? "s" : ""} saved` : "Draft your next budget"}
+          </p>
+        </div>
+        <span style={{ color: MUTED, fontSize: 16 }}>{open ? "▲" : "▼"}</span>
+      </button>
+
+      {open && (
+        <>
+          {/* Plan selector */}
+          {budgetPlans.length > 0 && (
+            <div className="flex gap-2 flex-wrap mb-3">
+              {budgetPlans.map(p => (
+                <button key={p.id} onClick={() => setActivePlanId(p.id)}
+                  className="text-xs px-3 py-1.5 rounded-xl font-semibold transition-all"
+                  style={activePlan?.id === p.id
+                    ? { background: LIME, color: "#fff" }
+                    : { background: "rgba(124,92,252,0.07)", color: MUTED }}>
+                  {p.name}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Active plan */}
+          {activePlan && (
+            <div className="rounded-2xl overflow-hidden mb-3" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+              {/* Plan header */}
+              <div className="px-4 py-3.5 flex items-center justify-between" style={{ borderBottom: `1px solid ${BORDER}` }}>
+                <div>
+                  <p className="text-sm font-bold" style={{ color: "var(--text)" }}>{activePlan.name}</p>
+                  {activePlan.monthlyIncome > 0 && (
+                    <p className="text-xs mt-0.5" style={{ color: MUTED }}>
+                      Income: {fmt$(activePlan.monthlyIncome)}/mo · Allocated: {fmt$(activePlan.items.reduce((s, i) => s + i.plannedMonthly, 0))}/mo
+                      {activePlan.monthlyIncome - activePlan.items.reduce((s, i) => s + i.plannedMonthly, 0) > 0 && (
+                        <span style={{ color: LIME }}> · {fmt$(activePlan.monthlyIncome - activePlan.items.reduce((s, i) => s + i.plannedMonthly, 0))} left</span>
+                      )}
+                    </p>
+                  )}
+                </div>
+                <button onClick={() => deletePlan(activePlan.id)}><Trash2 size={13} style={{ color: MUTED }} /></button>
+              </div>
+
+              {/* Remaining budget bar */}
+              {activePlan.monthlyIncome > 0 && (() => {
+                const allocated = activePlan.items.reduce((s, i) => s + i.plannedMonthly, 0);
+                const pct = Math.min(100, Math.round((allocated / activePlan.monthlyIncome) * 100));
+                const color = pct > 100 ? RED : pct > 85 ? AMBER : LIME;
+                return (
+                  <div className="px-4 py-2" style={{ borderBottom: `1px solid ${BORDER}` }}>
+                    <div className="h-2 rounded-full" style={{ background: "rgba(124,92,252,0.08)" }}>
+                      <div className="h-2 rounded-full transition-all" style={{ width: `${pct}%`, background: color }} />
+                    </div>
+                    <p className="text-xs mt-1 text-right" style={{ color }}>{pct}% allocated</p>
+                  </div>
+                );
+              })()}
+
+              {/* Line items */}
+              {activePlan.items.map((item, i) => (
+                <div key={item.id} className="flex items-center justify-between px-4 py-3"
+                  style={{ borderBottom: i < activePlan.items.length - 1 ? `1px solid ${BORDER}` : undefined }}>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span>{item.emoji}</span>
+                    <p className="text-sm truncate" style={{ color: "var(--text)" }}>{item.category}</p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {editingItem === item.id ? (
+                      <div className="relative">
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs" style={{ color: MUTED }}>$</span>
+                        <input autoFocus type="number" value={editItemVal}
+                          onChange={e => setEditItemVal(e.target.value)}
+                          onBlur={() => { const v = parseFloat(editItemVal); if (!isNaN(v)) updatePlanItem(activePlan.id, item.id, v); setEditingItem(null); }}
+                          onKeyDown={e => { if (e.key === "Enter") { const v = parseFloat(editItemVal); if (!isNaN(v)) updatePlanItem(activePlan.id, item.id, v); setEditingItem(null); } if (e.key === "Escape") setEditingItem(null); }}
+                          className="w-24 pl-5 pr-2 py-1 rounded-lg text-sm outline-none"
+                          style={{ background: "rgba(124,92,252,0.07)", border: `1px solid rgba(124,92,252,0.3)` }} />
+                      </div>
+                    ) : (
+                      <>
+                        <button onClick={() => { setEditingItem(item.id); setEditItemVal(String(item.plannedMonthly)); }}
+                          className="text-sm font-semibold px-2 py-1 rounded-lg"
+                          style={{ color: item.plannedMonthly > 0 ? LIME : MUTED, background: "rgba(124,92,252,0.05)" }}>
+                          {item.plannedMonthly > 0 ? fmt$(item.plannedMonthly) : "Set"}
+                        </button>
+                        <span className="text-xs" style={{ color: MUTED }}>/mo</span>
+                        <button onClick={() => onUpdate(budgetPlans.map(p => p.id !== activePlan.id ? p : { ...p, items: p.items.filter(x => x.id !== item.id) }))}>
+                          <Trash2 size={11} style={{ color: MUTED }} />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {/* Add item row */}
+              {showAddItem ? (
+                <div className="px-4 py-3" style={{ borderTop: `1px solid ${BORDER}` }}>
+                  <div className="grid grid-cols-[40px_1fr] gap-2 mb-2">
+                    <input value={addItemEmoji} onChange={e => setAddItemEmoji(e.target.value)} maxLength={2}
+                      className="rounded-xl py-2 text-lg text-center outline-none"
+                      style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+                    <input value={addItemCat} onChange={e => setAddItemCat(e.target.value)} placeholder="Category"
+                      className="rounded-xl px-3 py-2 text-sm outline-none"
+                      style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs" style={{ color: MUTED }}>$</span>
+                      <input type="number" value={addItemAmt} onChange={e => setAddItemAmt(e.target.value)} placeholder="Monthly amount"
+                        className="w-full pl-6 pr-3 py-2 rounded-xl text-sm outline-none"
+                        style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+                    </div>
+                    <button onClick={() => addPlanItem(activePlan.id)} disabled={!addItemCat || !addItemAmt}
+                      className="px-3 py-2 rounded-xl text-xs font-semibold disabled:opacity-40"
+                      style={{ background: LIME, color: "#fff" }}>Add</button>
+                    <button onClick={() => setShowAddItem(false)} className="px-3 py-2 rounded-xl text-xs" style={{ color: MUTED }}>Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <button onClick={() => setShowAddItem(true)}
+                  className="w-full flex items-center justify-center gap-1 py-3 text-xs font-semibold"
+                  style={{ color: MUTED, borderTop: `1px solid ${BORDER}` }}>
+                  <Plus size={12} /> Add Category
+                </button>
+              )}
+            </div>
+          )}
+
+          {budgetPlans.length === 0 && !showCreateForm && (
+            <div className="rounded-2xl p-5 text-center mb-3" style={{ background: CARD, border: `1px dashed ${BORDER}` }}>
+              <p className="text-sm mb-1" style={{ color: MUTED }}>No budget plans yet.</p>
+              <p className="text-xs mb-3" style={{ color: MUTED }}>Draft a plan to see how a new income or budget would look.</p>
+            </div>
+          )}
+
+          {/* Create plan button / form */}
+          {!showCreateForm ? (
+            <button onClick={() => setShowCreateForm(true)}
+              className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg"
+              style={{ background: "rgba(200,255,0,0.1)", color: LIME, border: `1px solid rgba(200,255,0,0.2)` }}>
+              <Plus size={12} /> New Plan
+            </button>
+          ) : (
+            <div className="rounded-2xl p-4 mt-2" style={{ background: CARD, border: `1px solid rgba(200,255,0,0.2)` }}>
+              <p className="text-xs font-semibold mb-3" style={{ color: MUTED, letterSpacing: "0.08em" }}>NEW BUDGET PLAN</p>
+              <div className="space-y-2 mb-3">
+                <input value={newPlanName} onChange={e => setNewPlanName(e.target.value)} placeholder='Plan name (e.g. "After Raise", "July Budget")'
+                  className="w-full rounded-xl px-3 py-2.5 text-sm outline-none"
+                  style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold" style={{ color: MUTED }}>$</span>
+                  <input type="number" value={newPlanIncome} onChange={e => setNewPlanIncome(e.target.value)} placeholder="Monthly income (optional)"
+                    className="w-full pl-7 pr-3 py-2.5 rounded-xl text-sm outline-none"
+                    style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={createPlan} disabled={!newPlanName}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40"
+                  style={{ background: LIME, color: "#fff" }}>Create Plan</button>
+                <button onClick={() => setShowCreateForm(false)}
+                  className="px-4 py-2.5 rounded-xl text-sm"
+                  style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Cancel</button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

@@ -215,6 +215,29 @@ export interface BudgetLine {
   isDetected?: boolean;
 }
 
+export interface BaseBudgetItem {
+  id: string;
+  category: string;
+  emoji: string;
+  monthlyLimit: number;
+}
+
+export interface BudgetPlanItem {
+  id: string;
+  category: string;
+  emoji: string;
+  plannedMonthly: number;
+  notes?: string;
+}
+
+export interface BudgetPlan {
+  id: string;
+  name: string;
+  createdAt: string;
+  monthlyIncome: number;
+  items: BudgetPlanItem[];
+}
+
 export interface CreditScoreEntry {
   id: string;
   date: string;       // YYYY-MM-DD
@@ -640,6 +663,8 @@ export interface DashboardData {
   sinkingFunds?: SinkingFund[];
   affordGoals?: AffordGoal[];
   monthlyIncome?: number;
+  baseBudget?: BaseBudgetItem[];
+  budgetPlans?: BudgetPlan[];
 
   // Connections
   connectionLogs: ConnectionLog[];
