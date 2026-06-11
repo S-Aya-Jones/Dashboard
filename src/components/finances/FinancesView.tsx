@@ -98,13 +98,27 @@ function freqLabel(weeks: number, label?: string): string {
 function fmt$(n: number) { return `$${Math.abs(n).toLocaleString("en-US", { maximumFractionDigits: 0 })}`; }
 function fmtDate(d: Date) { return format(d, "MMM d"); }
 function ordinal(n: number) { const s = ["th","st","nd","rd"]; const v = n % 100; return s[(v-20)%10] || s[v] || s[0]; }
-function getCategoryEmoji(cat: BudgetLine["category"]) {
-  const map: Record<BudgetLine["category"], string> = {
-    transfer: "🏦", housing: "🏠", food: "🛒", transport: "🚗",
-    savings: "💰", utilities: "💡", other: "📌",
+function getCategoryColor(cat: BudgetLine["category"] | string): string {
+  const map: Record<string, string> = {
+    transfer: "#6366F1", housing: "#7C5CFC", food: "#10B981", transport: "#F59E0B",
+    savings: "#8B5CF6", utilities: "#06B6D4", other: "#94A3B8",
+    groceries: "#10B981", "eating out": "#FB923C", gas: "#F59E0B",
+    health: "#EF4444", fun: "#E879F9", "self-care": "#EC4899",
+    subscriptions: "#6366F1", travel: "#0EA5E9", shopping: "#F472B6",
   };
-  return map[cat] ?? "📌";
+  return map[cat.toLowerCase()] ?? "#94A3B8";
 }
+
+function CatDot({ cat, size = 8 }: { cat: string; size?: number }) {
+  return (
+    <span style={{
+      display: "inline-block", width: size, height: size,
+      borderRadius: "50%", background: getCategoryColor(cat),
+      flexShrink: 0,
+    }} />
+  );
+}
+
 function autoDetectCategory(label: string): BudgetLine["category"] {
   const l = label.toLowerCase();
   if (/rent|mortgage|hoa/.test(l)) return "housing";
@@ -963,8 +977,8 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
     if (!name || !cost) return;
     const fwOpt = FREQ_OPTIONS.find(([v]) => v === freqWeeks);
     const fl = fwOpt ? fwOpt[1] : undefined;
-    onUpdateCare([...selfCare, { id: id(), name, emoji, cost: parseFloat(cost), frequencyWeeks: parseInt(freqWeeks), frequencyLabel: fl, color: COLORS[selfCare.length % COLORS.length], priority: selfCare.length }]);
-    setName(""); setCost(""); setFreqWeeks("4"); setEmoji("💄"); setShowCareForm(false); showToast("Added!");
+    onUpdateCare([...selfCare, { id: id(), name, emoji: "●", cost: parseFloat(cost), frequencyWeeks: parseInt(freqWeeks), frequencyLabel: fl, color: COLORS[selfCare.length % COLORS.length], priority: selfCare.length }]);
+    setName(""); setCost(""); setFreqWeeks("4"); setShowCareForm(false); showToast("Added!");
   };
 
   const moveCare = (itemId: string, dir: -1 | 1) => {
@@ -1203,7 +1217,9 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
                       <div key={idx} style={{ borderBottom: si < ms.length - 1 ? `1px solid ${BORDER}` : undefined }}>
                         <button className="w-full flex items-center justify-between px-4 py-3" onClick={() => setExpanded(open ? null : idx)}>
                           <div className="flex items-center gap-3">
-                            <div className="w-8 text-center"><p className="text-base leading-none">{item?.emoji ?? "·"}</p></div>
+                            <div className="w-6 flex items-center justify-center">
+                              <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: item?.color ?? MUTED }} />
+                            </div>
                             <div className="text-left">
                               <p className="text-sm font-medium text-white">{item?.name ?? "Free check"}{isPushedSlot && <span className="ml-1.5 text-xs" style={{ color: AMBER }}>pushed</span>}</p>
                               <p className="text-xs" style={{ color: MUTED }}>{format(slot.checkDate, "EEE, MMM d")}</p>
@@ -1218,14 +1234,14 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
                         {open && (
                           <div className="px-4 pb-3 pt-2 space-y-1.5" style={{ borderTop: `1px solid ${BORDER}` }}>
                             {[
-                              { label: "💵 Paycheck",  amount: effectiveTakeHome,       color: "var(--text)", prefix: "" },
-                              { label: "💰 Savings",   amount: slot.savings,            color: "#9B7FFF",prefix: "−" },
-                              { label: "🧾 Bills",     amount: slot.billsTotal,         color: AMBER,    prefix: "−" },
-                              ...(slot.focusItem  ? [{ label: `${slot.focusItem.emoji} ${slot.focusItem.name}`, amount: slot.focusItem.cost, color: LIME, prefix: "−" }] : []),
-                              ...(slot.pushedItem ? [{ label: `${slot.pushedItem.emoji} ${slot.pushedItem.name} (pushed)`, amount: slot.pushedItem.cost, color: AMBER, prefix: "" }] : []),
+                              { label: "Paycheck",  amount: effectiveTakeHome,       color: "var(--text)", prefix: "", cat: "transfer" },
+                              { label: "Savings",   amount: slot.savings,            color: "#9B7FFF",prefix: "−", cat: "savings" },
+                              { label: "Bills",     amount: slot.billsTotal,         color: AMBER,    prefix: "−", cat: "utilities" },
+                              ...(slot.focusItem  ? [{ label: slot.focusItem.name, amount: slot.focusItem.cost, color: LIME, prefix: "−", cat: "other" }] : []),
+                              ...(slot.pushedItem ? [{ label: `${slot.pushedItem.name} (pushed)`, amount: slot.pushedItem.cost, color: AMBER, prefix: "", cat: "other" }] : []),
                             ].filter(r => r.amount > 0).map(r => (
-                              <div key={r.label} className="flex justify-between text-xs">
-                                <span style={{ color: MUTED }}>{r.label}</span>
+                              <div key={r.label} className="flex justify-between items-center text-xs gap-2">
+                                <span className="flex items-center gap-1.5" style={{ color: MUTED }}><CatDot cat={r.cat} size={6} />{r.label}</span>
                                 <span style={{ color: r.color }}>{r.prefix}{fmt$(r.amount)}</span>
                               </div>
                             ))}
@@ -1248,14 +1264,15 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
 
       {/* ── MANAGE ── */}
       <div className="pt-2">
-        <p className="text-xs font-semibold mb-4" style={{ color: LIME, letterSpacing: "0.12em" }}>── MANAGE YOUR PLAN ──────────</p>
+        <p className="text-xs font-semibold mb-4" style={{ color: LIME, letterSpacing: "0.12em" }}>MANAGE YOUR PLAN</p>
 
         {/* Income settings */}
         <div className="mb-5">
-          <p className="text-xs font-semibold mb-3" style={{ color: MUTED, letterSpacing: "0.08em" }}>YOUR INCOME</p>
+          <p className="text-xs font-semibold mb-1" style={{ color: MUTED, letterSpacing: "0.08em" }}>YOUR INCOME</p>
+          <p className="text-xs mb-3" style={{ color: "var(--text-light)" }}>Edit your take-home and savings rate</p>
           <div className="rounded-2xl overflow-hidden" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
             <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}` }}>
-              <p className="text-sm text-white">This check</p>
+              <div><p className="text-sm text-white">Take-home per check</p><p className="text-xs mt-0.5" style={{ color: MUTED }}>your actual deposit amount</p></div>
               {editPay ? (
                 <div className="flex items-center gap-2">
                   <div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-white">$</span>
@@ -1319,7 +1336,7 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
               <p className="text-xs font-semibold mb-2" style={{ color: LIME }}>Detected recurring transfers:</p>
               {(insights!.paycheckSplits!).filter(s => !budgetLines.some(l => l.isDetected && l.toAccount === s.toAccount)).map((s, i) => (
                 <div key={i} className="flex items-center justify-between py-1.5">
-                  <div><p className="text-sm text-white">🏦 {s.toAccount}</p><p className="text-xs" style={{ color: MUTED }}>{fmt$(s.amount)}/check · detected {s.count}x</p></div>
+                  <div><p className="text-sm text-white flex items-center gap-2"><CatDot cat="transfer" />{s.toAccount || "Transfer"}</p><p className="text-xs" style={{ color: MUTED }}>{fmt$(s.amount)}/check · detected {s.count}x</p></div>
                   <button onClick={() => addDetectedSplit(s)} className="text-xs px-3 py-1.5 rounded-lg font-semibold" style={{ background: LIME, color: "#fff"}}>Add</button>
                 </div>
               ))}
@@ -1327,20 +1344,21 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
           )}
           <div className="rounded-2xl overflow-hidden" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
             <div className="flex items-center justify-between px-4 py-3.5" style={{ borderBottom: `1px solid ${BORDER}` }}>
-              <p className="text-sm font-semibold text-white">💵 Paycheck</p>
+              <div className="flex items-center gap-2.5"><CatDot cat="transfer" size={10} /><p className="text-sm font-semibold text-white">Paycheck</p></div>
               <p className="text-sm font-bold text-white">{fmt$(effectiveTakeHome)}</p>
             </div>
             {pc.savingsPercent > 0 && (
               <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}` }}>
-                <p className="text-sm" style={{ color: "#9B7FFF" }}>💰 Savings ({pc.savingsPercent}%)</p>
+                <div className="flex items-center gap-2.5"><CatDot cat="savings" size={10} /><p className="text-sm" style={{ color: "#9B7FFF" }}>Savings ({pc.savingsPercent}%)</p></div>
                 <p className="text-sm font-semibold" style={{ color: "#9B7FFF" }}>−{fmt$(Math.round(effectiveTakeHome * pc.savingsPercent / 100))}</p>
               </div>
             )}
             {budgetLines.map(line => (
               <div key={line.id} className="flex items-center justify-between px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}` }}>
-                <div className="flex items-center gap-2 min-w-0">
-                  <p className="text-sm text-white truncate">{getCategoryEmoji(line.category)} {line.label}</p>
-                  {line.isDetected && <span className="text-xs px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: "rgba(200,255,0,0.1)", color: LIME }}>auto</span>}
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <CatDot cat={line.category} />
+                  <p className="text-sm text-white truncate">{line.label || line.toAccount || line.category}</p>
+                  {line.isDetected && <span className="text-xs px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: "rgba(124,92,252,0.1)", color: LIME }}>auto</span>}
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <p className="text-sm font-semibold" style={{ color: RED }}>−{fmt$(line.amountPerCheck)}</p>
@@ -1422,7 +1440,7 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
                           className="w-5 h-4 flex items-center justify-center rounded disabled:opacity-20"
                           style={{ color: MUTED, fontSize: 9 }}>▼</button>
                       </div>
-                      <span className="text-xl">{item.emoji}</span>
+                      <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: item.color ?? LIME }} />
                       <div>
                         <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>{item.name}</p>
                         <p className="text-xs" style={{ color: MUTED }}>{fmt$(item.cost)} · {freqLabel(item.frequencyWeeks, item.frequencyLabel)}{item.lastDone ? ` · last ${format(parseISO(item.lastDone), "MMM d")}` : ""}</p>
@@ -1447,10 +1465,7 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
           {showCareForm && (
             <div className="rounded-2xl p-4 mt-2" style={{ background: CARD, border: `1px solid rgba(200,255,0,0.2)` }}>
               <div className="space-y-2 mb-3">
-                <div className="flex gap-2">
-                  <input value={emoji} onChange={e => setEmoji(e.target.value)} maxLength={2} className="w-14 rounded-xl px-2 py-3 text-xl text-center outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
-                  <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Waxing, Lashes" className="flex-1 rounded-xl px-3 py-3 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
-                </div>
+                <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Waxing, Lashes" className="w-full rounded-xl px-3 py-3 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
                 <div className="grid grid-cols-2 gap-2">
                   <input type="number" value={cost} onChange={e => setCost(e.target.value)} placeholder="Cost ($)" className="rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
                   <select value={freqWeeks} onChange={e => setFreqWeeks(e.target.value)} className="rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }}>
@@ -1650,8 +1665,8 @@ function BaseBudgetCard({ baseBudget, onUpdate, showToast }: {
             <div className="rounded-2xl overflow-hidden mb-2" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
               {baseBudget.map((item, i) => (
                 <div key={item.id} className="flex items-center justify-between px-4 py-3" style={{ borderBottom: i < baseBudget.length - 1 ? `1px solid ${BORDER}` : undefined }}>
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span>{item.emoji}</span>
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <CatDot cat={item.category} />
                     <p className="text-sm truncate" style={{ color: "var(--text)" }}>{item.category}</p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
@@ -1702,14 +1717,9 @@ function BaseBudgetCard({ baseBudget, onUpdate, showToast }: {
 
           {showAddForm && (
             <div className="rounded-2xl p-4 mt-2" style={{ background: CARD, border: `1px solid rgba(200,255,0,0.2)` }}>
-              <div className="grid grid-cols-[48px_1fr] gap-2 mb-2">
-                <input value={addEmoji} onChange={e => setAddEmoji(e.target.value)} maxLength={2}
-                  className="rounded-xl px-2 py-2.5 text-xl text-center outline-none"
-                  style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
-                <input value={addCat} onChange={e => setAddCat(e.target.value)} placeholder="Category name"
-                  className="rounded-xl px-3 py-2.5 text-sm outline-none"
-                  style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
-              </div>
+              <input value={addCat} onChange={e => setAddCat(e.target.value)} placeholder="Category name (e.g. Groceries)"
+                className="w-full rounded-xl px-3 py-2.5 text-sm outline-none mb-2"
+                style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
               <div className="relative mb-3">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold" style={{ color: MUTED }}>$</span>
                 <input type="number" value={addAmt} onChange={e => setAddAmt(e.target.value)} placeholder="Monthly limit"
@@ -1865,8 +1875,8 @@ function BudgetPlannerCard({ budgetPlans, onUpdate, showToast }: {
               {activePlan.items.map((item, i) => (
                 <div key={item.id} className="flex items-center justify-between px-4 py-3"
                   style={{ borderBottom: i < activePlan.items.length - 1 ? `1px solid ${BORDER}` : undefined }}>
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span>{item.emoji}</span>
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <CatDot cat={item.category} />
                     <p className="text-sm truncate" style={{ color: "var(--text)" }}>{item.category}</p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
@@ -1900,14 +1910,9 @@ function BudgetPlannerCard({ budgetPlans, onUpdate, showToast }: {
               {/* Add item row */}
               {showAddItem ? (
                 <div className="px-4 py-3" style={{ borderTop: `1px solid ${BORDER}` }}>
-                  <div className="grid grid-cols-[40px_1fr] gap-2 mb-2">
-                    <input value={addItemEmoji} onChange={e => setAddItemEmoji(e.target.value)} maxLength={2}
-                      className="rounded-xl py-2 text-lg text-center outline-none"
-                      style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
-                    <input value={addItemCat} onChange={e => setAddItemCat(e.target.value)} placeholder="Category"
-                      className="rounded-xl px-3 py-2 text-sm outline-none"
-                      style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
-                  </div>
+                  <input value={addItemCat} onChange={e => setAddItemCat(e.target.value)} placeholder="Category"
+                    className="w-full rounded-xl px-3 py-2 text-sm outline-none mb-2"
+                    style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
                   <div className="flex gap-2">
                     <div className="relative flex-1">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs" style={{ color: MUTED }}>$</span>
