@@ -682,7 +682,9 @@ export interface SeventyFiveHardDayLog {
   exposureTherapy: boolean;
   diet: boolean;
   notes?: string;
-  failed?: boolean; // if true, this day caused a reset
+  failed?: boolean;
+  progressPhotoUrl?: string;
+  weightPhotoUrl?: string;
 }
 
 export interface SeventyFiveHardData {

@@ -5,6 +5,8 @@ import { Sidebar } from "@/components/nav/Sidebar";
 import { SeventyFiveHardDayLog } from "@/types/dashboard";
 import { useState } from "react";
 import { Flame, Footprints, Droplets, Brain, Camera, Shield, Salad, Check, X, Trophy, Zap, Star } from "lucide-react";
+import { PhotoUpload } from "@/components/seventyfivehard/PhotoUpload";
+import { PhotoGallery } from "@/components/seventyfivehard/PhotoGallery";
 
 const START_DATE = "2026-06-14"; // Saturday
 
@@ -299,6 +301,17 @@ export default function SeventyFivePage() {
             );
           })}
 
+          {/* Daily Photos */}
+          {started && (
+            <div className="mt-2 space-y-2">
+              <h2 className="font-semibold text-sm uppercase tracking-wider mb-3" style={{ color: "var(--text-muted)" }}>
+                Today&apos;s Photos
+              </h2>
+              <PhotoUpload type="progress" onSuccess={() => update(prev => ({ ...prev, seventyFiveHard: { ...hardData, logs: [...hardData.logs.filter(l => l.date !== today), { ...todayLog, progressPhoto: true }] } }))} />
+              <PhotoUpload type="weight" onSuccess={(_, weight) => { if (weight) update(prev => ({ ...prev, workout: { ...prev.workout!, bodyWeight: [...(prev.workout?.bodyWeight ?? []).filter(b => b.date !== today), { date: today, weight }] } })); }} />
+            </div>
+          )}
+
           {/* Past days grid */}
           {started && hardData.logs.length > 0 && (
             <div className="mt-6">
@@ -334,6 +347,9 @@ export default function SeventyFivePage() {
               </div>
             </div>
           )}
+
+          {/* Photo Gallery */}
+          <PhotoGallery hardData={hardData} />
 
           {/* Motivation footer */}
           <div className="mt-6 p-4 rounded-2xl text-center" style={{
