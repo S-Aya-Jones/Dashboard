@@ -935,7 +935,7 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
   const [editSavings,    setEditSavings]    = useState(false);
   const [editProjected,  setEditProjected]  = useState(false);
 
-  const [name, setName]         = useState(""); const [emoji,   setEmoji]   = useState("💄");
+  const [name, setName]         = useState("");
   const [cost, setCost]         = useState(""); const [freqWeeks,setFreqWeeks]= useState("4");
   const [billName, setBillName] = useState(""); const [billAmt, setBillAmt] = useState(""); const [billDay, setBillDay] = useState("1");
   const [budgetLabel, setBudgetLabel] = useState(""); const [budgetAmt, setBudgetAmt] = useState("");
