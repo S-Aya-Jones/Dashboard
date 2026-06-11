@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { PwaRegistration } from "@/components/PwaRegistration";
+import { VoiceButton } from "@/components/VoiceButton";
 
 export const metadata: Metadata = {
   title: "Aya's Dashboard",
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="antialiased">
         <PwaRegistration />
         {children}
+        <VoiceButton />
       </body>
     </html>
   );
