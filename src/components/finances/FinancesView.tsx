@@ -951,6 +951,8 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
   const [p2pNote,    setP2pNote]    = useState("");
   const [payInput,   setPayInput]   = useState(String(pc.takeHomePerCheck));
   const [savingsPct, setSavingsPct] = useState(String(pc.savingsPercent));
+  const [savingsMode, setSavingsMode] = useState<"pct" | "dollar">("pct");
+  const [savingsDollar, setSavingsDollar] = useState(String(Math.round(pc.takeHomePerCheck * pc.savingsPercent / 100)));
   const [projInput,  setProjInput]  = useState(String(pc.projectedTakeHome ?? pc.takeHomePerCheck));
 
   const current      = yearPlan[0];
@@ -1306,17 +1308,63 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
                 </div>
               )}
             </div>
-            <div className="flex items-center justify-between px-4 py-3">
-              <p className="text-sm" style={{ color: "var(--text)" }}>Savings</p>
-              {editSavings ? (
-                <div className="flex items-center gap-2">
-                  <div className="flex gap-1">{["5","10","15","20"].map(p => <button key={p} onClick={() => setSavingsPct(p)} className="px-2.5 py-1.5 rounded-lg text-xs font-semibold" style={savingsPct === p ? { background: LIME, color: "#fff"} : { background: "rgba(124,92,252,0.07)", color: MUTED }}>{p}%</button>)}</div>
-                  <button onClick={() => { onUpdatePc({ ...pc, savingsPercent: parseInt(savingsPct) }); setEditSavings(false); showToast("Updated!"); }} className="text-xs px-3 py-1.5 rounded-lg font-semibold" style={{ background: LIME, color: "#fff"}}>Save</button>
+            <div className="px-4 py-3">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <p className="text-sm" style={{ color: "var(--text)" }}>Savings per check</p>
+                  {!editSavings && <p className="text-xs mt-0.5" style={{ color: MUTED }}>{pc.savingsPercent}% · {fmt$(Math.round(pc.takeHomePerCheck * pc.savingsPercent / 100))}</p>}
                 </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-bold text-dark">{pc.savingsPercent}% · {fmt$(Math.round(pc.takeHomePerCheck * pc.savingsPercent / 100))}</p>
-                  <button onClick={() => setEditSavings(true)} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Edit</button>
+                {!editSavings && <button onClick={() => setEditSavings(true)} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Edit</button>}
+              </div>
+              {editSavings && (
+                <div className="space-y-2">
+                  {/* Mode toggle */}
+                  <div className="flex rounded-xl overflow-hidden" style={{ border: `1px solid ${BORDER}` }}>
+                    <button onClick={() => setSavingsMode("pct")} className="flex-1 py-1.5 text-xs font-semibold"
+                      style={savingsMode === "pct" ? { background: LIME, color: "#fff" } : { color: MUTED }}>% of check</button>
+                    <button onClick={() => setSavingsMode("dollar")} className="flex-1 py-1.5 text-xs font-semibold"
+                      style={savingsMode === "dollar" ? { background: LIME, color: "#fff" } : { color: MUTED }}>$ amount</button>
+                  </div>
+                  {savingsMode === "pct" ? (
+                    <div className="flex gap-1 flex-wrap">
+                      {["5","10","15","20","25"].map(p => (
+                        <button key={p} onClick={() => setSavingsPct(p)}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold"
+                          style={savingsPct === p ? { background: LIME, color: "#fff" } : { background: "rgba(124,92,252,0.07)", color: MUTED }}>
+                          {p}% · {fmt$(Math.round(pc.takeHomePerCheck * parseInt(p) / 100))}
+                        </button>
+                      ))}
+                      <div className="relative">
+                        <input type="number" value={savingsPct} onChange={e => setSavingsPct(e.target.value)}
+                          placeholder="custom" className="w-20 rounded-lg px-2 py-1.5 text-xs outline-none"
+                          style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs" style={{ color: MUTED }}>%</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold" style={{ color: MUTED }}>$</span>
+                      <input type="number" value={savingsDollar} onChange={e => setSavingsDollar(e.target.value)}
+                        placeholder="e.g. 300" className="w-full pl-7 pr-3 py-2 rounded-xl text-sm outline-none"
+                        style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+                    </div>
+                  )}
+                  {savingsMode === "dollar" && savingsDollar && pc.takeHomePerCheck > 0 && (
+                    <p className="text-xs" style={{ color: MUTED }}>
+                      = {Math.round((parseFloat(savingsDollar) / pc.takeHomePerCheck) * 100)}% of your check · {fmt$(parseFloat(savingsDollar) * 26)}/yr
+                    </p>
+                  )}
+                  <div className="flex gap-2">
+                    <button onClick={() => {
+                      const pct = savingsMode === "pct"
+                        ? parseInt(savingsPct) || 0
+                        : Math.round((parseFloat(savingsDollar) / pc.takeHomePerCheck) * 100);
+                      onUpdatePc({ ...pc, savingsPercent: pct });
+                      setEditSavings(false);
+                      showToast("Savings updated!");
+                    }} className="px-4 py-2 rounded-xl text-xs font-semibold" style={{ background: LIME, color: "#fff" }}>Save</button>
+                    <button onClick={() => setEditSavings(false)} className="px-3 py-2 rounded-xl text-xs" style={{ color: MUTED }}>Cancel</button>
+                  </div>
                 </div>
               )}
             </div>
