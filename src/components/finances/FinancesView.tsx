@@ -6,6 +6,7 @@ import { RefreshCw, Unlink, Plus, Trash2, Check, ChevronDown, ChevronUp, RotateC
 import { DashboardData, PaycheckConfig, SelfCareItem, RecurringBill, P2PTransfer, AccountTransfer, BudgetLine, CreditScoreEntry, BaseBudgetItem, BudgetPlan, BudgetPlanItem } from "@/types/dashboard";
 import { id } from "@/lib/utils";
 import { parseISO, format, addDays, differenceInDays } from "date-fns";
+import { TodaySpendCard } from "@/components/finances/TodaySpendCard";
 
 const LIME   = "#7C5CFC";   // purple primary (was lime)
 const BG     = "#F4F0FE";   // light lavender bg
@@ -827,7 +828,7 @@ function HealthTab({ health, accounts, loadingAccts, refreshing, accountTransfer
           <HealthGradeRing grade={health.grade} score={health.total} color={health.gradeColor} size={96} />
           <div>
             <p className="text-4xl font-bold" style={{ color: health.gradeColor }}>{health.grade}</p>
-            <p className="text-sm font-semibold text-white mt-0.5">{health.total}/100</p>
+            <p className="text-sm font-semibold text-dark mt-0.5">{health.total}/100</p>
             <p className="text-xs mt-1" style={{ color: MUTED }}>Based on your real numbers</p>
           </div>
         </div>
@@ -1134,7 +1135,7 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
         <div className="rounded-2xl px-4 py-3 flex items-center gap-3" style={{ background: "rgba(232,168,124,0.07)", border: `1px solid rgba(232,168,124,0.2)` }}>
           <span className="text-xl flex-shrink-0">{pushed.emoji}</span>
           <div>
-            <p className="text-sm font-semibold text-white">{pushed.name} is pushed</p>
+            <p className="text-sm font-semibold text-dark">{pushed.name} is pushed</p>
             <p className="text-xs" style={{ color: AMBER }}>{fmt$(pushed.cost)} — affordable on {current.pushedTo ? fmtDate(current.pushedTo) : "a future check"}</p>
           </div>
         </div>
@@ -1181,7 +1182,7 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
             <div key={a.item.id} className="rounded-2xl px-4 py-3 flex items-center justify-between"
               style={{ background: "rgba(232,168,124,0.08)", border: `1px solid rgba(232,168,124,0.25)` }}>
               <div>
-                <p className="text-sm font-semibold text-white">{a.item.emoji} {a.item.name} — {fmtDate(a.checkDate)}</p>
+                <p className="text-sm font-semibold text-dark">{a.item.emoji} {a.item.name} — {fmtDate(a.checkDate)}</p>
                 <p className="text-xs mt-0.5" style={{ color: AMBER }}>{fmt$(a.shortfall)} short · set aside {fmt$(a.savePerCheck)}/check for {a.checksUntil} check{a.checksUntil !== 1 ? "s" : ""}</p>
               </div>
               <p className="text-lg font-bold" style={{ color: AMBER }}>{fmt$(a.savePerCheck)}</p>
@@ -1221,7 +1222,7 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
                               <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: item?.color ?? MUTED }} />
                             </div>
                             <div className="text-left">
-                              <p className="text-sm font-medium text-white">{item?.name ?? "Free check"}{isPushedSlot && <span className="ml-1.5 text-xs" style={{ color: AMBER }}>pushed</span>}</p>
+                              <p className="text-sm font-medium text-dark">{item?.name ?? "Free check"}{isPushedSlot && <span className="ml-1.5 text-xs" style={{ color: AMBER }}>pushed</span>}</p>
                               <p className="text-xs" style={{ color: MUTED }}>{format(slot.checkDate, "EEE, MMM d")}</p>
                             </div>
                           </div>
@@ -1266,44 +1267,47 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
       <div className="pt-2">
         <p className="text-xs font-semibold mb-4" style={{ color: LIME, letterSpacing: "0.12em" }}>MANAGE YOUR PLAN</p>
 
+        {/* Today's real-time spend */}
+        <TodaySpendCard baseBudget={baseBudget} />
+
         {/* Income settings */}
         <div className="mb-5">
           <p className="text-xs font-semibold mb-1" style={{ color: MUTED, letterSpacing: "0.08em" }}>YOUR INCOME</p>
           <p className="text-xs mb-3" style={{ color: "var(--text-light)" }}>Edit your take-home and savings rate</p>
           <div className="rounded-2xl overflow-hidden" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
             <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}` }}>
-              <div><p className="text-sm text-white">Take-home per check</p><p className="text-xs mt-0.5" style={{ color: MUTED }}>your actual deposit amount</p></div>
+              <div><p className="text-sm" style={{ color: "var(--text)" }}>Take-home per check</p><p className="text-xs mt-0.5" style={{ color: MUTED }}>your actual deposit amount</p></div>
               {editPay ? (
                 <div className="flex items-center gap-2">
-                  <div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-white">$</span>
+                  <div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-dark">$</span>
                     <input type="number" value={payInput} onChange={e => setPayInput(e.target.value)} className="w-28 rounded-lg pl-7 pr-3 py-1.5 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} /></div>
                   <button onClick={() => { onUpdatePc({ ...pc, takeHomePerCheck: parseFloat(payInput) || pc.takeHomePerCheck }); setEditPay(false); showToast("Updated!"); }} className="text-xs px-3 py-1.5 rounded-lg font-semibold" style={{ background: LIME, color: "#fff"}}>Save</button>
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-bold text-white">{fmt$(pc.takeHomePerCheck)}</p>
+                  <p className="text-sm font-bold text-dark">{fmt$(pc.takeHomePerCheck)}</p>
                   <button onClick={() => setEditPay(true)} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Edit</button>
                 </div>
               )}
             </div>
             <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}` }}>
-              <div><p className="text-sm text-white">Projected</p>{pc.projectedTakeHome && <p className="text-xs" style={{ color: AMBER }}>Used for math</p>}</div>
+              <div><p className="text-sm" style={{ color: "var(--text)" }}>Projected</p>{pc.projectedTakeHome && <p className="text-xs" style={{ color: AMBER }}>Used for math</p>}</div>
               {editProjected ? (
                 <div className="flex items-center gap-2">
-                  <div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-white">$</span>
+                  <div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-dark">$</span>
                     <input type="number" value={projInput} onChange={e => setProjInput(e.target.value)} className="w-28 rounded-lg pl-7 pr-3 py-1.5 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} /></div>
                   <button onClick={() => { const v = parseFloat(projInput); onUpdatePc({ ...pc, projectedTakeHome: v && v !== pc.takeHomePerCheck ? v : undefined }); setEditProjected(false); showToast("Updated!"); }} className="text-xs px-3 py-1.5 rounded-lg font-semibold" style={{ background: LIME, color: "#fff"}}>Save</button>
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-bold text-white">{pc.projectedTakeHome ? fmt$(pc.projectedTakeHome) : <span style={{ color: MUTED }}>Not set</span>}</p>
+                  <p className="text-sm font-bold text-dark">{pc.projectedTakeHome ? fmt$(pc.projectedTakeHome) : <span style={{ color: MUTED }}>Not set</span>}</p>
                   <button onClick={() => setEditProjected(true)} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>{pc.projectedTakeHome ? "Edit" : "Set"}</button>
                   {pc.projectedTakeHome && <button onClick={() => { onUpdatePc({ ...pc, projectedTakeHome: undefined }); showToast("Cleared."); }} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(218,102,123,0.1)", color: RED }}>Clear</button>}
                 </div>
               )}
             </div>
             <div className="flex items-center justify-between px-4 py-3">
-              <p className="text-sm text-white">Savings</p>
+              <p className="text-sm" style={{ color: "var(--text)" }}>Savings</p>
               {editSavings ? (
                 <div className="flex items-center gap-2">
                   <div className="flex gap-1">{["5","10","15","20"].map(p => <button key={p} onClick={() => setSavingsPct(p)} className="px-2.5 py-1.5 rounded-lg text-xs font-semibold" style={savingsPct === p ? { background: LIME, color: "#fff"} : { background: "rgba(124,92,252,0.07)", color: MUTED }}>{p}%</button>)}</div>
@@ -1311,7 +1315,7 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-bold text-white">{pc.savingsPercent}% · {fmt$(Math.round(pc.takeHomePerCheck * pc.savingsPercent / 100))}</p>
+                  <p className="text-sm font-bold text-dark">{pc.savingsPercent}% · {fmt$(Math.round(pc.takeHomePerCheck * pc.savingsPercent / 100))}</p>
                   <button onClick={() => setEditSavings(true)} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Edit</button>
                 </div>
               )}
@@ -1336,7 +1340,7 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
               <p className="text-xs font-semibold mb-2" style={{ color: LIME }}>Detected recurring transfers:</p>
               {(insights!.paycheckSplits!).filter(s => !budgetLines.some(l => l.isDetected && l.toAccount === s.toAccount)).map((s, i) => (
                 <div key={i} className="flex items-center justify-between py-1.5">
-                  <div><p className="text-sm text-white flex items-center gap-2"><CatDot cat="transfer" />{s.toAccount || "Transfer"}</p><p className="text-xs" style={{ color: MUTED }}>{fmt$(s.amount)}/check · detected {s.count}x</p></div>
+                  <div><p className="text-sm" style={{ color: "var(--text)" }}><CatDot cat="transfer" />{s.toAccount || "Transfer"}</p><p className="text-xs" style={{ color: MUTED }}>{fmt$(s.amount)}/check · detected {s.count}x</p></div>
                   <button onClick={() => addDetectedSplit(s)} className="text-xs px-3 py-1.5 rounded-lg font-semibold" style={{ background: LIME, color: "#fff"}}>Add</button>
                 </div>
               ))}
@@ -1344,8 +1348,8 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
           )}
           <div className="rounded-2xl overflow-hidden" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
             <div className="flex items-center justify-between px-4 py-3.5" style={{ borderBottom: `1px solid ${BORDER}` }}>
-              <div className="flex items-center gap-2.5"><CatDot cat="transfer" size={10} /><p className="text-sm font-semibold text-white">Paycheck</p></div>
-              <p className="text-sm font-bold text-white">{fmt$(effectiveTakeHome)}</p>
+              <div className="flex items-center gap-2.5"><CatDot cat="transfer" size={10} /><p className="text-sm font-semibold text-dark">Paycheck</p></div>
+              <p className="text-sm font-bold text-dark">{fmt$(effectiveTakeHome)}</p>
             </div>
             {pc.savingsPercent > 0 && (
               <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}` }}>
@@ -1357,7 +1361,7 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
               <div key={line.id} className="flex items-center justify-between px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}` }}>
                 <div className="flex items-center gap-2.5 min-w-0">
                   <CatDot cat={line.category} />
-                  <p className="text-sm text-white truncate">{line.label || line.toAccount || line.category}</p>
+                  <p className="text-sm" style={{ color: "var(--text)" }}>{line.label || line.toAccount || line.category}</p>
                   {line.isDetected && <span className="text-xs px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: "rgba(124,92,252,0.1)", color: LIME }}>auto</span>}
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
@@ -1560,7 +1564,7 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
             <div className="rounded-2xl overflow-hidden" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
               {p2pTransfers.slice(0, 10).map((t, i) => (
                 <div key={t.id} className="flex items-center justify-between px-4 py-3" style={{ borderBottom: i < Math.min(p2pTransfers.length, 10) - 1 ? `1px solid ${BORDER}` : undefined }}>
-                  <div><p className="text-sm text-white">{t.direction === "sent" ? "↑" : "↓"} {t.person}</p><p className="text-xs" style={{ color: MUTED }}>{t.platform} · {t.date}{t.note ? ` · ${t.note}` : ""}</p></div>
+                  <div><p className="text-sm" style={{ color: "var(--text)" }}>{t.direction === "sent" ? "↑" : "↓"} {t.person}</p><p className="text-xs" style={{ color: MUTED }}>{t.platform} · {t.date}{t.note ? ` · ${t.note}` : ""}</p></div>
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-semibold" style={{ color: t.direction === "sent" ? RED : LIME }}>{t.direction === "sent" ? "-" : "+"}{fmt$(t.amount)}</p>
                     <button onClick={() => onRemoveP2P(t.id)}><Trash2 size={11} style={{ color: MUTED }} /></button>
@@ -2024,7 +2028,7 @@ function DebtTab({ liabilities, liabilitiesLoading, effectiveTakeHome, freeCash 
   if (!liabilities?.hasData) return (
     <div className="rounded-2xl p-6 text-center" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
       <p className="text-3xl mb-2">💳</p>
-      <p className="text-sm text-white mb-1">No debt accounts detected</p>
+      <p className="text-sm" style={{ color: "var(--text)" }}>No debt accounts detected</p>
       <p className="text-xs" style={{ color: MUTED }}>Plaid pulls in credit cards and loans automatically from your connected accounts.</p>
     </div>
   );
@@ -2058,7 +2062,7 @@ function DebtTab({ liabilities, liabilitiesLoading, effectiveTakeHome, freeCash 
                 <div key={cc.accountId} className="px-4 py-4" style={{ borderBottom: i < liabilities.creditCards.length - 1 ? `1px solid ${BORDER}` : undefined }}>
                   <div className="flex items-start justify-between mb-2">
                     <div>
-                      <p className="text-sm font-semibold text-white flex items-center gap-2">💳 {cc.name}
+                      <p className="text-sm font-semibold text-dark flex items-center gap-2">💳 {cc.name}
                         {cc.isOverdue && <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ background: "rgba(218,102,123,0.15)", color: RED }}>Overdue</span>}
                       </p>
                       <p className="text-xs mt-0.5" style={{ color: MUTED }}>{cc.purchaseApr ? `${cc.purchaseApr}% APR · ` : ""}{cc.nextDueDate ? `Due ${format(parseISO(cc.nextDueDate), "MMM d")}` : ""}</p>
@@ -2095,7 +2099,7 @@ function DebtTab({ liabilities, liabilitiesLoading, effectiveTakeHome, freeCash 
               <div key={loan.accountId} className="px-4 py-4" style={{ borderBottom: i < liabilities.studentLoans.length - 1 ? `1px solid ${BORDER}` : undefined }}>
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-sm font-semibold text-white flex items-center gap-2">🎓 {loan.name}
+                    <p className="text-sm font-semibold text-dark flex items-center gap-2">🎓 {loan.name}
                       {loan.isOverdue && <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ background: "rgba(218,102,123,0.15)", color: RED }}>Overdue</span>}
                     </p>
                     <p className="text-xs mt-0.5" style={{ color: MUTED }}>{loan.interestRate ? `${loan.interestRate}% rate · ` : ""}{loan.nextDueDate ? `Due ${format(parseISO(loan.nextDueDate), "MMM d")}` : ""}{loan.expectedPayoffDate ? ` · Payoff ${format(parseISO(loan.expectedPayoffDate), "MMM yyyy")}` : ""}</p>
@@ -2175,7 +2179,7 @@ function InsightsBanner({ detected, detectedBills, paycheckAmount, onAccept, onD
             <div className="flex items-center gap-2.5 text-left">
               <span className="text-base">{d.emoji}</span>
               <div>
-                <p className="text-sm text-white">{d.label}</p>
+                <p className="text-sm" style={{ color: "var(--text)" }}>{d.label}</p>
                 <p className="text-xs" style={{ color: MUTED }}>
                   avg {fmt$(d.avgCost)} · every ~{Math.round(d.avgFreqDays / 7)} wks · {d.merchants[0]}
                 </p>
@@ -2196,7 +2200,7 @@ function InsightsBanner({ detected, detectedBills, paycheckAmount, onAccept, onD
               className="w-full flex items-center justify-between py-2 px-3 rounded-xl"
               style={{ background: bSel.has(b.name) ? "rgba(124,92,252,0.10)" : "rgba(124,92,252,0.04)", border: `1px solid ${bSel.has(b.name) ? "rgba(124,92,252,0.30)" : BORDER}` }}>
               <div className="text-left">
-                <p className="text-sm text-white">{b.name}</p>
+                <p className="text-sm" style={{ color: "var(--text)" }}>{b.name}</p>
                 <p className="text-xs" style={{ color: MUTED }}>due {b.dayOfMonth}{ordinal(b.dayOfMonth)} · {fmt$(b.amount)}/mo</p>
               </div>
               <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
@@ -2268,7 +2272,7 @@ function SetupFlow({ insights, insightsLoading, onDone }: {
         ) : (
           <>
             <p className="text-xs font-semibold mb-1" style={{ color: LIME, letterSpacing: "0.1em" }}>BUDGET SETUP</p>
-            <h1 className="text-2xl font-bold text-white mb-1">
+            <h1 className="text-2xl font-bold text-dark mb-1">
               {insights?.paycheck ? "Found your paycheck." : "Fresh start."}
             </h1>
             <p className="text-sm mb-8" style={{ color: MUTED }}>
@@ -2287,7 +2291,7 @@ function SetupFlow({ insights, insightsLoading, onDone }: {
               <div>
                 <label className="text-xs mb-1.5 block" style={{ color: MUTED }}>Take-home per check (detected from Plaid)</label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-white">$</span>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-dark">$</span>
                   <input type="number" value={takeHome} onChange={e => setTakeHome(e.target.value)} placeholder="e.g. 1800"
                     className="w-full rounded-2xl pl-8 pr-4 py-3.5 text-sm outline-none"
                     style={{ background: CARD, border: `1px solid ${BORDER}` }} />
@@ -2296,7 +2300,7 @@ function SetupFlow({ insights, insightsLoading, onDone }: {
               <div>
                 <label className="text-xs mb-1.5 block" style={{ color: MUTED }}>Projected take-home per check (your expected amount)</label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-white">$</span>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-dark">$</span>
                   <input type="number" value={projectedAmt} onChange={e => setProjectedAmt(e.target.value)} placeholder="Override if different"
                     className="w-full rounded-2xl pl-8 pr-4 py-3.5 text-sm outline-none"
                     style={{ background: CARD, border: `1px solid ${BORDER}` }} />
@@ -2816,7 +2820,7 @@ function AccountsTab({ accounts, loadingAccts, refreshing, accountTransfers, onR
           {Object.entries(byInst).map(([inst, accts]) => (
             <div key={inst} className="rounded-2xl overflow-hidden" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
               <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}` }}>
-                <p className="text-sm font-semibold text-white">{inst}</p>
+                <p className="text-sm font-semibold text-dark">{inst}</p>
                 <button onClick={() => onDisconnect(accts[0].itemId)} className="p-1.5 rounded-lg" style={{ background: "rgba(218,102,123,0.1)" }}>
                   <Unlink size={12} style={{ color: RED }} />
                 </button>
@@ -2829,7 +2833,7 @@ function AccountsTab({ accounts, loadingAccts, refreshing, accountTransfers, onR
                   <div key={a.accountId} className="flex items-center justify-between px-4 py-3"
                     style={{ borderBottom: i < accts.length - 1 ? `1px solid ${BORDER}` : undefined }}>
                     <div>
-                      <p className="text-sm text-white">{a.name}{a.mask ? ` ···${a.mask}` : ""}</p>
+                      <p className="text-sm" style={{ color: "var(--text)" }}>{a.name}{a.mask ? ` ···${a.mask}` : ""}</p>
                       <p className="text-xs capitalize" style={{ color: MUTED }}>{a.subtype ?? a.type}</p>
                     </div>
                     <p className="text-sm font-semibold" style={{ color: a.type === "credit" ? RED : LIME }}>
@@ -2900,7 +2904,7 @@ function AccountsTab({ accounts, loadingAccts, refreshing, accountTransfers, onR
               <div key={t.id} className="flex items-center justify-between px-4 py-3"
                 style={{ borderBottom: i < Math.min(accountTransfers.length, 15) - 1 ? `1px solid ${BORDER}` : undefined }}>
                 <div>
-                  <p className="text-sm text-white">{t.fromAccount} → {t.toAccount}</p>
+                  <p className="text-sm" style={{ color: "var(--text)" }}>{t.fromAccount} → {t.toAccount}</p>
                   <p className="text-xs" style={{ color: MUTED }}>{t.date}{t.purpose ? ` · ${t.purpose}` : ""}</p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -3025,7 +3029,7 @@ function CreditTab({ liabilities, liabilitiesLoading, creditScores, effectiveTak
         ) : (
           <div className="text-center py-4">
             <p className="text-4xl mb-2">📊</p>
-            <p className="text-sm text-white mb-1">No score logged yet</p>
+            <p className="text-sm" style={{ color: "var(--text)" }}>No score logged yet</p>
             <p className="text-xs" style={{ color: MUTED }}>Check yours on Credit Karma, Chase, or your bank app — it&apos;s free.</p>
           </div>
         )}

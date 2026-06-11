@@ -237,3 +237,5 @@ input::placeholder, textarea::placeholder {
   pointer-events: none;
   z-index: 9999;
 }
+
+.text-dark { color: var(--text); }
