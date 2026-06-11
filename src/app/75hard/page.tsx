@@ -6,7 +6,7 @@ import { SeventyFiveHardDayLog } from "@/types/dashboard";
 import { useState } from "react";
 import { Flame, Footprints, Droplets, Brain, Camera, Shield, Salad, Check, X, Trophy, Zap, Star } from "lucide-react";
 
-const START_DATE = "2026-06-12"; // Thursday
+const START_DATE = "2026-06-14"; // Saturday
 
 const RULES = [
   { key: "workout",         icon: Flame,      label: "Workout",          sub: "45+ min intentional movement",  color: "#E879F9" },
@@ -14,7 +14,7 @@ const RULES = [
   { key: "water",           icon: Droplets,   label: "64oz Water",       sub: "Track & drink all day",          color: "#38BDF8" },
   { key: "mcat",            icon: Brain,      label: "90 Min MCAT",      sub: "Logged study session",           color: "#A78BFA" },
   { key: "progressPhoto",   icon: Camera,     label: "Progress Photo",   sub: "Daily — no skipping",            color: "#F472B6" },
-  { key: "diet",            icon: Salad,      label: "Clean Eating",     sub: "No fast food, takeout or Uber Eats", color: "#10B981" },
+  { key: "diet",            icon: Salad,      label: "Clean Eating",     sub: "Log 1 meal + no fast food/takeout/Uber Eats", color: "#10B981" },
   { key: "exposureTherapy", icon: Shield,     label: "Exposure Therapy", sub: "Log something — won't reset",   color: "#F59E0B" },
 ];
 

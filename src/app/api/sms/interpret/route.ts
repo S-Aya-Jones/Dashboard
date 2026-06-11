@@ -35,7 +35,17 @@ Return ONLY valid JSON with these optional fields (only include fields you can e
     "notes": "<sleep notes>"
   },
   "note": "<any general note or update worth saving>",
-  "mood": "<one word: great/good/okay/tired/stressed>"
+  "mood": "<one word: great/good/okay/tired/stressed>",
+  "meal": "<description of food eaten, null if not a meal log>",
+  "75hard": {
+    "workout": <true if she completed a workout today, null if not mentioned>,
+    "steps": <true if she hit 10k steps, null if not mentioned>,
+    "water": <true if she drank 64oz water, null if not mentioned>,
+    "mcat": <true if she studied MCAT 90+ min, null if not mentioned>,
+    "progressPhoto": <true if she took a progress photo, null if not mentioned>,
+    "diet": <true if she's logging a clean meal (auto-true when meal is logged), null if not mentioned>,
+    "exposureTherapy": <true if she did exposure therapy today, null if not mentioned>
+  }
 }`;
 
   let parsed: Record<string, unknown> = {};
@@ -101,6 +111,26 @@ Return ONLY valid JSON with these optional fields (only include fields you can e
       };
       const existing = data.sleepLogs ?? [];
       data.sleepLogs = [...existing.filter((s) => s.date !== today), sleepLog];
+    }
+
+    // 75 Hard — update today's log from parsed data
+    const hard75 = parsed["75hard"] as Record<string, unknown> | undefined;
+    const mealLogged = typeof parsed.meal === "string" && parsed.meal.length > 0;
+    if (hard75 || mealLogged) {
+      const h = data.seventyFiveHard ?? { startDate: "2026-06-14", currentDay: 1, active: true, logs: [] };
+      const existingLog = h.logs.find((l: { date: string }) => l.date === today) ?? {
+        date: today, workout: false, steps: false, water: false,
+        mcat: false, progressPhoto: false, exposureTherapy: false, diet: false,
+      };
+      const updated = { ...existingLog };
+      if (hard75) {
+        for (const key of ["workout", "steps", "water", "mcat", "progressPhoto", "diet", "exposureTherapy"]) {
+          if (hard75[key] === true) (updated as Record<string, unknown>)[key] = true;
+        }
+      }
+      if (mealLogged) updated.diet = true; // logging a meal auto-checks diet
+      h.logs = [...h.logs.filter((l: { date: string }) => l.date !== today), updated];
+      data.seventyFiveHard = h;
     }
 
     // Mood
