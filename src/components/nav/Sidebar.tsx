@@ -6,12 +6,13 @@ import {
   Sun, Calendar, Brain, BookOpen,
   Sparkles, DollarSign,
   ChevronLeft, ChevronRight, Dumbbell, Gem, UtensilsCrossed,
-  MessageSquare, LayoutGrid, MoreHorizontal, X, Smartphone
+  MessageSquare, LayoutGrid, MoreHorizontal, X, Smartphone, Zap
 } from "lucide-react";
 import { useState } from "react";
 import { SaveIndicator } from "@/components/ui/SaveIndicator";
 
 const navItems = [
+  { href: "/75hard",       label: "75 Hard",          icon: Zap },
   { href: "/",             label: "Today",            icon: Sun },
   { href: "/week",         label: "This Week",        icon: Calendar },
   { href: "/exposure",     label: "Exposure Therapy", icon: Brain },
@@ -27,9 +28,9 @@ const navItems = [
 ];
 
 const mobileMain = [
+  { href: "/75hard",       label: "75 Hard",      icon: Zap },
   { href: "/",             label: "Today",        icon: Sun },
   { href: "/finances",     label: "Finances",     icon: DollarSign },
-  { href: "/integrations", label: "Gmail",        icon: LayoutGrid },
   { href: "/mcat",         label: "Med",          icon: BookOpen },
   { href: "/fitness",      label: "Fitness",      icon: Dumbbell },
 ];
@@ -81,14 +82,15 @@ export function Sidebar({ saving = false }: SidebarProps) {
         <nav className="flex-1 overflow-y-auto px-2 pb-4 space-y-0.5">
           {navItems.map(({ href, label, icon: Icon }) => {
             const active = isActive(pathname, href);
+            const is75 = href === "/75hard";
             return (
               <Link key={href} href={href}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-150 ${collapsed ? "justify-center" : ""}`}
                 style={active
-                  ? { background: "linear-gradient(135deg, rgba(124,92,252,0.15) 0%, rgba(232,121,249,0.12) 100%)", color: "var(--purple)", fontWeight: 600, boxShadow: "inset 2px 0 0 var(--purple)" }
-                  : { color: "var(--text-muted)" }}
-                onMouseEnter={e => { if (!active) { (e.currentTarget as HTMLElement).style.background = "var(--bg)"; (e.currentTarget as HTMLElement).style.color = "var(--purple)"; } }}
-                onMouseLeave={e => { if (!active) { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "var(--text-muted)"; } }}
+                  ? { background: is75 ? "linear-gradient(135deg, rgba(232,121,249,0.2) 0%, rgba(124,92,252,0.15) 100%)" : "linear-gradient(135deg, rgba(124,92,252,0.15) 0%, rgba(232,121,249,0.12) 100%)", color: is75 ? "#E879F9" : "var(--purple)", fontWeight: 600, boxShadow: `inset 2px 0 0 ${is75 ? "#E879F9" : "var(--purple)"}` }
+                  : { color: is75 ? "#E879F9" : "var(--text-muted)" }}
+                onMouseEnter={e => { if (!active) { (e.currentTarget as HTMLElement).style.background = "var(--bg)"; (e.currentTarget as HTMLElement).style.color = is75 ? "#E879F9" : "var(--purple)"; } }}
+                onMouseLeave={e => { if (!active) { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = is75 ? "#E879F9" : "var(--text-muted)"; } }}
                 title={collapsed ? label : undefined}>
                 <Icon size={17} className="flex-shrink-0" />
                 {!collapsed && <span className="font-medium truncate">{label}</span>}
@@ -109,10 +111,11 @@ export function Sidebar({ saving = false }: SidebarProps) {
         style={{ background: "var(--surface)", borderTop: "1.5px solid var(--border)", boxShadow: "0 -4px 24px rgba(124,92,252,0.1)" }}>
         {mobileMain.map(({ href, label, icon: Icon }) => {
           const active = isActive(pathname, href);
+          const is75 = href === "/75hard";
           return (
             <Link key={href} href={href}
               className="flex-1 flex flex-col items-center justify-center py-2 gap-0.5 transition-colors"
-              style={{ color: active ? "var(--purple)" : "var(--text-muted)" }}>
+              style={{ color: active ? (is75 ? "#E879F9" : "var(--purple)") : "var(--text-muted)" }}>
               <Icon size={20} />
               <span className="text-[10px] font-medium">{label}</span>
             </Link>
@@ -138,12 +141,13 @@ export function Sidebar({ saving = false }: SidebarProps) {
             <div className="grid grid-cols-3 gap-3">
               {navItems.map(({ href, label, icon: Icon }) => {
                 const active = isActive(pathname, href);
+                const is75 = href === "/75hard";
                 return (
                   <Link key={href} href={href} onClick={() => setMoreOpen(false)}
                     className="flex flex-col items-center gap-1.5 py-3 px-2 rounded-2xl transition-colors"
                     style={active
-                      ? { background: "linear-gradient(135deg, rgba(124,92,252,0.15), rgba(232,121,249,0.12))", color: "var(--purple)" }
-                      : { background: "var(--bg)", color: "var(--text-muted)" }}>
+                      ? { background: "linear-gradient(135deg, rgba(124,92,252,0.15), rgba(232,121,249,0.12))", color: is75 ? "#E879F9" : "var(--purple)" }
+                      : { background: "var(--bg)", color: is75 ? "#E879F9" : "var(--text-muted)" }}>
                     <Icon size={22} />
                     <span className="text-xs font-medium text-center leading-tight">{label}</span>
                   </Link>

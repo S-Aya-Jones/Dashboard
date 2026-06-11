@@ -667,6 +667,30 @@ export interface DashboardData {
 
   // SMS / Texting
   sms?: SmsData;
+
+  // 75 Hard
+  seventyFiveHard?: SeventyFiveHardData;
+}
+
+export interface SeventyFiveHardDayLog {
+  date: string; // YYYY-MM-DD
+  workout: boolean;
+  steps: boolean;
+  water: boolean; // 64oz
+  mcat: boolean;  // 90 min
+  progressPhoto: boolean;
+  exposureTherapy: boolean;
+  diet: boolean;
+  notes?: string;
+  failed?: boolean; // if true, this day caused a reset
+}
+
+export interface SeventyFiveHardData {
+  startDate: string; // YYYY-MM-DD (Thursday)
+  currentDay: number; // 1-75
+  active: boolean;
+  completedAt?: string;
+  logs: SeventyFiveHardDayLog[];
 }
 
 // ── Workout ────────────────────────────────────────────────────────────────
