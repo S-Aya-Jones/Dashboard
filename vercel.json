@@ -1,4 +1,10 @@
 {
+  "crons": [
+    {
+      "path": "/api/cron/morning-briefing",
+      "schedule": "0 13 * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/sms-opt-in",
