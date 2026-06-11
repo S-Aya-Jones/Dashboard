@@ -19,6 +19,8 @@ const SUBJECTS = [
 interface Props {
   data: DashboardData;
   update: (fn: (d: DashboardData) => DashboardData) => void;
+  autoStart?: boolean;
+  autoSubject?: string;
 }
 
 function formatElapsed(secs: number): string {
@@ -72,14 +74,15 @@ function bestDay(logs: StudyTimerLog[]): { date: string; secs: number } | null {
   return { date: best[0], secs: best[1] };
 }
 
-export function StudyTimerView({ data, update }: Props) {
-  const [activeSubject, setActiveSubject] = useState<string | null>(null);
+export function StudyTimerView({ data, update, autoStart, autoSubject }: Props) {
+  const [activeSubject, setActiveSubject] = useState<string | null>(autoSubject ?? null);
   const [running, setRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [sessionStart, setSessionStart] = useState<number | null>(null);
   const [showAllTime, setShowAllTime] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const autoStartedRef = useRef(false);
 
   // Accurate timer using Date.now() deltas
   useEffect(() => {
@@ -97,6 +100,19 @@ export function StudyTimerView({ data, update }: Props) {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, [running, startTime]);
+
+  // Auto-start when launched from overlay
+  useEffect(() => {
+    if (autoStart && autoSubject && !autoStartedRef.current) {
+      autoStartedRef.current = true;
+      const subject = autoSubject === "All" ? "Behavioral Sciences" : autoSubject;
+      setActiveSubject(subject);
+      const now = Date.now();
+      setStartTime(now);
+      setSessionStart(now);
+      setRunning(true);
+    }
+  }, [autoStart, autoSubject]);
 
   function handleStart() {
     if (!activeSubject) return;
