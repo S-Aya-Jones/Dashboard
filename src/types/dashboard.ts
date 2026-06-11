@@ -345,6 +345,9 @@ export interface MealEntry {
   tags: string[];
   notes?: string;
   createdAt: string;
+  calories?: number;
+  protein?: number; // grams
+  aiDescription?: string;
 }
 
 export interface RecipeIngredient {

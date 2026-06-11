@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Flame, Footprints, Droplets, Brain, Camera, Shield, Salad, Check, X, Trophy, Zap, Star } from "lucide-react";
 import { PhotoUpload } from "@/components/seventyfivehard/PhotoUpload";
 import { PhotoGallery } from "@/components/seventyfivehard/PhotoGallery";
+import { FoodLogger } from "@/components/seventyfivehard/FoodLogger";
 
 const START_DATE = "2026-06-14"; // Saturday
 
@@ -309,6 +310,7 @@ export default function SeventyFivePage() {
               </h2>
               <PhotoUpload type="progress" onSuccess={() => update(prev => ({ ...prev, seventyFiveHard: { ...hardData, logs: [...hardData.logs.filter(l => l.date !== today), { ...todayLog, progressPhoto: true }] } }))} />
               <PhotoUpload type="weight" onSuccess={(_, weight) => { if (weight) update(prev => ({ ...prev, workout: { ...prev.workout!, bodyWeight: [...(prev.workout?.bodyWeight ?? []).filter(b => b.date !== today), { date: today, weight }] } })); }} />
+              <FoodLogger date={today} onMealAdded={() => update(prev => ({ ...prev, seventyFiveHard: { ...hardData, logs: [...hardData.logs.filter(l => l.date !== today), { ...todayLog, diet: true }] } }))} />
             </div>
           )}
 
