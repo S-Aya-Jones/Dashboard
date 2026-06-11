@@ -182,7 +182,9 @@ Return ONLY valid JSON with these optional fields (only include fields you can e
       const nodemailer = await import("nodemailer");
       const digits = phone.replace(/\D/g, "").replace(/^1/, "");
       const transporter = nodemailer.default.createTransport({ service: "gmail", auth: { user, pass } });
-      await transporter.sendMail({ from: user, to: `${digits}@tmomail.net`, subject: " ", text: reply });
+      // eslint-disable-next-line no-control-regex
+      const cleanReply = reply.replace(/[^\x00-\x7F]/g, "").replace(/\s{2,}/g, " ").trim();
+      await transporter.sendMail({ from: user, to: `${digits}@tmomail.net`, subject: " ", text: cleanReply });
     }
   } catch { /* non-fatal */ }
 

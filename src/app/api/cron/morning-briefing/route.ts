@@ -273,8 +273,8 @@ export async function GET(req: NextRequest) {
 Your job: write a concise, warm, intelligent morning briefing that feels like it came from someone who KNOWS her life — not a generic bot.
 
 Format rules:
-- Start with "Good morning Aya ☀️ Day [X] of 75 Hard"
-- Use plain text (no markdown, no asterisks, no bullet symbols — this is an SMS)
+- Start with "Good morning Aya - Day [X] of 75 Hard"
+- Use plain text only — NO emojis, no markdown, no asterisks, no bullet symbols — this is a plain SMS
 - Use line breaks to separate sections
 - Be specific — use actual numbers, actual names, actual dates
 - If something needs her attention, say so directly
@@ -291,7 +291,10 @@ Tone: warm, direct, like a brilliant friend who has full context on her life. No
       messages: [{ role: "user", content: JSON.stringify(context) }],
     });
 
-    const briefing = msg.content[0].type === "text" ? msg.content[0].text : "Good morning Aya! Your morning briefing had a hiccup — check your dashboard.";
+    const rawBriefing = msg.content[0].type === "text" ? msg.content[0].text : "Good morning Aya! Your morning briefing had a hiccup — check your dashboard.";
+    // Strip emojis/symbols so SMS gateway renders cleanly
+    // eslint-disable-next-line no-control-regex
+    const briefing = rawBriefing.replace(/[^\x00-\x7F]/g, "").replace(/\s{2,}/g, " ").trim();
 
     // Send via T-Mobile gateway
     const gmailUser = process.env.GMAIL_USER;

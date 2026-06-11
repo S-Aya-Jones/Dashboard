@@ -9,29 +9,29 @@ function parseIntent(raw: string): { reply: string; action: string; weightUpdate
   const body = raw.toLowerCase().replace(/[!?.]+$/, "").trim();
 
   if (["done", "workout done", "finished", "complete", "completed"].includes(body)) {
-    return { reply: "Workout logged! You showed up and that's the whole game. 🔥", action: "Workout marked complete" };
+    return { reply: "Workout logged! You showed up and that's the whole game.", action: "Workout marked complete" };
   }
   if (["skip", "rest", "rest day"].includes(body)) {
-    return { reply: "Rest day noted. Recovery is part of the program. 💤", action: "Rest day logged" };
+    return { reply: "Rest day noted. Recovery is part of the program.", action: "Rest day logged" };
   }
   if (/(\d+\.?\d*)\s*lbs?$/.test(body) || /^weight\s+(\d+\.?\d*)/.test(body) || /^(\d+\.?\d*)\s*pounds?/.test(body)) {
     const match = body.match(/(\d+\.?\d*)/);
     if (match) {
       const w = parseFloat(match[1]);
-      return { reply: `Weight logged: ${w} lbs 📊`, action: `Body weight logged: ${w} lbs`, weightUpdate: w };
+      return { reply: `Weight logged: ${w} lbs`, action: `Body weight logged: ${w} lbs`, weightUpdate: w };
     }
   }
   if (/(\d{3,6})\s*steps?/.test(body) || /^steps?\s+(\d{3,6})/.test(body)) {
     const match = body.match(/(\d{3,6})/);
     if (match) {
       const steps = parseInt(match[1]);
-      return { reply: `${steps.toLocaleString()} steps logged! 🏃`, action: `Steps logged: ${steps}`, stepsUpdate: steps };
+      return { reply: `${steps.toLocaleString()} steps logged`, action: `Steps logged: ${steps}`, stepsUpdate: steps };
     }
   }
   if (["help", "commands", "?"].includes(body)) {
-    return { reply: "📋 DONE • SKIP • 130lbs • 8500 steps • HELP", action: "Help requested" };
+    return { reply: "DONE - SKIP - 130lbs - 8500 steps - HELP", action: "Help requested" };
   }
-  return { reply: "Got it! 👋 Reply HELP to see what I can track.", action: "" };
+  return { reply: "Got it. Reply HELP to see what I can track.", action: "" };
 }
 
 export async function GET() {

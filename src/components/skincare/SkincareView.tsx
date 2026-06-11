@@ -624,6 +624,214 @@ function AnalysisHistory({ entries, onSelect }: { entries: BeautyAnalysisEntry[]
   );
 }
 
+interface InspoResult {
+  inspirationDescription?: string;
+  similarities?: string[];
+  gapAreas?: { area: string; current: string; goal: string; actionable: string }[];
+  matchScore?: number;
+  achievability?: string;
+  roadmap?: string;
+  quickWins?: string[];
+  keyFeatures?: string[];
+  skinNotes?: string;
+  hairNotes?: string;
+}
+
+function InspirationSection({ selfieBase64, selfieMime }: { selfieBase64: string | null; selfieMime: string }) {
+  const [inspoPhoto, setInspoPhoto] = useState<string | null>(null);
+  const [inspoBase64, setInspoBase64] = useState<string | null>(null);
+  const [inspoMime, setInspoMime] = useState("image/jpeg");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<InspoResult | null>(null);
+  const [error, setError] = useState("");
+  const [open, setOpen] = useState(true);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      setInspoPhoto(dataUrl);
+      setInspoBase64(dataUrl.split(",")[1]);
+      setInspoMime(file.type || "image/jpeg");
+      setResult(null);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const analyze = async () => {
+    if (!inspoBase64) return;
+    setLoading(true); setError("");
+    try {
+      const res = await fetch("/api/skincare/inspiration", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          inspirationBase64: inspoBase64, inspirationMime: inspoMime,
+          selfieBase64: selfieBase64 ?? undefined, selfieMime,
+        }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setResult(data);
+    } catch (e) { setError(String(e)); }
+    finally { setLoading(false); }
+  };
+
+  const scoreColor = (s: number) => s >= 70 ? "#10B981" : s >= 50 ? "#F59E0B" : "#EF4444";
+
+  return (
+    <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.15)" }}>
+      <button onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between px-4 py-3.5"
+        style={{ borderBottom: open ? "1px solid rgba(124,92,252,0.1)" : "none" }}>
+        <div className="text-left">
+          <p className="text-xs font-semibold" style={{ color: "var(--text-muted)", letterSpacing: "0.08em" }}>INSPIRATION MATCH</p>
+          <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
+            {result ? `${result.matchScore ?? "?"}% match · ${result.achievability ?? ""} achievability` : "Upload a look you want to achieve"}
+          </p>
+        </div>
+        <span style={{ color: "var(--text-muted)", fontSize: 14 }}>{open ? "▲" : "▼"}</span>
+      </button>
+
+      {open && (
+        <div className="p-4 space-y-4">
+          {/* Upload row */}
+          <div className="flex gap-3 items-start">
+            {/* Inspiration photo */}
+            <div className="flex-1">
+              <p className="text-xs font-medium mb-2" style={{ color: "var(--text-muted)" }}>Inspiration photo</p>
+              {inspoPhoto ? (
+                <div className="relative">
+                  <img src={inspoPhoto} alt="Inspiration" className="w-full h-32 object-cover rounded-2xl" />
+                  <button onClick={() => { setInspoPhoto(null); setInspoBase64(null); setResult(null); }}
+                    className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-xs"
+                    style={{ background: "rgba(0,0,0,0.5)", color: "#fff" }}>×</button>
+                </div>
+              ) : (
+                <button onClick={() => fileRef.current?.click()}
+                  className="w-full h-32 rounded-2xl flex flex-col items-center justify-center gap-2"
+                  style={{ background: "rgba(124,92,252,0.06)", border: "1.5px dashed rgba(124,92,252,0.25)" }}>
+                  <Camera size={20} style={{ color: "#9B7FFF" }} />
+                  <span className="text-xs" style={{ color: "var(--text-muted)" }}>Upload inspo photo</span>
+                </button>
+              )}
+            </div>
+
+            {/* Your selfie preview */}
+            {selfieBase64 && (
+              <div className="flex-1">
+                <p className="text-xs font-medium mb-2" style={{ color: "var(--text-muted)" }}>Your selfie</p>
+                <img src={`data:${selfieMime};base64,${selfieBase64}`} alt="Your selfie"
+                  className="w-full h-32 object-cover rounded-2xl" style={{ opacity: 0.85 }} />
+              </div>
+            )}
+          </div>
+
+          {!selfieBase64 && !inspoPhoto && (
+            <p className="text-xs text-center py-1" style={{ color: "var(--text-muted)" }}>
+              Upload your selfie above (AI Beauty Analysis) for a personalized comparison
+            </p>
+          )}
+
+          {inspoBase64 && !result && (
+            <button onClick={analyze} disabled={loading}
+              className="w-full py-2.5 rounded-2xl text-sm font-semibold disabled:opacity-50"
+              style={{ background: "linear-gradient(135deg, #7C5CFC, #E879F9)", color: "#fff" }}>
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" />
+                  Analyzing…
+                </span>
+              ) : selfieBase64 ? "Compare to my selfie" : "Analyze this look"}
+            </button>
+          )}
+
+          {error && <p className="text-xs text-center" style={{ color: "#EF4444" }}>{error}</p>}
+
+          {result && (
+            <div className="space-y-4">
+              {/* Match score */}
+              {result.matchScore !== undefined && (
+                <div className="rounded-2xl p-4" style={{ background: "rgba(124,92,252,0.06)", border: "1px solid rgba(124,92,252,0.12)" }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>Current match</p>
+                    <span className="text-2xl font-bold" style={{ color: scoreColor(result.matchScore) }}>{result.matchScore}%</span>
+                  </div>
+                  <div className="h-2 rounded-full" style={{ background: "rgba(124,92,252,0.1)" }}>
+                    <div className="h-2 rounded-full transition-all" style={{ width: `${result.matchScore}%`, background: scoreColor(result.matchScore) }} />
+                  </div>
+                  <p className="text-xs mt-2" style={{ color: "var(--text-muted)" }}>
+                    Achievability: <span style={{ color: result.achievability === "high" ? "#10B981" : result.achievability === "medium" ? "#F59E0B" : "#EF4444", fontWeight: 600 }}>{result.achievability}</span>
+                  </p>
+                </div>
+              )}
+
+              {/* Inspiration description */}
+              {result.inspirationDescription && (
+                <div>
+                  <p className="text-xs font-semibold mb-1.5" style={{ color: "var(--text-muted)", letterSpacing: "0.06em" }}>THEIR LOOK</p>
+                  <p className="text-sm" style={{ color: "var(--text)" }}>{result.inspirationDescription}</p>
+                </div>
+              )}
+
+              {/* Gap areas */}
+              {result.gapAreas && result.gapAreas.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold mb-2" style={{ color: "var(--text-muted)", letterSpacing: "0.06em" }}>GAP ANALYSIS</p>
+                  <div className="space-y-2">
+                    {result.gapAreas.map((gap, i) => (
+                      <div key={i} className="rounded-xl p-3" style={{ background: "rgba(124,92,252,0.05)", border: "1px solid rgba(124,92,252,0.1)" }}>
+                        <p className="text-xs font-semibold mb-1" style={{ color: "#9B7FFF" }}>{gap.area}</p>
+                        <p className="text-xs mb-0.5" style={{ color: "var(--text-muted)" }}>You now: {gap.current}</p>
+                        <p className="text-xs mb-1" style={{ color: "var(--text-muted)" }}>Goal: {gap.goal}</p>
+                        <p className="text-xs font-medium" style={{ color: "var(--text)" }}>→ {gap.actionable}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Quick wins */}
+              {result.quickWins && result.quickWins.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold mb-2" style={{ color: "var(--text-muted)", letterSpacing: "0.06em" }}>QUICK WINS</p>
+                  <div className="space-y-1.5">
+                    {result.quickWins.map((win, i) => (
+                      <div key={i} className="flex gap-2 items-start">
+                        <span className="text-xs mt-0.5 font-bold" style={{ color: "#9B7FFF", flexShrink: 0 }}>{i + 1}.</span>
+                        <p className="text-sm" style={{ color: "var(--text)" }}>{win}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Roadmap */}
+              {result.roadmap && (
+                <div>
+                  <p className="text-xs font-semibold mb-1.5" style={{ color: "var(--text-muted)", letterSpacing: "0.06em" }}>ROADMAP</p>
+                  <p className="text-sm" style={{ color: "var(--text)" }}>{result.roadmap}</p>
+                </div>
+              )}
+
+              <button onClick={() => { setResult(null); setInspoPhoto(null); setInspoBase64(null); }}
+                className="w-full py-2 rounded-xl text-xs font-medium"
+                style={{ background: "rgba(124,92,252,0.07)", color: "var(--text-muted)" }}>
+                Try a different photo
+              </button>
+            </div>
+          )}
+
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function SkincareView({ data, update }: Props) {
   const [productOpen, setProductOpen] = useState(false);
   const [checkInOpen, setCheckInOpen] = useState(false);
@@ -634,6 +842,8 @@ export function SkincareView({ data, update }: Props) {
   const [analyzing, setAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [analyzeError, setAnalyzeError] = useState("");
+  const [selfieBase64ForInspo, setSelfieBase64ForInspo] = useState<string | null>(null);
+  const [selfieMimeForInspo, setSelfieMimeForInspo] = useState<string>("image/jpeg");
   const fileRef = useRef<HTMLInputElement>(null);
 
   const today = todayStr();
@@ -669,6 +879,8 @@ export function SkincareView({ data, update }: Props) {
       const result = ev.target?.result as string;
       const base64 = result.split(",")[1];
       setPhoto(result);
+      setSelfieBase64ForInspo(base64);
+      setSelfieMimeForInspo(file.type || "image/jpeg");
       runAnalysis(result, base64, file.type || "image/jpeg");
     };
     reader.readAsDataURL(file);
@@ -817,6 +1029,9 @@ export function SkincareView({ data, update }: Props) {
           <input ref={fileRef} type="file" accept="image/*" capture="user" className="hidden" onChange={handlePhotoSelect} />
         </div>
       )}
+
+      {/* Inspiration Comparison */}
+      <InspirationSection selfieBase64={selfieBase64ForInspo} selfieMime={selfieMimeForInspo} />
 
       {/* Analysis History */}
       {savedAnalyses.length > 0 && (
