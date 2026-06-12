@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { format, parseISO } from "date-fns";
-import { Plus, Trash2, Sparkles } from "lucide-react";
-import { DashboardData, SkincareProduct } from "@/types/dashboard";
+import { Plus, Trash2, Sparkles, Camera, ChevronDown, ChevronUp, RefreshCw, Send, ChevronRight } from "lucide-react";
+import { DashboardData, SkincareProduct, BeautyAnalysisEntry } from "@/types/dashboard";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
@@ -14,16 +14,843 @@ interface Props {
   update: (fn: (d: DashboardData) => DashboardData) => void;
 }
 
+interface SurgicalProcedure {
+  name: string;
+  impact: string;
+  cost: string;
+  timing: string;
+}
+
+interface Analysis {
+  skinScore: number;
+  overallRating: number;
+  apparentAge: { estimated: number; note: string };
+  skinAssessment: {
+    summary: string;
+    texture: string;
+    hydration: string;
+    concerns: string[];
+    strengths: string[];
+  };
+  featureAnalysis: {
+    summary: string;
+    faceShape: string;
+    harmony: string;
+    standouts: string[];
+    areas: string[];
+  };
+  hairstyleAnalysis: {
+    currentStyle: string;
+    suitsFaceShape: boolean;
+    suitabilityNote: string;
+    recommendedStyles: { name: string; why: string }[];
+    colorRecommendations: string[];
+    stylingTips: string[];
+    avoid: string[];
+  };
+  protocol: {
+    immediate: string[];
+    routineAdjustments: string[];
+    lifestyle: string[];
+    treatments: string[];
+  };
+  surgicalConsiderations?: {
+    highYield: SurgicalProcedure[];
+    longTerm: SurgicalProcedure[];
+    notRecommended: string[];
+  };
+  roadmap: {
+    honestAssessment: string;
+    currentRating: number;
+    potentialRating: number;
+    absoluteCeiling?: number;
+    thirtyDay: { focus: string; expectedChange: string; actions: string[] };
+    ninetyDay: { focus: string; expectedChange: string; actions: string[] };
+    sixMonth: { focus: string; expectedChange: string; actions: string[] };
+  };
+}
+
+const GOLD = "#E8C547";
+const GOLD_BG = "rgba(232,197,71,0.06)";
+const GOLD_BG_LIGHT = "rgba(232,197,71,0.04)";
+const GOLD_BORDER = "rgba(232,197,71,0.15)";
+const GOLD_PILL_BG = "rgba(232,197,71,0.1)";
+
+async function createThumb(dataUrl: string, size = 80): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { resolve(dataUrl); return; }
+      const min = Math.min(img.width, img.height);
+      const sx = (img.width - min) / 2;
+      const sy = (img.height - min) / 2;
+      ctx.drawImage(img, sx, sy, min, min, 0, 0, size, size);
+      resolve(canvas.toDataURL("image/jpeg", 0.7));
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
+
+function Section({ title, icon, children, defaultOpen = false }: { title: string; icon: string; children: React.ReactNode; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="border-b border-[rgba(124,92,252,0.1)] last:border-0">
+      <button onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-4 py-3.5 text-left">
+        <div className="flex items-center gap-2.5">
+          <span className="text-base">{icon}</span>
+          <span className="text-sm font-semibold" style={{ color: "var(--text)" }}>{title}</span>
+        </div>
+        {open ? <ChevronUp size={16} style={{ color: "var(--text-muted)" }} /> : <ChevronDown size={16} style={{ color: "var(--text-muted)" }} />}
+      </button>
+      {open && <div className="px-4 pb-4 space-y-3">{children}</div>}
+    </div>
+  );
+}
+
+function Pill({ text, variant }: { text: string; variant: "concern" | "strength" | "action" }) {
+  const styles = {
+    concern: { background: "rgba(218,102,123,0.1)", color: "#DA667B" },
+    strength: { background: GOLD_PILL_BG, color: GOLD },
+    action: { background: "rgba(124,92,252,0.1)", color: "#9B7FFF" },
+  };
+  return (
+    <span className="inline-block px-2.5 py-1 rounded-full text-xs font-medium mr-1.5 mb-1.5" style={styles[variant]}>
+      {text}
+    </span>
+  );
+}
+
+function RatingBar({ label, value, max = 10, color }: { label: string; value: number; max?: number; color: string }) {
+  const pct = Math.min(100, (value / max) * 100);
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-1">
+        <p className="text-xs" style={{ color: "var(--text-muted)" }}>{label}</p>
+        <p className="text-xs font-bold" style={{ color }}>{value}{max === 10 ? "/10" : ""}</p>
+      </div>
+      <div className="h-1.5 rounded-full" style={{ background: "rgba(124,92,252,0.1)" }}>
+        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: color }} />
+      </div>
+    </div>
+  );
+}
+
+function AnalysisCard({ analysis, photo, onReset }: { analysis: Analysis; photo: string; onReset: () => void }) {
+  const [qaInput, setQaInput] = useState("");
+  const [qaLoading, setQaLoading] = useState(false);
+  const [qaHistory, setQaHistory] = useState<{ question: string; answer: string }[]>([]);
+
+  const ratingColor = analysis.overallRating >= 8 ? GOLD : analysis.overallRating >= 6 ? "#9B7FFF" : "#E8A87C";
+
+  const askQuestion = async () => {
+    if (!qaInput.trim() || qaLoading) return;
+    const question = qaInput.trim();
+    setQaInput("");
+    setQaLoading(true);
+    try {
+      const res = await fetch("/api/skincare/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question, analysis }),
+      });
+      const json = await res.json();
+      setQaHistory(h => [...h, { question, answer: json.answer || json.error || "No response" }]);
+    } catch {
+      setQaHistory(h => [...h, { question, answer: "Failed to get answer — try again" }]);
+    } finally {
+      setQaLoading(false);
+    }
+  };
+
+  const hasSurgical = analysis.surgicalConsiderations && (
+    (analysis.surgicalConsiderations.highYield?.length ?? 0) > 0 ||
+    (analysis.surgicalConsiderations.longTerm?.length ?? 0) > 0 ||
+    (analysis.surgicalConsiderations.notRecommended?.length ?? 0) > 0
+  );
+
+  return (
+    <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.15)" }}>
+      {/* Header */}
+      <div className="p-4" style={{ borderBottom: "1px solid rgba(124,92,252,0.1)" }}>
+        <div className="flex items-center gap-4 mb-4">
+          <img src={photo} alt="Analysis" className="w-16 h-16 rounded-2xl object-cover flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold mb-1" style={{ color: "var(--text-muted)", letterSpacing: "0.08em" }}>BEAUTY ANALYSIS</p>
+            <p className="text-sm leading-snug" style={{ color: "var(--text)" }}>{analysis.skinAssessment.summary.slice(0, 90)}…</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <div className="rounded-xl p-3 text-center" style={{ background: "rgba(124,92,252,0.06)" }}>
+            <p className="text-xs mb-1" style={{ color: "var(--text-muted)" }}>Skin Score</p>
+            <p className="text-xl font-bold" style={{ color: analysis.skinScore >= 75 ? GOLD : analysis.skinScore >= 50 ? "#E8A87C" : "#DA667B" }}>{analysis.skinScore}</p>
+          </div>
+          <div className="rounded-xl p-3 text-center" style={{ background: "rgba(124,92,252,0.06)" }}>
+            <p className="text-xs mb-1" style={{ color: "var(--text-muted)" }}>Rating</p>
+            <p className="text-xl font-bold" style={{ color: ratingColor }}>{analysis.overallRating}<span className="text-sm font-normal">/10</span></p>
+          </div>
+          <div className="rounded-xl p-3 text-center" style={{ background: "rgba(124,92,252,0.06)" }}>
+            <p className="text-xs mb-1" style={{ color: "var(--text-muted)" }}>Looks</p>
+            <p className="text-xl font-bold" style={{ color: "#9B7FFF" }}>{analysis.apparentAge.estimated}<span className="text-xs font-normal ml-0.5">yrs</span></p>
+          </div>
+        </div>
+        {analysis.apparentAge.note && (
+          <p className="text-xs mt-2 px-1" style={{ color: "var(--text-muted)" }}>{analysis.apparentAge.note}</p>
+        )}
+      </div>
+
+      {/* Score bars */}
+      <div className="px-4 py-3 space-y-2.5" style={{ borderBottom: "1px solid rgba(124,92,252,0.1)" }}>
+        <RatingBar label="Overall Aesthetic" value={analysis.overallRating} color={ratingColor} />
+        <RatingBar label="Skin Health" value={Math.round(analysis.skinScore / 10)} color="#9B7FFF" />
+        <RatingBar label="Facial Harmony" value={analysis.featureAnalysis.standouts.length >= 3 ? 8 : analysis.featureAnalysis.standouts.length >= 2 ? 7 : 6} color="#E8A87C" />
+      </div>
+
+      <Section title="Introduction" icon="✦" defaultOpen>
+        <p className="text-sm leading-relaxed" style={{ color: "var(--text)" }}>{analysis.skinAssessment.summary}</p>
+        <div className="grid grid-cols-2 gap-3 mt-2">
+          <div className="rounded-xl p-3" style={{ background: "rgba(124,92,252,0.05)" }}>
+            <p className="text-xs font-medium mb-1" style={{ color: "var(--text-muted)" }}>Texture</p>
+            <p className="text-xs" style={{ color: "var(--text)" }}>{analysis.skinAssessment.texture}</p>
+          </div>
+          <div className="rounded-xl p-3" style={{ background: "rgba(124,92,252,0.05)" }}>
+            <p className="text-xs font-medium mb-1" style={{ color: "var(--text-muted)" }}>Hydration</p>
+            <p className="text-xs" style={{ color: "var(--text)" }}>{analysis.skinAssessment.hydration}</p>
+          </div>
+        </div>
+      </Section>
+
+      <Section title="Facial Assessments" icon="◈">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-xs px-2.5 py-1 rounded-full font-medium capitalize"
+            style={{ background: "rgba(124,92,252,0.1)", color: "#9B7FFF" }}>
+            {analysis.featureAnalysis.faceShape} face
+          </span>
+        </div>
+        <p className="text-sm leading-relaxed" style={{ color: "var(--text)" }}>{analysis.featureAnalysis.summary}</p>
+        <div className="mt-2 p-3 rounded-xl" style={{ background: "rgba(124,92,252,0.05)" }}>
+          <p className="text-xs font-medium mb-1" style={{ color: "var(--text-muted)" }}>Harmony</p>
+          <p className="text-xs" style={{ color: "var(--text)" }}>{analysis.featureAnalysis.harmony}</p>
+        </div>
+      </Section>
+
+      <Section title="Features Analysis" icon="◇">
+        {analysis.skinAssessment.strengths.length > 0 && (
+          <div>
+            <p className="text-xs font-medium mb-2" style={{ color: "var(--text-muted)" }}>Strengths</p>
+            <div>{analysis.skinAssessment.strengths.map((s, i) => <Pill key={i} text={s} variant="strength" />)}</div>
+          </div>
+        )}
+        {analysis.skinAssessment.concerns.length > 0 && (
+          <div>
+            <p className="text-xs font-medium mb-2" style={{ color: "var(--text-muted)" }}>Skin concerns</p>
+            <div>{analysis.skinAssessment.concerns.map((c, i) => <Pill key={i} text={c} variant="concern" />)}</div>
+          </div>
+        )}
+        {analysis.featureAnalysis.standouts.length > 0 && (
+          <div>
+            <p className="text-xs font-medium mb-2" style={{ color: "var(--text-muted)" }}>Standout features</p>
+            <div>{analysis.featureAnalysis.standouts.map((s, i) => <Pill key={i} text={s} variant="strength" />)}</div>
+          </div>
+        )}
+        {analysis.featureAnalysis.areas.length > 0 && (
+          <div>
+            <p className="text-xs font-medium mb-2" style={{ color: "var(--text-muted)" }}>Enhancement opportunities</p>
+            <div>{analysis.featureAnalysis.areas.map((a, i) => <Pill key={i} text={a} variant="action" />)}</div>
+          </div>
+        )}
+      </Section>
+
+      {analysis.hairstyleAnalysis && (
+        <Section title="Hairstyle Analysis" icon="✂">
+          <div className="p-3 rounded-xl mb-3" style={{ background: "rgba(124,92,252,0.05)" }}>
+            <p className="text-xs font-medium mb-1" style={{ color: "var(--text-muted)" }}>Current style</p>
+            <p className="text-xs" style={{ color: "var(--text)" }}>{analysis.hairstyleAnalysis.currentStyle}</p>
+          </div>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-xs px-2.5 py-1 rounded-full font-medium"
+              style={analysis.hairstyleAnalysis.suitsFaceShape
+                ? { background: GOLD_PILL_BG, color: GOLD }
+                : { background: "rgba(232,168,124,0.1)", color: "#E8A87C" }}>
+              {analysis.hairstyleAnalysis.suitsFaceShape ? "✓ Suits your face shape" : "⚠ Could be optimized"}
+            </span>
+          </div>
+          <p className="text-xs mb-3" style={{ color: "var(--text)" }}>{analysis.hairstyleAnalysis.suitabilityNote}</p>
+          {analysis.hairstyleAnalysis.recommendedStyles.length > 0 && (
+            <div className="mb-3">
+              <p className="text-xs font-semibold mb-2" style={{ color: GOLD }}>Recommended for your face shape</p>
+              <div className="space-y-2">
+                {analysis.hairstyleAnalysis.recommendedStyles.map((s, i) => (
+                  <div key={i} className="p-2.5 rounded-xl" style={{ background: GOLD_BG_LIGHT, border: `1px solid ${GOLD_BORDER}` }}>
+                    <p className="text-xs font-semibold mb-0.5" style={{ color: GOLD }}>{s.name}</p>
+                    <p className="text-xs" style={{ color: "var(--text-muted)" }}>{s.why}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {analysis.hairstyleAnalysis.colorRecommendations.length > 0 && (
+            <div className="mb-3">
+              <p className="text-xs font-semibold mb-2" style={{ color: "#9B7FFF" }}>Color recommendations</p>
+              <ul className="space-y-1">
+                {analysis.hairstyleAnalysis.colorRecommendations.map((c, i) => (
+                  <li key={i} className="flex gap-2 text-xs" style={{ color: "var(--text)" }}>
+                    <span style={{ color: "#9B7FFF" }}>→</span> {c}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {analysis.hairstyleAnalysis.stylingTips.length > 0 && (
+            <div className="mb-3">
+              <p className="text-xs font-semibold mb-2" style={{ color: "#E8A87C" }}>Styling tips</p>
+              <ul className="space-y-1">
+                {analysis.hairstyleAnalysis.stylingTips.map((t, i) => (
+                  <li key={i} className="flex gap-2 text-xs" style={{ color: "var(--text)" }}>
+                    <span style={{ color: "#E8A87C" }}>→</span> {t}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {analysis.hairstyleAnalysis.avoid.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold mb-2" style={{ color: "#DA667B" }}>Avoid</p>
+              <ul className="space-y-1">
+                {analysis.hairstyleAnalysis.avoid.map((a, i) => (
+                  <li key={i} className="flex gap-2 text-xs" style={{ color: "var(--text)" }}>
+                    <span style={{ color: "#DA667B" }}>✕</span> {a}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </Section>
+      )}
+
+      {hasSurgical && (
+        <Section title="Surgical Considerations" icon="⚕">
+          <p className="text-xs mb-3" style={{ color: "var(--text-muted)" }}>
+            Procedures ranked by impact relative to your specific features. Consult a board-certified surgeon before any decisions.
+          </p>
+          {(analysis.surgicalConsiderations!.highYield?.length ?? 0) > 0 && (
+            <div className="mb-3">
+              <p className="text-xs font-semibold mb-2" style={{ color: GOLD }}>High-Yield Procedures</p>
+              <div className="space-y-2">
+                {analysis.surgicalConsiderations!.highYield.map((p, i) => (
+                  <div key={i} className="p-3 rounded-xl" style={{ background: GOLD_BG, border: `1px solid ${GOLD_BORDER}` }}>
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                      <p className="text-xs font-semibold" style={{ color: GOLD }}>{p.name}</p>
+                      <span className="text-xs px-1.5 py-0.5 rounded-full flex-shrink-0 font-medium" style={{ background: GOLD_PILL_BG, color: GOLD }}>{p.cost}</span>
+                    </div>
+                    <p className="text-xs mb-1" style={{ color: "var(--text)" }}>{p.impact}</p>
+                    <p className="text-xs" style={{ color: "var(--text-muted)" }}>Timing: {p.timing}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {(analysis.surgicalConsiderations!.longTerm?.length ?? 0) > 0 && (
+            <div className="mb-3">
+              <p className="text-xs font-semibold mb-2" style={{ color: "#9B7FFF" }}>Long-Term Investments</p>
+              <div className="space-y-2">
+                {analysis.surgicalConsiderations!.longTerm.map((p, i) => (
+                  <div key={i} className="p-3 rounded-xl" style={{ background: "rgba(124,92,252,0.05)", border: "1px solid rgba(124,92,252,0.12)" }}>
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                      <p className="text-xs font-semibold" style={{ color: "#9B7FFF" }}>{p.name}</p>
+                      <span className="text-xs px-1.5 py-0.5 rounded-full flex-shrink-0 font-medium" style={{ background: "rgba(124,92,252,0.1)", color: "#9B7FFF" }}>{p.cost}</span>
+                    </div>
+                    <p className="text-xs mb-1" style={{ color: "var(--text)" }}>{p.impact}</p>
+                    <p className="text-xs" style={{ color: "var(--text-muted)" }}>Timing: {p.timing}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {(analysis.surgicalConsiderations!.notRecommended?.length ?? 0) > 0 && (
+            <div>
+              <p className="text-xs font-semibold mb-2" style={{ color: "#DA667B" }}>Not Recommended For You</p>
+              <ul className="space-y-1.5">
+                {analysis.surgicalConsiderations!.notRecommended.map((p, i) => (
+                  <li key={i} className="flex gap-2 text-xs" style={{ color: "var(--text)" }}>
+                    <span style={{ color: "#DA667B", flexShrink: 0 }}>✕</span> {p}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </Section>
+      )}
+
+      {analysis.roadmap && (
+        <Section title="Beauty Roadmap" icon="◎">
+          <div className="p-3 rounded-xl mb-4" style={{ background: "rgba(218,102,123,0.06)", border: "1px solid rgba(218,102,123,0.15)" }}>
+            <p className="text-xs font-semibold mb-1.5" style={{ color: "#DA667B" }}>Honest Assessment</p>
+            <p className="text-xs leading-relaxed" style={{ color: "var(--text)" }}>{analysis.roadmap.honestAssessment}</p>
+          </div>
+
+          <div className="mb-4 p-3 rounded-xl" style={{ background: GOLD_BG_LIGHT, border: `1px solid ${GOLD_BORDER}` }}>
+            <p className="text-xs mb-2" style={{ color: "var(--text-muted)" }}>Your trajectory</p>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-lg font-bold w-12 flex-shrink-0" style={{ color: "#DA667B" }}>{analysis.roadmap.currentRating}/10</span>
+              <div className="flex-1 h-2 rounded-full" style={{ background: "rgba(124,92,252,0.1)" }}>
+                <div className="h-full rounded-full" style={{ width: `${(analysis.roadmap.potentialRating / 10) * 100}%`, background: `linear-gradient(90deg, #DA667B, ${GOLD})` }} />
+              </div>
+              <span className="text-lg font-bold w-12 flex-shrink-0 text-right" style={{ color: GOLD }}>{analysis.roadmap.potentialRating}/10</span>
+            </div>
+            <div className="flex justify-between mb-2">
+              <p className="text-xs" style={{ color: "var(--text-muted)" }}>Now</p>
+              <p className="text-xs font-medium" style={{ color: GOLD }}>Natural ceiling</p>
+            </div>
+            {analysis.roadmap.absoluteCeiling && analysis.roadmap.absoluteCeiling > analysis.roadmap.potentialRating && (
+              <>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-sm font-bold w-12 flex-shrink-0" style={{ color: GOLD }}>{analysis.roadmap.potentialRating}/10</span>
+                  <div className="flex-1 h-1.5 rounded-full" style={{ background: "rgba(124,92,252,0.1)" }}>
+                    <div className="h-full rounded-full" style={{ width: `${(analysis.roadmap.absoluteCeiling / 10) * 100}%`, background: `linear-gradient(90deg, ${GOLD}, #9B7FFF)` }} />
+                  </div>
+                  <span className="text-sm font-bold w-12 flex-shrink-0 text-right" style={{ color: "#9B7FFF" }}>{analysis.roadmap.absoluteCeiling}/10</span>
+                </div>
+                <div className="flex justify-between">
+                  <p className="text-xs" style={{ color: "var(--text-muted)" }}>With skincare</p>
+                  <p className="text-xs font-medium" style={{ color: "#9B7FFF" }}>With procedures</p>
+                </div>
+              </>
+            )}
+          </div>
+
+          {[
+            { key: "thirtyDay", label: "30 Days", color: "#9B7FFF", bg: "rgba(124,92,252,0.06)", border: "rgba(124,92,252,0.15)", data: analysis.roadmap.thirtyDay },
+            { key: "ninetyDay", label: "90 Days", color: "#E8A87C", bg: "rgba(232,168,124,0.06)", border: "rgba(232,168,124,0.15)", data: analysis.roadmap.ninetyDay },
+            { key: "sixMonth", label: "6 Months", color: GOLD, bg: GOLD_BG, border: GOLD_BORDER, data: analysis.roadmap.sixMonth },
+          ].map(({ label, color, bg, border, data }) => (
+            <div key={label} className="mb-3 rounded-xl overflow-hidden" style={{ background: bg, border: `1px solid ${border}` }}>
+              <div className="px-3 pt-3 pb-2" style={{ borderBottom: `1px solid ${border}` }}>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-bold" style={{ color }}>{label}</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: `${color}15`, color }}>{data.focus}</span>
+                </div>
+                <p className="text-xs" style={{ color: "var(--text-muted)" }}>{data.expectedChange}</p>
+              </div>
+              <ul className="px-3 py-2.5 space-y-1.5">
+                {data.actions.map((a, i) => (
+                  <li key={i} className="flex gap-2 text-xs" style={{ color: "var(--text)" }}>
+                    <span style={{ color, flexShrink: 0 }}>→</span> {a}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </Section>
+      )}
+
+      <Section title="Protocol" icon="▸">
+        {analysis.protocol.immediate.length > 0 && (
+          <div>
+            <p className="text-xs font-semibold mb-2" style={{ color: GOLD }}>Immediate Actions</p>
+            <ul className="space-y-1.5">
+              {analysis.protocol.immediate.map((a, i) => (
+                <li key={i} className="flex gap-2 text-xs" style={{ color: "var(--text)" }}>
+                  <span style={{ color: "#9B7FFF" }}>→</span> {a}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {analysis.protocol.routineAdjustments.length > 0 && (
+          <div>
+            <p className="text-xs font-semibold mb-2" style={{ color: "#9B7FFF" }}>Routine Adjustments</p>
+            <ul className="space-y-1.5">
+              {analysis.protocol.routineAdjustments.map((a, i) => (
+                <li key={i} className="flex gap-2 text-xs" style={{ color: "var(--text)" }}>
+                  <span style={{ color: "#9B7FFF" }}>→</span> {a}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {analysis.protocol.lifestyle.length > 0 && (
+          <div>
+            <p className="text-xs font-semibold mb-2" style={{ color: "#E8A87C" }}>Lifestyle</p>
+            <ul className="space-y-1.5">
+              {analysis.protocol.lifestyle.map((a, i) => (
+                <li key={i} className="flex gap-2 text-xs" style={{ color: "var(--text)" }}>
+                  <span style={{ color: "#E8A87C" }}>→</span> {a}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {analysis.protocol.treatments.length > 0 && (
+          <div>
+            <p className="text-xs font-semibold mb-2" style={{ color: "#DA667B" }}>Professional Treatments</p>
+            <ul className="space-y-1.5">
+              {analysis.protocol.treatments.map((a, i) => (
+                <li key={i} className="flex gap-2 text-xs" style={{ color: "var(--text)" }}>
+                  <span style={{ color: "#DA667B" }}>→</span> {a}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </Section>
+
+      <Section title="Ask the Analyst" icon="💬">
+        <p className="text-xs mb-3" style={{ color: "var(--text-muted)" }}>
+          Ask anything about your results — specific concerns, whether a treatment makes sense, what to prioritize first.
+        </p>
+        {qaHistory.length > 0 && (
+          <div className="space-y-4 mb-3">
+            {qaHistory.map((qa, i) => (
+              <div key={i} className="space-y-2">
+                <div className="flex gap-2">
+                  <span className="text-xs font-semibold flex-shrink-0" style={{ color: "#9B7FFF" }}>You</span>
+                  <p className="text-xs" style={{ color: "var(--text)" }}>{qa.question}</p>
+                </div>
+                <div className="p-3 rounded-xl" style={{ background: "rgba(124,92,252,0.05)", border: "1px solid rgba(124,92,252,0.1)" }}>
+                  <p className="text-xs leading-relaxed" style={{ color: "var(--text)" }}>{qa.answer}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={qaInput}
+            onChange={e => setQaInput(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter" && !qaLoading) askQuestion(); }}
+            placeholder="e.g. Should I try retinol? What about lip fillers?"
+            className="flex-1 text-xs px-3 py-2.5 rounded-xl outline-none"
+            style={{ background: "rgba(124,92,252,0.08)", border: "1px solid rgba(124,92,252,0.15)", color: "var(--text)" }}
+          />
+          <button
+            onClick={askQuestion}
+            disabled={qaLoading || !qaInput.trim()}
+            className="flex items-center justify-center w-10 h-10 rounded-xl flex-shrink-0 transition-opacity disabled:opacity-40"
+            style={{ background: "rgba(124,92,252,0.15)", color: "#9B7FFF" }}
+          >
+            {qaLoading ? (
+              <div className="w-3 h-3 rounded-full border border-current border-t-transparent animate-spin" />
+            ) : (
+              <Send size={14} />
+            )}
+          </button>
+        </div>
+      </Section>
+
+      <div className="p-4 flex justify-center" style={{ borderTop: "1px solid rgba(124,92,252,0.1)" }}>
+        <button onClick={onReset} className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl"
+          style={{ background: "rgba(124,92,252,0.08)", color: "var(--text-muted)" }}>
+          <RefreshCw size={14} /> New Analysis
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function AnalysisHistory({ entries, onSelect }: { entries: BeautyAnalysisEntry[]; onSelect: (e: BeautyAnalysisEntry) => void }) {
+  const sorted = [...entries].sort((a, b) => b.date.localeCompare(a.date));
+  if (sorted.length === 0) return null;
+
+  const ratingColor = (r: number) => r >= 8 ? GOLD : r >= 6 ? "#9B7FFF" : "#E8A87C";
+
+  return (
+    <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.15)" }}>
+      <div className="px-4 py-3" style={{ borderBottom: "1px solid rgba(124,92,252,0.1)" }}>
+        <p className="text-xs font-semibold" style={{ color: "var(--text-muted)", letterSpacing: "0.08em" }}>ANALYSIS HISTORY</p>
+        <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>Track your progress over time</p>
+      </div>
+
+      {/* Score trend if 2+ entries */}
+      {sorted.length >= 2 && (
+        <div className="px-4 py-3" style={{ borderBottom: "1px solid rgba(124,92,252,0.08)" }}>
+          <p className="text-xs font-medium mb-2" style={{ color: "var(--text-muted)" }}>Rating trend</p>
+          <div className="flex items-end gap-1.5 h-10">
+            {sorted.slice().reverse().map((e, i) => {
+              const h = Math.max(4, (e.overallRating / 10) * 40);
+              const color = ratingColor(e.overallRating);
+              return (
+                <div key={e.id} className="flex-1 flex flex-col items-center gap-1">
+                  <div className="w-full rounded-t-sm" style={{ height: `${h}px`, background: color, opacity: i === sorted.length - 1 ? 1 : 0.4 }} />
+                  <p className="text-xs font-bold" style={{ color }}>{e.overallRating}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="divide-y divide-[rgba(124,92,252,0.08)]">
+        {sorted.map((entry, idx) => {
+          const delta = idx < sorted.length - 1
+            ? entry.overallRating - sorted[idx + 1].overallRating
+            : null;
+          return (
+            <button key={entry.id} onClick={() => onSelect(entry)}
+              className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[rgba(124,92,252,0.03)] transition-colors">
+              <img src={entry.photoThumb} alt="Analysis" className="w-12 h-12 rounded-xl object-cover flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <p className="text-xs font-semibold" style={{ color: "var(--text)" }}>
+                    {format(parseISO(entry.date), "MMM d, yyyy")}
+                  </p>
+                  {idx === 0 && (
+                    <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ background: "rgba(124,92,252,0.1)", color: "#9B7FFF" }}>Latest</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-bold" style={{ color: ratingColor(entry.overallRating) }}>{entry.overallRating}/10</span>
+                  <span className="text-xs" style={{ color: "var(--text-muted)" }}>Skin {entry.skinScore}</span>
+                  <span className="text-xs" style={{ color: "var(--text-muted)" }}>Looks {entry.apparentAge}y</span>
+                  {delta !== null && (
+                    <span className="text-xs font-semibold" style={{ color: delta > 0 ? GOLD : delta < 0 ? "#DA667B" : "var(--text-muted)" }}>
+                      {delta > 0 ? `+${delta.toFixed(1)}` : delta < 0 ? delta.toFixed(1) : "—"}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <ChevronRight size={14} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+interface InspoResult {
+  inspirationDescription?: string;
+  similarities?: string[];
+  gapAreas?: { area: string; current: string; goal: string; actionable: string }[];
+  matchScore?: number;
+  achievability?: string;
+  roadmap?: string;
+  quickWins?: string[];
+  keyFeatures?: string[];
+  skinNotes?: string;
+  hairNotes?: string;
+}
+
+function InspirationSection({ selfieBase64, selfieMime }: { selfieBase64: string | null; selfieMime: string }) {
+  const [inspoPhoto, setInspoPhoto] = useState<string | null>(null);
+  const [inspoBase64, setInspoBase64] = useState<string | null>(null);
+  const [inspoMime, setInspoMime] = useState("image/jpeg");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<InspoResult | null>(null);
+  const [error, setError] = useState("");
+  const [open, setOpen] = useState(true);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      setInspoPhoto(dataUrl);
+      setInspoBase64(dataUrl.split(",")[1]);
+      setInspoMime(file.type || "image/jpeg");
+      setResult(null);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const analyze = async () => {
+    if (!inspoBase64) return;
+    setLoading(true); setError("");
+    try {
+      const res = await fetch("/api/skincare/inspiration", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          inspirationBase64: inspoBase64, inspirationMime: inspoMime,
+          selfieBase64: selfieBase64 ?? undefined, selfieMime,
+        }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setResult(data);
+    } catch (e) { setError(String(e)); }
+    finally { setLoading(false); }
+  };
+
+  const scoreColor = (s: number) => s >= 70 ? "#10B981" : s >= 50 ? "#F59E0B" : "#EF4444";
+
+  return (
+    <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.15)" }}>
+      <button onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between px-4 py-3.5"
+        style={{ borderBottom: open ? "1px solid rgba(124,92,252,0.1)" : "none" }}>
+        <div className="text-left">
+          <p className="text-xs font-semibold" style={{ color: "var(--text-muted)", letterSpacing: "0.08em" }}>INSPIRATION MATCH</p>
+          <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
+            {result ? `${result.matchScore ?? "?"}% match · ${result.achievability ?? ""} achievability` : "Upload a look you want to achieve"}
+          </p>
+        </div>
+        <span style={{ color: "var(--text-muted)", fontSize: 14 }}>{open ? "▲" : "▼"}</span>
+      </button>
+
+      {open && (
+        <div className="p-4 space-y-4">
+          {/* Upload row */}
+          <div className="flex gap-3 items-start">
+            {/* Inspiration photo */}
+            <div className="flex-1">
+              <p className="text-xs font-medium mb-2" style={{ color: "var(--text-muted)" }}>Inspiration photo</p>
+              {inspoPhoto ? (
+                <div className="relative">
+                  <img src={inspoPhoto} alt="Inspiration" className="w-full h-32 object-cover rounded-2xl" />
+                  <button onClick={() => { setInspoPhoto(null); setInspoBase64(null); setResult(null); }}
+                    className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center text-xs"
+                    style={{ background: "rgba(0,0,0,0.5)", color: "#fff" }}>×</button>
+                </div>
+              ) : (
+                <button onClick={() => fileRef.current?.click()}
+                  className="w-full h-32 rounded-2xl flex flex-col items-center justify-center gap-2"
+                  style={{ background: "rgba(124,92,252,0.06)", border: "1.5px dashed rgba(124,92,252,0.25)" }}>
+                  <Camera size={20} style={{ color: "#9B7FFF" }} />
+                  <span className="text-xs" style={{ color: "var(--text-muted)" }}>Upload inspo photo</span>
+                </button>
+              )}
+            </div>
+
+            {/* Your selfie preview */}
+            {selfieBase64 && (
+              <div className="flex-1">
+                <p className="text-xs font-medium mb-2" style={{ color: "var(--text-muted)" }}>Your selfie</p>
+                <img src={`data:${selfieMime};base64,${selfieBase64}`} alt="Your selfie"
+                  className="w-full h-32 object-cover rounded-2xl" style={{ opacity: 0.85 }} />
+              </div>
+            )}
+          </div>
+
+          {!selfieBase64 && !inspoPhoto && (
+            <p className="text-xs text-center py-1" style={{ color: "var(--text-muted)" }}>
+              Upload your selfie above (AI Beauty Analysis) for a personalized comparison
+            </p>
+          )}
+
+          {inspoBase64 && !result && (
+            <button onClick={analyze} disabled={loading}
+              className="w-full py-2.5 rounded-2xl text-sm font-semibold disabled:opacity-50"
+              style={{ background: "linear-gradient(135deg, #7C5CFC, #E879F9)", color: "#fff" }}>
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" />
+                  Analyzing…
+                </span>
+              ) : selfieBase64 ? "Compare to my selfie" : "Analyze this look"}
+            </button>
+          )}
+
+          {error && <p className="text-xs text-center" style={{ color: "#EF4444" }}>{error}</p>}
+
+          {result && (
+            <div className="space-y-4">
+              {/* Match score */}
+              {result.matchScore !== undefined && (
+                <div className="rounded-2xl p-4" style={{ background: "rgba(124,92,252,0.06)", border: "1px solid rgba(124,92,252,0.12)" }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>Current match</p>
+                    <span className="text-2xl font-bold" style={{ color: scoreColor(result.matchScore) }}>{result.matchScore}%</span>
+                  </div>
+                  <div className="h-2 rounded-full" style={{ background: "rgba(124,92,252,0.1)" }}>
+                    <div className="h-2 rounded-full transition-all" style={{ width: `${result.matchScore}%`, background: scoreColor(result.matchScore) }} />
+                  </div>
+                  <p className="text-xs mt-2" style={{ color: "var(--text-muted)" }}>
+                    Achievability: <span style={{ color: result.achievability === "high" ? "#10B981" : result.achievability === "medium" ? "#F59E0B" : "#EF4444", fontWeight: 600 }}>{result.achievability}</span>
+                  </p>
+                </div>
+              )}
+
+              {/* Inspiration description */}
+              {result.inspirationDescription && (
+                <div>
+                  <p className="text-xs font-semibold mb-1.5" style={{ color: "var(--text-muted)", letterSpacing: "0.06em" }}>THEIR LOOK</p>
+                  <p className="text-sm" style={{ color: "var(--text)" }}>{result.inspirationDescription}</p>
+                </div>
+              )}
+
+              {/* Gap areas */}
+              {result.gapAreas && result.gapAreas.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold mb-2" style={{ color: "var(--text-muted)", letterSpacing: "0.06em" }}>GAP ANALYSIS</p>
+                  <div className="space-y-2">
+                    {result.gapAreas.map((gap, i) => (
+                      <div key={i} className="rounded-xl p-3" style={{ background: "rgba(124,92,252,0.05)", border: "1px solid rgba(124,92,252,0.1)" }}>
+                        <p className="text-xs font-semibold mb-1" style={{ color: "#9B7FFF" }}>{gap.area}</p>
+                        <p className="text-xs mb-0.5" style={{ color: "var(--text-muted)" }}>You now: {gap.current}</p>
+                        <p className="text-xs mb-1" style={{ color: "var(--text-muted)" }}>Goal: {gap.goal}</p>
+                        <p className="text-xs font-medium" style={{ color: "var(--text)" }}>→ {gap.actionable}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Quick wins */}
+              {result.quickWins && result.quickWins.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold mb-2" style={{ color: "var(--text-muted)", letterSpacing: "0.06em" }}>QUICK WINS</p>
+                  <div className="space-y-1.5">
+                    {result.quickWins.map((win, i) => (
+                      <div key={i} className="flex gap-2 items-start">
+                        <span className="text-xs mt-0.5 font-bold" style={{ color: "#9B7FFF", flexShrink: 0 }}>{i + 1}.</span>
+                        <p className="text-sm" style={{ color: "var(--text)" }}>{win}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Roadmap */}
+              {result.roadmap && (
+                <div>
+                  <p className="text-xs font-semibold mb-1.5" style={{ color: "var(--text-muted)", letterSpacing: "0.06em" }}>ROADMAP</p>
+                  <p className="text-sm" style={{ color: "var(--text)" }}>{result.roadmap}</p>
+                </div>
+              )}
+
+              <button onClick={() => { setResult(null); setInspoPhoto(null); setInspoBase64(null); }}
+                className="w-full py-2 rounded-xl text-xs font-medium"
+                style={{ background: "rgba(124,92,252,0.07)", color: "var(--text-muted)" }}>
+                Try a different photo
+              </button>
+            </div>
+          )}
+
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function SkincareView({ data, update }: Props) {
   const [productOpen, setProductOpen] = useState(false);
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [productForm, setProductForm] = useState<{ name: string; brand: string; routine: "am" | "pm" | "both"; isTesting: boolean; startDate: string; notes: string }>({ name: "", brand: "", routine: "am", isTesting: false, startDate: "", notes: "" });
   const [checkInForm, setCheckInForm] = useState({ breakouts: false, observations: "", changes: "" });
-  const today = todayStr();
 
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysis, setAnalysis] = useState<Analysis | null>(null);
+  const [analyzeError, setAnalyzeError] = useState("");
+  const [selfieBase64ForInspo, setSelfieBase64ForInspo] = useState<string | null>(null);
+  const [selfieMimeForInspo, setSelfieMimeForInspo] = useState<string>("image/jpeg");
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const today = todayStr();
   const amProducts = data.skincareProducts.filter((p) => p.routine === "am" || p.routine === "both").sort((a, b) => a.order - b.order);
   const pmProducts = data.skincareProducts.filter((p) => p.routine === "pm" || p.routine === "both").sort((a, b) => a.order - b.order);
   const testingProducts = data.skincareProducts.filter((p) => p.isTesting);
+  const savedAnalyses = data.beautyAnalyses ?? [];
 
   const addProduct = () => {
     if (!productForm.name.trim()) return;
@@ -42,6 +869,72 @@ export function SkincareView({ data, update }: Props) {
     update((d) => ({ ...d, skinCheckIns: [...d.skinCheckIns, { ...checkInForm, id: id(), date: today }] }));
     setCheckInForm({ breakouts: false, observations: "", changes: "" });
     setCheckInOpen(false);
+  };
+
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const result = ev.target?.result as string;
+      const base64 = result.split(",")[1];
+      setPhoto(result);
+      setSelfieBase64ForInspo(base64);
+      setSelfieMimeForInspo(file.type || "image/jpeg");
+      runAnalysis(result, base64, file.type || "image/jpeg");
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const runAnalysis = async (dataUrl: string, base64: string, mime: string) => {
+    setAnalyzing(true);
+    setAnalyzeError("");
+    setAnalysis(null);
+    try {
+      const res = await fetch("/api/skincare/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          imageBase64: base64,
+          mimeType: mime,
+          products: data.skincareProducts,
+          checkIns: data.skinCheckIns,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error);
+      const a: Analysis = json.analysis;
+      setAnalysis(a);
+
+      // Save to history
+      const thumb = await createThumb(dataUrl);
+      const entry: BeautyAnalysisEntry = {
+        id: id(),
+        date: new Date().toISOString().slice(0, 10),
+        photoThumb: thumb,
+        skinScore: a.skinScore,
+        overallRating: a.overallRating,
+        apparentAge: a.apparentAge.estimated,
+        analysis: a,
+      };
+      update((d) => ({ ...d, beautyAnalyses: [...(d.beautyAnalyses ?? []), entry] }));
+    } catch (e: unknown) {
+      setAnalyzeError(e instanceof Error ? e.message : "Analysis failed");
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  const resetAnalysis = () => {
+    setPhoto(null);
+    setAnalysis(null);
+    setAnalyzeError("");
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
+  const loadHistoricAnalysis = (entry: BeautyAnalysisEntry) => {
+    setAnalysis(entry.analysis as Analysis);
+    setPhoto(entry.photoThumb);
   };
 
   const renderProductList = (products: SkincareProduct[], label: string) => (
@@ -86,6 +979,64 @@ export function SkincareView({ data, update }: Props) {
           </Button>
         </div>
       </div>
+
+      {/* Beauty Analysis */}
+      {analysis && photo ? (
+        <AnalysisCard analysis={analysis} photo={photo} onReset={resetAnalysis} />
+      ) : (
+        <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.15)" }}>
+          <div className="p-4" style={{ borderBottom: "1px solid rgba(124,92,252,0.1)" }}>
+            <p className="text-xs font-semibold mb-0.5" style={{ color: "var(--text-muted)", letterSpacing: "0.08em" }}>AI BEAUTY ANALYSIS</p>
+            <p className="text-xs" style={{ color: "var(--text-muted)" }}>Upload a clear selfie — skin assessment, feature analysis, surgical options & personalized protocol</p>
+          </div>
+
+          {!photo && !analyzing && (
+            <button onClick={() => fileRef.current?.click()}
+              className="w-full flex flex-col items-center justify-center gap-3 py-10 transition-colors hover:bg-purple-50/10">
+              <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                style={{ background: "rgba(124,92,252,0.1)", border: "1.5px dashed rgba(124,92,252,0.3)" }}>
+                <Camera size={24} style={{ color: "#9B7FFF" }} />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-medium" style={{ color: "var(--text)" }}>Upload a selfie</p>
+                <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>Best results with good lighting, face centered</p>
+              </div>
+            </button>
+          )}
+
+          {photo && analyzing && (
+            <div className="flex flex-col items-center gap-4 py-10">
+              <img src={photo} alt="Uploading" className="w-20 h-20 rounded-2xl object-cover opacity-60" />
+              <div className="flex flex-col items-center gap-2">
+                <div className="flex gap-1">
+                  {[0, 150, 300].map(d => (
+                    <div key={d} className="w-2 h-2 rounded-full animate-bounce"
+                      style={{ background: "#9B7FFF", animationDelay: `${d}ms` }} />
+                  ))}
+                </div>
+                <p className="text-sm" style={{ color: "var(--text-muted)" }}>Analyzing your skin…</p>
+              </div>
+            </div>
+          )}
+
+          {analyzeError && (
+            <div className="px-4 pb-4">
+              <p className="text-xs text-center py-3 rounded-xl" style={{ background: "rgba(218,102,123,0.08)", color: "#DA667B" }}>{analyzeError}</p>
+              <button onClick={resetAnalysis} className="w-full text-xs text-center mt-2" style={{ color: "var(--text-muted)" }}>Try again</button>
+            </div>
+          )}
+
+          <input ref={fileRef} type="file" accept="image/*" capture="user" className="hidden" onChange={handlePhotoSelect} />
+        </div>
+      )}
+
+      {/* Inspiration Comparison */}
+      <InspirationSection selfieBase64={selfieBase64ForInspo} selfieMime={selfieMimeForInspo} />
+
+      {/* Analysis History */}
+      {savedAnalyses.length > 0 && (
+        <AnalysisHistory entries={savedAnalyses} onSelect={loadHistoricAnalysis} />
+      )}
 
       {testingProducts.length > 0 && (
         <Card title="Currently Testing" subtitle="Products on trial">

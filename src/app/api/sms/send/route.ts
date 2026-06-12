@@ -1,31 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
+import nodemailer from "nodemailer";
+
+// eslint-disable-next-line no-control-regex
+function stripEmojis(text: string): string {
+  return text.replace(/[^\x00-\x7F]/g, "").replace(/\s{2,}/g, " ").trim();
+}
 
 export async function POST(req: NextRequest) {
-  const { message, to } = await req.json();
-  const accountSid = process.env.TWILIO_ACCOUNT_SID;
-  const authToken  = process.env.TWILIO_AUTH_TOKEN;
-  const from       = process.env.TWILIO_PHONE_NUMBER;
+  const { message } = await req.json();
+  if (!message) return NextResponse.json({ error: "Missing message" }, { status: 400 });
 
-  if (!accountSid || !authToken || !from) {
-    return NextResponse.json({ error: "Twilio not configured" }, { status: 503 });
-  }
-  if (!to || !message) {
-    return NextResponse.json({ error: "Missing to or message" }, { status: 400 });
-  }
+  const user = process.env.GMAIL_USER;
+  const pass = process.env.GMAIL_APP_PASSWORD;
+  const phone = process.env.USER_PHONE_NUMBER ?? "6156811609";
 
-  const url  = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
-  const auth = Buffer.from(`${accountSid}:${authToken}`).toString("base64");
-  const body = new URLSearchParams({ To: to, From: from, Body: message });
+  if (!user || !pass) return NextResponse.json({ error: "Gmail not configured" }, { status: 503 });
+
+  const digits = phone.replace(/\D/g, "").replace(/^1/, "");
+  const to = `${digits}@tmomail.net`;
+  const cleanMessage = stripEmojis(message);
+
+  const transporter = nodemailer.createTransport({ service: "gmail", auth: { user, pass } });
 
   try {
-    const res  = await fetch(url, {
-      method: "POST",
-      headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/x-www-form-urlencoded" },
-      body: body.toString(),
-    });
-    const data = await res.json();
-    if (!res.ok) return NextResponse.json({ error: data.message ?? "Twilio error" }, { status: res.status });
-    return NextResponse.json({ success: true, sid: data.sid });
+    await transporter.sendMail({ from: user, to, subject: " ", text: cleanMessage });
+    return NextResponse.json({ success: true });
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 });
   }

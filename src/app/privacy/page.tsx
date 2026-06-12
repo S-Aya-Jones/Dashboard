@@ -9,10 +9,10 @@ export default function PrivacyPage() {
   return (
     <div
       style={{
-        background: "#111111",
+        background: "#F4F0FE",
         minHeight: "100vh",
         fontFamily: "'Inter', system-ui, sans-serif",
-        color: "#FFFFFF",
+        color: "#1E1340",
       }}
     >
       <div style={{ maxWidth: "720px", margin: "0 auto", padding: "3rem 1.5rem 5rem" }}>
@@ -34,13 +34,13 @@ export default function PrivacyPage() {
         </Link>
 
         {/* Header */}
-        <div style={{ marginBottom: "2.5rem", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "1.5rem" }}>
+        <div style={{ marginBottom: "2.5rem", borderBottom: "1px solid rgba(124,92,252,0.12)", paddingBottom: "1.5rem" }}>
           <h1
             style={{
               fontFamily: "'Cormorant Garamond', Georgia, serif",
               fontSize: "clamp(2rem, 5vw, 3rem)",
               fontWeight: 500,
-              color: "#FFFFFF",
+              color: "#1E1340",
               margin: "0 0 0.5rem",
               lineHeight: 1.15,
             }}
@@ -192,10 +192,14 @@ export default function PrivacyPage() {
 
           <Section title="Contact">
             <p>
-              Questions or concerns about this Privacy Policy can be directed to the account
-              holder directly. As this is a personal single-user application, no formal data
-              protection officer or privacy team exists — inquiries go to the individual who
-              owns and operates this dashboard.
+              Questions or concerns about this Privacy Policy can be directed to Shaniqua
+              Jones at{" "}
+              <a href="mailto:shaniquaayajones@gmail.com" style={{ color: "#7C5CFC", textDecoration: "none" }}>
+                shaniquaayajones@gmail.com
+              </a>.
+              As this is a personal single-user application, no formal data protection
+              officer or privacy team exists — inquiries go to the individual who owns and
+              operates this dashboard.
             </p>
           </Section>
 
@@ -205,7 +209,7 @@ export default function PrivacyPage() {
           style={{
             marginTop: "3rem",
             paddingTop: "1.5rem",
-            borderTop: "1px solid rgba(255,255,255,0.1)",
+            borderTop: "1px solid rgba(124,92,252,0.12)",
             fontSize: "0.8rem",
             color: "#A8967E",
             textAlign: "center",
@@ -226,16 +230,16 @@ function Section({ title, children }: { title: string; children: React.ReactNode
           fontFamily: "'Cormorant Garamond', Georgia, serif",
           fontSize: "1.35rem",
           fontWeight: 500,
-          color: "#FFFFFF",
+          color: "#1E1340",
           margin: "0 0 0.75rem",
           paddingBottom: "0.35rem",
-          borderBottom: "1px solid rgba(255,255,255,0.08)",
+          borderBottom: "1px solid rgba(124,92,252,0.10)",
         }}
       >
         {title}
       </h2>
       <div
-        style={{ color: "#FFFFFF" }}
+        style={{ color: "#1E1340" }}
       >
         {children}
       </div>

@@ -7,8 +7,10 @@ import { RecipeVault } from "./RecipeVault";
 import { GroceryList } from "./GroceryList";
 import { PantryTracker } from "./PantryTracker";
 import { WeeklyFoodReview } from "./WeeklyFoodReview";
+import { MealScanView } from "./MealScanView";
 
 const TABS = [
+  { id: "scan",     label: "Meal Scan" },
   { id: "meals",    label: "Meal Log" },
   { id: "recipes",  label: "Recipe Vault" },
   { id: "grocery",  label: "Grocery List" },
@@ -49,11 +51,11 @@ export function NutritionView({
       <div className="mb-7">
         <h1
           className="font-serif text-4xl mb-1"
-          style={{ color: "#FFFFFF", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+          style={{ color: "var(--text)", fontFamily: "'Cormorant Garamond', Georgia, serif" }}
         >
           Food Journal
         </h1>
-        <p className="text-sm" style={{ color: "rgba(255,255,255,0.45)" }}>
+        <p className="text-sm" style={{ color: "var(--text-light)" }}>
           Log meals, save recipes, and keep your kitchen in check.
         </p>
       </div>
@@ -61,7 +63,7 @@ export function NutritionView({
       {/* Tabs */}
       <div
         className="flex gap-1 p-1 rounded-2xl mb-8 overflow-x-auto"
-        style={{ background: "rgba(255,255,255,0.05)" }}
+        style={{ background: "rgba(124,92,252,0.05)" }}
       >
         {TABS.map(({ id, label }) => {
           const active = tab === id;
@@ -76,9 +78,9 @@ export function NutritionView({
               onClick={() => setTab(id)}
               className="relative flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-150 flex-shrink-0"
               style={{
-                background: active ? "#141414" : "transparent",
-                color:      active ? "#FFFFFF" : "rgba(255,255,255,0.45)",
-                boxShadow:  active ? "0 2px 8px rgba(255,255,255,0.06)" : "none",
+                background: active ? "var(--surface)" : "transparent",
+                color:      active ? "var(--text)" : "var(--text-light)",
+                boxShadow:  active ? "0 2px 8px rgba(124,92,252,0.06)" : "none",
               }}
             >
               {label}
@@ -100,6 +102,7 @@ export function NutritionView({
 
       {/* Content */}
       <div>
+        {tab === "scan"    && <MealScanView />}
         {tab === "meals"   && <MealLog       nutrition={nutrition} onUpdate={onUpdate} />}
         {tab === "recipes" && <RecipeVault   nutrition={nutrition} onUpdate={onUpdate} />}
         {tab === "grocery" && <GroceryList   nutrition={nutrition} onUpdate={onUpdate} />}
