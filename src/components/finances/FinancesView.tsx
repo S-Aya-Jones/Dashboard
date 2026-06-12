@@ -1144,9 +1144,71 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
       )}
 
       {/* Bills this period */}
-      {current.dueBills.length > 0 && (
+      {current.dueBills.length > 0 && (() => {
+        const paidBills   = current.dueBills.filter(b => isPaid(b));
+        const unpaidBills = current.dueBills.filter(b => !isPaid(b));
+        const paidTotal   = paidBills.reduce((s, b) => s + b.amount, 0);
+        const unpaidTotal = unpaidBills.reduce((s, b) => s + b.amount, 0);
+        // What's left after savings + budget lines + ALL bills clear
+        const afterEverything = planIncome - planSavings - planBudgetTot - current.billsTotal;
+        // What's in your pocket right now (savings + budget lines already pulled, only paid bills pulled)
+        const rightNow = planIncome - planSavings - planBudgetTot - paidTotal;
+        return (
         <div>
           <p className="text-xs font-semibold mb-3" style={{ color: MUTED, letterSpacing: "0.08em" }}>BILLS THIS PERIOD</p>
+
+          {/* Remaining balance tracker */}
+          <div className="rounded-2xl px-4 py-4 mb-3 space-y-2.5" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold" style={{ color: MUTED, letterSpacing: "0.07em" }}>REMAINING BALANCE</span>
+              {paidBills.length > 0 && (
+                <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: "rgba(16,185,129,0.1)", color: "#10B981" }}>
+                  {paidBills.length}/{current.dueBills.length} paid
+                </span>
+              )}
+            </div>
+
+            {/* Waterfall */}
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-sm">
+                <span style={{ color: "var(--text)" }}>Paycheck</span>
+                <span className="font-semibold" style={{ color: LIME }}>{fmt$(planIncome)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span style={{ color: MUTED }}>Savings + planned</span>
+                <span style={{ color: MUTED }}>−{fmt$(planSavings + planBudgetTot)}</span>
+              </div>
+              {paidTotal > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span style={{ color: MUTED }}>Bills paid so far</span>
+                  <span style={{ color: MUTED }}>−{fmt$(paidTotal)}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Divider */}
+            <div style={{ borderTop: `1px solid ${BORDER}` }} />
+
+            {/* Right now */}
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>In your pocket now</p>
+                {unpaidTotal > 0 && (
+                  <p className="text-xs mt-0.5" style={{ color: MUTED }}>{unpaidBills.length} bill{unpaidBills.length !== 1 ? "s" : ""} still out — {fmt$(unpaidTotal)} left to clear</p>
+                )}
+              </div>
+              <p className="text-2xl font-bold" style={{ color: rightNow >= 0 ? LIME : RED }}>{fmt$(Math.max(0, rightNow))}</p>
+            </div>
+
+            {/* After everything clears */}
+            {unpaidTotal > 0 && (
+              <div className="flex justify-between items-center pt-1" style={{ borderTop: `1px dashed ${BORDER}` }}>
+                <p className="text-xs" style={{ color: MUTED }}>After all bills clear</p>
+                <p className="text-sm font-bold" style={{ color: afterEverything >= 0 ? "#10B981" : RED }}>{fmt$(Math.max(0, afterEverything))}</p>
+              </div>
+            )}
+          </div>
+
           <div className="rounded-2xl overflow-hidden" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
             {current.dueBills.map((b, i) => {
               const paid = isPaid(b);
@@ -1170,7 +1232,8 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
             })}
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* AI Advisor */}
       <AIAdvisorCard pc={pc} currentSlot={current}
