@@ -9,8 +9,7 @@ import { PhotoUpload } from "@/components/seventyfivehard/PhotoUpload";
 import { PhotoGallery } from "@/components/seventyfivehard/PhotoGallery";
 import { FoodLogger } from "@/components/seventyfivehard/FoodLogger";
 
-const START_DATE = "2026-06-14"; // Saturday June 14
-const END_DATE   = "2026-08-27"; // 75 days later
+const DEFAULT_START = "2026-06-15"; // Monday June 15
 
 // Fast food / delivery merchants that trigger restart
 const BANNED_MERCHANTS = [
@@ -64,13 +63,19 @@ export default function SeventyFivePage() {
   const [, setCheckingPlaid] = useState(false);
 
   const hardData = data?.seventyFiveHard ?? {
-    startDate: START_DATE, currentDay: 1, active: true, logs: [],
+    startDate: DEFAULT_START, currentDay: 1, active: true, logs: [],
   };
+  // If stored start date is in the past with no logs, treat as not yet started
+  const effectiveStartDate = hardData.startDate ?? DEFAULT_START;
+  const endDate = (() => {
+    const d = new Date(effectiveStartDate); d.setDate(d.getDate() + 74);
+    return d.toISOString().slice(0, 10);
+  })();
 
   const today = getToday();
-  const started = isStarted(hardData.startDate);
-  const daysUntilStart = Math.max(0, getDaysUntil(hardData.startDate));
-  const dayNum = started ? getDayNumber(hardData.startDate) : 0;
+  const started = isStarted(effectiveStartDate);
+  const daysUntilStart = Math.max(0, getDaysUntil(effectiveStartDate));
+  const dayNum = started ? getDayNumber(effectiveStartDate) : 0;
   const daysLeft = Math.max(0, 75 - dayNum);
   const progressPct = Math.min(100, ((dayNum - 1) / 75) * 100);
 
@@ -138,11 +143,11 @@ export default function SeventyFivePage() {
     update(prev => ({ ...prev, seventyFiveHard: { ...hardData, logs: newLogs } }));
   }
 
-  function confirmRestart() {
+  function confirmRestart(newStart?: string) {
     update(prev => ({
       ...prev,
       seventyFiveHard: {
-        startDate: today,
+        startDate: newStart ?? today,
         currentDay: 1,
         active: true,
         logs: [],
@@ -216,14 +221,18 @@ export default function SeventyFivePage() {
                   <div className="w-px self-stretch" style={{ background: "rgba(255,255,255,0.1)" }} />
                   <div className="flex-1">
                     <div className="text-xs mb-1" style={{ color: "rgba(255,255,255,0.4)" }}>Starts</div>
-                    <div className="text-sm font-semibold text-white">{formatDate(START_DATE)}</div>
+                    <div className="text-sm font-semibold text-white">{formatDate(effectiveStartDate)}</div>
                     <div className="text-xs mt-2" style={{ color: "rgba(255,255,255,0.4)" }}>Ends</div>
-                    <div className="text-sm font-semibold text-white">{formatDate(END_DATE)}</div>
+                    <div className="text-sm font-semibold text-white">{formatDate(endDate)}</div>
                   </div>
                 </div>
                 <div className="text-xs px-3 py-2 rounded-xl" style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.5)" }}>
-                  75 days · 7 rules · 0 exceptions · starts Saturday
+                  75 days · 7 rules · 0 exceptions
                 </div>
+                <button onClick={() => confirmRestart(today)} className="mt-3 w-full py-3 rounded-2xl text-sm font-bold text-white" type="button"
+                  style={{ background: "linear-gradient(135deg, #7C5CFC, #E879F9)" }}>
+                  Start Today — Day 1
+                </button>
               </div>
             ) : (
               /* ACTIVE */
@@ -243,7 +252,7 @@ export default function SeventyFivePage() {
                     </div>
                     <div className="flex items-center gap-1.5">
                       <Star size={13} color="#F59E0B" fill="#F59E0B" />
-                      <span className="text-xs" style={{ color: "rgba(255,255,255,0.6)" }}>{daysLeft} days left · ends {formatDate(END_DATE)}</span>
+                      <span className="text-xs" style={{ color: "rgba(255,255,255,0.6)" }}>{daysLeft} days left · ends {formatDate(endDate)}</span>
                     </div>
                   </div>
                 </div>
@@ -258,8 +267,8 @@ export default function SeventyFivePage() {
                     }} />
                   </div>
                   <div className="flex justify-between mt-1">
-                    <span className="text-xs" style={{ color: "rgba(255,255,255,0.3)" }}>{formatDate(START_DATE)}</span>
-                    <span className="text-xs" style={{ color: "rgba(255,255,255,0.3)" }}>{formatDate(END_DATE)}</span>
+                    <span className="text-xs" style={{ color: "rgba(255,255,255,0.3)" }}>{formatDate(effectiveStartDate)}</span>
+                    <span className="text-xs" style={{ color: "rgba(255,255,255,0.3)" }}>{formatDate(endDate)}</span>
                   </div>
                 </div>
 
@@ -292,6 +301,11 @@ export default function SeventyFivePage() {
                   </div>
                   {pct === 100 && <Trophy size={22} color="#F59E0B" fill="#F59E0B" className="ml-auto" />}
                 </div>
+                <button onClick={() => { if (confirm("Reset to Day 1 starting today?")) confirmRestart(today); }}
+                  className="mt-3 text-xs px-3 py-1.5 rounded-xl"
+                  style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.35)" }}>
+                  Reset to Day 1
+                </button>
               </>
             )}
           </div>
@@ -307,7 +321,7 @@ export default function SeventyFivePage() {
                 <div className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>{violation}</div>
               </div>
             </div>
-            <button onClick={confirmRestart} className="w-full py-2.5 rounded-xl text-sm font-bold text-white"
+            <button onClick={() => confirmRestart()} className="w-full py-2.5 rounded-xl text-sm font-bold text-white"
               style={{ background: "#EF4444" }}>
               Confirm Restart — Back to Day 1
             </button>

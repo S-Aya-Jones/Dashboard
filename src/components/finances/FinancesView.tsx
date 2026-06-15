@@ -568,6 +568,7 @@ interface Props { data: DashboardData; update: (fn: (d: DashboardData) => Dashbo
 
 export function FinancesView({ data, update }: Props) {
   const [tab, setTab]                       = useState<"health"|"flow"|"credit"|"debt">("flow");
+  const [checkOffset, setCheckOffset]       = useState(0); // 0=this check, 1=next check, etc.
   const [toast, setToast]                   = useState<string | null>(null);
   const [insights, setInsights]             = useState<InsightsData | null>(null);
   const [insightsLoading, setInsightsLoading] = useState(true);
@@ -743,11 +744,34 @@ export function FinancesView({ data, update }: Props) {
             onRemoveTransfer={(tid) => update(d => ({ ...d, accountTransfers: (d.accountTransfers ?? []).filter(t => t.id !== tid) }))}
           />
         )}
-        {tab === "flow" && (
+        {tab === "flow" && (() => {
+          const selectedSlot = yearPlan[checkOffset] ?? yearPlan[0];
+          const selectedPaydayStr = format(selectedSlot.checkDate, "yyyy-MM-dd");
+          const isNextCheck = checkOffset > 0;
+          return (<>
+            {/* Paycheck switcher */}
+            <div className="flex items-center gap-2 mb-4">
+              <button onClick={() => setCheckOffset(Math.max(0, checkOffset - 1))}
+                disabled={checkOffset === 0}
+                className="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold transition-all"
+                style={{ background: checkOffset === 0 ? "transparent" : "rgba(124,92,252,0.1)", color: checkOffset === 0 ? MUTED : "#7C5CFC", border: `1px solid ${checkOffset === 0 ? "transparent" : "rgba(124,92,252,0.2)"}` }}>
+                ‹
+              </button>
+              <div className="flex-1 text-center">
+                <p className="text-xs font-semibold" style={{ color: isNextCheck ? "#7C5CFC" : LIME }}>
+                  {isNextCheck ? `Check ${checkOffset + 1} — ` : "This Check — "}{format(selectedSlot.checkDate, "MMM d")}
+                </p>
+              </div>
+              <button onClick={() => setCheckOffset(Math.min(yearPlan.length - 1, checkOffset + 1))}
+                className="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold transition-all"
+                style={{ background: "rgba(124,92,252,0.1)", color: "#7C5CFC", border: "1px solid rgba(124,92,252,0.2)" }}>
+                ›
+              </button>
+            </div>
           <FlowTab
             yearPlan={yearPlan} savingsAlerts={savingsAlerts}
             pc={pc} effectiveTakeHome={effectiveTakeHome}
-            paydayStr={format(payday, "yyyy-MM-dd")}
+            paydayStr={selectedPaydayStr}
             budgetLines={budgetLines} bills={bills} selfCare={selfCare}
             insights={insights} p2pTransfers={p2pTransfers}
             liabilities={liabilities} creditScores={data.creditScores ?? []}
@@ -778,7 +802,8 @@ export function FinancesView({ data, update }: Props) {
             onUpdateBudgetPlans={(p) => update(d => ({ ...d, budgetPlans: p }))}
             showToast={showToast}
           />
-        )}
+          </>);
+        })()}
         {tab === "credit" && (
           <CreditTab
             liabilities={liabilities}

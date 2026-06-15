@@ -1,9 +1,9 @@
 {
   "crons": [
-    {
-      "path": "/api/cron/morning-briefing",
-      "schedule": "0 13 * * *"
-    }
+    { "path": "/api/cron/morning-briefing", "schedule": "0 13 * * *" },
+    { "path": "/api/cron/afternoon-check",  "schedule": "0 21 * * *" },
+    { "path": "/api/cron/evening-reminder", "schedule": "0 23 * * *" },
+    { "path": "/api/cron/night-wrap",       "schedule": "0 4 * * *"  }
   ],
   "headers": [
     {
