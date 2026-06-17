@@ -266,6 +266,17 @@ export interface RecurringBill {
   lastPaidDate?: string;    // YYYY-MM-DD — if >= current payday, bill is paid this period
 }
 
+export interface ScheduleBlock {
+  id: string;
+  label: string;
+  startTime: string;        // HH:MM 24h
+  endTime: string;          // HH:MM 24h
+  days: number[];           // 0=Sun .. 6=Sat, which days this block recurs on
+  type: "work" | "walk" | "mcat" | "exposure" | "meal" | "sleep" | "personal" | "other";
+  color?: string;
+  notes?: string;
+}
+
 export interface P2PTransfer {
   id: string;
   date: string;             // YYYY-MM-DD
@@ -662,6 +673,7 @@ export interface DashboardData {
   accountTransfers?: AccountTransfer[];
   sinkingFunds?: SinkingFund[];
   affordGoals?: AffordGoal[];
+  scheduleBlocks?: ScheduleBlock[];
   monthlyIncome?: number;
   baseBudget?: BaseBudgetItem[];
   budgetPlans?: BudgetPlan[];

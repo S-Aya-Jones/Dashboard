@@ -1,25 +1,48 @@
 "use client";
 
-import { useState, KeyboardEvent } from "react";
+import { useState, useEffect, KeyboardEvent } from "react";
 import { format, addWeeks, subWeeks, startOfWeek, eachDayOfInterval, endOfWeek, isToday } from "date-fns";
-import { ChevronLeft, ChevronRight, Plus, Check, Trash2 } from "lucide-react";
-import { DashboardData } from "@/types/dashboard";
+import { ChevronLeft, ChevronRight, Plus, Check, Trash2, Calendar, X } from "lucide-react";
+import { DashboardData, ScheduleBlock } from "@/types/dashboard";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { id } from "@/lib/utils";
 import { celebrate } from "@/lib/confetti";
+import { TYPE_META, defaultBlocks, toMinutes, blocksForDate } from "@/lib/schedule";
 
 interface Props {
   data: DashboardData;
   update: (fn: (d: DashboardData) => DashboardData) => void;
 }
 
+interface CalEvent { id?: string; title: string; start?: string; end?: string; allDay: boolean; location?: string | null }
+
+const WEEKDAYS = [1, 2, 3, 4, 5]; // Mon-Fri
+
 export function WeekView({ data, update }: Props) {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [newTask, setNewTask] = useState<Record<string, string>>({});
+  const [calEvents, setCalEvents] = useState<CalEvent[]>([]);
+  const [calConnected, setCalConnected] = useState<boolean | null>(null);
+  const [showAddBlock, setShowAddBlock] = useState(false);
+  const [blockForm, setBlockForm] = useState({ label: "", startTime: "09:00", endTime: "10:00", type: "other" as ScheduleBlock["type"], days: [...WEEKDAYS] });
 
   const days = eachDayOfInterval({ start: weekStart, end: endOfWeek(weekStart, { weekStartsOn: 1 }) });
   const weekKey = format(weekStart, "yyyy-MM-dd");
+  const blocks = data.scheduleBlocks ?? defaultBlocks();
+
+  useEffect(() => {
+    fetch("/api/google/calendar?days=7")
+      .then(r => r.json())
+      .then(d => {
+        if (d.error) { setCalConnected(false); return; }
+        setCalConnected(true);
+        setCalEvents(d.events ?? []);
+      })
+      .catch(() => setCalConnected(false));
+  }, []);
+
+  const useDefaults = () => update(d => ({ ...d, scheduleBlocks: defaultBlocks() }));
 
   const intention = data.weeklyIntentions.find((w) => w.weekStart === weekKey);
 
@@ -61,22 +84,36 @@ export function WeekView({ data, update }: Props) {
     update((d) => ({ ...d, tasks: d.tasks.filter((t) => t.id !== taskId) }));
   };
 
-  const isLogged = (habitId: string, dateStr: string) =>
-    data.habitLogs.find((l) => l.habitId === habitId && l.date === dateStr)?.done ?? false;
-
-  const toggleHabit = (habitId: string, dateStr: string) => {
-    const existing = data.habitLogs.find((l) => l.habitId === habitId && l.date === dateStr);
-    if (existing) {
-      update((d) => ({ ...d, habitLogs: d.habitLogs.map((l) => l.habitId === habitId && l.date === dateStr ? { ...l, done: !l.done } : l) }));
-    } else {
-      update((d) => ({ ...d, habitLogs: [...d.habitLogs, { habitId, date: dateStr, done: true }] }));
-    }
+  const addBlock = () => {
+    if (!blockForm.label.trim()) return;
+    const meta = TYPE_META[blockForm.type];
+    update(d => ({
+      ...d,
+      scheduleBlocks: [...(d.scheduleBlocks ?? defaultBlocks()), {
+        id: id(), label: blockForm.label, startTime: blockForm.startTime, endTime: blockForm.endTime,
+        days: blockForm.days, type: blockForm.type, color: meta.color,
+      }],
+    }));
+    setBlockForm({ label: "", startTime: "09:00", endTime: "10:00", type: "other", days: [...WEEKDAYS] });
+    setShowAddBlock(false);
   };
+
+  const deleteBlock = (blockId: string) => {
+    update(d => ({ ...d, scheduleBlocks: (d.scheduleBlocks ?? defaultBlocks()).filter(b => b.id !== blockId) }));
+  };
+
+  const eventsForDay = (day: Date) => calEvents.filter(e => {
+    if (!e.start) return false;
+    const d = new Date(e.start);
+    return format(d, "yyyy-MM-dd") === format(day, "yyyy-MM-dd");
+  });
+
+  const blocksForDay = (day: Date) => blocksForDate(blocks, day);
 
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header with navigation */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="font-serif text-4xl text-brown">This Week</h1>
           <p className="text-sand-dark mt-1">
@@ -122,6 +159,105 @@ export function WeekView({ data, update }: Props) {
         </div>
       </Card>
 
+      {/* Ideal daily schedule timeline */}
+      <Card title="Ideal Schedule" subtitle="Your norms + Google Calendar, day by day">
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <p className="text-xs text-sand-dark">
+            {calConnected === false ? "Google Calendar not connected — schedule shown without calendar overlay" : calConnected === null ? "Loading calendar…" : `${calEvents.length} calendar event(s) this week`}
+          </p>
+          <div className="flex gap-2">
+            {!data.scheduleBlocks && <Button variant="secondary" size="sm" onClick={useDefaults}>Use suggested template</Button>}
+            <Button size="sm" onClick={() => setShowAddBlock(true)}><Plus size={13} className="inline mr-1" />Add block</Button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-3">
+          {days.map(day => {
+            const dayBlocks = blocksForDay(day);
+            const dayEvents = eventsForDay(day);
+            const today = isToday(day);
+            // merge & sort by start time
+            type Row = { kind: "block"; b: ScheduleBlock } | { kind: "event"; e: CalEvent };
+            const rows: { sortKey: number; row: Row }[] = [
+              ...dayBlocks.map(b => ({ sortKey: toMinutes(b.startTime), row: { kind: "block" as const, b } })),
+              ...dayEvents.map(e => ({ sortKey: e.allDay ? -1 : new Date(e.start!).getHours() * 60 + new Date(e.start!).getMinutes(), row: { kind: "event" as const, e } })),
+            ].sort((a, b) => a.sortKey - b.sortKey);
+
+            return (
+              <div key={format(day, "yyyy-MM-dd")} className={`rounded-xl p-2.5 ${today ? "ring-2 ring-terracotta/40" : "bg-cream-dark"}`}>
+                <p className={`text-xs font-semibold mb-2 ${today ? "text-terracotta" : "text-brown"}`}>
+                  {format(day, "EEE M/d")}
+                </p>
+                <div className="space-y-1.5">
+                  {rows.length === 0 && <p className="text-[11px] text-sand-dark italic">Nothing scheduled</p>}
+                  {rows.map(({ row }, i) => {
+                    if (row.kind === "block") {
+                      const meta = TYPE_META[row.b.type];
+                      return (
+                        <div key={`b-${i}`} className="group flex items-start gap-1.5 text-[11px] px-1.5 py-1 rounded-lg" style={{ background: `${meta.color}12` }}>
+                          <span className="w-1.5 h-1.5 rounded-full mt-1 flex-shrink-0" style={{ background: meta.color }} />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate" style={{ color: meta.color }}>{row.b.label}</p>
+                            <p className="text-sand-dark">{row.b.startTime}–{row.b.endTime}</p>
+                          </div>
+                          <button onClick={() => deleteBlock(row.b.id)} className="opacity-0 group-hover:opacity-100 text-sand hover:text-rose flex-shrink-0">
+                            <Trash2 size={10} />
+                          </button>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div key={`e-${i}`} className="flex items-start gap-1.5 text-[11px] px-1.5 py-1 rounded-lg" style={{ background: "rgba(124,92,252,0.08)" }}>
+                        <Calendar size={10} className="mt-0.5 flex-shrink-0" style={{ color: "#7C5CFC" }} />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate" style={{ color: "#7C5CFC" }}>{row.e.title}</p>
+                          {!row.e.allDay && row.e.start && <p className="text-sand-dark">{format(new Date(row.e.start), "h:mm a")}</p>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
+      {/* Add block modal (inline) */}
+      {showAddBlock && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: "rgba(0,0,0,0.4)" }} onClick={() => setShowAddBlock(false)}>
+          <div className="rounded-2xl p-5 w-full max-w-sm bg-white" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <p className="font-semibold text-brown">Add Schedule Block</p>
+              <button onClick={() => setShowAddBlock(false)}><X size={16} /></button>
+            </div>
+            <div className="space-y-3">
+              <input type="text" placeholder="Label (e.g. MCAT study)" value={blockForm.label}
+                onChange={e => setBlockForm({ ...blockForm, label: e.target.value })}
+                className="w-full text-sm px-3 py-2 rounded-lg border" />
+              <div className="grid grid-cols-2 gap-2">
+                <input type="time" value={blockForm.startTime} onChange={e => setBlockForm({ ...blockForm, startTime: e.target.value })} className="text-sm px-2 py-2 rounded-lg border" />
+                <input type="time" value={blockForm.endTime} onChange={e => setBlockForm({ ...blockForm, endTime: e.target.value })} className="text-sm px-2 py-2 rounded-lg border" />
+              </div>
+              <select value={blockForm.type} onChange={e => setBlockForm({ ...blockForm, type: e.target.value as ScheduleBlock["type"] })} className="w-full text-sm px-3 py-2 rounded-lg border">
+                {Object.entries(TYPE_META).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+              </select>
+              <div className="flex gap-1.5 flex-wrap">
+                {["S","M","T","W","T","F","S"].map((label, i) => (
+                  <button key={i} type="button"
+                    onClick={() => setBlockForm(f => ({ ...f, days: f.days.includes(i) ? f.days.filter(d => d !== i) : [...f.days, i] }))}
+                    className="w-8 h-8 rounded-full text-xs font-semibold"
+                    style={blockForm.days.includes(i) ? { background: "#7C5CFC", color: "#fff" } : { background: "#eee", color: "#888" }}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <Button onClick={addBlock} className="w-full">Add Block</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Habit grid for the week */}
       <Card title="This Week's Habits">
         <div className="overflow-x-auto mt-2">
@@ -153,11 +289,18 @@ export function WeekView({ data, update }: Props) {
                   </td>
                   {days.map((day) => {
                     const d = format(day, "yyyy-MM-dd");
-                    const done = isLogged(habit.id, d);
+                    const existing = data.habitLogs.find((l) => l.habitId === habit.id && l.date === d);
+                    const done = existing?.done ?? false;
                     return (
                       <td key={d} className="px-1 py-2 text-center">
                         <button
-                          onClick={() => toggleHabit(habit.id, d)}
+                          onClick={() => {
+                            if (existing) {
+                              update((dd) => ({ ...dd, habitLogs: dd.habitLogs.map((l) => l.habitId === habit.id && l.date === d ? { ...l, done: !l.done } : l) }));
+                            } else {
+                              update((dd) => ({ ...dd, habitLogs: [...dd.habitLogs, { habitId: habit.id, date: d, done: true }] }));
+                            }
+                          }}
                           className={`w-6 h-6 rounded-full border transition-all mx-auto flex items-center justify-center ${done ? "border-transparent" : "border-sand hover:border-sand-dark"}`}
                           style={done ? { background: habit.color } : {}}
                         >

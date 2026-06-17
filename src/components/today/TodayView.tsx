@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, KeyboardEvent } from "react";
+import { useState, useEffect, KeyboardEvent } from "react";
 import { format, differenceInDays, parseISO, startOfDay, subDays } from "date-fns";
-import { Plus, Trash2, Flame, Check, Brain, Clock, Dumbbell, Stethoscope } from "lucide-react";
+import { Plus, Trash2, Flame, Check, Brain, Clock, Dumbbell, Stethoscope, Calendar } from "lucide-react";
 import { DashboardData } from "@/types/dashboard";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -11,6 +11,7 @@ import { today as todayStr, greetingByTime, id } from "@/lib/utils";
 import { celebrate } from "@/lib/confetti";
 import { WeatherWidget } from "./WeatherWidget";
 import { HourlyWeatherCard } from "./HourlyWeatherCard";
+import { TYPE_META, defaultBlocks, blocksForDate } from "@/lib/schedule";
 
 interface Props {
   data: DashboardData;
@@ -24,6 +25,14 @@ export function TodayView({ data, update }: Props) {
   const [anxietyLevel, setAnxietyLevel] = useState(5);
   const [anxietyNote, setAnxietyNote] = useState("");
   const [winText, setWinText] = useState("");
+  const [calEvents, setCalEvents] = useState<{ title: string; start?: string; allDay: boolean }[]>([]);
+
+  useEffect(() => {
+    fetch("/api/google/calendar?days=1")
+      .then(r => r.json())
+      .then(d => setCalEvents(d.events ?? []))
+      .catch(() => {});
+  }, []);
 
   const todayCheckIn = data.anxietyCheckIns.find((c) => c.date === t);
   const todayTasks = data.tasks.filter((task) => task.date === t);
@@ -32,6 +41,17 @@ export function TodayView({ data, update }: Props) {
   yesterday.setDate(yesterday.getDate() - 1);
   const yStr = format(yesterday, "yyyy-MM-dd");
   const yesterdayWin = data.wins.find((w) => w.date === yStr);
+
+  const todayBlocks = blocksForDate(data.scheduleBlocks ?? defaultBlocks(), new Date());
+  const timelineRows: { sortKey: number; kind: "block" | "event"; label: string; time: string; color: string }[] = [
+    ...todayBlocks.map(b => ({ sortKey: parseInt(b.startTime.replace(":", "")), kind: "block" as const, label: b.label, time: `${b.startTime}–${b.endTime}`, color: TYPE_META[b.type].color })),
+    ...calEvents.map(e => ({
+      sortKey: e.allDay || !e.start ? -1 : new Date(e.start).getHours() * 100 + new Date(e.start).getMinutes(),
+      kind: "event" as const, label: e.title,
+      time: e.allDay || !e.start ? "All day" : format(new Date(e.start), "h:mm a"),
+      color: "#7C5CFC",
+    })),
+  ].sort((a, b) => a.sortKey - b.sortKey);
 
   const saveCheckIn = () => {
     update((d) => ({
@@ -157,6 +177,23 @@ export function TodayView({ data, update }: Props) {
           </div>
         </Card>
       </div>
+
+      {/* Today's Timeline */}
+      <Card title="Today's Schedule" subtitle="Your norms + calendar, merged">
+        {timelineRows.length === 0 ? (
+          <p className="text-sand-dark text-sm">No schedule set — add blocks on the Week page</p>
+        ) : (
+          <div className="space-y-1.5">
+            {timelineRows.map((row, i) => (
+              <div key={i} className="flex items-center gap-2.5 text-sm px-2.5 py-1.5 rounded-lg" style={{ background: `${row.color}10` }}>
+                {row.kind === "event" ? <Calendar size={13} style={{ color: row.color }} /> : <span className="w-2 h-2 rounded-full" style={{ background: row.color }} />}
+                <span className="font-medium flex-1" style={{ color: row.color }}>{row.label}</span>
+                <span className="text-xs text-sand-dark">{row.time}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
 
       {/* Tasks */}
       <Card title="Today's Tasks" action={
