@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { id } from "@/lib/utils";
 import { celebrate } from "@/lib/confetti";
-import { TYPE_META, defaultBlocks, toMinutes, blocksForDate } from "@/lib/schedule";
+import { TYPE_META, defaultBlocks, toMinutes, blocksForDate, formatRange12 } from "@/lib/schedule";
 
 interface Props {
   data: DashboardData;
@@ -198,7 +198,7 @@ export function WeekView({ data, update }: Props) {
                           <span className="w-1.5 h-1.5 rounded-full mt-1 flex-shrink-0" style={{ background: meta.color }} />
                           <div className="flex-1 min-w-0">
                             <p className="font-medium truncate" style={{ color: meta.color }}>{row.b.label}</p>
-                            <p className="text-sand-dark">{row.b.startTime}–{row.b.endTime}</p>
+                            <p className="text-sand-dark">{formatRange12(row.b.startTime, row.b.endTime)}</p>
                           </div>
                           <button onClick={() => deleteBlock(row.b.id)} className="opacity-0 group-hover:opacity-100 text-sand hover:text-rose flex-shrink-0">
                             <Trash2 size={10} />

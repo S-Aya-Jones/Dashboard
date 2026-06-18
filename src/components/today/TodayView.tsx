@@ -6,12 +6,11 @@ import { Plus, Trash2, Flame, Check, Brain, Clock, Dumbbell, Stethoscope, Calend
 import { DashboardData } from "@/types/dashboard";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { AnxietySlider } from "@/components/ui/Slider";
 import { today as todayStr, greetingByTime, id } from "@/lib/utils";
 import { celebrate } from "@/lib/confetti";
 import { WeatherWidget } from "./WeatherWidget";
 import { HourlyWeatherCard } from "./HourlyWeatherCard";
-import { TYPE_META, defaultBlocks, blocksForDate } from "@/lib/schedule";
+import { TYPE_META, defaultBlocks, blocksForDate, formatRange12 } from "@/lib/schedule";
 
 interface Props {
   data: DashboardData;
@@ -22,9 +21,6 @@ export function TodayView({ data, update }: Props) {
   const t = todayStr();
   const [newTask, setNewTask] = useState("");
   const [exposureNote, setExposureNote] = useState("");
-  const [anxietyLevel, setAnxietyLevel] = useState(5);
-  const [anxietyNote, setAnxietyNote] = useState("");
-  const [winText, setWinText] = useState("");
   const [calEvents, setCalEvents] = useState<{ title: string; start?: string; allDay: boolean }[]>([]);
 
   useEffect(() => {
@@ -34,17 +30,12 @@ export function TodayView({ data, update }: Props) {
       .catch(() => {});
   }, []);
 
-  const todayCheckIn = data.anxietyCheckIns.find((c) => c.date === t);
   const todayTasks = data.tasks.filter((task) => task.date === t);
   const todayHabits = data.habits;
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yStr = format(yesterday, "yyyy-MM-dd");
-  const yesterdayWin = data.wins.find((w) => w.date === yStr);
 
   const todayBlocks = blocksForDate(data.scheduleBlocks ?? defaultBlocks(), new Date());
   const timelineRows: { sortKey: number; kind: "block" | "event"; label: string; time: string; color: string }[] = [
-    ...todayBlocks.map(b => ({ sortKey: parseInt(b.startTime.replace(":", "")), kind: "block" as const, label: b.label, time: `${b.startTime}–${b.endTime}`, color: TYPE_META[b.type].color })),
+    ...todayBlocks.map(b => ({ sortKey: parseInt(b.startTime.replace(":", "")), kind: "block" as const, label: b.label, time: formatRange12(b.startTime, b.endTime), color: TYPE_META[b.type].color })),
     ...calEvents.map(e => ({
       sortKey: e.allDay || !e.start ? -1 : new Date(e.start).getHours() * 100 + new Date(e.start).getMinutes(),
       kind: "event" as const, label: e.title,
@@ -52,16 +43,6 @@ export function TodayView({ data, update }: Props) {
       color: "#7C5CFC",
     })),
   ].sort((a, b) => a.sortKey - b.sortKey);
-
-  const saveCheckIn = () => {
-    update((d) => ({
-      ...d,
-      anxietyCheckIns: [
-        ...d.anxietyCheckIns.filter((c) => c.date !== t),
-        { date: t, level: anxietyLevel, note: anxietyNote },
-      ],
-    }));
-  };
 
   const addTask = () => {
     if (!newTask.trim()) return;
@@ -96,13 +77,6 @@ export function TodayView({ data, update }: Props) {
     }
   };
 
-  const addWin = () => {
-    if (!winText.trim()) return;
-    update((d) => ({ ...d, wins: [...d.wins, { id: id(), date: t, text: winText.trim() }] }));
-    setWinText("");
-    celebrate();
-  };
-
   const addExposure = () => {
     if (!exposureNote.trim()) return;
     update((d) => ({ ...d, exposureLog: [...d.exposureLog, { id: id(), date: t, description: exposureNote.trim(), anxietyBefore: 5, peakAnxiety: 5, anxietyAfter: 5, durationMinutes: 0, type: "general" }] }));
@@ -127,57 +101,6 @@ export function TodayView({ data, update }: Props) {
       </div>
 
       <HourlyWeatherCard />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {/* Anxiety check-in */}
-        <Card title="How are you feeling?" subtitle="Your anxiety check-in for today">
-          {todayCheckIn ? (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm text-sage">
-                <Check size={15} />
-                <span>Checked in — level {todayCheckIn.level}</span>
-              </div>
-              {todayCheckIn.note && <p className="text-sm text-brown italic">&ldquo;{todayCheckIn.note}&rdquo;</p>}
-              <button onClick={() => update((d) => ({ ...d, anxietyCheckIns: d.anxietyCheckIns.filter((c) => c.date !== t) }))} className="text-xs text-sand-dark hover:text-terracotta transition-colors">
-                Update check-in
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <AnxietySlider value={anxietyLevel} onChange={setAnxietyLevel} />
-              <input
-                type="text"
-                placeholder="Any thoughts? (optional)"
-                value={anxietyNote}
-                onChange={(e) => setAnxietyNote(e.target.value)}
-              />
-              <Button onClick={saveCheckIn} size="sm">Save Check-in</Button>
-            </div>
-          )}
-        </Card>
-
-        {/* Yesterday's win reminder */}
-        <Card title="Yesterday's Win" subtitle="A reminder of something good">
-          {yesterdayWin ? (
-            <p className="text-brown italic text-sm leading-relaxed">&ldquo;{yesterdayWin.text}&rdquo;</p>
-          ) : (
-            <p className="text-sand-dark text-sm">No win logged for yesterday. Add one for today below!</p>
-          )}
-          <div className="mt-4 space-y-2">
-            <input
-              type="text"
-              placeholder="Today's win (big or small)…"
-              value={winText}
-              onChange={(e) => setWinText(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") addWin(); }}
-            />
-            <Button onClick={addWin} size="sm" variant="secondary">
-              Add to Wins Jar
-            </Button>
-          </div>
-        </Card>
-      </div>
-
       {/* Today's Timeline */}
       <Card title="Today's Schedule" subtitle="Your norms + calendar, merged">
         {timelineRows.length === 0 ? (

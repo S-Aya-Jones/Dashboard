@@ -36,6 +36,17 @@ export function toMinutes(t: string) {
   return h * 60 + m;
 }
 
+export function formatTime12(t: string) {
+  const [h, m] = t.split(":").map(Number);
+  const period = h >= 12 ? "PM" : "AM";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return m === 0 ? `${h12}${period}` : `${h12}:${String(m).padStart(2, "0")}${period}`;
+}
+
+export function formatRange12(start: string, end: string) {
+  return `${formatTime12(start)}–${formatTime12(end)}`;
+}
+
 export function blocksForDate(blocks: ScheduleBlock[], date: Date) {
   const dow = date.getDay();
   return blocks.filter(b => b.days.includes(dow)).sort((a, b) => toMinutes(a.startTime) - toMinutes(b.startTime));
