@@ -1,3 +1,4 @@
+import { Briefcase, Footprints, Brain, Flame, Utensils, Moon, Sparkles, Circle, LucideIcon } from "lucide-react";
 import { ScheduleBlock } from "@/types/dashboard";
 import { id } from "@/lib/utils";
 
@@ -14,22 +15,33 @@ export const TYPE_META: Record<ScheduleBlock["type"], { color: string; label: st
   other:    { color: "#94A3B8", label: "Other" },
 };
 
+export const TYPE_ICON: Record<ScheduleBlock["type"], LucideIcon> = {
+  work:     Briefcase,
+  walk:     Footprints,
+  mcat:     Brain,
+  exposure: Flame,
+  meal:     Utensils,
+  sleep:    Moon,
+  personal: Sparkles,
+  other:    Circle,
+};
+
 export function defaultBlocks(): ScheduleBlock[] {
   return [
-    { id: id(), label: "Morning walk",          startTime: "06:15", endTime: "06:45", days: WEEKDAYS, type: "walk" },
+    { id: id(), label: "Morning walk",          startTime: "06:00", endTime: "07:00", days: WEEKDAYS, type: "walk" },
     { id: id(), label: "Work",                  startTime: "07:00", endTime: "14:30", days: WEEKDAYS, type: "work" },
     { id: id(), label: "Walking lunch break",   startTime: "11:00", endTime: "12:00", days: WEEKDAYS, type: "walk", notes: "Step break, then back to work" },
-    { id: id(), label: "Decompress walk",       startTime: "14:30", endTime: "15:15", days: WEEKDAYS, type: "walk" },
-    { id: id(), label: "MCAT study block",      startTime: "15:15", endTime: "17:15", days: WEEKDAYS, type: "mcat" },
-    { id: id(), label: "Exposure therapy",      startTime: "17:15", endTime: "17:45", days: WEEKDAYS, type: "exposure" },
-    { id: id(), label: "Evening walk / steps",  startTime: "17:45", endTime: "18:30", days: WEEKDAYS, type: "walk" },
-    { id: id(), label: "Dinner",                startTime: "18:30", endTime: "19:00", days: [0,1,2,3,4,5,6], type: "meal" },
-    { id: id(), label: "MCAT study block 2",    startTime: "19:00", endTime: "21:00", days: WEEKDAYS, type: "mcat" },
-    { id: id(), label: "Wind down",             startTime: "21:00", endTime: "21:45", days: [0,1,2,3,4,5,6], type: "personal", notes: "Progress photo, journal, prep tomorrow" },
+    { id: id(), label: "Decompress walk",       startTime: "14:30", endTime: "15:30", days: WEEKDAYS, type: "walk" },
+    { id: id(), label: "MCAT study block",      startTime: "15:30", endTime: "17:30", days: WEEKDAYS, type: "mcat" },
+    { id: id(), label: "Exposure therapy",      startTime: "17:30", endTime: "18:00", days: WEEKDAYS, type: "exposure" },
+    { id: id(), label: "Evening walk / steps",  startTime: "18:00", endTime: "19:00", days: WEEKDAYS, type: "walk" },
+    { id: id(), label: "Dinner",                startTime: "19:00", endTime: "19:30", days: [0,1,2,3,4,5,6], type: "meal" },
+    { id: id(), label: "MCAT study block 2",    startTime: "19:30", endTime: "21:30", days: WEEKDAYS, type: "mcat" },
+    { id: id(), label: "Wind down",             startTime: "21:30", endTime: "22:15", days: [0,1,2,3,4,5,6], type: "personal", notes: "Progress photo, journal, prep tomorrow" },
     { id: id(), label: "Sleep",                 startTime: "22:30", endTime: "06:00", days: [0,1,2,3,4,5,6], type: "sleep" },
-    { id: id(), label: "Long walk",             startTime: "09:00", endTime: "10:30", days: [0,6], type: "walk" },
-    { id: id(), label: "Weekend MCAT block",    startTime: "10:30", endTime: "12:30", days: [0,6], type: "mcat" },
-    { id: id(), label: "Afternoon walk",        startTime: "16:00", endTime: "17:00", days: [0,6], type: "walk" },
+    { id: id(), label: "Long walk",             startTime: "09:00", endTime: "11:00", days: [0,6], type: "walk" },
+    { id: id(), label: "Weekend MCAT block",    startTime: "11:00", endTime: "13:00", days: [0,6], type: "mcat" },
+    { id: id(), label: "Afternoon walk",        startTime: "16:00", endTime: "17:30", days: [0,6], type: "walk" },
   ];
 }
 

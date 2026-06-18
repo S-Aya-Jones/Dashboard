@@ -10,7 +10,7 @@ import { today as todayStr, greetingByTime, id } from "@/lib/utils";
 import { celebrate } from "@/lib/confetti";
 import { WeatherWidget } from "./WeatherWidget";
 import { HourlyWeatherCard } from "./HourlyWeatherCard";
-import { TYPE_META, defaultBlocks, blocksForDate, formatRange12 } from "@/lib/schedule";
+import { TYPE_META, TYPE_ICON, defaultBlocks, blocksForDate, formatRange12 } from "@/lib/schedule";
 
 interface Props {
   data: DashboardData;
@@ -32,8 +32,8 @@ export function TodayView({ data, update }: Props) {
   const todayTasks = data.tasks.filter((task) => task.date === t);
 
   const todayBlocks = blocksForDate(data.scheduleBlocks ?? defaultBlocks(), new Date());
-  const timelineRows: { sortKey: number; kind: "block" | "event"; label: string; time: string; color: string }[] = [
-    ...todayBlocks.map(b => ({ sortKey: parseInt(b.startTime.replace(":", "")), kind: "block" as const, label: b.label, time: formatRange12(b.startTime, b.endTime), color: TYPE_META[b.type].color })),
+  const timelineRows: { sortKey: number; kind: "block" | "event"; label: string; time: string; color: string; type?: import("@/types/dashboard").ScheduleBlock["type"] }[] = [
+    ...todayBlocks.map(b => ({ sortKey: parseInt(b.startTime.replace(":", "")), kind: "block" as const, label: b.label, time: formatRange12(b.startTime, b.endTime), color: TYPE_META[b.type].color, type: b.type })),
     ...calEvents.map(e => ({
       sortKey: e.allDay || !e.start ? -1 : new Date(e.start).getHours() * 100 + new Date(e.start).getMinutes(),
       kind: "event" as const, label: e.title,
@@ -89,14 +89,26 @@ export function TodayView({ data, update }: Props) {
         {timelineRows.length === 0 ? (
           <p className="text-sand-dark text-sm">No schedule set — add blocks on the Week page</p>
         ) : (
-          <div className="space-y-1.5">
-            {timelineRows.map((row, i) => (
-              <div key={i} className="flex items-center gap-2.5 text-sm px-2.5 py-1.5 rounded-lg" style={{ background: `${row.color}10` }}>
-                {row.kind === "event" ? <Calendar size={13} style={{ color: row.color }} /> : <span className="w-2 h-2 rounded-full" style={{ background: row.color }} />}
-                <span className="font-medium flex-1" style={{ color: row.color }}>{row.label}</span>
-                <span className="text-xs text-sand-dark">{row.time}</span>
-              </div>
-            ))}
+          <div className="space-y-2">
+            {timelineRows.map((row, i) => {
+              const Icon = row.kind === "event" ? Calendar : TYPE_ICON[row.type!];
+              return (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl border-l-[3px] transition-shadow hover:shadow-sm"
+                  style={{ background: `${row.color}0d`, borderColor: row.color }}
+                >
+                  <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                    style={{ background: `${row.color}22` }}
+                  >
+                    <Icon size={15} style={{ color: row.color }} />
+                  </div>
+                  <span className="font-medium flex-1 text-sm truncate" style={{ color: row.color }}>{row.label}</span>
+                  <span className="text-xs font-medium text-sand-dark whitespace-nowrap">{row.time}</span>
+                </div>
+              );
+            })}
           </div>
         )}
       </Card>

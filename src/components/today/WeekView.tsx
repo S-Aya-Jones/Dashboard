@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { id } from "@/lib/utils";
 import { celebrate } from "@/lib/confetti";
-import { TYPE_META, defaultBlocks, toMinutes, blocksForDate, formatRange12 } from "@/lib/schedule";
+import { TYPE_META, TYPE_ICON, defaultBlocks, toMinutes, blocksForDate, formatRange12 } from "@/lib/schedule";
 
 interface Props {
   data: DashboardData;
@@ -135,8 +135,8 @@ export function WeekView({ data, update }: Props) {
             ].sort((a, b) => a.sortKey - b.sortKey);
 
             return (
-              <div key={format(day, "yyyy-MM-dd")} className={`rounded-xl p-2.5 ${today ? "ring-2 ring-terracotta/40" : "bg-cream-dark"}`}>
-                <p className={`text-xs font-semibold mb-2 ${today ? "text-terracotta" : "text-brown"}`}>
+              <div key={format(day, "yyyy-MM-dd")} className={`rounded-2xl p-3 transition-shadow ${today ? "ring-2 ring-terracotta/40 bg-white shadow-sm" : "bg-cream-dark"}`}>
+                <p className={`text-xs font-semibold mb-2.5 pb-2 border-b ${today ? "text-terracotta border-terracotta/20" : "text-brown border-cream-darker"}`}>
                   {format(day, "EEE M/d")}
                 </p>
                 <div className="space-y-1.5">
@@ -144,9 +144,10 @@ export function WeekView({ data, update }: Props) {
                   {rows.map(({ row }, i) => {
                     if (row.kind === "block") {
                       const meta = TYPE_META[row.b.type];
+                      const Icon = TYPE_ICON[row.b.type];
                       return (
-                        <div key={`b-${i}`} className="group flex items-start gap-1.5 text-[11px] px-1.5 py-1 rounded-lg" style={{ background: `${meta.color}12` }}>
-                          <span className="w-1.5 h-1.5 rounded-full mt-1 flex-shrink-0" style={{ background: meta.color }} />
+                        <div key={`b-${i}`} className="group flex items-start gap-2 text-[11px] px-2 py-1.5 rounded-lg border-l-[3px]" style={{ background: `${meta.color}12`, borderColor: meta.color }}>
+                          <Icon size={11} className="mt-0.5 flex-shrink-0" style={{ color: meta.color }} />
                           <div className="flex-1 min-w-0">
                             <p className="font-medium truncate" style={{ color: meta.color }}>{row.b.label}</p>
                             <p className="text-sand-dark">{formatRange12(row.b.startTime, row.b.endTime)}</p>
@@ -158,8 +159,8 @@ export function WeekView({ data, update }: Props) {
                       );
                     }
                     return (
-                      <div key={`e-${i}`} className="flex items-start gap-1.5 text-[11px] px-1.5 py-1 rounded-lg" style={{ background: "rgba(124,92,252,0.08)" }}>
-                        <Calendar size={10} className="mt-0.5 flex-shrink-0" style={{ color: "#7C5CFC" }} />
+                      <div key={`e-${i}`} className="flex items-start gap-2 text-[11px] px-2 py-1.5 rounded-lg border-l-[3px]" style={{ background: "rgba(124,92,252,0.08)", borderColor: "#7C5CFC" }}>
+                        <Calendar size={11} className="mt-0.5 flex-shrink-0" style={{ color: "#7C5CFC" }} />
                         <div className="flex-1 min-w-0">
                           <p className="font-medium truncate" style={{ color: "#7C5CFC" }}>{row.e.title}</p>
                           {!row.e.allDay && row.e.start && <p className="text-sand-dark">{format(new Date(row.e.start), "h:mm a")}</p>}
