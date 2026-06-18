@@ -62,6 +62,10 @@ export function defaultBlocks(): ScheduleBlock[] {
     { id: id(), label: "Long walk",             startTime: "09:00", endTime: "11:00", days: [0,6], type: "walk" },
     { id: id(), label: "Weekend MCAT block",    startTime: "11:00", endTime: "13:00", days: [0,6], type: "mcat" },
     { id: id(), label: "Afternoon walk",        startTime: "16:00", endTime: "17:30", days: [0,6], type: "walk" },
+    { id: id(), label: "Exposure therapy",      startTime: "17:30", endTime: "18:00", days: [0,6], type: "exposure" },
+    { id: id(), label: "Dinner",                startTime: "19:00", endTime: "19:30", days: [0,6], type: "meal" },
+    { id: id(), label: "Weekend MCAT block 2",  startTime: "19:30", endTime: "21:00", days: [0,6], type: "mcat" },
+    { id: id(), label: "Wind down",             startTime: "21:30", endTime: "22:00", days: [0,6], type: "personal", notes: "Progress photo, journal, prep tomorrow" },
   ];
 }
 
