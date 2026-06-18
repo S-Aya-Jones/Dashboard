@@ -2,7 +2,7 @@
 
 import { useState, useEffect, KeyboardEvent } from "react";
 import { format, differenceInDays, parseISO, startOfDay, subDays } from "date-fns";
-import { Plus, Trash2, Flame, Check, Brain, Clock, Dumbbell, Stethoscope, Calendar } from "lucide-react";
+import { Plus, Trash2, Check, Brain, Clock, Dumbbell, Stethoscope, Calendar } from "lucide-react";
 import { DashboardData } from "@/types/dashboard";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -20,7 +20,6 @@ interface Props {
 export function TodayView({ data, update }: Props) {
   const t = todayStr();
   const [newTask, setNewTask] = useState("");
-  const [exposureNote, setExposureNote] = useState("");
   const [calEvents, setCalEvents] = useState<{ title: string; start?: string; allDay: boolean }[]>([]);
 
   useEffect(() => {
@@ -31,7 +30,6 @@ export function TodayView({ data, update }: Props) {
   }, []);
 
   const todayTasks = data.tasks.filter((task) => task.date === t);
-  const todayHabits = data.habits;
 
   const todayBlocks = blocksForDate(data.scheduleBlocks ?? defaultBlocks(), new Date());
   const timelineRows: { sortKey: number; kind: "block" | "event"; label: string; time: string; color: string }[] = [
@@ -66,21 +64,6 @@ export function TodayView({ data, update }: Props) {
 
   const deleteTask = (taskId: string) => {
     update((d) => ({ ...d, tasks: d.tasks.filter((t) => t.id !== taskId) }));
-  };
-
-  const toggleHabit = (habitId: string) => {
-    const existing = data.habitLogs.find((l) => l.habitId === habitId && l.date === t);
-    if (existing) {
-      update((d) => ({ ...d, habitLogs: d.habitLogs.map((l) => l.habitId === habitId && l.date === t ? { ...l, done: !l.done } : l) }));
-    } else {
-      update((d) => ({ ...d, habitLogs: [...d.habitLogs, { habitId, date: t, done: true }] }));
-    }
-  };
-
-  const addExposure = () => {
-    if (!exposureNote.trim()) return;
-    update((d) => ({ ...d, exposureLog: [...d.exposureLog, { id: id(), date: t, description: exposureNote.trim(), anxietyBefore: 5, peakAnxiety: 5, anxietyAfter: 5, durationMinutes: 0, type: "general" }] }));
-    setExposureNote("");
   };
 
   const handleTaskKey = (e: KeyboardEvent) => { if (e.key === "Enter") addTask(); };
@@ -168,75 +151,6 @@ export function TodayView({ data, update }: Props) {
       </Card>
 
       <SmartInsights data={data} />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {/* Today's Habits */}
-        <Card title="Today's Habits">
-          <div className="space-y-2">
-            {todayHabits.map((habit) => {
-              const log = data.habitLogs.find((l) => l.habitId === habit.id && l.date === t);
-              const done = log?.done ?? false;
-              return (
-                <button
-                  key={habit.id}
-                  onClick={() => toggleHabit(habit.id)}
-                  className={`
-                    w-full flex items-center gap-3 p-2.5 rounded-xl border transition-all text-left
-                    ${done
-                      ? "border-transparent bg-opacity-10"
-                      : "border-sand-light hover:border-sand"}
-                  `}
-                  style={done ? { background: `${habit.color}15`, borderColor: `${habit.color}40` } : {}}
-                >
-                  <span className="text-lg">{habit.icon}</span>
-                  <span className={`text-sm flex-1 ${done ? "line-through" : ""}`} style={done ? { color: habit.color } : { color: "var(--text)" }}>
-                    {habit.name}
-                  </span>
-                  {done && <Check size={14} style={{ color: habit.color }} />}
-                </button>
-              );
-            })}
-          </div>
-        </Card>
-
-        {/* Exposure prompt */}
-        <Card
-          title="Today's Brave Thing"
-          subtitle="Exposure therapy — one step at a time"
-        >
-          {data.exposureLog.filter((e) => e.date === t).length > 0 ? (
-            <div className="space-y-2">
-              {data.exposureLog.filter((e) => e.date === t).map((e) => (
-                <div key={e.id} className="flex items-center gap-2 text-sm">
-                  <Flame size={14} className="text-terracotta" />
-                  <span className="text-brown">{e.description}</span>
-                </div>
-              ))}
-              <p className="text-xs text-sage mt-2">You showed up today. That matters.</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <p className="text-sm text-sand-dark leading-relaxed">
-                What&apos;s one brave thing you did or will do today? It doesn&apos;t have to be big.
-              </p>
-              <input
-                type="text"
-                placeholder="e.g. Made a phone call I'd been avoiding…"
-                value={exposureNote}
-                onChange={(e) => setExposureNote(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") addExposure(); }}
-              />
-              <Button onClick={addExposure} size="sm" variant="secondary">Log It</Button>
-            </div>
-          )}
-          <div className="mt-4 pt-3 border-t border-cream-darker">
-            <p className="text-xs text-sand-dark">
-              For detailed exposure logs with anxiety ratings, visit{" "}
-              <a href="/exposure" className="text-terracotta hover:underline">Exposure Therapy</a>.
-            </p>
-          </div>
-        </Card>
-      </div>
     </div>
   );
 }

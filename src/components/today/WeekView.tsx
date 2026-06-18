@@ -28,7 +28,6 @@ export function WeekView({ data, update }: Props) {
   const [blockForm, setBlockForm] = useState({ label: "", startTime: "09:00", endTime: "10:00", type: "other" as ScheduleBlock["type"], days: [...WEEKDAYS] });
 
   const days = eachDayOfInterval({ start: weekStart, end: endOfWeek(weekStart, { weekStartsOn: 1 }) });
-  const weekKey = format(weekStart, "yyyy-MM-dd");
   const blocks = data.scheduleBlocks ?? defaultBlocks();
 
   useEffect(() => {
@@ -43,28 +42,6 @@ export function WeekView({ data, update }: Props) {
   }, []);
 
   const useDefaults = () => update(d => ({ ...d, scheduleBlocks: defaultBlocks() }));
-
-  const intention = data.weeklyIntentions.find((w) => w.weekStart === weekKey);
-
-  const setIntention = (val: string) => {
-    update((d) => ({
-      ...d,
-      weeklyIntentions: [
-        ...d.weeklyIntentions.filter((w) => w.weekStart !== weekKey),
-        { weekStart: weekKey, intention: val, focus: intention?.focus ?? "" },
-      ],
-    }));
-  };
-
-  const setFocus = (val: string) => {
-    update((d) => ({
-      ...d,
-      weeklyIntentions: [
-        ...d.weeklyIntentions.filter((w) => w.weekStart !== weekKey),
-        { weekStart: weekKey, intention: intention?.intention ?? "", focus: val },
-      ],
-    }));
-  };
 
   const dayTasks = (dateStr: string) => data.tasks.filter((t) => t.date === dateStr);
 
@@ -132,32 +109,6 @@ export function WeekView({ data, update }: Props) {
           </Button>
         </div>
       </div>
-
-      {/* Weekly intention */}
-      <Card title="Weekly Intention & Focus">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-          <div>
-            <label className="text-xs font-medium text-sand-dark block mb-1">This week&apos;s intention</label>
-            <textarea
-              rows={3}
-              placeholder="What matters most this week? What do you want to feel?"
-              value={intention?.intention ?? ""}
-              onChange={(e) => setIntention(e.target.value)}
-              className="font-serif text-base"
-            />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-sand-dark block mb-1">One focus word</label>
-            <input
-              type="text"
-              placeholder="e.g. Steady, Present, Bold"
-              value={intention?.focus ?? ""}
-              onChange={(e) => setFocus(e.target.value)}
-              className="font-serif text-xl"
-            />
-          </div>
-        </div>
-      </Card>
 
       {/* Ideal daily schedule timeline */}
       <Card title="Ideal Schedule" subtitle="Your norms + Google Calendar, day by day">
@@ -257,64 +208,6 @@ export function WeekView({ data, update }: Props) {
           </div>
         </div>
       )}
-
-      {/* Habit grid for the week */}
-      <Card title="This Week's Habits">
-        <div className="overflow-x-auto mt-2">
-          <table className="w-full text-xs">
-            <thead>
-              <tr>
-                <th className="text-left pr-3 pb-2 text-sand-dark font-medium">Habit</th>
-                {days.map((day) => {
-                  const d = format(day, "yyyy-MM-dd");
-                  const today = isToday(day);
-                  return (
-                    <th key={d} className={`pb-2 px-1 text-center font-medium ${today ? "text-terracotta" : "text-sand-dark"}`}>
-                      {format(day, "EEE")}
-                      <br />
-                      <span className="text-[10px]">{format(day, "d")}</span>
-                    </th>
-                  );
-                })}
-              </tr>
-            </thead>
-            <tbody>
-              {data.habits.map((habit) => (
-                <tr key={habit.id} className="border-t border-cream-darker">
-                  <td className="pr-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <span>{habit.icon}</span>
-                      <span className="text-brown font-medium">{habit.name}</span>
-                    </div>
-                  </td>
-                  {days.map((day) => {
-                    const d = format(day, "yyyy-MM-dd");
-                    const existing = data.habitLogs.find((l) => l.habitId === habit.id && l.date === d);
-                    const done = existing?.done ?? false;
-                    return (
-                      <td key={d} className="px-1 py-2 text-center">
-                        <button
-                          onClick={() => {
-                            if (existing) {
-                              update((dd) => ({ ...dd, habitLogs: dd.habitLogs.map((l) => l.habitId === habit.id && l.date === d ? { ...l, done: !l.done } : l) }));
-                            } else {
-                              update((dd) => ({ ...dd, habitLogs: [...dd.habitLogs, { habitId: habit.id, date: d, done: true }] }));
-                            }
-                          }}
-                          className={`w-6 h-6 rounded-full border transition-all mx-auto flex items-center justify-center ${done ? "border-transparent" : "border-sand hover:border-sand-dark"}`}
-                          style={done ? { background: habit.color } : {}}
-                        >
-                          {done && <Check size={10} />}
-                        </button>
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
 
       {/* Tasks by day */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
