@@ -5,6 +5,11 @@ import { loadData, saveData } from "@/lib/db";
 const client = new Anthropic();
 
 export async function POST(req: NextRequest) {
+  const secret = process.env.SHORTCUTS_SECRET;
+  if (secret && req.headers.get("x-shortcuts-secret") !== secret) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { message } = await req.json();
   if (!message) return NextResponse.json({ error: "No message" }, { status: 400 });
 

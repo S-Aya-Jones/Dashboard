@@ -5,6 +5,7 @@ import { getAuthedClient } from "@/lib/google";
 import { google } from "googleapis";
 import { getPlaidClient, getPlaidItems, decryptToken } from "@/lib/plaid";
 import nodemailer from "nodemailer";
+import { sendPushNotification } from "@/lib/push";
 
 const client = new Anthropic();
 
@@ -321,6 +322,8 @@ Tone: warm, direct, like a brilliant friend who has full context on her life. No
       timestamp: new Date().toISOString(),
     }];
     data.sms = sms;
+
+    await sendPushNotification(data, "Morning Briefing", briefing);
 
     const { saveData } = await import("@/lib/db");
     await saveData(data);

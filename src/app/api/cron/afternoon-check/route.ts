@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { loadData } from "@/lib/db";
 import nodemailer from "nodemailer";
+import { sendPushNotification } from "@/lib/push";
 
 const client = new Anthropic();
 
@@ -75,6 +76,9 @@ Start with "4pm check-in —"`,
       id: `afternoon-${Date.now()}`, direction: "outbound" as const, body: text, timestamp: new Date().toISOString(),
     }];
     data.sms = sms;
+
+    await sendPushNotification(data, "4pm Check-in", text);
+
     const { saveData } = await import("@/lib/db");
     await saveData(data);
 

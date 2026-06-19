@@ -67,7 +67,10 @@ export function VoiceButton({ onResult }: VoiceButtonProps) {
       try {
         const res = await fetch("/api/sms/interpret", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(process.env.NEXT_PUBLIC_SHORTCUTS_SECRET ? { "x-shortcuts-secret": process.env.NEXT_PUBLIC_SHORTCUTS_SECRET } : {}),
+          },
           body: JSON.stringify({ message: text }),
         });
         const data = await res.json();

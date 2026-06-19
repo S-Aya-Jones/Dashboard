@@ -26,7 +26,10 @@ export default function ShortcutsPage() {
     try {
       const res = await fetch("/api/sms/interpret", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(process.env.NEXT_PUBLIC_SHORTCUTS_SECRET ? { "x-shortcuts-secret": process.env.NEXT_PUBLIC_SHORTCUTS_SECRET } : {}),
+        },
         body: JSON.stringify({ message: testMsg }),
       });
       const json = await res.json();
@@ -127,12 +130,33 @@ export default function ShortcutsPage() {
           {[
             ["Open Shortcuts app", "Tap + to create a new shortcut"],
             ["Add trigger", "Tap Automation → New Automation → Message → From: yourself (or a contact named \"Dashboard\") → Message contains: nothing (catch all)"],
-            ["Add action: Get Contents of URL", `URL: ${typeof window !== "undefined" ? window.location.origin : "https://your-dashboard.vercel.app"}/api/sms/interpret\nMethod: POST\nHeaders: Content-Type = application/json\nBody (JSON): { "message": [Shortcut Input / Message Content] }`],
+            ["Add action: Get Contents of URL", `URL: ${typeof window !== "undefined" ? window.location.origin : "https://your-dashboard.vercel.app"}/api/sms/interpret\nMethod: POST\nHeaders: Content-Type = application/json, x-shortcuts-secret = [your SHORTCUTS_SECRET value]\nBody (JSON): { "message": [Shortcut Input / Message Content] }`],
             ["Add action: Send Message", "Send the \"reply\" field from the response back to yourself"],
             ["Turn off Ask Before Running", "Toggle it off so it runs silently in the background"],
           ].map(([title, detail], i) => (
             <div key={i} style={{ display: "flex", gap: "1rem", marginBottom: "1rem", alignItems: "flex-start" }}>
               <div style={{ width: 22, height: 22, borderRadius: "50%", background: PEACH, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.65rem", fontWeight: 700, color: "#000", flexShrink: 0, marginTop: 2 }}>{i + 1}</div>
+              <div>
+                <p style={{ fontSize: "0.85rem", fontWeight: 600, color: "#fff", margin: "0 0 0.2rem" }}>{title}</p>
+                <p style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.45)", margin: 0, lineHeight: 1.6, whiteSpace: "pre-line" }}>{detail}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* One-tap steps shortcut */}
+        <div style={{ background: "rgba(16,185,129,0.08)", borderRadius: "16px", padding: "1.5rem", border: "1px solid rgba(16,185,129,0.2)", marginTop: "1.5rem" }}>
+          <p style={{ fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.1em", color: "#10B981", textTransform: "uppercase", margin: "0 0 1rem" }}>One-Tap &ldquo;Send My Steps&rdquo; Shortcut</p>
+          <p style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.5)", marginBottom: "1rem", lineHeight: 1.6 }}>
+            For pulling steps straight from the Health app on demand (or as a daily automation), build a separate shortcut:
+          </p>
+          {[
+            ["Add action: Find Health Samples", "Type: Steps → Today → Sum the results"],
+            ["Add action: Get Contents of URL", `URL: same /api/sms/interpret endpoint above\nMethod: POST\nHeaders: Content-Type = application/json, x-shortcuts-secret = [your SHORTCUTS_SECRET value]\nBody (JSON): { "message": "[Steps count] steps today" }`],
+            ["Run it manually anytime", "Or add a Personal Automation → Time of Day (e.g. 9pm) to log it automatically every night"],
+          ].map(([title, detail], i) => (
+            <div key={i} style={{ display: "flex", gap: "1rem", marginBottom: "1rem", alignItems: "flex-start" }}>
+              <div style={{ width: 22, height: 22, borderRadius: "50%", background: "#10B981", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.65rem", fontWeight: 700, color: "#000", flexShrink: 0, marginTop: 2 }}>{i + 1}</div>
               <div>
                 <p style={{ fontSize: "0.85rem", fontWeight: 600, color: "#fff", margin: "0 0 0.2rem" }}>{title}</p>
                 <p style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.45)", margin: 0, lineHeight: 1.6, whiteSpace: "pre-line" }}>{detail}</p>
