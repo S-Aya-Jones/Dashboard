@@ -30,28 +30,30 @@ export const TYPE_ICON: Record<ScheduleBlock["type"], LucideIcon> = {
 
 export function defaultBlocks(): ScheduleBlock[] {
   return [
-    // ── Office days (Mon, Tue, Thu, Fri) — 15 min commute each way ──
+    // ── Office days (Mon, Tue, Thu, Fri) — 15 min commute each way, ~20k steps/day, 2h MCAT ──
+    { id: id(), label: "Morning walk",          startTime: "06:00", endTime: "06:45", days: OFFICE_DAYS, type: "walk" },
     { id: id(), label: "Commute to work",       startTime: "06:45", endTime: "07:00", days: OFFICE_DAYS, type: "other" },
-    { id: id(), label: "Treadmill walk (lunch)", startTime: "11:00", endTime: "12:00", days: OFFICE_DAYS, type: "walk", notes: "Office treadmill — caps at 2.0mph" },
+    { id: id(), label: "Treadmill walk (lunch)", startTime: "11:00", endTime: "12:00", days: OFFICE_DAYS, type: "walk", notes: "Reserve the office treadmill — caps at 2.0mph" },
     { id: id(), label: "Commute home",          startTime: "14:30", endTime: "14:45", days: OFFICE_DAYS, type: "other" },
     { id: id(), label: "Buffer / breathing room", startTime: "14:45", endTime: "15:00", days: OFFICE_DAYS, type: "personal" },
     { id: id(), label: "Decompress walk",       startTime: "15:00", endTime: "15:45", days: OFFICE_DAYS, type: "walk" },
     { id: id(), label: "MCAT study block",      startTime: "15:45", endTime: "17:45", days: OFFICE_DAYS, type: "mcat" },
     { id: id(), label: "Exposure therapy",      startTime: "17:45", endTime: "18:15", days: OFFICE_DAYS, type: "exposure" },
-    { id: id(), label: "Evening walk / steps",  startTime: "18:15", endTime: "19:00", days: OFFICE_DAYS, type: "walk" },
-    { id: id(), label: "Dinner",                startTime: "19:00", endTime: "19:30", days: OFFICE_DAYS, type: "meal" },
-    { id: id(), label: "MCAT study block 2",    startTime: "19:30", endTime: "21:30", days: OFFICE_DAYS, type: "mcat" },
+    { id: id(), label: "Evening walk / steps",  startTime: "18:15", endTime: "19:15", days: OFFICE_DAYS, type: "walk" },
+    { id: id(), label: "Dinner",                startTime: "19:15", endTime: "19:45", days: OFFICE_DAYS, type: "meal", notes: "Reheat from Sunday prep" },
+    { id: id(), label: "Free time / rest",      startTime: "19:45", endTime: "21:30", days: OFFICE_DAYS, type: "personal" },
     { id: id(), label: "Wind down",             startTime: "21:30", endTime: "22:00", days: OFFICE_DAYS, type: "personal", notes: "Progress photo, journal, prep tomorrow" },
 
-    // ── WFH day (Wednesday) — no commute, no treadmill, therapy at lunch ──
+    // ── WFH day (Wednesday) — no commute, no treadmill, therapy at lunch, cook + clean ──
+    { id: id(), label: "Morning walk",          startTime: "06:00", endTime: "06:45", days: WFH_DAY, type: "walk" },
     { id: id(), label: "Therapy session",       startTime: "12:00", endTime: "13:00", days: WFH_DAY, type: "personal", notes: "Weekly therapy appointment" },
     { id: id(), label: "Buffer / breathing room", startTime: "14:30", endTime: "14:45", days: WFH_DAY, type: "personal" },
-    { id: id(), label: "Decompress walk",       startTime: "14:45", endTime: "15:30", days: WFH_DAY, type: "walk" },
-    { id: id(), label: "MCAT study block",      startTime: "15:30", endTime: "17:30", days: WFH_DAY, type: "mcat" },
-    { id: id(), label: "Exposure therapy",      startTime: "17:30", endTime: "18:00", days: WFH_DAY, type: "exposure", notes: "Keep light — therapy day" },
-    { id: id(), label: "Evening walk / steps",  startTime: "18:00", endTime: "18:45", days: WFH_DAY, type: "walk" },
-    { id: id(), label: "Dinner",                startTime: "19:00", endTime: "19:30", days: WFH_DAY, type: "meal" },
-    { id: id(), label: "MCAT study block 2",    startTime: "19:30", endTime: "21:30", days: WFH_DAY, type: "mcat" },
+    { id: id(), label: "Decompress walk",       startTime: "14:45", endTime: "15:45", days: WFH_DAY, type: "walk" },
+    { id: id(), label: "MCAT study block",      startTime: "15:45", endTime: "17:45", days: WFH_DAY, type: "mcat" },
+    { id: id(), label: "Exposure therapy",      startTime: "17:45", endTime: "18:15", days: WFH_DAY, type: "exposure", notes: "Keep light — therapy day" },
+    { id: id(), label: "Evening walk / steps",  startTime: "18:15", endTime: "19:30", days: WFH_DAY, type: "walk" },
+    { id: id(), label: "Cook dinner & clean kitchen", startTime: "19:30", endTime: "20:30", days: WFH_DAY, type: "meal", notes: "Cook fresh + tidy up — WFH makes this the easiest day for it" },
+    { id: id(), label: "Free time / rest",      startTime: "20:30", endTime: "21:30", days: WFH_DAY, type: "personal" },
     { id: id(), label: "Wind down",             startTime: "21:30", endTime: "22:00", days: WFH_DAY, type: "personal", notes: "Progress photo, journal, prep tomorrow" },
 
     // ── Work block, all weekdays (office or home) ──
@@ -60,15 +62,17 @@ export function defaultBlocks(): ScheduleBlock[] {
     // ── Sleep — fixed 8 hours every night ──
     { id: id(), label: "Sleep",                 startTime: "22:00", endTime: "06:00", days: [0,1,2,3,4,5,6], type: "sleep" },
 
-    // ── Weekend ──
-    { id: id(), label: "Long walk",             startTime: "09:00", endTime: "10:30", days: [0,6], type: "walk" },
-    { id: id(), label: "Buffer / breathing room", startTime: "10:30", endTime: "10:45", days: [0,6], type: "personal" },
-    { id: id(), label: "Weekend MCAT block",    startTime: "10:45", endTime: "12:45", days: [0,6], type: "mcat" },
-    { id: id(), label: "Meal prep & groceries", startTime: "13:00", endTime: "14:30", days: [0], type: "meal", notes: "Prep lunches/dinners for the week ahead" },
+    // ── Weekend — heavier MCAT load (4h/day = 8h/week), ~20k steps/day ──
+    { id: id(), label: "Long walk",             startTime: "09:00", endTime: "10:45", days: [0,6], type: "walk" },
+    { id: id(), label: "Buffer / breathing room", startTime: "10:45", endTime: "11:00", days: [0,6], type: "personal" },
+    { id: id(), label: "Weekend MCAT block",    startTime: "11:00", endTime: "13:00", days: [0,6], type: "mcat" },
+    { id: id(), label: "Free time / rest",      startTime: "13:00", endTime: "14:30", days: [6], type: "personal" },
+    { id: id(), label: "Meal prep, groceries & clean kitchen", startTime: "13:00", endTime: "15:00", days: [0], type: "meal", notes: "Prep lunches/dinners for the week ahead + grocery run" },
     { id: id(), label: "Afternoon walk",        startTime: "16:00", endTime: "17:00", days: [0,6], type: "walk" },
     { id: id(), label: "Exposure therapy",      startTime: "17:30", endTime: "18:00", days: [0,6], type: "exposure" },
+    { id: id(), label: "Evening walk / steps",  startTime: "18:00", endTime: "18:30", days: [0,6], type: "walk" },
     { id: id(), label: "Dinner",                startTime: "19:00", endTime: "19:30", days: [0,6], type: "meal" },
-    { id: id(), label: "Weekend MCAT block 2",  startTime: "19:30", endTime: "21:00", days: [0,6], type: "mcat" },
+    { id: id(), label: "Weekend MCAT block 2",  startTime: "19:30", endTime: "21:30", days: [0,6], type: "mcat" },
     { id: id(), label: "Wind down",             startTime: "21:30", endTime: "22:00", days: [0,6], type: "personal", notes: "Progress photo, journal, prep tomorrow" },
   ];
 }
