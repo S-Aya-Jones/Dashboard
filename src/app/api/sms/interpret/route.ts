@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { loadData, saveData } from "@/lib/db";
+import { sendPushNotification } from "@/lib/push";
 
 const client = new Anthropic();
 
@@ -174,6 +175,7 @@ Return ONLY valid JSON with these optional fields (only include fields you can e
     data.sms = sms;
 
     await saveData(data);
+    await sendPushNotification(data, "Aya replied", reply, "/messages");
   } catch (e) {
     console.error("interpret save error:", e);
   }

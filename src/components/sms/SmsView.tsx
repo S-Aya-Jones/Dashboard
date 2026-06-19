@@ -80,10 +80,6 @@ export function SmsView({ data, update }: SmsViewProps) {
 
   const sendMessage = async (message: string) => {
     if (!message.trim()) return;
-    if (!sms.phoneNumber) {
-      showToast("Add your phone number in Settings first", "error");
-      return;
-    }
 
     setSending(true);
     const outbound: SmsMessage = {
@@ -96,16 +92,22 @@ export function SmsView({ data, update }: SmsViewProps) {
     setInput("");
 
     try {
-      const res = await fetch("/api/sms/send", {
+      const res = await fetch("/api/sms/interpret", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: message.trim(), to: sms.phoneNumber }),
+        body: JSON.stringify({ message: message.trim() }),
       });
       const result = await res.json();
       if (!res.ok) {
-        showToast(res.status === 503 ? "Add Twilio credentials to Vercel env vars" : (result.error ?? "Failed to send"), "error");
+        showToast(result.error ?? "Failed to send", "error");
       } else {
-        showToast("Sent!", "success");
+        const reply: SmsMessage = {
+          id: id(),
+          direction: "inbound",
+          body: result.reply ?? "Got it!",
+          timestamp: new Date().toISOString(),
+        };
+        update(d => ({ ...d, sms: { ...d.sms!, messages: [...(d.sms?.messages ?? []), reply] } }));
       }
     } catch {
       showToast("Network error", "error");
@@ -217,7 +219,7 @@ export function SmsView({ data, update }: SmsViewProps) {
             <circle cx="12" cy="12" r="10" stroke={LIME} strokeWidth="1.8" />
             <path d="M12 8v4M12 16h.01" stroke={LIME} strokeWidth="2" strokeLinecap="round" />
           </svg>
-          Add your phone number in Settings to start texting
+          Chat works right here without a phone number — add one in Settings only if you also want texts/push.
           <button onClick={() => setTab("settings")} className="ml-auto underline text-xs" style={{ color: LIME }}>Set up →</button>
         </div>
       )}
@@ -268,7 +270,7 @@ export function SmsView({ data, update }: SmsViewProps) {
           <div className="flex gap-2 px-4 py-2 overflow-x-auto scrollbar-none" style={{ borderTop: `1px solid ${BORDER}` }}>
             {QUICK_SENDS.map(q => (
               <button key={q.label} onClick={() => sendMessage(q.message)}
-                disabled={sending || !phoneConfigured}
+                disabled={sending}
                 className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all disabled:opacity-40"
                 style={{ background: "rgba(124,92,252,0.1)", color: LIME, border: `1px solid rgba(124,92,252,0.2)` }}>
                 {q.label}
