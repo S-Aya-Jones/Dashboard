@@ -15,7 +15,7 @@ interface Props {
 }
 
 const ICON_OPTIONS = ["🙏", "📖", "🚶🏾‍♀️", "✨", "🌙", "📚", "💧", "📵", "🍎", "🏃🏾‍♀️", "🧘🏾‍♀️", "💊", "✍️", "🎾", "🌿", "🌸", "⭐", "🌅", "💤", "🫀"];
-const COLOR_OPTIONS = ["#71816D", "#DA667B", "#FFFFFF", "rgba(255,255,255,0.3)", "#8A9E87", "#5A6E58", "#A8967E", "#C99A5C"];
+const COLOR_OPTIONS = ["#71816D", "#DA667B", "#7C5CFC", "#E879F9", "#8A9E87", "#5A6E58", "#A8967E", "#C99A5C"];
 
 function getLast14Days(): string[] {
   const days: string[] = [];
@@ -139,7 +139,7 @@ export function HabitsView({ data, update }: Props) {
                                 `}
                                 style={done ? { background: habit.color } : {}}
                               >
-                                {done && <Check size={10} className="text-white" />}
+                                {done && <Check size={10} />}
                               </button>
                             </td>
                           );

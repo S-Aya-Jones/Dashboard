@@ -168,7 +168,7 @@ export function VisionView({ data, update }: Props) {
               onClick={() => setActiveCategory(cat)}
               className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${
                 activeCategory === cat
-                  ? "bg-terracotta text-white shadow-soft"
+                  ? "bg-terracotta shadow-soft"
                   : "bg-cream-darker text-brown hover:bg-sand/40"
               }`}
             >
@@ -215,7 +215,7 @@ export function VisionView({ data, update }: Props) {
           >
             <button
               onClick={() => setLightboxItem(null)}
-              className="absolute -top-10 right-0 text-white/70 hover:text-white transition-colors"
+              className="absolute -top-10 right-0 text-purple-200/70 transition-colors"
             >
               <X size={24} />
             </button>
@@ -228,12 +228,12 @@ export function VisionView({ data, update }: Props) {
             />
             <div className="text-center space-y-1.5">
               {lightboxItem.caption && (
-                <p className="font-serif text-lg text-white/90 italic">
+                <p className="font-serif text-lg text-purple-100/90 italic">
                   {lightboxItem.caption}
                 </p>
               )}
               {lightboxItem.category && (
-                <span className="inline-block text-xs text-white/50 bg-white/10 px-3 py-1 rounded-full">
+                <span className="inline-block text-xs text-purple-100/70 bg-purple-500/20 px-3 py-1 rounded-full">
                   {lightboxItem.category}
                 </span>
               )}
@@ -419,7 +419,7 @@ function MasonryCard({
         {/* Delete button */}
         <button
           onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}
-          className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/90 backdrop-blur-sm text-brown opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center hover:bg-rose hover:text-white shadow-soft"
+          className="absolute top-2 right-2 w-7 h-7 rounded-full bg-surface/90 backdrop-blur-sm text-brown opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center hover:bg-rose shadow-soft"
         >
           <X size={12} />
         </button>
