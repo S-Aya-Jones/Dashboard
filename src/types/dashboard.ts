@@ -47,10 +47,13 @@ export interface DrivingLog {
   id: string;
   date: string;
   route: string;
+  origin?: string;
+  destination?: string;
   distanceMiles?: number;
   anxietyBefore: number;
   anxietyAfter: number;
   notes?: string;
+  confirmed?: boolean;
 }
 
 export interface StudySession {

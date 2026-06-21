@@ -10,6 +10,8 @@ import { Modal } from "@/components/ui/Modal";
 import { AnxietySlider } from "@/components/ui/Slider";
 import { today as todayStr, id } from "@/lib/utils";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { RouteMap } from "./RouteMap";
+import { MapPin, CheckCircle2 } from "lucide-react";
 
 interface Props {
   data: DashboardData;
@@ -21,7 +23,7 @@ const blankExposure = () => ({
 });
 
 const blankDrive = () => ({
-  route: "", distanceMiles: 0, anxietyBefore: 6, anxietyAfter: 4, notes: "",
+  route: "", origin: "", destination: "", distanceMiles: 0, anxietyBefore: 6, anxietyAfter: 4, notes: "", confirmed: false,
 });
 
 export function ExposureView({ data, update }: Props) {
@@ -71,10 +73,15 @@ export function ExposureView({ data, update }: Props) {
   };
 
   const saveDrive = () => {
-    if (!driveForm.route.trim()) return;
-    update((d) => ({ ...d, drivingLog: [...d.drivingLog, { ...driveForm, id: id(), date: today }] }));
+    const route = driveForm.route.trim() || (driveForm.origin && driveForm.destination ? `${driveForm.origin} → ${driveForm.destination}` : "");
+    if (!route) return;
+    update((d) => ({ ...d, drivingLog: [...d.drivingLog, { ...driveForm, route, id: id(), date: today }] }));
     setDriveForm(blankDrive());
     setDriveOpen(false);
+  };
+
+  const confirmRoute = (driveId: string) => {
+    update((d) => ({ ...d, drivingLog: d.drivingLog.map((r) => r.id === driveId ? { ...r, confirmed: true } : r) }));
   };
 
   const deleteExposure = (entryId: string) => {
@@ -194,15 +201,26 @@ export function ExposureView({ data, update }: Props) {
           <div className="space-y-3">
             {[...data.drivingLog].reverse().slice(0, 15).map((drive) => (
               <div key={drive.id} className="p-3 rounded-xl bg-cream-dark">
-                <div className="flex items-start justify-between">
-                  <p className="text-sm font-medium text-brown">{drive.route}</p>
-                  <p className="text-xs text-sand-dark">{format(parseISO(drive.date), "MMM d")}</p>
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-sm font-medium text-brown flex items-center gap-1.5">
+                    {drive.route}
+                    {drive.confirmed && <CheckCircle2 size={13} className="text-sage flex-shrink-0" />}
+                  </p>
+                  <p className="text-xs text-sand-dark flex-shrink-0">{format(parseISO(drive.date), "MMM d")}</p>
                 </div>
-                <div className="flex gap-4 mt-1">
+                <div className="flex gap-4 mt-1 flex-wrap">
                   <span className="text-xs text-sand-dark">Before: <span className="font-semibold text-terracotta">{drive.anxietyBefore}</span></span>
                   <span className="text-xs text-sand-dark">After: <span className="font-semibold text-sage">{drive.anxietyAfter}</span></span>
                   {drive.distanceMiles ? <span className="text-xs text-sand-dark">{drive.distanceMiles} mi</span> : null}
+                  {!drive.confirmed && (
+                    <button onClick={() => confirmRoute(drive.id)} className="text-xs text-terracotta hover:underline">
+                      Confirm route walked/driven
+                    </button>
+                  )}
                 </div>
+                {drive.origin && drive.destination && (
+                  <RouteMap origin={drive.origin} destination={drive.destination} className="w-full h-40 mt-2" />
+                )}
                 {drive.notes && <p className="text-xs text-sand-dark mt-1 italic">{drive.notes}</p>}
               </div>
             ))}
@@ -236,11 +254,22 @@ export function ExposureView({ data, update }: Props) {
       </Modal>
 
       {/* Log Drive Modal */}
-      <Modal open={driveOpen} onClose={() => setDriveOpen(false)} title="Log a Drive">
+      <Modal open={driveOpen} onClose={() => setDriveOpen(false)} title="Plan or Log a Drive">
         <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs font-medium text-brown block mb-1 flex items-center gap-1"><MapPin size={11} /> Start</label>
+              <input type="text" placeholder="e.g. Home" value={driveForm.origin} onChange={(e) => setDriveForm({ ...driveForm, origin: e.target.value })} />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-brown block mb-1 flex items-center gap-1"><MapPin size={11} /> Destination</label>
+              <input type="text" placeholder="e.g. Target on West End" value={driveForm.destination} onChange={(e) => setDriveForm({ ...driveForm, destination: e.target.value })} />
+            </div>
+          </div>
+          <RouteMap origin={driveForm.origin} destination={driveForm.destination} className="w-full h-44" />
           <div>
-            <label className="text-xs font-medium text-brown block mb-1">Where did you drive?</label>
-            <input type="text" placeholder="e.g. Drove to the grocery store on West End" value={driveForm.route} onChange={(e) => setDriveForm({ ...driveForm, route: e.target.value })} />
+            <label className="text-xs font-medium text-brown block mb-1">Route description (optional)</label>
+            <input type="text" placeholder="Auto-filled from start/destination if left blank" value={driveForm.route} onChange={(e) => setDriveForm({ ...driveForm, route: e.target.value })} />
           </div>
           <div>
             <label className="text-xs font-medium text-brown block mb-1">Distance (miles, optional)</label>
