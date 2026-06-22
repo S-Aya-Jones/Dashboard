@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -239,3 +239,68 @@ input::placeholder, textarea::placeholder {
 }
 
 .text-dark { color: var(--text); }
+
+/* ── Aya dark "Today" theme ─────────────────────────────────
+   Scoped under .aya-dark so it never touches the rest of the app. */
+.aya-dark {
+  --aya-gold:    #F2C879;
+  --aya-magenta: #E8559A;
+  --aya-violet:  #8B6CF2;
+  --aya-cyan:    #5BC9D9;
+  --aya-coral:   #F2845B;
+  --aya-green:   #5BD9A0;
+  --aya-bg0:     #1A0F2E;
+  --aya-bg1:     #2A1645;
+  --aya-bg2:     #190B30;
+  --aya-text:    #F5F1FB;
+  --aya-text-muted: rgba(245,241,251,0.62);
+  --aya-text-faint: rgba(245,241,251,0.4);
+  --aya-border:  rgba(255,255,255,0.1);
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  color: var(--aya-text);
+  position: relative;
+  border-radius: 1.75rem;
+  overflow: hidden;
+  padding: 1.75rem 1.5rem;
+  background:
+    radial-gradient(circle at 15% 0%, rgba(232,85,154,0.35), transparent 55%),
+    radial-gradient(circle at 85% 15%, rgba(139,108,242,0.32), transparent 50%),
+    radial-gradient(circle at 50% 100%, rgba(91,201,217,0.18), transparent 55%),
+    linear-gradient(160deg, var(--aya-bg0) 0%, var(--aya-bg1) 45%, var(--aya-bg2) 100%);
+}
+
+.aya-dark .aya-serif {
+  font-family: 'Fraunces', serif;
+}
+
+.aya-dark .glass {
+  position: relative;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--aya-border);
+  border-radius: 1.25rem;
+  backdrop-filter: blur(18px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+}
+
+.aya-dark .glass-glow {
+  box-shadow: 0 0 0 1.5px rgba(242,200,121,0.4), 0 8px 32px rgba(0,0,0,0.3);
+}
+
+@keyframes ayaSunPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.35); opacity: 0.55; }
+}
+
+.aya-dark .sun-core {
+  animation: ayaSunPulse 2.4s ease-in-out infinite;
+}
+
+.aya-dark .aya-line {
+  position: absolute;
+  left: 17px;
+  top: 0.5rem;
+  bottom: 0.5rem;
+  width: 2px;
+  background: linear-gradient(to bottom, var(--aya-cyan), var(--aya-magenta), var(--aya-violet));
+  opacity: 0.45;
+}
