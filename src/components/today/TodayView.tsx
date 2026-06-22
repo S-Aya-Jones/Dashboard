@@ -68,6 +68,19 @@ export function TodayView({ data, update }: Props) {
 
   const handleTaskKey = (e: KeyboardEvent) => { if (e.key === "Enter") addTask(); };
 
+  // Figure out "now", "next up" and progress through the day's timeline
+  const nowMinutes = new Date().getHours() * 100 + new Date().getMinutes();
+  const minutesOf = (sortKey: number) => sortKey; // already HHMM-ish for blocks; events use H*100+M too
+  let nowIdx = -1;
+  for (let i = 0; i < timelineRows.length; i++) {
+    if (minutesOf(timelineRows[i].sortKey) <= nowMinutes) nowIdx = i;
+  }
+  const nowRow = nowIdx >= 0 ? timelineRows[nowIdx] : null;
+  const nextRow = timelineRows[nowIdx + 1] ?? null;
+  const dayEnd = 22 * 100; // 10pm reference for "daylight/day left"
+  const minutesLeftInDay = Math.max(0, dayEnd - nowMinutes);
+  const hoursLeftInDay = Math.floor(minutesLeftInDay / 100);
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
@@ -84,28 +97,62 @@ export function TodayView({ data, update }: Props) {
       </div>
 
       <HourlyWeatherCard />
+
+      {/* Right now / Next up / Time left */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="card p-4">
+          <p className="text-xs font-semibold tracking-wider" style={{ color: "var(--text-muted)" }}>RIGHT NOW</p>
+          <p className="text-lg font-semibold mt-1.5 truncate" style={{ color: nowRow ? nowRow.color : "var(--text)" }}>
+            {nowRow ? nowRow.label : "Free time"}
+          </p>
+          {nowRow && <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>{nowRow.time}</p>}
+        </div>
+        <div className="card p-4">
+          <p className="text-xs font-semibold tracking-wider" style={{ color: "var(--text-muted)" }}>NEXT UP</p>
+          <p className="text-lg font-semibold mt-1.5 truncate" style={{ color: nextRow ? nextRow.color : "var(--text)" }}>
+            {nextRow ? nextRow.label : "Nothing scheduled"}
+          </p>
+          {nextRow && <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>{nextRow.time}</p>}
+        </div>
+        <div className="card p-4">
+          <p className="text-xs font-semibold tracking-wider" style={{ color: "var(--text-muted)" }}>DAY LEFT</p>
+          <p className="text-lg font-semibold mt-1.5" style={{ color: "var(--text)" }}>
+            {hoursLeftInDay > 0 ? `~${hoursLeftInDay}h` : "Wrapping up"}
+          </p>
+          <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>until 10pm wind-down</p>
+        </div>
+      </div>
+
       {/* Today's Timeline */}
       <Card title="Today's Schedule" subtitle="Your norms + calendar, merged">
         {timelineRows.length === 0 ? (
           <p className="text-sand-dark text-sm">No schedule set — add blocks on the Week page</p>
         ) : (
-          <div className="space-y-2">
+          <div className="relative space-y-0 pl-1">
+            <div className="absolute left-[19px] top-2 bottom-2 w-px" style={{ background: "linear-gradient(to bottom, rgba(124,92,252,0.35), rgba(232,121,249,0.15))" }} />
             {timelineRows.map((row, i) => {
               const Icon = row.kind === "event" ? Calendar : TYPE_ICON[row.type!];
+              const state = i < nowIdx ? "done" : i === nowIdx ? "now" : "upcoming";
               return (
-                <div
-                  key={i}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl border-l-[3px] transition-shadow hover:shadow-sm"
-                  style={{ background: `${row.color}0d`, borderColor: row.color }}
-                >
+                <div key={i} className="relative flex items-center gap-3 py-2">
                   <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ background: `${row.color}22` }}
+                    className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 z-10 transition-all"
+                    style={{
+                      background: state === "upcoming" ? "var(--surface)" : `${row.color}22`,
+                      border: state === "now" ? `2px solid ${row.color}` : `1.5px solid ${state === "done" ? `${row.color}55` : "var(--border)"}`,
+                      boxShadow: state === "now" ? `0 0 0 4px ${row.color}1a` : "none",
+                    }}
                   >
-                    <Icon size={15} style={{ color: row.color }} />
+                    <Icon size={15} style={{ color: state === "upcoming" ? "var(--text-light)" : row.color }} />
                   </div>
-                  <span className="font-medium flex-1 text-sm truncate" style={{ color: row.color }}>{row.label}</span>
-                  <span className="text-xs font-medium text-sand-dark whitespace-nowrap">{row.time}</span>
+                  <div
+                    className="flex items-center gap-3 flex-1 px-3 py-2 rounded-xl transition-shadow"
+                    style={{ background: state === "now" ? `${row.color}14` : "transparent", opacity: state === "done" ? 0.55 : 1 }}
+                  >
+                    <span className="font-medium flex-1 text-sm truncate" style={{ color: state === "upcoming" ? "var(--text)" : row.color }}>{row.label}</span>
+                    {state === "now" && <span className="pill" style={{ background: `${row.color}1f`, color: row.color }}>Now</span>}
+                    <span className="text-xs font-medium text-sand-dark whitespace-nowrap">{row.time}</span>
+                  </div>
                 </div>
               );
             })}
@@ -345,7 +392,7 @@ function SmartInsights({ data }: { data: DashboardData }) {
   return (
     <div>
       <p className="text-xs font-semibold mb-3 tracking-wider" style={{ color: "var(--text-muted)" }}>SMART INSIGHTS</p>
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
         {widgets.map(w => (
           <div key={w.key}>{w.node}</div>
         ))}
