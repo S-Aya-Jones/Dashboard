@@ -6,10 +6,11 @@ import {
   Sun, Calendar, Brain, BookOpen,
   Sparkles, DollarSign,
   ChevronLeft, ChevronRight, Dumbbell, Gem, UtensilsCrossed,
-  MessageSquare, LayoutGrid, MoreHorizontal, X, Smartphone, Zap
+  MessageSquare, LayoutGrid, MoreHorizontal, X, Smartphone, Zap, Moon
 } from "lucide-react";
 import { useState } from "react";
 import { SaveIndicator } from "@/components/ui/SaveIndicator";
+import { useTheme } from "@/hooks/useTheme";
 
 const navItems = [
   { href: "/75hard",       label: "75 Hard",          icon: Zap },
@@ -49,6 +50,7 @@ export function Sidebar({ saving = false }: SidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(true);
   const [moreOpen, setMoreOpen] = useState(false);
+  const { theme, toggle: toggleTheme } = useTheme();
 
   return (
     <>
@@ -99,6 +101,16 @@ export function Sidebar({ saving = false }: SidebarProps) {
           })}
         </nav>
 
+        <div className={`px-4 pb-2 ${collapsed ? "flex justify-center" : ""}`}>
+          <button onClick={toggleTheme}
+            className={`flex items-center gap-2 rounded-xl text-sm font-medium transition-colors ${collapsed ? "p-2" : "w-full px-3 py-2"}`}
+            style={{ color: "var(--text-muted)", background: "var(--bg)" }}
+            title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}>
+            {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+            {!collapsed && <span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>}
+          </button>
+        </div>
+
         {!collapsed && (
           <div className="px-4 pb-6">
             <SaveIndicator saving={saving} />
@@ -136,7 +148,12 @@ export function Sidebar({ saving = false }: SidebarProps) {
             onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-serif text-lg" style={{ color: "var(--text)" }}>Navigation</h2>
-              <button onClick={() => setMoreOpen(false)} style={{ color: "var(--text-muted)" }}><X size={20} /></button>
+              <div className="flex items-center gap-2">
+                <button onClick={toggleTheme} className="p-2 rounded-lg" style={{ color: "var(--text-muted)", background: "var(--bg)" }}>
+                  {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+                </button>
+                <button onClick={() => setMoreOpen(false)} style={{ color: "var(--text-muted)" }}><X size={20} /></button>
+              </div>
             </div>
             <div className="grid grid-cols-3 gap-3">
               {navItems.map(({ href, label, icon: Icon }) => {

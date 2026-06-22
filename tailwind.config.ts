@@ -9,80 +9,80 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        /* ── New semantic tokens (Aya dark/aurora palette) ── */
+        /* ── Semantic tokens — all driven by CSS vars in globals.css so
+           switching [data-theme] flips every one of these app-wide. ── */
         purple: {
-          DEFAULT: "#8B6CF2",
-          light:   "#A78BFA",
-          dark:    "#6B4FD0",
-          soft:    "rgba(139,108,242,0.16)",
+          DEFAULT: "var(--purple)",
+          light:   "var(--purple-lt)",
+          dark:    "var(--purple-dark)",
+          soft:    "var(--purple-soft)",
         },
         pink: {
-          DEFAULT: "#E8559A",
-          light:   "#F286B8",
-          dark:    "#C23E7D",
-          soft:    "rgba(232,85,154,0.16)",
+          DEFAULT: "var(--pink)",
+          light:   "var(--pink-light)",
+          dark:    "var(--pink-dark)",
+          soft:    "var(--pink-soft)",
         },
         peach: {
-          DEFAULT: "#F2845B",
-          light:   "#F7AB8A",
-          dark:    "#D4663D",
-          soft:    "rgba(242,132,91,0.16)",
+          DEFAULT: "var(--peach)",
+          light:   "var(--peach-light)",
+          dark:    "var(--peach-dark)",
+          soft:    "var(--peach-soft)",
         },
         surface: {
-          DEFAULT: "#1E1233",
-          2:       "#261A45",
-          3:       "#2E2052",
+          DEFAULT: "rgb(var(--surface-rgb) / <alpha-value>)",
+          2:       "var(--surface2)",
+          3:       "var(--surface3)",
         },
         bg: {
-          DEFAULT: "#170B2E",
-          2:       "#20123F",
+          DEFAULT: "var(--bg)",
+          2:       "var(--bg2)",
         },
         ink: {
-          DEFAULT: "#F5F1FB",
-          muted:   "rgba(245,241,251,0.62)",
-          light:   "rgba(245,241,251,0.4)",
+          DEFAULT: "var(--text)",
+          muted:   "var(--text-muted)",
+          light:   "var(--text-light)",
         },
 
-        /* ── Legacy aliases — remapped to dark/aurora mode ─
-           All the old token names used across 20+ component
-           files now resolve to the dark palette so no
-           per-file text rewrites needed.
+        /* ── Legacy aliases — same CSS vars, kept so the 20+ component
+           files using these old token names resolve correctly in both
+           themes with no per-file rewrites needed.
         ─────────────────────────────────────────────── */
 
         cream: {
-          DEFAULT: "#20123F",
-          dark:    "#170B2E",
-          darker:  "rgba(255,255,255,0.08)",
+          DEFAULT: "var(--cream)",
+          dark:    "var(--cream-dark)",
+          darker:  "var(--cream-darker)",
         },
 
         brown: {
-          DEFAULT: "#F5F1FB",
-          light:   "rgba(245,241,251,0.62)",
-          dark:    "#FFFFFF",
+          DEFAULT: "rgb(var(--brown-rgb) / <alpha-value>)",
+          light:   "var(--brown-light)",
+          dark:    "var(--brown-dark)",
         },
 
         terracotta: {
-          DEFAULT: "#8B6CF2",
-          light:   "#A78BFA",
-          dark:    "#6B4FD0",
+          DEFAULT: "rgb(var(--terracotta-rgb) / <alpha-value>)",
+          light:   "var(--purple-lt)",
+          dark:    "var(--purple-dark)",
         },
 
         sage: {
-          DEFAULT: "#E8559A",
-          light:   "#F286B8",
-          dark:    "#C23E7D",
+          DEFAULT: "rgb(var(--sage-rgb) / <alpha-value>)",
+          light:   "var(--pink-light)",
+          dark:    "var(--pink-dark)",
         },
 
         rose: {
-          DEFAULT: "#F25B5B",
-          light:   "#FCA5A5",
-          muted:   "#DC2626",
+          DEFAULT: "rgb(var(--rose-rgb) / <alpha-value>)",
+          light:   "var(--rose-light)",
+          muted:   "var(--rose-muted)",
         },
 
         sand: {
-          DEFAULT: "rgba(245,241,251,0.18)",
-          light:   "rgba(245,241,251,0.28)",
-          dark:    "rgba(245,241,251,0.55)",
+          DEFAULT: "var(--sand)",
+          light:   "var(--sand-light)",
+          dark:    "var(--sand-dark)",
         },
       },
       fontFamily: {

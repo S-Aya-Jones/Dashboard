@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { PwaRegistration } from "@/components/PwaRegistration";
 import { VoiceButton } from "@/components/VoiceButton";
+import { themeInitScript } from "@/lib/theme";
 
 export const metadata: Metadata = {
   title: "Aya's Dashboard",
@@ -26,6 +27,9 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body className="antialiased">
         <PwaRegistration />
         {children}
