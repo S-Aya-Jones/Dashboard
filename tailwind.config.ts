@@ -9,86 +9,80 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        /* ── New semantic tokens ───────────────────── */
+        /* ── New semantic tokens (Aya dark/aurora palette) ── */
         purple: {
-          DEFAULT: "#7C5CFC",
-          light:   "#9B7FFF",
-          dark:    "#5A3FD4",
-          soft:    "rgba(124,92,252,0.12)",
+          DEFAULT: "#8B6CF2",
+          light:   "#A78BFA",
+          dark:    "#6B4FD0",
+          soft:    "rgba(139,108,242,0.16)",
         },
         pink: {
-          DEFAULT: "#E879F9",
-          light:   "#F0A5FF",
-          dark:    "#C855D8",
-          soft:    "rgba(232,121,249,0.12)",
+          DEFAULT: "#E8559A",
+          light:   "#F286B8",
+          dark:    "#C23E7D",
+          soft:    "rgba(232,85,154,0.16)",
         },
         peach: {
-          DEFAULT: "#FB923C",
-          light:   "#FDBA74",
-          dark:    "#EA7010",
-          soft:    "rgba(251,146,60,0.12)",
+          DEFAULT: "#F2845B",
+          light:   "#F7AB8A",
+          dark:    "#D4663D",
+          soft:    "rgba(242,132,91,0.16)",
         },
         surface: {
-          DEFAULT: "#FFFFFF",
-          2:       "#FAF8FF",
-          3:       "#F4F0FE",
+          DEFAULT: "#1E1233",
+          2:       "#261A45",
+          3:       "#2E2052",
         },
         bg: {
-          DEFAULT: "#F4F0FE",
-          2:       "#EDE8FF",
+          DEFAULT: "#170B2E",
+          2:       "#20123F",
         },
         ink: {
-          DEFAULT: "#1E1340",
-          muted:   "#7C6FAE",
-          light:   "#A89ECC",
+          DEFAULT: "#F5F1FB",
+          muted:   "rgba(245,241,251,0.62)",
+          light:   "rgba(245,241,251,0.4)",
         },
 
-        /* ── Legacy aliases — remapped to light-mode ─
-           All the old dark-theme token names used across
-           20+ component files now resolve to light-mode
-           equivalents so no per-file text rewrites needed.
+        /* ── Legacy aliases — remapped to dark/aurora mode ─
+           All the old token names used across 20+ component
+           files now resolve to the dark palette so no
+           per-file text rewrites needed.
         ─────────────────────────────────────────────── */
 
-        /* was #1A1A1A / #222 / #2A2A2A → light lavender bg */
         cream: {
-          DEFAULT: "#F4F0FE",
-          dark:    "#EDE8FF",
-          darker:  "rgba(124,92,252,0.12)",
+          DEFAULT: "#20123F",
+          dark:    "#170B2E",
+          darker:  "rgba(255,255,255,0.08)",
         },
 
-        /* was #FFFFFF / rgba(255,255,255,0.7) → dark ink text */
         brown: {
-          DEFAULT: "#1E1340",
-          light:   "#7C6FAE",
-          dark:    "#2A1F6E",
+          DEFAULT: "#F5F1FB",
+          light:   "rgba(245,241,251,0.62)",
+          dark:    "#FFFFFF",
         },
 
-        /* was #C8FF00 (lime) → purple primary */
         terracotta: {
-          DEFAULT: "#7C5CFC",
-          light:   "#9B7FFF",
-          dark:    "#5A3FD4",
+          DEFAULT: "#8B6CF2",
+          light:   "#A78BFA",
+          dark:    "#6B4FD0",
         },
 
-        /* was #9B7FFF (purple) → pink secondary */
         sage: {
-          DEFAULT: "#E879F9",
-          light:   "#F0A5FF",
-          dark:    "#C855D8",
+          DEFAULT: "#E8559A",
+          light:   "#F286B8",
+          dark:    "#C23E7D",
         },
 
-        /* was hot-pink → danger red */
         rose: {
-          DEFAULT: "#EF4444",
+          DEFAULT: "#F25B5B",
           light:   "#FCA5A5",
           muted:   "#DC2626",
         },
 
-        /* was rgba(255,255,255,0.35) → purple-tinted muted */
         sand: {
-          DEFAULT: "rgba(124,92,252,0.18)",
-          light:   "rgba(124,92,252,0.28)",
-          dark:    "#7C6FAE",
+          DEFAULT: "rgba(245,241,251,0.18)",
+          light:   "rgba(245,241,251,0.28)",
+          dark:    "rgba(245,241,251,0.55)",
         },
       },
       fontFamily: {

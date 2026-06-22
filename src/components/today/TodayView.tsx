@@ -9,6 +9,7 @@ import { today as todayStr, greetingByTime, id } from "@/lib/utils";
 import { celebrate } from "@/lib/confetti";
 import { DarkWeatherCard } from "./DarkWeatherCard";
 import { UVArcCard } from "./UVArcCard";
+import { NextHoursStrip, HourlyUVChart } from "./HourlyUVStrip";
 import { TYPE_META, TYPE_ICON, defaultBlocks, blocksForDate, formatRange12 } from "@/lib/schedule";
 
 interface Props {
@@ -142,45 +143,54 @@ export function TodayView({ data, update }: Props) {
               </div>
             </div>
           </div>
+          <NextHoursStrip />
         </div>
       </div>
 
       {/* Today's Timeline */}
-      <div className="glass p-5 px-1 mx-1">
+      <div className="glass p-5 mx-1">
         <p className="text-xs font-semibold tracking-wider" style={{ color: "var(--aya-text-faint)" }}>TODAY&apos;S SCHEDULE</p>
         <h3 className="aya-serif text-xl mt-1" style={{ color: "var(--aya-text)" }}>Your norms + calendar, merged</h3>
 
         {timelineRows.length === 0 ? (
           <p className="text-sm mt-3" style={{ color: "var(--aya-text-muted)" }}>No schedule set — add blocks on the Week page</p>
         ) : (
-          <div className="relative mt-3 pl-1">
+          <div className="relative mt-3 ml-2">
             <div className="aya-line" />
             {timelineRows.map((row, i) => {
               const Icon = row.kind === "event" ? Calendar : TYPE_ICON[row.type!];
               const state = i < nowIdx ? "done" : i === nowIdx ? "now" : "upcoming";
               return (
-                <div key={i} className="relative flex items-center gap-3 py-2">
-                  <div
-                    className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 z-10 transition-all"
-                    style={{
-                      background: state === "upcoming" ? "rgba(255,255,255,0.04)" : `${row.color}26`,
-                      border: state === "now" ? `2px solid ${row.color}` : `1.5px solid ${state === "done" ? `${row.color}55` : "var(--aya-border)"}`,
-                      boxShadow: state === "now" ? `0 0 0 4px ${row.color}26` : "none",
-                    }}
-                  >
-                    <Icon size={15} style={{ color: state === "upcoming" ? "var(--aya-text-faint)" : row.color }} />
-                  </div>
-                  <div
-                    className="flex items-center gap-3 flex-1 px-3 py-2 rounded-xl transition-shadow"
-                    style={{ background: state === "now" ? `${row.color}1a` : "transparent", opacity: state === "done" ? 0.45 : 1 }}
-                  >
-                    <span className="font-medium flex-1 text-sm truncate" style={{ color: state === "upcoming" ? "var(--aya-text)" : row.color }}>{row.label}</span>
-                    {state === "now" && (
-                      <span className="pill" style={{ background: `${row.color}26`, color: row.color }}>
+                <div key={i}>
+                  {i === nowIdx && (
+                    <div className="relative flex items-center gap-3 py-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full flex-shrink-0 z-10 ml-[6.5px]" style={{ background: "var(--aya-gold)" }} />
+                      <span className="pill" style={{ background: "rgba(232,85,154,0.18)", color: "var(--aya-magenta)" }}>
                         Now · {format(new Date(), "h:mm a")}
                       </span>
-                    )}
-                    <span className="text-xs font-medium whitespace-nowrap" style={{ color: "var(--aya-text-faint)" }}>{row.time}</span>
+                    </div>
+                  )}
+                  <div className="relative flex items-center gap-3 py-2">
+                    <div
+                      className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 z-10 transition-all"
+                      style={{
+                        background: state === "done" ? "var(--aya-green)" : state === "upcoming" ? "rgba(255,255,255,0.04)" : `${row.color}26`,
+                        border: state === "now" ? `2px solid ${row.color}` : `1.5px solid ${state === "done" ? "var(--aya-green)" : "var(--aya-border)"}`,
+                      }}
+                    >
+                      {state === "done" ? (
+                        <Check size={14} color="#170B2E" />
+                      ) : (
+                        <Icon size={15} style={{ color: state === "upcoming" ? "var(--aya-text-faint)" : row.color }} />
+                      )}
+                    </div>
+                    <div
+                      className="flex items-center gap-3 flex-1 px-3 py-2 rounded-xl transition-shadow"
+                      style={{ background: state === "now" ? `${row.color}1a` : "transparent", opacity: state === "done" ? 0.45 : 1 }}
+                    >
+                      <span className="font-medium flex-1 text-sm truncate" style={{ color: state === "upcoming" ? "var(--aya-text)" : row.color }}>{row.label}</span>
+                      <span className="text-xs font-medium whitespace-nowrap" style={{ color: "var(--aya-text-faint)" }}>{row.time}</span>
+                    </div>
                   </div>
                 </div>
               );
@@ -243,6 +253,8 @@ export function TodayView({ data, update }: Props) {
       </div>
 
       <SmartInsights data={data} />
+
+      <HourlyUVChart />
     </div>
   );
 }
