@@ -36,7 +36,7 @@ export function MCATView({ data, update }: Props) {
   const [studyOpen, setStudyOpen] = useState(false);
   const [testOpen, setTestOpen] = useState(false);
   const [studyForm, setStudyForm] = useState({ cars: 0, bioBiochem: 0, chemPhys: 0, psychSoc: 0 });
-  const [testForm, setTestForm] = useState({ total: 0, cars: 0, bioBiochem: 0, chemPhys: 0, psychSoc: 0, notes: "", source: "third_party" as PracticeTest["source"] });
+  const [testForm, setTestForm] = useState({ total: 0, cars: 0, bioBiochem: 0, chemPhys: 0, psychSoc: 0, notes: "", source: "third_party" as PracticeTest["source"], label: "" });
   const [testDate, setTestDate] = useState(data.mcatTestDate ?? "");
 
   const today = todayStr();
@@ -73,7 +73,7 @@ export function MCATView({ data, update }: Props) {
   const addPracticeTest = () => {
     if (testForm.total === 0) return;
     update((d) => ({ ...d, practiceTests: [...d.practiceTests, { ...testForm, id: id(), date: today }] }));
-    setTestForm({ total: 0, cars: 0, bioBiochem: 0, chemPhys: 0, psychSoc: 0, notes: "", source: "third_party" });
+    setTestForm({ total: 0, cars: 0, bioBiochem: 0, chemPhys: 0, psychSoc: 0, notes: "", source: "third_party", label: "" });
     setTestOpen(false);
   };
 
@@ -251,6 +251,12 @@ export function MCATView({ data, update }: Props) {
               {Object.entries(SOURCE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
           </div>
+          {testForm.source === "aamc_fl" && (
+            <div>
+              <label className="text-xs font-medium text-brown block mb-1">Label (e.g. FL1, FL2)</label>
+              <input type="text" value={testForm.label} onChange={(e) => setTestForm({ ...testForm, label: e.target.value })} placeholder="FL1" className="w-28" />
+            </div>
+          )}
           <div>
             <label className="text-xs font-medium text-brown block mb-1">Notes</label>
             <textarea rows={2} value={testForm.notes} onChange={(e) => setTestForm({ ...testForm, notes: e.target.value })} placeholder="How did it feel? What to review?" />

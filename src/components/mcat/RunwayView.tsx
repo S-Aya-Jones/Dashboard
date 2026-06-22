@@ -34,14 +34,17 @@ export function RunwayView({ data, update }: Props) {
   const doneCount = completedDays.size;
   const pct = Math.round((doneCount / RUNWAY_TOTAL_DAYS) * 100);
 
-  const flAverage = useMemo(() => {
+  const recentFLs = useMemo(() => {
     const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
-    const recent = (data.practiceTests ?? []).filter(
-      (t) => t.source === "aamc_fl" && new Date(t.date).getTime() >= cutoff
-    );
-    if (recent.length === 0) return null;
-    return Math.round(recent.reduce((s, t) => s + t.total, 0) / recent.length);
+    return (data.practiceTests ?? [])
+      .filter((t) => t.source === "aamc_fl" && new Date(t.date).getTime() >= cutoff)
+      .sort((a, b) => a.date.localeCompare(b.date));
   }, [data.practiceTests]);
+
+  const flAverage = useMemo(() => {
+    if (recentFLs.length === 0) return null;
+    return Math.round(recentFLs.reduce((s, t) => s + t.total, 0) / recentFLs.length);
+  }, [recentFLs]);
 
   function toggleWeek(weekIndex: number) {
     setCollapsedWeeks((prev) => {
@@ -127,19 +130,34 @@ export function RunwayView({ data, update }: Props) {
       </div>
 
       {/* AAMC FL average */}
-      <div className="glass p-4 flex items-center justify-between">
-        <div>
-          <p className="text-xs font-semibold tracking-wider" style={{ color: "var(--aya-text-faint)" }}>
-            AAMC FL AVERAGE · LAST 30 DAYS
-          </p>
-          <p className="aya-serif text-3xl mt-1" style={{ color: "var(--aya-text)" }}>
-            {flAverage ?? "—"}
-          </p>
+      <div className="glass p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs font-semibold tracking-wider" style={{ color: "var(--aya-text-faint)" }}>
+              AAMC FL AVERAGE · LAST 30 DAYS
+            </p>
+            <p className="aya-serif text-3xl mt-1" style={{ color: "var(--aya-text)" }}>
+              {flAverage ?? "—"}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-xs" style={{ color: "var(--aya-text-faint)" }}>Target</p>
+            <p className="text-sm font-semibold" style={{ color: "var(--aya-green)" }}>518+</p>
+          </div>
         </div>
-        <div className="text-right">
-          <p className="text-xs" style={{ color: "var(--aya-text-faint)" }}>Target</p>
-          <p className="text-sm font-semibold" style={{ color: "var(--aya-green)" }}>518+</p>
-        </div>
+        {recentFLs.length > 0 && (
+          <div className="flex gap-2 mt-3 flex-wrap">
+            {recentFLs.map((t) => (
+              <span
+                key={t.id}
+                className="text-xs font-semibold px-2.5 py-1 rounded-full"
+                style={{ background: "rgba(255,255,255,0.06)", color: "var(--aya-text-muted)" }}
+              >
+                {t.label || "FL"} · {t.total}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Phases / weeks / days */}
