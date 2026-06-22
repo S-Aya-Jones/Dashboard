@@ -44,7 +44,7 @@ export function NextHoursStrip() {
         {hours.map((h) => {
           const meta = uvMeta(h.uv);
           return (
-            <div key={h.hour} className="flex-1 rounded-xl p-2 text-center" style={{ background: "rgba(255,255,255,0.04)" }}>
+            <div key={h.hour} className="flex-1 rounded-xl p-2 text-center" style={{ background: "var(--aya-glass-bg)" }}>
               <p className="text-[10px]" style={{ color: "var(--aya-text-faint)" }}>{fmtHour(h.hour)}</p>
               <p className="text-sm font-semibold mt-0.5" style={{ color: "var(--aya-text)" }}>{h.temp}°</p>
               <p className="text-[10px] font-semibold mt-0.5" style={{ color: meta.color }}>UV {Math.round(h.uv)}</p>
@@ -80,7 +80,7 @@ export function HourlyUVChart() {
             const isPast = h.hour < currentHour;
             return (
               <div key={h.hour} className="flex flex-col items-center gap-1 px-2.5 py-2 rounded-xl min-w-[58px]"
-                style={{ background: isNow ? "rgba(232,85,154,0.14)" : "rgba(255,255,255,0.03)", opacity: isPast ? 0.4 : 1, border: isNow ? "1px solid rgba(232,85,154,0.4)" : "1px solid transparent" }}>
+                style={{ background: isNow ? "rgba(232,85,154,0.14)" : "var(--aya-glass-bg)", opacity: isPast ? 0.4 : 1, border: isNow ? "1px solid rgba(232,85,154,0.4)" : "1px solid transparent" }}>
                 <span className="text-[10px] font-semibold" style={{ color: isNow ? "var(--aya-magenta)" : "var(--aya-text-faint)" }}>{isNow ? "Now" : fmtHour(h.hour)}</span>
                 <span className="aya-serif text-lg" style={{ color: "var(--aya-text)" }}>{h.temp}°</span>
                 <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: `${meta.color}26`, color: meta.color }}>UV {Math.round(h.uv)}</span>

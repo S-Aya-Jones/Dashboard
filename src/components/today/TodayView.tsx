@@ -174,7 +174,7 @@ export function TodayView({ data, update }: Props) {
                     <div
                       className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 z-10 transition-all"
                       style={{
-                        background: state === "done" ? "var(--aya-green)" : state === "upcoming" ? "rgba(255,255,255,0.04)" : `${row.color}26`,
+                        background: state === "done" ? "var(--aya-green)" : state === "upcoming" ? "var(--aya-glass-bg)" : `${row.color}26`,
                         border: state === "now" ? `2px solid ${row.color}` : `1.5px solid ${state === "done" ? "var(--aya-green)" : "var(--aya-border)"}`,
                       }}
                     >
@@ -211,7 +211,7 @@ export function TodayView({ data, update }: Props) {
               onChange={(e) => setNewTask(e.target.value)}
               onKeyDown={handleTaskKey}
               className="w-44"
-              style={{ background: "rgba(255,255,255,0.06)", borderColor: "var(--aya-border)", color: "var(--aya-text)" }}
+              style={{ background: "var(--aya-glass-bg)", borderColor: "var(--aya-border)", color: "var(--aya-text)" }}
             />
             <Button size="sm" onClick={addTask}><Plus size={14} /></Button>
           </div>
@@ -292,7 +292,7 @@ function SmartInsights({ data }: { data: DashboardData }) {
           <p className="text-xs mt-0.5" style={{ color: "var(--aya-text-muted)" }}>
             {shadowingLeft > 0 ? `${shadowingLeft.toFixed(1)} hrs to 200-hr goal` : "Goal reached! 🎉"}
           </p>
-          <div className="h-1.5 rounded-full mt-2" style={{ background: "rgba(255,255,255,0.08)" }}>
+          <div className="h-1.5 rounded-full mt-2" style={{ background: "var(--aya-glass-bg)" }}>
             <div className="h-1.5 rounded-full transition-all" style={{ width: `${shadowingPct}%`, background: "var(--aya-violet)" }} />
           </div>
           <InsightTrendPill good={shadowingPct >= 50} label={`${shadowingPct}% of goal`} />

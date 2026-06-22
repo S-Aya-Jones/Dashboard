@@ -9,10 +9,10 @@ import { parseISO, format, addDays, differenceInDays } from "date-fns";
 import { TodaySpendCard } from "@/components/finances/TodaySpendCard";
 
 const LIME   = "#7C5CFC";   // purple primary (was lime)
-const BG     = "#F4F0FE";   // light lavender bg
-const CARD   = "#FFFFFF";   // white card
-const BORDER = "rgba(124,92,252,0.12)";
-const MUTED  = "rgba(30,19,64,0.45)";
+const BG     = "var(--bg)";
+const CARD   = "var(--surface)";
+const BORDER = "var(--border)";
+const MUTED  = "var(--text-muted)";
 const RED    = "#EF4444";
 const AMBER  = "#F59E0B";
 const COLORS = ["#7C5CFC","#EF4444","#E879F9","#FB923C","#10B981","#F59E0B","#6366F1","#EC4899"];
@@ -2490,7 +2490,7 @@ function SetupFlow({ insights, insightsLoading, onDone }: {
                 <label className="text-xs mb-1.5 block" style={{ color: MUTED }}>Your next payday</label>
                 <input type="date" value={nextPayday} onChange={e => setNextPayday(e.target.value)}
                   className="w-full rounded-2xl px-4 py-3.5 text-sm outline-none"
-                  style={{ background: CARD, border: `1px solid ${BORDER}`, colorScheme: "dark" }} />
+                  style={{ background: CARD, border: `1px solid ${BORDER}` }} />
               </div>
               <div>
                 <label className="text-xs mb-2 block" style={{ color: MUTED }}>Save per check (%)</label>
