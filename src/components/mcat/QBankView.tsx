@@ -20,6 +20,7 @@ import {
 import { DashboardData, MCATQuestion, MCATQuizSession, MCATQuizAttempt } from "@/types/dashboard";
 import { id } from "@/lib/utils";
 import { format } from "date-fns";
+import { AskAIPanel } from "@/components/mcat/AskAIPanel";
 
 // ─── Subject data ────────────────────────────────────────────────────────────
 
@@ -1383,6 +1384,7 @@ export function QBankView({ data, update }: Props) {
               <p style={{ fontSize: 14, lineHeight: 1.7, color: "var(--text)", margin: 0 }}>
                 {q.explanation}
               </p>
+              <AskAIPanel question={q} />
             </div>
           )}
         </div>
@@ -1811,6 +1813,7 @@ export function QBankView({ data, update }: Props) {
                     <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0, lineHeight: 1.6 }}>
                       {q.explanation}
                     </p>
+                    <AskAIPanel question={q} />
                   </div>
                 ))}
               </div>
@@ -1864,6 +1867,7 @@ export function QBankView({ data, update }: Props) {
                     <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0, lineHeight: 1.6 }}>
                       {q.explanation}
                     </p>
+                    <AskAIPanel question={q} />
                   </div>
                 ))}
               </div>
