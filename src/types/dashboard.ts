@@ -74,6 +74,15 @@ export interface PracticeTest {
   chemPhys?: number;
   psychSoc?: number;
   notes?: string;
+  source?: "aamc_fl" | "aamc_sample" | "aamc_section_bank" | "aamc_question_pack" | "third_party";
+}
+
+export interface MCATDailyLog {
+  date: string; // YYYY-MM-DD
+  ankiDone: boolean;
+  carsDone: boolean;
+  uworldPassages?: number;
+  uworldPercent?: number; // 0-100
 }
 
 export interface MCATResource {
@@ -639,6 +648,7 @@ export interface DashboardData {
   flashcards?: Flashcard[];
   flashcardReviews?: FlashcardReviewLog[];
   studyTimerLogs?: StudyTimerLog[];
+  mcatDailyLogs?: MCATDailyLog[];
   diagnosticSessions?: DiagnosticSession[];
   ankiSettings?: { newPerDay: number; reviewPerDay: number };
   ankiDailyCount?: { date: string; newSeen: number; reviewSeen: number };
