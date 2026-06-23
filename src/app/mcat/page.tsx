@@ -11,6 +11,7 @@ import { StudyTimerView } from "@/components/mcat/StudyTimerView";
 import { DiagnosticView } from "@/components/mcat/DiagnosticView";
 import { LearnView } from "@/components/mcat/LearnView";
 import { RunwayView } from "@/components/mcat/RunwayView";
+import { StudyCaptureView } from "@/components/mcat/StudyCaptureView";
 import { Brain, X, BookOpen } from "lucide-react";
 
 const TABS = [
@@ -19,6 +20,7 @@ const TABS = [
   { id: "schedule",   label: "School & Schedule" },
   { id: "shadowing",  label: "Shadowing" },
   { id: "qbank",      label: "Q Bank" },
+  { id: "studyscan",  label: "Study Scan" },
   { id: "flashcards", label: "Flashcards" },
   { id: "learn",      label: "Learn" },
   { id: "timer",      label: "Study Timer" },
@@ -164,6 +166,7 @@ export default function Page() {
           {tab === "schedule"   && <ScheduleView   data={data} update={update} />}
           {tab === "shadowing"  && <ShadowingView  data={data} update={update} />}
           {tab === "qbank"      && <QBankView      data={data} update={update} />}
+          {tab === "studyscan"  && <StudyCaptureView data={data} update={update} />}
           {tab === "flashcards" && <AnkiView       data={data} update={update} />}
           {tab === "learn"      && <LearnView      data={data} update={update} />}
           {tab === "timer"      && (
