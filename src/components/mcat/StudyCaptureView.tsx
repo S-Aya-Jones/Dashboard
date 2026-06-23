@@ -25,6 +25,7 @@ interface Result {
   narration: string;
   highYield: string[];
   question: Omit<MCATQuestion, "id" | "createdAt">;
+  tone: string;
 }
 
 export function StudyCaptureView({ update }: Props) {
@@ -70,7 +71,7 @@ export function StudyCaptureView({ update }: Props) {
       }
       const json = await res.json();
       if (json.error) setError(json.error);
-      else setResult(json);
+      else setResult({ ...json, tone });
     } catch {
       setError("Something went wrong generating this. Try again.");
     } finally {
@@ -161,7 +162,7 @@ export function StudyCaptureView({ update }: Props) {
             </button>
           </div>
           {photos.length > 0 && (
-            <p className="text-xs mt-2" style={{ color: "var(--text-muted)" }}>{photos.length} photo(s) added — tap a thumbnail's × to remove, or keep adding more.</p>
+            <p className="text-xs mt-2" style={{ color: "var(--text-muted)" }}>{photos.length} photo(s) added — tap a thumbnail&apos;s × to remove, or keep adding more.</p>
           )}
           {photos.length > 0 && (
             <div className="flex gap-2 mt-3 flex-wrap">
@@ -205,7 +206,7 @@ export function StudyCaptureView({ update }: Props) {
           <div className="rounded-2xl p-4 space-y-3" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-widest" style={{ color: "#7C5CFC" }}>Narration</span>
-              <TutorAvatar text={result.narration} characterId="professor" size={56} />
+              <TutorAvatar text={result.narration} characterId="professor" size={56} tone={result.tone} />
             </div>
             <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: "var(--text)" }}>{result.narration}</p>
           </div>

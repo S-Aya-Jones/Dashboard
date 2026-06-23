@@ -17,15 +17,21 @@ function stripMarkdown(text: string): string {
     .trim();
 }
 
+const TONE_VOICE_ENV: Record<string, string> = {
+  truecrime: "ELEVENLABS_VOICE_ID_TRUECRIME",
+  housewives: "ELEVENLABS_VOICE_ID_HOUSEWIVES",
+};
+
 export async function POST(req: Request) {
   try {
-    const { text } = await req.json();
+    const { text, tone } = await req.json();
     if (!text?.trim()) {
       return NextResponse.json({ error: "No text provided" }, { status: 400 });
     }
 
     const apiKey  = process.env.ELEVENLABS_API_KEY;
-    const voiceId = process.env.ELEVENLABS_VOICE_ID;
+    const toneEnvKey = tone ? TONE_VOICE_ENV[tone] : undefined;
+    const voiceId = (toneEnvKey && process.env[toneEnvKey]) || process.env.ELEVENLABS_VOICE_ID;
 
     if (!apiKey || !voiceId) {
       return NextResponse.json({ error: "ElevenLabs not configured" }, { status: 500 });

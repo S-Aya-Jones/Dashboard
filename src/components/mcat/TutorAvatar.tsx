@@ -10,6 +10,7 @@ interface Props {
   text: string;
   characterId?: CharacterId;
   size?: number;
+  tone?: string;
 }
 
 // ── SVG Avatar faces ──────────────────────────────────────────────────────────
@@ -170,7 +171,7 @@ function OwlFace({ outerMouthRef, innerMouthRef, size }: FaceProps) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export function TutorAvatar({ text, characterId = "professor", size = 120 }: Props) {
+export function TutorAvatar({ text, characterId = "professor", size = 120, tone }: Props) {
   const [status, setStatus] = useState<AvatarStatus>("idle");
   const character = getCharacter(characterId);
 
@@ -252,7 +253,7 @@ export function TutorAvatar({ text, characterId = "professor", size = 120 }: Pro
       const res = await fetch("/api/mcat/speak", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, tone }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const arrayBuffer = await res.arrayBuffer();
