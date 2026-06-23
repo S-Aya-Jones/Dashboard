@@ -42,6 +42,30 @@ export function StudyCaptureView({ update }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const libraryInputRef = useRef<HTMLInputElement>(null);
 
+  function compressPhoto(file: File): Promise<File> {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const maxDim = 1600;
+        const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { URL.revokeObjectURL(url); resolve(file); return; }
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => {
+          URL.revokeObjectURL(url);
+          if (!blob) { resolve(file); return; }
+          resolve(new File([blob], file.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" }));
+        }, "image/jpeg", 0.82);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+      img.src = url;
+    });
+  }
+
   function reset() {
     setResult(null);
     setRevealed(false);
@@ -69,11 +93,17 @@ export function StudyCaptureView({ update }: Props) {
           body: JSON.stringify({ transcript, tone }),
         });
       }
+      if (!res.ok) {
+        let detail = `Request failed (${res.status})`;
+        try { const j = await res.json(); detail = j.error ?? detail; } catch { /* not json */ }
+        setError(detail);
+        return;
+      }
       const json = await res.json();
       if (json.error) setError(json.error);
       else setResult({ ...json, tone });
-    } catch {
-      setError("Something went wrong generating this. Try again.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong generating this. Try again.");
     } finally {
       setLoading(false);
     }
@@ -135,17 +165,21 @@ export function StudyCaptureView({ update }: Props) {
         <div className="rounded-2xl p-4" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
           <input ref={fileInputRef} type="file" accept="image/*" multiple capture="environment"
             className="hidden"
-            onChange={(e) => {
+            onChange={async (e) => {
               const newFiles = Array.from(e.target.files ?? []);
-              if (newFiles.length) setPhotos((prev) => [...prev, ...newFiles]);
               e.target.value = "";
+              if (!newFiles.length) return;
+              const compressed = await Promise.all(newFiles.map(compressPhoto));
+              setPhotos((prev) => [...prev, ...compressed]);
             }} />
           <input ref={libraryInputRef} type="file" accept="image/*" multiple
             className="hidden"
-            onChange={(e) => {
+            onChange={async (e) => {
               const newFiles = Array.from(e.target.files ?? []);
-              if (newFiles.length) setPhotos((prev) => [...prev, ...newFiles]);
               e.target.value = "";
+              if (!newFiles.length) return;
+              const compressed = await Promise.all(newFiles.map(compressPhoto));
+              setPhotos((prev) => [...prev, ...compressed]);
             }} />
           <div className="flex gap-2">
             <button onClick={() => fileInputRef.current?.click()}

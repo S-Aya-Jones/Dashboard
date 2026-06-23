@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 
+export const maxDuration = 60;
+
 const client = new Anthropic();
 
 const TONE_PROMPTS: Record<string, string> = {
@@ -13,7 +15,8 @@ const TONE_PROMPTS: Record<string, string> = {
 
 const SYSTEM = `You are helping a pre-med student turn raw study material (from a photo of notes/textbook, or a video transcript) into three things:
 1. A "narration" — the material rewritten in a specific tone (provided below), kept factually accurate, written to be read ALOUD by a voice actor: vary sentence length on purpose (mix short punchy lines with longer ones), use em-dashes, ellipses, and exclamation points to mark where the delivery should pause, speed up, or land hard on a word, and break it into short paragraphs (1-3 sentences each) instead of one dense block — it should sound like a person performing the tone, not a monotone reading of facts.
-2. A "highYield" array of 4-8 short, punchy bullet-point facts most likely to appear on the MCAT.
+   CRITICAL: the narration must be packed with the ACTUAL specific content from the source material — exact terms, numbers, names, mechanisms, steps, definitions. Never pad it with vague filler like "can you believe this" or "you'll never guess what happened next" UNLESS it is immediately followed by the real, specific fact it's teasing. The tone is the seasoning; the substance must always be the real material.
+2. A "highYield" array of 4-8 short, punchy bullet-point facts most likely to appear on the MCAT — each one a concrete, specific fact (with the term/number/mechanism named), never a generic placeholder.
 3. A single MCAT-style multiple choice "question" object based directly on the material, with this exact JSON shape:
 { "subject": string, "topic": string, "difficulty": "easy"|"medium"|"hard", "stem": string, "choices": [{"letter":"A","text":string},{"letter":"B","text":string},{"letter":"C","text":string},{"letter":"D","text":string}], "correctLetter": "A"|"B"|"C"|"D", "explanation": string }
 
