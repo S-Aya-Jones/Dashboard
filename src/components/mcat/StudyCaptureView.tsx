@@ -38,6 +38,7 @@ export function StudyCaptureView({ update }: Props) {
   const [selected, setSelected] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const libraryInputRef = useRef<HTMLInputElement>(null);
 
   function reset() {
     setResult(null);
@@ -131,13 +132,36 @@ export function StudyCaptureView({ update }: Props) {
       {mode === "photo" ? (
         <div className="rounded-2xl p-4" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
           <input ref={fileInputRef} type="file" accept="image/*" multiple capture="environment"
-            className="hidden" onChange={(e) => setPhotos(Array.from(e.target.files ?? []))} />
-          <button onClick={() => fileInputRef.current?.click()}
-            className="w-full flex flex-col items-center gap-2 py-6 rounded-xl"
-            style={{ border: "1.5px dashed var(--border)", color: "var(--text-muted)" }}>
-            <Camera size={24} />
-            <span className="text-sm font-medium">{photos.length ? `${photos.length} photo(s) selected` : "Tap to take or choose photos"}</span>
-          </button>
+            className="hidden"
+            onChange={(e) => {
+              const newFiles = Array.from(e.target.files ?? []);
+              if (newFiles.length) setPhotos((prev) => [...prev, ...newFiles]);
+              e.target.value = "";
+            }} />
+          <input ref={libraryInputRef} type="file" accept="image/*" multiple
+            className="hidden"
+            onChange={(e) => {
+              const newFiles = Array.from(e.target.files ?? []);
+              if (newFiles.length) setPhotos((prev) => [...prev, ...newFiles]);
+              e.target.value = "";
+            }} />
+          <div className="flex gap-2">
+            <button onClick={() => fileInputRef.current?.click()}
+              className="flex-1 flex flex-col items-center gap-2 py-6 rounded-xl"
+              style={{ border: "1.5px dashed var(--border)", color: "var(--text-muted)" }}>
+              <Camera size={24} />
+              <span className="text-sm font-medium">Take Photo</span>
+            </button>
+            <button onClick={() => libraryInputRef.current?.click()}
+              className="flex-1 flex flex-col items-center gap-2 py-6 rounded-xl"
+              style={{ border: "1.5px dashed var(--border)", color: "var(--text-muted)" }}>
+              <Camera size={24} />
+              <span className="text-sm font-medium">Choose Photos</span>
+            </button>
+          </div>
+          {photos.length > 0 && (
+            <p className="text-xs mt-2" style={{ color: "var(--text-muted)" }}>{photos.length} photo(s) added — tap a thumbnail's × to remove, or keep adding more.</p>
+          )}
           {photos.length > 0 && (
             <div className="flex gap-2 mt-3 flex-wrap">
               {photos.map((p, i) => (
