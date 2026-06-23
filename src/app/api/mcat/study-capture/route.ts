@@ -7,6 +7,7 @@ const TONE_PROMPTS: Record<string, string> = {
   gossip: "Rewrite this like you're spilling juicy gossip to your best friend — dramatic, conspiratorial, lots of 'okay so get this' energy, but keep every fact accurate.",
   truecrime: "Rewrite this like a true-crime podcast narrator building tension and foreshadowing — ominous, suspenseful pacing, ('but what they didn't know was...') while keeping every fact accurate.",
   hype: "Rewrite this like a hype coach pumping someone up before a big game — high energy, motivational, exclamation points, while keeping every fact accurate.",
+  housewives: "Rewrite this like a catty Real Housewives reunion confessional — petty, dramatic, shady one-liners, real cussing allowed (not censored), throwing shade at the wrong answer choices like they're a rival cast member, while keeping every fact accurate.",
   plain: "Rewrite this clearly and simply for studying, like a calm, clear tutor explaining it once.",
 };
 

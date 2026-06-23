@@ -18,6 +18,7 @@ const TONES = [
   { id: "gossip",     label: "Gossip" },
   { id: "truecrime",  label: "True Crime" },
   { id: "hype",       label: "Hype Coach" },
+  { id: "housewives", label: "Real Housewives" },
 ];
 
 interface Result {
