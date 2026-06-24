@@ -1,13 +1,34 @@
-import type { Metadata } from "next";
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 
-export const metadata: Metadata = {
-  title: "SMS Opt-In — Aya's Dashboard",
-  description: "SMS notification consent and opt-in page for Aya's personal wellness dashboard.",
-  robots: { index: true, follow: true },
-};
-
 export default function SmsOptInPage() {
+  const [phone, setPhone] = useState("");
+  const [consent, setConsent] = useState(false);
+  const [status, setStatus] = useState<"idle" | "submitting" | "done" | "error">("idle");
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit() {
+    setError(null);
+    if (!consent) { setError("Please check the consent box above before submitting."); return; }
+    if (!phone.trim()) { setError("Please enter your mobile phone number."); return; }
+    setStatus("submitting");
+    try {
+      const res = await fetch("/api/sms/opt-in", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone, consent }),
+      });
+      const json = await res.json();
+      if (json.error) { setError(json.error); setStatus("idle"); return; }
+      setStatus("done");
+    } catch {
+      setError("Something went wrong submitting this. Try again.");
+      setStatus("idle");
+    }
+  }
+
   return (
     <div style={{ background: "#F4F0FE", minHeight: "100vh", overflowY: "auto", fontFamily: "'Inter', system-ui, sans-serif", color: "#1E1340" }}>
       <div style={{ maxWidth: "560px", margin: "0 auto", padding: "3rem 1.5rem 5rem" }}>
@@ -62,9 +83,32 @@ export default function SmsOptInPage() {
             <p style={{ fontSize: "0.8rem", color: "#1E1340", fontStyle: "italic", margin: 0 }}>&ldquo;Daily check-in: 4/5 habits done, 7.5 hrs sleep, 2L water. You&apos;re killing it.&rdquo;</p>
           </div>
 
+          {/* Phone number */}
+          <div style={{ marginBottom: "1.25rem" }}>
+            <label htmlFor="phone" style={{ display: "block", fontSize: "0.75rem", fontWeight: 600, color: "#7C5CFC", margin: "0 0 0.4rem" }}>
+              Mobile Phone Number
+            </label>
+            <input
+              id="phone"
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="(555) 123-4567"
+              disabled={status === "done"}
+              style={{ width: "100%", padding: "0.7rem 0.9rem", borderRadius: "8px", border: "1px solid rgba(124,92,252,0.25)", fontSize: "0.9rem", color: "#1E1340", boxSizing: "border-box" }}
+            />
+          </div>
+
           {/* Opt-in consent */}
           <div style={{ display: "flex", gap: "0.75rem", alignItems: "flex-start", marginBottom: "1.25rem", padding: "1rem", background: "rgba(124,92,252,0.04)", borderRadius: "10px", border: "1px solid rgba(124,92,252,0.12)" }}>
-            <input type="checkbox" id="consent" defaultChecked style={{ marginTop: "3px", flexShrink: 0, width: 16, height: 16, accentColor: "#7C5CFC" }} />
+            <input
+              type="checkbox"
+              id="consent"
+              checked={consent}
+              onChange={(e) => setConsent(e.target.checked)}
+              disabled={status === "done"}
+              style={{ marginTop: "3px", flexShrink: 0, width: 16, height: 16, accentColor: "#7C5CFC" }}
+            />
             <label htmlFor="consent" style={{ fontSize: "0.85rem", lineHeight: 1.6, color: "#1E1340" }}>
               Yes, I consent to receive automated text messages from Aya&apos;s Dashboard
               (operated by Shaniqua Jones) about my daily workout reminders, wellness
@@ -72,6 +116,28 @@ export default function SmsOptInPage() {
               Consent is not a condition of use.
             </label>
           </div>
+
+          {error && (
+            <p style={{ fontSize: "0.8rem", color: "#DA667B", margin: "0 0 1rem" }}>{error}</p>
+          )}
+
+          {status === "done" ? (
+            <p style={{ fontSize: "0.85rem", color: "#1E1340", background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.25)", borderRadius: "10px", padding: "0.85rem 1rem", margin: "0 0 1.25rem" }}>
+              ✓ You&apos;re opted in. Reply <strong>STOP</strong> at any time to cancel.
+            </p>
+          ) : (
+            <button
+              onClick={handleSubmit}
+              disabled={status === "submitting"}
+              style={{
+                width: "100%", padding: "0.8rem", borderRadius: "10px", border: "none",
+                background: "#7C5CFC", color: "#fff", fontSize: "0.9rem", fontWeight: 600,
+                cursor: "pointer", marginBottom: "1.25rem", opacity: status === "submitting" ? 0.6 : 1,
+              }}
+            >
+              {status === "submitting" ? "Submitting…" : "Submit"}
+            </button>
+          )}
 
           {/* Required CTIA disclosures */}
           <div style={{ fontSize: "0.78rem", lineHeight: 1.8, color: "#7C6FAE", borderTop: "1px solid rgba(124,92,252,0.12)", paddingTop: "1rem", display: "grid", gap: "0.35rem" }}>
