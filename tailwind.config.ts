@@ -9,86 +9,80 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        /* ── New semantic tokens ───────────────────── */
+        /* ── Semantic tokens — all driven by CSS vars in globals.css so
+           switching [data-theme] flips every one of these app-wide. ── */
         purple: {
-          DEFAULT: "#7C5CFC",
-          light:   "#9B7FFF",
-          dark:    "#5A3FD4",
-          soft:    "rgba(124,92,252,0.12)",
+          DEFAULT: "var(--purple)",
+          light:   "var(--purple-lt)",
+          dark:    "var(--purple-dark)",
+          soft:    "var(--purple-soft)",
         },
         pink: {
-          DEFAULT: "#E879F9",
-          light:   "#F0A5FF",
-          dark:    "#C855D8",
-          soft:    "rgba(232,121,249,0.12)",
+          DEFAULT: "var(--pink)",
+          light:   "var(--pink-light)",
+          dark:    "var(--pink-dark)",
+          soft:    "var(--pink-soft)",
         },
         peach: {
-          DEFAULT: "#FB923C",
-          light:   "#FDBA74",
-          dark:    "#EA7010",
-          soft:    "rgba(251,146,60,0.12)",
+          DEFAULT: "var(--peach)",
+          light:   "var(--peach-light)",
+          dark:    "var(--peach-dark)",
+          soft:    "var(--peach-soft)",
         },
         surface: {
-          DEFAULT: "#FFFFFF",
-          2:       "#FAF8FF",
-          3:       "#F4F0FE",
+          DEFAULT: "rgb(var(--surface-rgb) / <alpha-value>)",
+          2:       "var(--surface2)",
+          3:       "var(--surface3)",
         },
         bg: {
-          DEFAULT: "#F4F0FE",
-          2:       "#EDE8FF",
+          DEFAULT: "var(--bg)",
+          2:       "var(--bg2)",
         },
         ink: {
-          DEFAULT: "#1E1340",
-          muted:   "#7C6FAE",
-          light:   "#A89ECC",
+          DEFAULT: "var(--text)",
+          muted:   "var(--text-muted)",
+          light:   "var(--text-light)",
         },
 
-        /* ── Legacy aliases — remapped to light-mode ─
-           All the old dark-theme token names used across
-           20+ component files now resolve to light-mode
-           equivalents so no per-file text rewrites needed.
+        /* ── Legacy aliases — same CSS vars, kept so the 20+ component
+           files using these old token names resolve correctly in both
+           themes with no per-file rewrites needed.
         ─────────────────────────────────────────────── */
 
-        /* was #1A1A1A / #222 / #2A2A2A → light lavender bg */
         cream: {
-          DEFAULT: "#F4F0FE",
-          dark:    "#EDE8FF",
-          darker:  "rgba(124,92,252,0.12)",
+          DEFAULT: "var(--cream)",
+          dark:    "var(--cream-dark)",
+          darker:  "var(--cream-darker)",
         },
 
-        /* was #FFFFFF / rgba(255,255,255,0.7) → dark ink text */
         brown: {
-          DEFAULT: "#1E1340",
-          light:   "#7C6FAE",
-          dark:    "#2A1F6E",
+          DEFAULT: "rgb(var(--brown-rgb) / <alpha-value>)",
+          light:   "var(--brown-light)",
+          dark:    "var(--brown-dark)",
         },
 
-        /* was #C8FF00 (lime) → purple primary */
         terracotta: {
-          DEFAULT: "#7C5CFC",
-          light:   "#9B7FFF",
-          dark:    "#5A3FD4",
+          DEFAULT: "rgb(var(--terracotta-rgb) / <alpha-value>)",
+          light:   "var(--purple-lt)",
+          dark:    "var(--purple-dark)",
         },
 
-        /* was #9B7FFF (purple) → pink secondary */
         sage: {
-          DEFAULT: "#E879F9",
-          light:   "#F0A5FF",
-          dark:    "#C855D8",
+          DEFAULT: "rgb(var(--sage-rgb) / <alpha-value>)",
+          light:   "var(--pink-light)",
+          dark:    "var(--pink-dark)",
         },
 
-        /* was hot-pink → danger red */
         rose: {
-          DEFAULT: "#EF4444",
-          light:   "#FCA5A5",
-          muted:   "#DC2626",
+          DEFAULT: "rgb(var(--rose-rgb) / <alpha-value>)",
+          light:   "var(--rose-light)",
+          muted:   "var(--rose-muted)",
         },
 
-        /* was rgba(255,255,255,0.35) → purple-tinted muted */
         sand: {
-          DEFAULT: "rgba(124,92,252,0.18)",
-          light:   "rgba(124,92,252,0.28)",
-          dark:    "#7C6FAE",
+          DEFAULT: "var(--sand)",
+          light:   "var(--sand-light)",
+          dark:    "var(--sand-dark)",
         },
       },
       fontFamily: {

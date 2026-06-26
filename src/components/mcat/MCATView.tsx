@@ -9,6 +9,16 @@ import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { today as todayStr, id } from "@/lib/utils";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { MCATRoadmapCard } from "@/components/mcat/MCATRoadmapCard";
+import { PracticeTest } from "@/types/dashboard";
+
+const SOURCE_LABELS: Record<NonNullable<PracticeTest["source"]>, string> = {
+  aamc_fl: "AAMC Full-Length",
+  aamc_sample: "AAMC Sample Test",
+  aamc_section_bank: "AAMC Section Bank",
+  aamc_question_pack: "AAMC Question Pack",
+  third_party: "Third-Party (Kaplan/Blueprint/etc.)",
+};
 
 interface Props {
   data: DashboardData;
@@ -26,7 +36,7 @@ export function MCATView({ data, update }: Props) {
   const [studyOpen, setStudyOpen] = useState(false);
   const [testOpen, setTestOpen] = useState(false);
   const [studyForm, setStudyForm] = useState({ cars: 0, bioBiochem: 0, chemPhys: 0, psychSoc: 0 });
-  const [testForm, setTestForm] = useState({ total: 0, cars: 0, bioBiochem: 0, chemPhys: 0, psychSoc: 0, notes: "" });
+  const [testForm, setTestForm] = useState({ total: 0, cars: 0, bioBiochem: 0, chemPhys: 0, psychSoc: 0, notes: "", source: "third_party" as PracticeTest["source"], label: "" });
   const [testDate, setTestDate] = useState(data.mcatTestDate ?? "");
 
   const today = todayStr();
@@ -63,7 +73,7 @@ export function MCATView({ data, update }: Props) {
   const addPracticeTest = () => {
     if (testForm.total === 0) return;
     update((d) => ({ ...d, practiceTests: [...d.practiceTests, { ...testForm, id: id(), date: today }] }));
-    setTestForm({ total: 0, cars: 0, bioBiochem: 0, chemPhys: 0, psychSoc: 0, notes: "" });
+    setTestForm({ total: 0, cars: 0, bioBiochem: 0, chemPhys: 0, psychSoc: 0, notes: "", source: "third_party", label: "" });
     setTestOpen(false);
   };
 
@@ -85,6 +95,9 @@ export function MCATView({ data, update }: Props) {
           </Button>
         </div>
       </div>
+
+      {/* MCAT Roadmap */}
+      <MCATRoadmapCard data={data} update={update} />
 
       {/* Stats row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -180,7 +193,10 @@ export function MCATView({ data, update }: Props) {
             {[...data.practiceTests].reverse().map((t) => (
               <div key={t.id} className="flex items-center gap-3 p-3 bg-cream-dark rounded-xl">
                 <div className="flex-1">
-                  <p className="text-xs text-sand-dark">{format(parseISO(t.date), "MMMM d, yyyy")}</p>
+                  <p className="text-xs text-sand-dark">
+                    {format(parseISO(t.date), "MMMM d, yyyy")}
+                    {t.source && <span className="ml-1.5 text-terracotta">· {SOURCE_LABELS[t.source]}</span>}
+                  </p>
                   {t.notes && <p className="text-xs text-brown italic mt-0.5">{t.notes}</p>}
                 </div>
                 <p className="font-serif text-2xl text-brown">{t.total}</p>
@@ -229,6 +245,18 @@ export function MCATView({ data, update }: Props) {
               <input type="number" min={118} max={132} value={testForm[sec.key]} onChange={(e) => setTestForm({ ...testForm, [sec.key]: Number(e.target.value) })} className="w-20" />
             </div>
           ))}
+          <div>
+            <label className="text-xs font-medium text-brown block mb-1">Source</label>
+            <select value={testForm.source} onChange={(e) => setTestForm({ ...testForm, source: e.target.value as PracticeTest["source"] })} className="w-full">
+              {Object.entries(SOURCE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
+          </div>
+          {testForm.source === "aamc_fl" && (
+            <div>
+              <label className="text-xs font-medium text-brown block mb-1">Label (e.g. FL1, FL2)</label>
+              <input type="text" value={testForm.label} onChange={(e) => setTestForm({ ...testForm, label: e.target.value })} placeholder="FL1" className="w-28" />
+            </div>
+          )}
           <div>
             <label className="text-xs font-medium text-brown block mb-1">Notes</label>
             <textarea rows={2} value={testForm.notes} onChange={(e) => setTestForm({ ...testForm, notes: e.target.value })} placeholder="How did it feel? What to review?" />

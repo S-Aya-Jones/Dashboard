@@ -1,14 +1,67 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
+:root,
+[data-theme="dark"] {
+  --bg:          #170B2E;
+  --bg2:         #20123F;
+  --surface:     #1E1233;
+  --surface2:    #261A45;
+  --surface3:    #2E2052;
+  --border:      rgba(255,255,255,0.10);
+  --border2:     rgba(255,255,255,0.18);
+  --text:        #F5F1FB;
+  --text-muted:  rgba(245,241,251,0.62);
+  --text-light:  rgba(245,241,251,0.4);
+  --purple:      #8B6CF2;
+  --purple-lt:   #A78BFA;
+  --purple-dark: #6B4FD0;
+  --purple-soft: rgba(139,108,242,0.16);
+  --pink:        #E8559A;
+  --pink-light:  #F286B8;
+  --pink-dark:   #C23E7D;
+  --pink-soft:   rgba(232,85,154,0.16);
+  --peach:       #F2845B;
+  --peach-light: #F7AB8A;
+  --peach-dark:  #D4663D;
+  --peach-soft:  rgba(242,132,91,0.16);
+  --green:       #5BD9A0;
+  --red:         #F25B5B;
+  --amber:       #F2C879;
+  --cream:       #20123F;
+  --cream-dark:  #170B2E;
+  --cream-darker: rgba(255,255,255,0.08);
+  --brown:       #F5F1FB;
+  --brown-light: rgba(245,241,251,0.62);
+  --brown-dark:  #FFFFFF;
+  --rose-light:  #FCA5A5;
+  --rose-muted:  #DC2626;
+  --sand:        rgba(245,241,251,0.18);
+  --sand-light:  rgba(245,241,251,0.28);
+  --sand-dark:   rgba(245,241,251,0.55);
+  /* RGB triplets (no alpha) for tokens that need Tailwind's bg-x/NN opacity modifiers */
+  --brown-rgb:      245 241 251;
+  --terracotta-rgb: 139 108 242;
+  --sage-rgb:       232 85 154;
+  --rose-rgb:       242 91 91;
+  --surface-rgb:    30 18 51;
+  --shadow:      0 4px 24px rgba(0,0,0,0.35);
+  --shadow-md:   0 8px 32px rgba(0,0,0,0.45);
+  --shadow-lg:   0 16px 48px rgba(0,0,0,0.55);
+  --grad:        linear-gradient(135deg, #8B6CF2 0%, #E8559A 100%);
+  --grad-peach:  linear-gradient(135deg, #E8559A 0%, #F2845B 100%);
+  --grad-soft:   linear-gradient(160deg, #20123F 0%, #170B2E 100%);
+}
+
+[data-theme="light"] {
   --bg:          #F4F0FE;
   --bg2:         #EDE8FF;
   --surface:     #FFFFFF;
   --surface2:    #FAF8FF;
+  --surface3:    #F4F0FE;
   --border:      rgba(124,92,252,0.12);
   --border2:     rgba(124,92,252,0.22);
   --text:        #1E1340;
@@ -16,11 +69,35 @@
   --text-light:  #A89ECC;
   --purple:      #7C5CFC;
   --purple-lt:   #9B7FFF;
+  --purple-dark: #5A3FD4;
+  --purple-soft: rgba(124,92,252,0.12);
   --pink:        #E879F9;
+  --pink-light:  #F0A5FF;
+  --pink-dark:   #C855D8;
+  --pink-soft:   rgba(232,121,249,0.12);
   --peach:       #FB923C;
+  --peach-light: #FDBA74;
+  --peach-dark:  #EA7010;
+  --peach-soft:  rgba(251,146,60,0.12);
   --green:       #10B981;
   --red:         #EF4444;
   --amber:       #F59E0B;
+  --cream:       #F4F0FE;
+  --cream-dark:  #EDE8FF;
+  --cream-darker: rgba(124,92,252,0.12);
+  --brown:       #1E1340;
+  --brown-light: #7C6FAE;
+  --brown-dark:  #2A1F6E;
+  --rose-light:  #FCA5A5;
+  --rose-muted:  #DC2626;
+  --sand:        rgba(124,92,252,0.18);
+  --sand-light:  rgba(124,92,252,0.28);
+  --sand-dark:   rgba(124,92,252,0.55);
+  --brown-rgb:      30 19 64;
+  --terracotta-rgb: 124 92 252;
+  --sage-rgb:       232 121 249;
+  --rose-rgb:       239 68 68;
+  --surface-rgb:    255 255 255;
   --shadow:      0 4px 24px rgba(124,92,252,0.12);
   --shadow-md:   0 8px 32px rgba(124,92,252,0.18);
   --shadow-lg:   0 16px 48px rgba(124,92,252,0.24);
@@ -39,9 +116,15 @@ html {
 
 body {
   background-color: var(--bg);
+  background-image:
+    radial-gradient(circle at 12% 0%, var(--pink-soft), transparent 50%),
+    radial-gradient(circle at 88% 10%, var(--purple-soft), transparent 50%),
+    radial-gradient(circle at 50% 100%, rgba(91,201,217,0.08), transparent 55%);
+  background-attachment: fixed;
   color: var(--text);
   font-family: 'Inter', system-ui, sans-serif;
   min-height: 100vh;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 h1, h2, h3 {
@@ -239,3 +322,64 @@ input::placeholder, textarea::placeholder {
 }
 
 .text-dark { color: var(--text); }
+
+/* ── Aya dark theme helpers ──────────────────────────────────
+   The whole app now uses this palette by default (see :root above
+   and tailwind.config.ts legacy color remap). This class just adds
+   the glass/serif/UV-chart helper utilities used on the Today page. */
+.aya-dark {
+  --aya-gold:    var(--amber);
+  --aya-magenta: var(--pink);
+  --aya-violet:  var(--purple);
+  --aya-cyan:    #5BC9D9;
+  --aya-coral:   var(--peach);
+  --aya-green:   var(--green);
+  --aya-text:    var(--text);
+  --aya-text-muted: var(--text-muted);
+  --aya-text-faint: var(--text-light);
+  --aya-border:  var(--border);
+  --aya-glass-bg: rgba(255,255,255,0.05);
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  color: var(--aya-text);
+  position: relative;
+}
+
+[data-theme="light"] .aya-dark {
+  --aya-glass-bg: rgba(124,92,252,0.04);
+}
+
+.aya-dark .aya-serif {
+  font-family: 'Fraunces', serif;
+}
+
+.aya-dark .glass {
+  position: relative;
+  background: var(--aya-glass-bg);
+  border: 1px solid var(--aya-border);
+  border-radius: 1.25rem;
+  backdrop-filter: blur(18px);
+  box-shadow: var(--shadow);
+}
+
+.aya-dark .glass-glow {
+  box-shadow: 0 0 0 1.5px rgba(242,200,121,0.4), 0 8px 32px rgba(0,0,0,0.3);
+}
+
+@keyframes ayaSunPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.35); opacity: 0.55; }
+}
+
+.aya-dark .sun-core {
+  animation: ayaSunPulse 2.4s ease-in-out infinite;
+}
+
+.aya-dark .aya-line {
+  position: absolute;
+  left: 17px;
+  top: 0.5rem;
+  bottom: 0.5rem;
+  width: 2px;
+  background: linear-gradient(to bottom, var(--aya-cyan), var(--aya-magenta), var(--aya-violet));
+  opacity: 0.45;
+}

@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>137 — MCAT Runway</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;450;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0D0E12;
+    --panel:#15171F;
+    --panel-2:#1B1E28;
+    --line:#272A35;
+    --line-soft:#1F222C;
+    --text:#ECEDF1;
+    --muted:#8B92A2;
+    --faint:#5C6373;
+    --gold:#E8B04B;
+    --p1:#4FB6A8;   /* phase 1 teal */
+    --p2:#9B7FE6;   /* phase 2 violet */
+    --p3:#E8745C;   /* phase 3 coral */
+    --done:#3A8C6E;
+    --radius:14px;
+    --mono:'JetBrains Mono',monospace;
+    --disp:'Space Grotesk',sans-serif;
+    --body:'Inter',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--ink);
+    color:var(--text);
+    font-family:var(--body);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    padding:0 0 120px;
+  }
+  .wrap{max-width:920px;margin:0 auto;padding:0 22px}
+
+  /* ---------- HERO ---------- */
+  header{padding:54px 0 30px;border-bottom:1px solid var(--line-soft)}
+  .eyebrow{
+    font-family:var(--mono);font-size:11px;letter-spacing:.32em;
+    text-transform:uppercase;color:var(--gold);margin-bottom:18px;
+  }
+  h1{
+    font-family:var(--disp);font-weight:700;
+    font-size:clamp(46px,11vw,104px);line-height:.92;letter-spacing:-.03em;
+    margin-bottom:4px;
+  }
+  h1 .unit{font-size:.28em;color:var(--muted);font-weight:500;letter-spacing:.04em;vertical-align:super}
+  .subline{
+    font-family:var(--disp);font-size:clamp(15px,2.4vw,19px);
+    color:var(--muted);font-weight:500;margin-top:10px;max-width:62ch;
+  }
+  .subline b{color:var(--text);font-weight:600}
+
+  .stats{display:flex;flex-wrap:wrap;gap:30px;margin-top:30px}
+  .stat .n{font-family:var(--disp);font-size:26px;font-weight:600;letter-spacing:-.02em}
+  .stat .l{font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint);margin-top:3px}
+  #daysLeft .n{color:var(--gold)}
+
+  /* ---------- BURNDOWN GRID ---------- */
+  .burn{margin:34px 0 8px}
+  .burn-label{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+  .burn-label span{font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint)}
+  .grid137{display:grid;grid-template-columns:repeat(34,1fr);gap:3px}
+  .cell{aspect-ratio:1;border-radius:2px;background:var(--line);position:relative;transition:transform .15s}
+  .cell.p1{background:color-mix(in srgb,var(--p1) 26%,var(--line))}
+  .cell.p2{background:color-mix(in srgb,var(--p2) 26%,var(--line))}
+  .cell.p3{background:color-mix(in srgb,var(--p3) 26%,var(--line))}
+  .cell.done{background:var(--done)!important;box-shadow:0 0 0 1px color-mix(in srgb,var(--done) 60%,transparent)}
+  .cell.test{background:var(--gold)!important;box-shadow:0 0 8px var(--gold)}
+  .cell:hover{transform:scale(1.45);z-index:5}
+
+  /* ---------- PROGRESS ---------- */
+  .progwrap{margin-top:20px}
+  .progbar{height:6px;border-radius:6px;background:var(--line);overflow:hidden}
+  .progfill{height:100%;width:0;background:linear-gradient(90deg,var(--p1),var(--p2),var(--p3));border-radius:6px;transition:width .4s}
+  .progmeta{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:8px;letter-spacing:.04em}
+
+  /* ---------- SPINE (pinned) ---------- */
+  .spine{
+    position:sticky;top:0;z-index:40;background:rgba(13,14,18,.86);
+    backdrop-filter:blur(10px);border-bottom:1px solid var(--line);
+    margin-top:38px;
+  }
+  .spine-inner{max-width:920px;margin:0 auto;padding:13px 22px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .spine .tag{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold)}
+  .spine .item{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:7px}
+  .spine .item b{color:var(--text);font-weight:600}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--gold)}
+
+  /* ---------- SECTION INTRO ---------- */
+  .note{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px 24px;margin:30px 0;
+  }
+  .note h3{font-family:var(--disp);font-size:16px;font-weight:600;margin-bottom:8px;letter-spacing:-.01em}
+  .note p{font-size:14px;color:var(--muted);line-height:1.62}
+  .note p+p{margin-top:9px}
+  .note b{color:var(--text);font-weight:600}
+
+  .legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+  .ltag{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;padding:4px 9px;border-radius:6px;border:1px solid var(--line);color:var(--muted)}
+  .ltag b{color:var(--text)}
+
+  /* ---------- PHASE ---------- */
+  .phase{margin-top:46px}
+  .phase-head{display:flex;align-items:baseline;gap:14px;padding-bottom:14px;border-bottom:1px solid var(--line);margin-bottom:6px}
+  .phase-no{font-family:var(--mono);font-size:12px;letter-spacing:.2em}
+  .phase-title{font-family:var(--disp);font-size:23px;font-weight:600;letter-spacing:-.02em}
+  .phase-sub{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.08em;margin-left:auto}
+  .p1 .phase-no,.p1-c{color:var(--p1)}
+  .p2 .phase-no,.p2-c{color:var(--p2)}
+  .p3 .phase-no,.p3-c{color:var(--p3)}
+  .phase.p1 .phase-head{border-color:color-mix(in srgb,var(--p1) 40%,var(--line))}
+  .phase.p2 .phase-head{border-color:color-mix(in srgb,var(--p2) 40%,var(--line))}
+  .phase.p3 .phase-head{border-color:color-mix(in srgb,var(--p3) 40%,var(--line))}
+
+  /* ---------- WEEK ---------- */
+  .week{margin-top:22px}
+  .week-head{display:flex;align-items:baseline;gap:12px;cursor:pointer;padding:11px 2px;user-select:none}
+  .week-no{font-family:var(--mono);font-size:12px;color:var(--faint);min-width:54px}
+  .week-name{font-family:var(--disp);font-size:15.5px;font-weight:600;letter-spacing:-.01em}
+  .week-focus{font-size:12.5px;color:var(--muted);margin-left:auto;text-align:right}
+  .chev{font-family:var(--mono);font-size:11px;color:var(--faint);transition:transform .2s}
+  .week.collapsed .chev{transform:rotate(-90deg)}
+  .week.collapsed .days{display:none}
+
+  .days{border-left:1px solid var(--line-soft);margin-left:8px;padding-left:0}
+
+  /* ---------- DAY ---------- */
+  .day{display:flex;gap:13px;padding:13px 0 13px 16px;border-bottom:1px solid var(--line-soft);position:relative}
+  .day:last-child{border-bottom:none}
+  .day::before{content:"";position:absolute;left:-1px;top:0;bottom:0;width:2px;background:transparent}
+  .day.checked::before{background:var(--done)}
+  .check{
+    flex-shrink:0;width:19px;height:19px;border-radius:5px;border:1.5px solid var(--line);
+    margin-top:2px;cursor:pointer;display:grid;place-items:center;transition:all .15s;background:var(--panel)
+  }
+  .check:hover{border-color:var(--muted)}
+  .check.on{background:var(--done);border-color:var(--done)}
+  .check.on::after{content:"✓";font-size:12px;color:#0D0E12;font-weight:700}
+  .day-body{flex:1;min-width:0}
+  .day-top{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .dow{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);min-width:30px}
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{font-family:var(--mono);font-size:9.5px;letter-spacing:.05em;padding:2px 7px;border-radius:5px;font-weight:500}
+  .c-bc{background:color-mix(in srgb,var(--gold) 16%,transparent);color:var(--gold)}
+  .c-bio{background:color-mix(in srgb,var(--p1) 18%,transparent);color:var(--p1)}
+  .c-gc{background:color-mix(in srgb,#6ea8e8 18%,transparent);color:#8fc0f5}
+  .c-phys{background:color-mix(in srgb,var(--p2) 18%,transparent);color:#b9a3f0}
+  .c-org{background:color-mix(in srgb,#e89bc4 16%,transparent);color:#eaa9cd}
+  .c-ps{background:color-mix(in srgb,var(--p3) 18%,transparent);color:#f09b87}
+  .c-cars{background:color-mix(in srgb,#cfd3dd 14%,transparent);color:#cfd3dd}
+  .c-fl{background:var(--gold);color:#0D0E12;font-weight:600}
+  .c-rest{background:var(--line);color:var(--muted)}
+  .day-task{font-size:13.5px;color:var(--text);margin-top:5px;line-height:1.55}
+  .day.checked .day-task{color:var(--muted)}
+  .day-task .lead{font-weight:600}
+  .day.long .day-top .dow{color:var(--gold)}
+
+  /* footer */
+  footer{margin-top:60px;padding-top:26px;border-top:1px solid var(--line-soft);font-size:12.5px;color:var(--faint);line-height:1.7}
+  footer b{color:var(--muted)}
+  .reset{font-family:var(--mono);font-size:11px;color:var(--faint);background:none;border:1px solid var(--line);padding:6px 12px;border-radius:7px;cursor:pointer;margin-top:18px}
+  .reset:hover{color:var(--muted);border-color:var(--muted)}
+
+  @media(max-width:560px){
+    .grid137{grid-template-columns:repeat(20,1fr)}
+    .week-focus{display:none}
+    .spine-inner{gap:8px}
+    .spine .item:nth-child(n+4){display:none}
+  }
+  @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+  :focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="eyebrow">Operating manual · 520 target</div>
+    <h1>137<span class="unit">days</span></h1>
+    <p class="subline">Low background, elite target, working full time. The runway is long enough — the margin for wasted hours is <b>zero</b>. Open this any day and execute the line. Don't decide, just do.</p>
+
+    <div class="stats">
+      <div class="stat" id="daysLeft"><div class="n">—</div><div class="l">days to test</div></div>
+      <div class="stat"><div class="n" id="doneCount">0</div><div class="l">days logged</div></div>
+      <div class="stat"><div class="n" id="streakPct">0%</div><div class="l">runway burned</div></div>
+    </div>
+
+    <div class="burn">
+      <div class="burn-label"><span>The runway</span><span>day 1 → test</span></div>
+      <div class="grid137" id="grid137"></div>
+    </div>
+
+    <div class="progwrap">
+      <div class="progbar"><div class="progfill" id="progfill"></div></div>
+      <div class="progmeta" id="progmeta">0 of 137 days executed</div>
+    </div>
+  </div>
+</header>
+
+<!-- SPINE -->
+<div class="spine">
+  <div class="spine-inner">
+    <span class="tag">Every day · before anything</span>
+    <span class="item"><span class="dot"></span><b>Anki</b> — all due cards (P/S + science)</span>
+    <span class="item"><span class="dot"></span><b>CARS</b> — 2 passages timed + harder review</span>
+    <span class="item"><span class="dot"></span><b>Log misses</b> with a cause-tag</span>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="note">
+    <h3>How an hour is legally spent</h3>
+    <p>There are only three shapes a block can take. Nothing else counts as study.</p>
+    <p><b>Content:</b> learn topic → make Anki cards on it immediately → do 5–10 discretes on that exact topic → every miss becomes a card. Never just read.</p>
+    <p><b>Passage:</b> do it timed, no pausing. Then review <i>longer than you did it</i> — say why the right answer is right and why each wrong one is a trap.</p>
+    <p><b>Review:</b> every miss gets a cause-tag. The tag is the fix.</p>
+    <div class="legend">
+      <span class="ltag"><b>gap</b> → make a card</span>
+      <span class="ltag"><b>misread</b> → slow the stem</span>
+      <span class="ltag"><b>careless</b> → checklist</span>
+      <span class="ltag"><b>timing</b> → pacing drill</span>
+      <span class="ltag"><b>trap</b> → study the pattern</span>
+    </div>
+  </div>
+
+</div>
+
+<div class="wrap" id="plan"></div>
+
+<div class="wrap">
+  <footer>
+    <p><b>The one metric that tells the truth:</b> your AAMC full-length average in the final month. To <i>be</i> a 520, those FLs need to land 518+ before test day. If a month out you're at 510, that's the honest signal to push the date or recalibrate — no plan guarantees the number, it just maximizes the odds and tells you early.</p>
+    <p style="margin-top:12px"><b>The trap for your exact profile:</b> over-investing in content, under-investing in passages + review. If you ever catch yourself rereading a chapter instead of doing tagged passages, the plan has quietly broken. Encode → apply under timing → diagnose every miss → patch the exact hole. That loop is the whole machine.</p>
+    <button class="reset" onclick="resetAll()">Reset all checks</button>
+  </footer>
+</div>
+
+<script>
+/* ============ PLAN DATA ============ */
+const DOW=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+// chip codes: bc bio gc phys org ps cars fl rest
+const PLAN=[
+ {phase:1,no:"01",title:"Content · Anki · CARS foundation",sub:"weeks 1–8 · stop the bleeding on gaps",
+  weeks:[
+   {name:"Biochem — proteins & enzymes",focus:"highest-yield subject, first",days:[
+    {c:["bc"],t:"<span class='lead'>Amino acids I.</span> Nonpolar + aromatic — draw all, classify, charge at pH 7, 1- & 3-letter codes. Cards + 5 discretes."},
+    {c:["bc"],t:"<span class='lead'>Amino acids II.</span> Polar uncharged, acidic, basic. Side-chain pKa's, charge at pH 7. Cards + 5 discretes."},
+    {c:["bc"],t:"<span class='lead'>Protein structure.</span> 1°→4°, the bond stabilizing each level, denaturation. Cards."},
+    {c:["bc"],t:"<span class='lead'>Enzyme function.</span> Active site, cofactors vs coenzymes, allosteric & feedback regulation. Cards."},
+    {c:["bc"],t:"<span class='lead'>Enzyme kinetics.</span> Michaelis–Menten, Km/Vmax, Lineweaver–Burk, all inhibition types + what shifts. Cards + discretes."},
+    {c:["bc"],t:"<span class='lead'>Long day.</span> Re-draw all 20 AAs cold from blank paper (target <10 min, 0 errors). 2 biochem passage sets + deep review. Begin glycolysis reading.",long:true},
+    {c:["rest"],t:"<span class='lead'>Lighter.</span> Anki + CARS only, then re-do the week's weakest cards and re-tag any miss you didn't fully understand."}
+   ]},
+   {name:"Biochem — metabolism",focus:"build one giant hand-drawn map",days:[
+    {c:["bc"],t:"<span class='lead'>Glycolysis.</span> Every regulated step, PFK-1 as the gatekeeper + its activators/inhibitors, net products. Start the metabolism map."},
+    {c:["bc"],t:"<span class='lead'>Pyruvate fates + TCA.</span> PDH regulation, each TCA step, rate-limiting enzymes. Add to map."},
+    {c:["bc"],t:"<span class='lead'>ETC + oxidative phosphorylation.</span> Complexes, chemiosmosis, uncouplers, what poisons do. Add to map."},
+    {c:["bc"],t:"<span class='lead'>Gluconeogenesis + glycogen.</span> Synthesis/breakdown, hormonal control (insulin/glucagon/epi)."},
+    {c:["bc"],t:"<span class='lead'>Lipid metabolism.</span> Fatty acid synthesis vs β-oxidation, ketone bodies, cholesterol basics."},
+    {c:["bc"],t:"<span class='lead'>Long day.</span> Reproduce the ENTIRE metabolism map from a blank page — star every rate-limiting enzyme + its regulator. 2–3 biochem passage sets + review.",long:true},
+    {c:["rest"],t:"<span class='lead'>Lighter.</span> Anki + CARS, review week's misses, patch the fuzzy map regions."}
+   ]},
+   {name:"Bio — molecular & genetics",focus:"techniques over rote pathways",days:[
+    {c:["bio"],t:"<span class='lead'>DNA → central dogma.</span> Replication, repair, the flow. Cards + discretes."},
+    {c:["bio"],t:"<span class='lead'>Transcription + translation.</span> Steps, post-translational modification. Cards."},
+    {c:["bio"],t:"<span class='lead'>Gene regulation.</span> Operons (lac/trp), eukaryotic control, epigenetics. Cards."},
+    {c:["bio"],t:"<span class='lead'>Lab techniques.</span> PCR, gel electrophoresis, Southern/Northern/Western, sequencing, cloning — higher yield than memorizing every transcription detail."},
+    {c:["bio"],t:"<span class='lead'>Genetics.</span> Mendelian, pedigrees, Hardy–Weinberg, linkage & recombination. Cards + discretes."},
+    {c:["bio"],t:"<span class='lead'>Long day.</span> Bio passage sets ×2–3 + review. Pankow P/S deck check-in: are you keeping pace on new cards?",long:true},
+    {c:["rest"],t:"<span class='lead'>Lighter.</span> Anki + CARS, week review."}
+   ]},
+   {name:"Bio — cells, micro, immune",focus:"",days:[
+    {c:["bio"],t:"<span class='lead'>Cell biology.</span> Organelles, membrane structure, transport (passive/active/bulk). Cards."},
+    {c:["bio"],t:"<span class='lead'>Cell cycle.</span> Mitosis vs meiosis, checkpoints, cancer/apoptosis. Cards + discretes."},
+    {c:["bio"],t:"<span class='lead'>Microbiology.</span> Bacteria structure/genetics, viral life cycles (lytic/lysogenic, retro). Cards."},
+    {c:["bio"],t:"<span class='lead'>Immunology.</span> Innate vs adaptive, B/T cells, antibody structure & function. Cards."},
+    {c:["bio"],t:"<span class='lead'>Bioenergetics + catch-up.</span> Patch any weak bio topic flagged so far. Discretes on weak areas."},
+    {c:["bio"],t:"<span class='lead'>Long day.</span> Bio passage sets + review.",long:true},
+    {c:["rest","cars"],t:"<span class='lead'>Lighter + CARS push.</span> Anki, then one full timed CARS section (not 2 passages) to start building stamina + review every miss."}
+   ]},
+   {name:"Bio — physiology I",focus:"endocrine table is the giant",days:[
+    {c:["bio"],t:"<span class='lead'>Endocrine I.</span> Build hormone table: hypothalamus/pituitary axis, thyroid, adrenal — source · trigger · target · effect · feedback."},
+    {c:["bio"],t:"<span class='lead'>Endocrine II.</span> Pancreas, gonads, calcium regulation (PTH/calcitonin/vit D). Complete the table. Drill the feedback loops."},
+    {c:["bio"],t:"<span class='lead'>Neuron + signaling.</span> Resting potential, action potential, synapse, major neurotransmitters. Cards."},
+    {c:["bio"],t:"<span class='lead'>Nervous system organization.</span> CNS/PNS, autonomic, reflex arcs, sensory basics. Cards."},
+    {c:["bio"],t:"<span class='lead'>Muscle.</span> Skeletal/cardiac/smooth, sliding-filament, motor units, excitation-contraction. Cards + discretes."},
+    {c:["bio"],t:"<span class='lead'>Long day.</span> Reproduce the full hormone table from blank paper. Physiology passage sets + review.",long:true},
+    {c:["rest"],t:"<span class='lead'>Lighter.</span> Anki + CARS, week review."}
+   ]},
+   {name:"Bio — physiology II",focus:"if X rises, what happens to Y",days:[
+    {c:["bio"],t:"<span class='lead'>Cardiovascular.</span> Heart anatomy, conduction order, cardiac cycle, BP regulation, circulation. Cards."},
+    {c:["bio"],t:"<span class='lead'>Respiratory.</span> Gas exchange, O₂–hemoglobin dissociation curve + every shift, control of breathing. Cards."},
+    {c:["bio"],t:"<span class='lead'>Renal.</span> Nephron — where each thing is filtered/reabsorbed/secreted, osmoregulation, acid-base. Cards."},
+    {c:["bio"],t:"<span class='lead'>Digestive.</span> Enzymes by site, absorption, hormonal control (gastrin/secretin/CCK). Cards."},
+    {c:["bio"],t:"<span class='lead'>Reproductive + development.</span> Cycles, hormones, fertilization → early development. Cards + discretes."},
+    {c:["bio"],t:"<span class='lead'>Long day.</span> Big physiology passage day across all systems. Recall hormone table + feedback loops cold. Review.",long:true},
+    {c:["rest"],t:"<span class='lead'>Lighter.</span> Anki + CARS, week review."}
+   ]},
+   {name:"General chemistry",focus:"acid/base + equilibrium = the core",days:[
+    {c:["gc"],t:"<span class='lead'>Atomic + bonding (fast).</span> Periodic trends, bonding, intermolecular forces — mostly review. Discretes."},
+    {c:["gc"],t:"<span class='lead'>Acids & bases.</span> pH/pKa, buffers, titration curves, polyprotic. HIGHEST-frequency gen chem topic. Cards + discretes."},
+    {c:["gc"],t:"<span class='lead'>Equilibrium.</span> Keq, Le Châtelier reasoning, Ksp & solubility. Cards + discretes."},
+    {c:["gc"],t:"<span class='lead'>Thermo + kinetics.</span> ΔG/ΔH/ΔS spontaneity & sign conventions, rate laws, catalysts. Cards."},
+    {c:["gc"],t:"<span class='lead'>Electrochem + gases/solutions.</span> Galvanic vs electrolytic, Nernst; gas laws, colligative properties. Cards."},
+    {c:["gc"],t:"<span class='lead'>Long day.</span> Gen chem passage sets + discretes (it shows up as passage-embedded reasoning). Review.",long:true},
+    {c:["rest"],t:"<span class='lead'>Lighter.</span> Anki + CARS, week review."}
+   ]},
+   {name:"Physics · Orgo · baseline FL",focus:"low yield — compress, don't sink",days:[
+    {c:["phys"],t:"<span class='lead'>Physics core.</span> Kinematics, forces, work/energy. Memorize the formula sheet to instant recall. Discretes."},
+    {c:["phys"],t:"<span class='lead'>Fluids.</span> Bernoulli, continuity, pressure, buoyancy — reappears constantly in cardio physiology. Cards + discretes."},
+    {c:["phys"],t:"<span class='lead'>Circuits + electrostatics.</span> Ohm's law, series/parallel, fields/potential — circuits map onto neurons. Cards."},
+    {c:["phys"],t:"<span class='lead'>Waves, sound, optics, thermo.</span> One focused pass, formula recall, move on. Discretes."},
+    {c:["org"],t:"<span class='lead'>Orgo — the high-yield slice.</span> Spectroscopy (IR peaks, NMR splitting/shift, mass spec) + separations/chromatography. This is most of orgo's points."},
+    {c:["org"],t:"<span class='lead'>Orgo — minimal.</span> Stereochemistry + the handful of common mechanisms. Do NOT memorize every reaction. Mixed passages + review.",long:true},
+    {c:["fl"],t:"<span class='lead'>BASELINE FULL-LENGTH.</span> Third-party FL (save AAMC for Phase 3), full timing, 7:30am start. This is your Phase 1 readout, not a grade — log section scores + every cause-tag.",long:true}
+   ]}
+  ]},
+
+ {phase:2,no:"02",title:"UWorld — practice becomes the center",sub:"weeks 9–15 · where the score actually climbs",
+  weeks:[
+   {name:"UWorld — biochem + bio",focus:"~40–50 q/day, review > doing",days:[
+    {c:["bc"],t:"<span class='lead'>UWorld biochem block</span> (timed). Then review longer than you did it — tag every miss. Patch gaps with cards."},
+    {c:["bc","bio"],t:"<span class='lead'>UWorld biochem/bio block.</span> Timed → deep review. Re-study any topic two misses point to."},
+    {c:["bio"],t:"<span class='lead'>UWorld bio block</span> (physiology emphasis). Timed → tag → patch."},
+    {c:["bio"],t:"<span class='lead'>UWorld bio block</span> (molecular/genetics). Timed → review → cards on gaps."},
+    {c:["bc","bio"],t:"<span class='lead'>Mixed B/B block.</span> Timed → review. Note which cause-tag is repeating most this week — that's next week's fix."},
+    {c:["bc","bio"],t:"<span class='lead'>Long day.</span> 3–4 UWorld B/B sets + one long review block tagging everything. Anki backlog clear.",long:true},
+    {c:["rest","cars"],t:"<span class='lead'>Lighter.</span> Full timed CARS section + review. Anki. Weekly miss audit."}
+   ]},
+   {name:"UWorld — bio + gen chem",focus:"",days:[
+    {c:["bio"],t:"<span class='lead'>UWorld bio block.</span> Timed → review → patch."},
+    {c:["gc"],t:"<span class='lead'>UWorld gen chem block.</span> Timed → review. Acid/base + equilibrium emphasis."},
+    {c:["gc"],t:"<span class='lead'>UWorld gen chem block.</span> Timed → review → cards on weak equations/concepts."},
+    {c:["bio","gc"],t:"<span class='lead'>Mixed bio/gen-chem block.</span> Timed → review."},
+    {c:["gc"],t:"<span class='lead'>UWorld gen chem block.</span> Thermo/electrochem emphasis. Timed → tag → patch."},
+    {c:["bio","gc"],t:"<span class='lead'>Long day.</span> 3–4 mixed sets + review.",long:true},
+    {c:["rest","cars"],t:"<span class='lead'>Lighter.</span> Full timed CARS + review. Anki. Weekly audit."}
+   ]},
+   {name:"UWorld — gen chem + physics",focus:"",days:[
+    {c:["gc"],t:"<span class='lead'>UWorld gen chem block.</span> Timed → review."},
+    {c:["phys"],t:"<span class='lead'>UWorld physics block.</span> Fluids + circuits emphasis. Timed → review → formula recall fixes."},
+    {c:["phys"],t:"<span class='lead'>UWorld physics block.</span> Timed → review → cards."},
+    {c:["gc","phys"],t:"<span class='lead'>Mixed C/P (chem-phys) block.</span> Timed → review. This mirrors a real test section."},
+    {c:["phys"],t:"<span class='lead'>UWorld physics block.</span> Weak-topic emphasis from this week's tags. Timed → patch."},
+    {c:["gc","phys"],t:"<span class='lead'>Long day.</span> 3–4 C/P sets + review.",long:true},
+    {c:["rest","cars"],t:"<span class='lead'>Lighter.</span> Full timed CARS + review. Anki. Weekly audit."}
+   ]},
+   {name:"UWorld — physics, orgo + mid FL",focus:"midpoint reality check",days:[
+    {c:["phys"],t:"<span class='lead'>UWorld physics block.</span> Timed → review."},
+    {c:["org"],t:"<span class='lead'>UWorld orgo block.</span> Spectroscopy + lab techniques emphasis. Timed → review."},
+    {c:["org","gc"],t:"<span class='lead'>Mixed orgo/gen-chem block.</span> Timed → review → cards."},
+    {c:["bc","org"],t:"<span class='lead'>Mixed C/P block.</span> Biochem + orgo + chem together. Timed → review."},
+    {c:["bc","bio","gc","phys"],t:"<span class='lead'>Mixed everything block.</span> Start training section-switching. Timed → review."},
+    {c:["fl"],t:"<span class='lead'>MIDPOINT FULL-LENGTH.</span> Third-party FL, full sim, 7:30am. Compare to baseline — is each section moving? Tag everything.",long:true},
+    {c:["rest"],t:"<span class='lead'>FL review day.</span> Tag every miss from the FL to root cause. The FL review matters more than the FL. Anki."}
+   ]},
+   {name:"UWorld — psych/soc heavy + mixed",focus:"fastest points on the test",days:[
+    {c:["ps"],t:"<span class='lead'>Pankow deck — close the gap.</span> If the deck isn't finished, this is the week it gets done. UWorld P/S block + review."},
+    {c:["ps"],t:"<span class='lead'>UWorld P/S block.</span> Learn how they phrase questions — the content is the easy part. Timed → review."},
+    {c:["ps"],t:"<span class='lead'>UWorld P/S block.</span> Khan P/S videos ONLY for deck-flagged fuzzy concepts. Timed → review."},
+    {c:["ps","bio"],t:"<span class='lead'>P/S + bio (behavioral) block.</span> Nervous system + behavior overlap. Timed → review."},
+    {c:["ps"],t:"<span class='lead'>UWorld P/S block.</span> This is your 125→132 section — grind it. Timed → review → cards."},
+    {c:["bc","bio","gc","phys","ps"],t:"<span class='lead'>Long day.</span> Mixed sets across all sections + review.",long:true},
+    {c:["rest","cars"],t:"<span class='lead'>Lighter.</span> Full timed CARS + review. Anki. Weekly audit."}
+   ]},
+   {name:"UWorld — mixed timed sections",focus:"train the full-section muscle",days:[
+    {c:["bio","bc"],t:"<span class='lead'>Timed B/B half-section.</span> ~30 questions in one sitting → review."},
+    {c:["gc","phys"],t:"<span class='lead'>Timed C/P half-section.</span> ~30 questions → review."},
+    {c:["ps"],t:"<span class='lead'>Timed P/S half-section.</span> ~30 questions → review."},
+    {c:["cars"],t:"<span class='lead'>Timed full CARS section.</span> 9 passages, real pacing → review every miss to a trap pattern."},
+    {c:["bc","bio","gc","phys"],t:"<span class='lead'>Mixed science block.</span> Patch the weakest tag from the week. Timed → review."},
+    {c:["bio","bc","gc","phys","ps"],t:"<span class='lead'>Long day.</span> Two full timed sections back to back (build stamina) + review.",long:true},
+    {c:["rest"],t:"<span class='lead'>Lighter.</span> Anki, CARS, audit. Finish remaining UWorld; flag everything missed for Phase 3 re-do."}
+   ]},
+   {name:"Bridge into AAMC",focus:"transition to the test-makers' material",days:[
+    {c:["bc","bio"],t:"<span class='lead'>AAMC Section Bank — B/B.</span> Begin. Harder + more representative than UWorld. Timed → deep review."},
+    {c:["gc","phys"],t:"<span class='lead'>AAMC Section Bank — C/P.</span> Timed → deep review → cards."},
+    {c:["ps"],t:"<span class='lead'>AAMC Section Bank — P/S.</span> Timed → review."},
+    {c:["cars"],t:"<span class='lead'>AAMC CARS Question Pack.</span> Switch all CARS to AAMC material now. Review trap patterns."},
+    {c:["bc","bio","gc","phys"],t:"<span class='lead'>AAMC Question Pack (science).</span> Discretes-heavy, exposes precise gaps. Timed → patch."},
+    {c:["bc","bio","gc","phys","ps"],t:"<span class='lead'>Long day.</span> Mixed AAMC Section Bank + Q-Pack work + review. Finish UWorld if anything remains.",long:true},
+    {c:["rest"],t:"<span class='lead'>Lighter.</span> Anki, AAMC CARS, weekly audit. Prep for FL phase."}
+   ]}
+  ]},
+
+ {phase:3,no:"03",title:"AAMC only — full-lengths & taper",sub:"weeks 16–19.5 · the FL average is the truth",
+  weeks:[
+   {name:"AAMC Section Banks + FL1",focus:"one full-length per Saturday now",days:[
+    {c:["bc","bio"],t:"<span class='lead'>AAMC Section Bank — B/B.</span> Finish remaining passages. Timed → deep review."},
+    {c:["gc","phys"],t:"<span class='lead'>AAMC Section Bank — C/P.</span> Timed → review → cards on residual gaps."},
+    {c:["ps"],t:"<span class='lead'>AAMC Section Bank — P/S.</span> Timed → review."},
+    {c:["cars"],t:"<span class='lead'>AAMC CARS Q-Pack.</span> Daily CARS is now all AAMC. Trap-pattern review."},
+    {c:["bc","bio","gc","phys"],t:"<span class='lead'>AAMC Question Packs.</span> Across sciences. Timed → patch weakest tag."},
+    {c:["fl"],t:"<span class='lead'>AAMC FULL-LENGTH 1.</span> Full sim — 7:30am start, real breaks, real timing, test-day breakfast. No phone. This score range is your real signal.",long:true},
+    {c:["rest"],t:"<span class='lead'>FL1 review (part 1).</span> Tag every miss to root cause. Patch the biggest holes first. Anki."}
+   ]},
+   {name:"AAMC Q-Packs + FL2",focus:"",days:[
+    {c:["bc","bio","gc","phys","ps"],t:"<span class='lead'>FL1 review (part 2).</span> Finish tagging. Build a patch list of the top 10 recurring weaknesses — work them all week."},
+    {c:["bc","bio"],t:"<span class='lead'>AAMC Q-Pack — Bio/Biochem.</span> Timed → review → patch."},
+    {c:["gc","phys"],t:"<span class='lead'>AAMC Q-Pack — Chem/Phys.</span> Timed → review → patch."},
+    {c:["ps","cars"],t:"<span class='lead'>AAMC P/S Q-Pack + CARS Q-Pack.</span> Timed → review."},
+    {c:["bc","bio","gc","phys"],t:"<span class='lead'>Patch-list day.</span> Hit the specific holes FL1 exposed with targeted Section Bank / Q-Pack passages."},
+    {c:["fl"],t:"<span class='lead'>AAMC FULL-LENGTH 2.</span> Full sim, 7:30am. Compare section-by-section to FL1 — what moved, what's stuck?",long:true},
+    {c:["rest"],t:"<span class='lead'>FL2 review (part 1).</span> Tag everything. Anki."}
+   ]},
+   {name:"Targeted patching + FL3",focus:"close the stuck sections",days:[
+    {c:["bc","bio","gc","phys","ps"],t:"<span class='lead'>FL2 review (part 2).</span> Update the patch list. Whatever section is stuck gets the most hours this week."},
+    {c:["bc","bio"],t:"<span class='lead'>Weakest-section drill.</span> Section Bank / Q-Pack passages aimed at the lowest FL section. Timed → review."},
+    {c:["gc","phys"],t:"<span class='lead'>Second-weakest drill.</span> Targeted AAMC passages. Timed → review."},
+    {c:["ps","cars"],t:"<span class='lead'>P/S + CARS.</span> Keep both warm — P/S should be near-locked by now, CARS stays daily. Review."},
+    {c:["bc","bio","gc","phys"],t:"<span class='lead'>Mixed AAMC discretes.</span> Re-do previously missed AAMC questions — did the patch hold? Re-tag any that didn't."},
+    {c:["fl"],t:"<span class='lead'>AAMC FULL-LENGTH 3.</span> Full sim, 7:30am. Your last-month FL average is forming — is it tracking toward 518+?",long:true},
+    {c:["rest"],t:"<span class='lead'>FL3 review (part 1).</span> Tag everything. Anki."}
+   ]},
+   {name:"Final FL + taper begins",focus:"peak, then come down clean",days:[
+    {c:["bc","bio","gc","phys","ps"],t:"<span class='lead'>FL3 review (part 2).</span> Last full patch list. Work the highest-frequency cause-tag across all FLs."},
+    {c:["bc","bio"],t:"<span class='lead'>Weakest-section targeted drill.</span> AAMC Section Bank / Q-Pack passages aimed at your lowest FL section. Timed → review."},
+    {c:["gc","phys"],t:"<span class='lead'>Second-weakest targeted drill.</span> Same approach, second-lowest section. Timed → review → patch."},
+    {c:["bc","bio","gc","phys"],t:"<span class='lead'>Re-do flagged AAMC items.</span> Did the patches hold? Re-tag anything that didn't. Re-read your error log, not new material."},
+    {c:["ps","cars"],t:"<span class='lead'>P/S + CARS warm + skim.</span> One P/S Q-Pack set, daily CARS, and a pass over the high-yield sheets (AAs, hormone table, formula sheet)."},
+    {c:["fl"],t:"<span class='lead'>AAMC FULL-LENGTH 4</span> (or Sample, whichever's unused). Last full sim — lands ~5 days before test. 7:30am. Then stop taking new FLs.",long:true},
+    {c:["rest"],t:"<span class='lead'>FL4 review.</span> Final patch — only the cheapest, highest-frequency fixes. No new content from here. Anki light."}
+   ]},
+   {name:"Test week — taper & execute",focus:"the work is done; protect the asset",days:[
+    {c:["bc","bio","gc","phys","ps"],t:"<span class='lead'>Light review.</span> Re-skim error log + high-yield sheets only: 20 AAs, metabolism map, hormone table, formula sheet, P/S terms. Nothing new."},
+    {c:["ps","cars"],t:"<span class='lead'>Stay warm, don't strain.</span> A few P/S discretes + 1–2 CARS passages to keep the rhythm. Confirm test-center logistics, ID, route, snacks."},
+    {c:["rest"],t:"<span class='lead'>Day before — OFF (or near).</span> Optional 20–30 min light Anki to feel warm. Pack everything. Sleep is the highest-yield activity now. No studying past early afternoon."},
+    {c:["fl"],t:"<span class='lead'>TEST DAY.</span> Eat the breakfast you practiced. Trust the reps. Every passage: main idea first, eliminate traps, pace by the section clock. You built this.",long:true}
+   ]}
+  ]}
+];
+
+/* ============ RENDER ============ */
+const CHIP={bc:["BIOCHEM","c-bc"],bio:["BIO","c-bio"],gc:["GEN CHEM","c-gc"],phys:["PHYSICS","c-phys"],org:["ORGO","c-org"],ps:["PSYCH/SOC","c-ps"],cars:["CARS","c-cars"],fl:["FULL-LENGTH","c-fl"],rest:["LIGHTER","c-rest"]};
+
+let store={};
+try{store=JSON.parse(localStorage.getItem("mcat137")||"{}")}catch(e){store={}}
+function save(){try{localStorage.setItem("mcat137",JSON.stringify(store))}catch(e){}}
+
+let dayCounter=0;
+let weekIndex=0;
+const dayMeta=[]; // {id, phase}
+const planEl=document.getElementById("plan");
+
+PLAN.forEach(ph=>{
+  const sec=document.createElement("section");
+  sec.className="phase p"+ph.phase;
+  sec.innerHTML=`<div class="phase-head">
+      <span class="phase-no">PHASE ${ph.no}</span>
+      <span class="phase-title">${ph.title}</span>
+      <span class="phase-sub">${ph.sub}</span>
+    </div>`;
+  ph.weeks.forEach((wk,wi)=>{
+    weekIndex++;
+    const weekStart=dayCounter+1;
+    const wkEl=document.createElement("div");
+    wkEl.className="week";
+    const daysHtml=wk.days.map(d=>{
+      dayCounter++;
+      const id="d"+dayCounter;
+      dayMeta.push({id,phase:ph.phase});
+      const chips=d.c.map(c=>`<span class="chip ${CHIP[c][1]}">${CHIP[c][0]}</span>`).join("");
+      const dow=DOW[(dayCounter-1)%7];
+      const on=store[id]?"on":"";
+      const checked=store[id]?"checked":"";
+      return `<div class="day ${d.long?'long':''} ${checked}" data-id="${id}">
+        <div class="check ${on}" role="checkbox" aria-checked="${store[id]?'true':'false'}" tabindex="0" data-id="${id}"></div>
+        <div class="day-body">
+          <div class="day-top"><span class="dow">${dow}</span><div class="chips">${chips}</div></div>
+          <div class="day-task">${d.t}</div>
+        </div>
+      </div>`;
+    }).join("");
+    const weekEnd=dayCounter;
+    wkEl.innerHTML=`<div class="week-head" role="button" tabindex="0">
+        <span class="week-no">Wk ${String(weekIndex).padStart(2,'0')} · d${weekStart}–${weekEnd}</span>
+        <span class="week-name">${wk.name}</span>
+        <span class="week-focus">${wk.focus||""}</span>
+        <span class="chev">▾</span>
+      </div><div class="days">${daysHtml}</div>`;
+    sec.appendChild(wkEl);
+  });
+  planEl.appendChild(sec);
+});
+
+/* burndown grid */
+const grid=document.getElementById("grid137");
+const TOTAL=dayCounter; // 137
+dayMeta.forEach((d,i)=>{
+  const c=document.createElement("div");
+  c.className="cell p"+d.phase+(store[d.id]?" done":"")+(i===TOTAL-1?" test":"");
+  c.dataset.id=d.id;
+  c.title="Day "+(i+1);
+  grid.appendChild(c);
+});
+
+/* interactions */
+function toggle(id){
+  store[id]=!store[id];
+  if(!store[id])delete store[id];
+  save();
+  document.querySelectorAll(`[data-id="${id}"]`).forEach(el=>{
+    if(el.classList.contains("check")){el.classList.toggle("on",!!store[id]);el.setAttribute("aria-checked",store[id]?"true":"false");el.closest(".day").classList.toggle("checked",!!store[id]);}
+    if(el.classList.contains("cell"))el.classList.toggle("done",!!store[id]);
+  });
+  updateStats();
+}
+document.addEventListener("click",e=>{
+  const ck=e.target.closest(".check");if(ck){toggle(ck.dataset.id);return;}
+  const wh=e.target.closest(".week-head");if(wh){wh.parentElement.classList.toggle("collapsed");}
+  const cell=e.target.closest(".cell");if(cell&&cell.dataset.id){toggle(cell.dataset.id);}
+});
+document.addEventListener("keydown",e=>{
+  if(e.key===" "||e.key==="Enter"){
+    const ck=e.target.closest(".check");if(ck){e.preventDefault();toggle(ck.dataset.id);}
+    const wh=e.target.closest(".week-head");if(wh){e.preventDefault();wh.parentElement.classList.toggle("collapsed");}
+  }
+});
+
+function updateStats(){
+  const done=Object.keys(store).length;
+  document.getElementById("doneCount").textContent=done;
+  const pct=Math.round(done/TOTAL*100);
+  document.getElementById("streakPct").textContent=pct+"%";
+  document.getElementById("progfill").style.width=pct+"%";
+  document.getElementById("progmeta").textContent=`${done} of ${TOTAL} days executed`;
+}
+function resetAll(){
+  if(!confirm("Clear every check and start the runway over?"))return;
+  store={};save();
+  document.querySelectorAll(".check.on").forEach(el=>{el.classList.remove("on");el.setAttribute("aria-checked","false");});
+  document.querySelectorAll(".day.checked").forEach(el=>el.classList.remove("checked"));
+  document.querySelectorAll(".cell.done").forEach(el=>el.classList.remove("done"));
+  updateStats();
+}
+updateStats();
+
+/* days-to-test: counts from today assuming day 1 = today; editable mentally */
+document.getElementById("daysLeft").querySelector(".n").textContent=TOTAL-Object.keys(store).length;
+</script>
+</body>
+</html>

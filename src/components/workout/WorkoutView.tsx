@@ -73,7 +73,7 @@ function ProgramOverview({ onClose }: { onClose: () => void }) {
             { weeks: "Weeks 5–6", label: "Peak Intensity", color: "#C99A5C", desc: "Heaviest weights yet. Maximum stimulus with perfect form. Push every set." },
             { weeks: "Week 7", label: "Deload — Let It Grow", color: "#DA667B", desc: "50% of week 6 weight, same reps. Growth consolidates during recovery." },
           ].map(({ weeks, label, color, desc }) => (
-            <div key={weeks} className="rounded-xl px-4 py-3 flex items-start gap-3" style={{ background: "#FAF8FF", border: "1px solid var(--border)" }}>
+            <div key={weeks} className="rounded-xl px-4 py-3 flex items-start gap-3" style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
               <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1.5" style={{ background: color }} />
               <div>
                 <p className="text-xs font-semibold" style={{ color }}>{weeks} · {label}</p>
@@ -90,7 +90,7 @@ function ProgramOverview({ onClose }: { onClose: () => void }) {
             const isExpanded = expandedDay === day.id;
             const fullList = buildFullExerciseList(day);
             return (
-              <div key={day.id} className="rounded-2xl overflow-hidden" style={{ background: "#FAF8FF", border: "1px solid var(--border)" }}>
+              <div key={day.id} className="rounded-2xl overflow-hidden" style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
                 <button className="w-full flex items-center justify-between px-4 py-3.5 text-left"
                   onClick={() => setExpandedDay(isExpanded ? null : day.id)}>
                   <div>
@@ -99,7 +99,7 @@ function ProgramOverview({ onClose }: { onClose: () => void }) {
                         {WEEK_DAYS[day.weekday]}
                       </span>
                       {day.isGluteDay && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold" style={{ background: "rgba(124,92,252,0.1)", color: "#7C5CFC" }}>Glute Day</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold" style={{ background: "rgba(var(--terracotta-rgb),0.1)", color: "#7C5CFC" }}>Glute Day</span>
                       )}
                     </div>
                     <p className="font-serif text-base mt-0.5" style={{ color: "var(--text)" }}>{day.label}</p>
@@ -171,7 +171,7 @@ function ProgramOverview({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* Program rules */}
-        <div className="rounded-2xl p-4 space-y-3" style={{ background: "#FAF8FF", border: "1px solid var(--border)" }}>
+        <div className="rounded-2xl p-4 space-y-3" style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
           <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Program Rules</p>
           {[
             { color: "#7C5CFC", rule: "Hip thrust: ribs down, 1-second squeeze, vertical shins at top. No exceptions." },
@@ -220,10 +220,10 @@ function MeasurementsCard({ data, update }: Props) {
   };
 
   return (
-    <div className="rounded-2xl p-5 space-y-4" style={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.15)" }}>
+    <div className="rounded-2xl p-5 space-y-4" style={{ background: "var(--surface)", border: "1px solid rgba(var(--terracotta-rgb),0.15)" }}>
       <div className="flex items-center justify-between">
         <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>Measurements</p>
-        <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: "rgba(124,92,252,0.1)", color: "#7C5CFC" }}>Most important</span>
+        <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: "rgba(var(--terracotta-rgb),0.1)", color: "#7C5CFC" }}>Most important</span>
       </div>
       {latest && (
         <div className="grid grid-cols-4 gap-2 text-center">
@@ -249,7 +249,7 @@ function MeasurementsCard({ data, update }: Props) {
           ].map(({ placeholder, value, set }) => (
             <input key={placeholder} type="number" step="0.5" placeholder={placeholder} value={value}
               onChange={(e) => set(e.target.value)}
-              style={{ background: "rgba(124,92,252,0.06)", border: "1px solid var(--border)", borderRadius: "0.75rem", padding: "0.5rem 0.75rem", color: "var(--text)", fontSize: "0.875rem", width: "100%", outline: "none" }} />
+              style={{ background: "rgba(var(--terracotta-rgb),0.06)", border: "1px solid var(--border)", borderRadius: "0.75rem", padding: "0.5rem 0.75rem", color: "var(--text)", fontSize: "0.875rem", width: "100%", outline: "none" }} />
           ))}
         </div>
         <button onClick={save} className="w-full py-2.5 rounded-xl text-sm font-semibold"
@@ -351,7 +351,7 @@ function WeightCard({ data, update }: Props) {
             <span>{lbsLeft > 0 ? `${lbsLeft.toFixed(1)} lbs to go` : "🎉 Goal reached!"}</span>
             <span style={{ color: "#9B7FFF" }}>{pct}%</span>
           </div>
-          <div className="h-3 rounded-full overflow-hidden" style={{ background: "rgba(124,92,252,0.08)" }}>
+          <div className="h-3 rounded-full overflow-hidden" style={{ background: "rgba(var(--terracotta-rgb),0.08)" }}>
             <div className="h-full rounded-full transition-all"
               style={{ width: `${Math.max(pct, 2)}%`, background: "linear-gradient(90deg, #7C5CFC, #9B7FFF)" }} />
           </div>
@@ -362,7 +362,7 @@ function WeightCard({ data, update }: Props) {
                 <div key={m.pct} className="flex flex-col items-center gap-0.5">
                   <div className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold"
                     style={{
-                      background: m.reached ? "#7C5CFC" : "rgba(124,92,252,0.1)",
+                      background: m.reached ? "#7C5CFC" : "rgba(var(--terracotta-rgb),0.1)",
                       color: m.reached ? "#fff" : "var(--text-muted)",
                     }}>
                     {m.reached ? "✓" : `${m.pct}%`}
@@ -377,7 +377,7 @@ function WeightCard({ data, update }: Props) {
 
       {/* Roadmap timeline */}
       {weeksToGoal > 0 && endDate && (
-        <div className="mx-5 mb-3 rounded-xl p-3 space-y-2" style={{ background: "rgba(124,92,252,0.05)", border: "1px solid rgba(124,92,252,0.12)" }}>
+        <div className="mx-5 mb-3 rounded-xl p-3 space-y-2" style={{ background: "rgba(var(--terracotta-rgb),0.05)", border: "1px solid rgba(var(--terracotta-rgb),0.12)" }}>
           <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#9B7FFF" }}>Your Roadmap</p>
           <div className="grid grid-cols-3 gap-2 text-center">
             <div>
@@ -398,7 +398,7 @@ function WeightCard({ data, update }: Props) {
           </div>
 
           {/* Weekly breakdown — 30/60/90 day checkpoints */}
-          <div className="space-y-1 pt-1" style={{ borderTop: "1px solid rgba(124,92,252,0.1)" }}>
+          <div className="space-y-1 pt-1" style={{ borderTop: "1px solid rgba(var(--terracotta-rgb),0.1)" }}>
             {[
               { label: "30 days", weeks: 4 },
               { label: "60 days", weeks: 9 },
@@ -410,7 +410,7 @@ function WeightCard({ data, update }: Props) {
               return (
                 <div key={checkpoint.label} className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full" style={{ background: alreadyPast ? "#7C5CFC" : "rgba(124,92,252,0.3)" }} />
+                    <div className="w-1.5 h-1.5 rounded-full" style={{ background: alreadyPast ? "#7C5CFC" : "rgba(var(--terracotta-rgb),0.3)" }} />
                     <span style={{ color: "var(--text-muted)" }}>{checkpoint.label} · {checkDate}</span>
                   </div>
                   <span className="font-semibold" style={{ color: alreadyPast ? "#9B7FFF" : "var(--text)" }}>
@@ -439,7 +439,7 @@ function WeightCard({ data, update }: Props) {
                 <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
                   <div className="w-full rounded-sm" style={{
                     height: barH,
-                    background: isLatest ? "#7C5CFC" : "rgba(124,92,252,0.25)",
+                    background: isLatest ? "#7C5CFC" : "rgba(var(--terracotta-rgb),0.25)",
                   }} />
                 </div>
               );
@@ -457,9 +457,9 @@ function WeightCard({ data, update }: Props) {
             </p>
             <div className="flex gap-2">
               <input type="number" step="0.5" placeholder="Current lbs" value={input} onChange={(e) => setInput(e.target.value)}
-                style={{ flex: 1, background: "rgba(124,92,252,0.06)", border: "1px solid var(--border)", borderRadius: "0.75rem", padding: "0.5rem 0.75rem", color: "var(--text)", fontSize: "0.875rem", outline: "none" }} />
+                style={{ flex: 1, background: "rgba(var(--terracotta-rgb),0.06)", border: "1px solid var(--border)", borderRadius: "0.75rem", padding: "0.5rem 0.75rem", color: "var(--text)", fontSize: "0.875rem", outline: "none" }} />
               <input type="number" step="0.5" placeholder="Goal lbs" value={goal} onChange={(e) => setGoalIn(e.target.value)}
-                style={{ width: 90, background: "rgba(124,92,252,0.06)", border: "1px solid var(--border)", borderRadius: "0.75rem", padding: "0.5rem 0.75rem", color: "var(--text)", fontSize: "0.875rem", outline: "none" }} />
+                style={{ width: 90, background: "rgba(var(--terracotta-rgb),0.06)", border: "1px solid var(--border)", borderRadius: "0.75rem", padding: "0.5rem 0.75rem", color: "var(--text)", fontSize: "0.875rem", outline: "none" }} />
               <button onClick={save} className="px-4 py-2 rounded-xl text-sm font-semibold"
                 style={{ background: saved ? "#9B7FFF" : "#7C5CFC", color: "#fff", flexShrink: 0 }}>
                 {saved ? "✓" : "Save"}
@@ -469,7 +469,7 @@ function WeightCard({ data, update }: Props) {
         ) : (
           <button onClick={() => setShowSetup(true)}
             className="w-full py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
-            style={{ background: "rgba(124,92,252,0.08)", color: "#9B7FFF" }}>
+            style={{ background: "rgba(var(--terracotta-rgb),0.08)", color: "#9B7FFF" }}>
             + Log Today&apos;s Weight
           </button>
         )}
@@ -518,14 +518,14 @@ function WalkingCard({ data, update }: Props) {
       <div className="flex gap-1 items-end" style={{ height: 32 }}>
         {weekSteps.map((s, i) => (
           <div key={i} className="flex-1 rounded-t-sm"
-            style={{ height: Math.max((s / maxSteps) * 32, s > 0 ? 3 : 2), background: s >= 8000 ? "#7C5CFC" : s > 0 ? "#C99A5C" : "rgba(124,92,252,0.06)" }} />
+            style={{ height: Math.max((s / maxSteps) * 32, s > 0 ? 3 : 2), background: s >= 8000 ? "#7C5CFC" : s > 0 ? "#C99A5C" : "rgba(var(--terracotta-rgb),0.06)" }} />
         ))}
       </div>
       <div className="flex gap-2">
         <input type="number" placeholder="Steps" value={steps} onChange={(e) => setSteps(e.target.value)}
-          style={{ flex: 1, background: "rgba(124,92,252,0.06)", border: "1px solid var(--border)", borderRadius: "0.75rem", padding: "0.5rem 0.75rem", color: "var(--text)", fontSize: "0.875rem", outline: "none" }} />
+          style={{ flex: 1, background: "rgba(var(--terracotta-rgb),0.06)", border: "1px solid var(--border)", borderRadius: "0.75rem", padding: "0.5rem 0.75rem", color: "var(--text)", fontSize: "0.875rem", outline: "none" }} />
         <input type="number" step="0.1" placeholder="Miles" value={miles} onChange={(e) => setMiles(e.target.value)}
-          style={{ width: 80, background: "rgba(124,92,252,0.06)", border: "1px solid var(--border)", borderRadius: "0.75rem", padding: "0.5rem 0.75rem", color: "var(--text)", fontSize: "0.875rem", outline: "none" }} />
+          style={{ width: 80, background: "rgba(var(--terracotta-rgb),0.06)", border: "1px solid var(--border)", borderRadius: "0.75rem", padding: "0.5rem 0.75rem", color: "var(--text)", fontSize: "0.875rem", outline: "none" }} />
         <button onClick={save} className="px-4 py-2 rounded-xl text-sm font-semibold" style={{ background: "#7C5CFC", color: "#fff", flexShrink: 0 }}>Log</button>
       </div>
     </div>
@@ -536,13 +536,13 @@ function WalkingCard({ data, update }: Props) {
 
 // Day color theme
 const DAY_THEME: Record<string, { bg: string; accent: string; label: string }> = {
-  "mon-heavy-glutes":    { bg: "linear-gradient(135deg,#ede8ff 0%,#f4f0fe 100%)", accent: "#7C5CFC", label: "Glute Day" },
-  "tue-flexibility":     { bg: "linear-gradient(135deg,#ede8ff 0%,#f4f0fe 100%)", accent: "#9B7FFF", label: "Flexibility" },
-  "wed-stretch-glutes":  { bg: "linear-gradient(135deg,#ede8ff 0%,#f4f0fe 100%)", accent: "#7C5CFC", label: "Glute Day" },
-  "thu-calisthenics":    { bg: "linear-gradient(135deg,#fdf4e8 0%,#f4f0fe 100%)", accent: "#C99A5C", label: "Skills" },
-  "fri-pump-glutes":     { bg: "linear-gradient(135deg,#ede8ff 0%,#f4f0fe 100%)", accent: "#7C5CFC", label: "Glute Day" },
-  "sat-flexibility-bridge": { bg: "linear-gradient(135deg,#ede8ff 0%,#f4f0fe 100%)", accent: "#9B7FFF", label: "Flexibility" },
-  "sun-recovery":        { bg: "linear-gradient(135deg,#fde8ed 0%,#f4f0fe 100%)", accent: "#DA667B", label: "Recovery" },
+  "mon-heavy-glutes":    { bg: "linear-gradient(135deg,#7C5CFC1a 0%,var(--bg2) 100%)", accent: "#7C5CFC", label: "Glute Day" },
+  "tue-flexibility":     { bg: "linear-gradient(135deg,#9B7FFF1a 0%,var(--bg2) 100%)", accent: "#9B7FFF", label: "Flexibility" },
+  "wed-stretch-glutes":  { bg: "linear-gradient(135deg,#7C5CFC1a 0%,var(--bg2) 100%)", accent: "#7C5CFC", label: "Glute Day" },
+  "thu-calisthenics":    { bg: "linear-gradient(135deg,#C99A5C1a 0%,var(--bg2) 100%)", accent: "#C99A5C", label: "Skills" },
+  "fri-pump-glutes":     { bg: "linear-gradient(135deg,#7C5CFC1a 0%,var(--bg2) 100%)", accent: "#7C5CFC", label: "Glute Day" },
+  "sat-flexibility-bridge": { bg: "linear-gradient(135deg,#9B7FFF1a 0%,var(--bg2) 100%)", accent: "#9B7FFF", label: "Flexibility" },
+  "sun-recovery":        { bg: "linear-gradient(135deg,#DA667B1a 0%,var(--bg2) 100%)", accent: "#DA667B", label: "Recovery" },
 };
 
 const BROWSE_CATEGORIES = [
@@ -598,7 +598,7 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
           </div>
           {streak > 0 && (
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
-              style={{ background: "rgba(124,92,252,0.1)", border: "1px solid rgba(124,92,252,0.2)" }}>
+              style={{ background: "rgba(var(--terracotta-rgb),0.1)", border: "1px solid rgba(var(--terracotta-rgb),0.2)" }}>
               <Flame size={13} style={{ color: "#7C5CFC" }} />
               <span className="text-sm font-semibold" style={{ color: "#7C5CFC" }}>{streak} day streak</span>
             </div>
@@ -630,12 +630,12 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
             return (
               <button key={d.id} onClick={() => onStartSession(d.id)}
                 className="flex-1 flex flex-col items-center gap-1.5 py-2.5 rounded-2xl transition-all active:scale-95"
-                style={{ background: isToday ? "rgba(124,92,252,0.1)" : "rgba(124,92,252,0.04)", border: `1px solid ${isToday ? "rgba(124,92,252,0.25)" : "transparent"}` }}>
+                style={{ background: isToday ? "rgba(var(--terracotta-rgb),0.1)" : "rgba(var(--terracotta-rgb),0.04)", border: `1px solid ${isToday ? "rgba(var(--terracotta-rgb),0.25)" : "transparent"}` }}>
                 <p className="text-[10px] font-semibold" style={{ color: isToday ? "#7C5CFC" : "var(--text-light)" }}>
                   {WEEK_DAYS[d.weekday]}
                 </p>
                 <div className="w-6 h-6 rounded-full flex items-center justify-center"
-                  style={{ background: done ? acc : isToday ? "rgba(124,92,252,0.2)" : "rgba(124,92,252,0.07)", border: isToday && !done ? `2px solid ${acc}` : "none" }}>
+                  style={{ background: done ? acc : isToday ? "rgba(var(--terracotta-rgb),0.2)" : "rgba(var(--terracotta-rgb),0.07)", border: isToday && !done ? `2px solid ${acc}` : "none" }}>
                   {done && <span style={{ color: "#fff", fontSize: "0.6rem", fontWeight: 700 }}>✓</span>}
                 </div>
               </button>
@@ -654,7 +654,7 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
                 Full plan →
               </button>
             </div>
-            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(124,92,252,0.08)" }}>
+            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(var(--terracotta-rgb),0.08)" }}>
               <div className="h-full rounded-full transition-all" style={{ width: `${(weekNum / 7) * 100}%`, background: phase?.isDeload ? "#DA667B" : "#7C5CFC" }} />
             </div>
             <p className="text-[11px]" style={{ color: "var(--text-light)" }}>
@@ -679,7 +679,7 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
                 Today
               </span>
               <span className="text-xs font-semibold px-2.5 py-1 rounded-full"
-                style={{ background: "rgba(124,92,252,0.06)", color: "var(--text-muted)" }}>
+                style={{ background: "rgba(var(--terracotta-rgb),0.06)", color: "var(--text-muted)" }}>
                 {theme.label}
               </span>
               {todayDone && (
@@ -704,7 +704,7 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
 
         {/* ── No program banner ── */}
         {!w.programStartDate && (
-          <div className="rounded-2xl p-5 text-center space-y-3" style={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.2)" }}>
+          <div className="rounded-2xl p-5 text-center space-y-3" style={{ background: "var(--surface)", border: "1px solid rgba(var(--terracotta-rgb),0.2)" }}>
             <p className="font-serif text-xl" style={{ color: "var(--text)" }}>Start the 7-Week Hourglass Program</p>
             <p className="text-sm" style={{ color: "var(--text-muted)" }}>Maximum glutes, flat stomach, zero bulk. Built for transformation.</p>
             <div className="flex gap-2 justify-center">
@@ -713,7 +713,7 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
                 style={{ background: "#7C5CFC", color: "#fff" }}>Start Program</button>
               <button onClick={onViewProgram}
                 className="px-6 py-3 rounded-2xl font-semibold text-sm active:scale-95 transition-transform"
-                style={{ background: "rgba(124,92,252,0.07)", color: "var(--text-muted)" }}>Preview</button>
+                style={{ background: "rgba(var(--terracotta-rgb),0.07)", color: "var(--text-muted)" }}>Preview</button>
             </div>
           </div>
         )}
@@ -791,7 +791,7 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
                 new Audio(URL.createObjectURL(await res.blob())).play();
               } catch { /* blocked */ }
             }} className="text-xs px-2.5 py-1 rounded-lg active:scale-95 transition-transform"
-              style={{ background: "rgba(124,92,252,0.1)", color: "#7C5CFC" }}>
+              style={{ background: "rgba(var(--terracotta-rgb),0.1)", color: "#7C5CFC" }}>
               Test voice
             </button>
           </div>
@@ -838,7 +838,7 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
             )}
 
             {/* APT Checkup Reminder */}
-            <div className="rounded-2xl p-5 space-y-3" style={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.2)" }}>
+            <div className="rounded-2xl p-5 space-y-3" style={{ background: "var(--surface)", border: "1px solid rgba(var(--terracotta-rgb),0.2)" }}>
               <div className="flex items-start gap-3">
                 <span className="text-2xl">🔍</span>
                 <div className="flex-1">
@@ -861,7 +861,7 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
                     </span>
                     <span className="text-xs" style={{ color: "var(--text-muted)" }}>lbs lifted</span>
                   </div>
-                  <div className="h-2 rounded-full overflow-hidden" style={{ background: "rgba(124,92,252,0.07)" }}>
+                  <div className="h-2 rounded-full overflow-hidden" style={{ background: "rgba(var(--terracotta-rgb),0.07)" }}>
                     <div className="h-full rounded-full" style={{ width: "65%", background: "#7C5CFC" }} />
                   </div>
                   <p className="text-xs" style={{ color: "var(--text-muted)" }}>
