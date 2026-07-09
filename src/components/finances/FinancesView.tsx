@@ -597,7 +597,7 @@ export function FinancesView({ data, update }: Props) {
 
   // Seed default budget lines if setup is complete but lines were cleared
   useEffect(() => {
-    if (!pc || (data.budgetLines ?? []).length > 0) return;
+    if (!data.paycheckConfig || (data.budgetLines ?? []).length > 0) return;
     update(d => ({
       ...d,
       budgetLines: [
@@ -613,7 +613,7 @@ export function FinancesView({ data, update }: Props) {
       ],
     }));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pc]);
+  }, [data.paycheckConfig]);
 
   useEffect(() => {
     fetch("/api/plaid/insights").then(r => r.json()).then((d: InsightsData) => {
