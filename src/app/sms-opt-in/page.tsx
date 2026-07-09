@@ -15,7 +15,7 @@ export default function SmsOptInPage() {
             SMS Notifications
           </h1>
           <p style={{ fontSize: "0.9rem", color: "#7C6FAE", margin: 0 }}>
-            Aya&apos;s Dashboard · Single-user application
+            Aya&apos;s Dashboard · Personal Productivity Platform
           </p>
         </div>
 
