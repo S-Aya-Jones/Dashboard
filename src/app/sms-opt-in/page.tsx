@@ -93,6 +93,7 @@ export default function SmsOptInPage() {
             Aya&apos;s Dashboard · Sole Proprietor · shaniquaayajones@gmail.com
           </p>
         </div>
+
       </div>
     </div>
   );
