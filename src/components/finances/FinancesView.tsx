@@ -9,10 +9,11 @@ import { parseISO, format, addDays, differenceInDays } from "date-fns";
 import { TodaySpendCard } from "@/components/finances/TodaySpendCard";
 
 const LIME   = "#7C5CFC";   // purple primary (was lime)
-const BG     = "#F4F0FE";   // light lavender bg
-const CARD   = "#FFFFFF";   // white card
-const BORDER = "rgba(124,92,252,0.12)";
-const MUTED  = "rgba(30,19,64,0.45)";
+const ROSE   = "#DA667B";
+const BG     = "var(--bg)";
+const CARD   = "var(--surface)";
+const BORDER = "var(--border)";
+const MUTED  = "var(--text-muted)";
 const RED    = "#EF4444";
 const AMBER  = "#F59E0B";
 const COLORS = ["#7C5CFC","#EF4444","#E879F9","#FB923C","#10B981","#F59E0B","#6366F1","#EC4899"];
@@ -312,12 +313,15 @@ function HealthGradeRing({ grade, score, color, size = 96 }: { grade: string; sc
 }
 
 // ── Year Calendar ─────────────────────────────────────────────────────────────
-function UpcomingChecksCard({ yearPlan, effectiveTakeHome, budgetLines, pc, paycheckPlans, onUpdatePaycheckPlans }: {
+function UpcomingChecksCard({ yearPlan, effectiveTakeHome, budgetLines, pc, paycheckPlans, onUpdatePaycheckPlans, selfCare, onUpdateCare, showToast }: {
   yearPlan: CheckSlot[]; effectiveTakeHome: number; budgetLines: BudgetLine[]; pc: PaycheckConfig;
   paycheckPlans: Record<string, PaycheckPlanData>; onUpdatePaycheckPlans: (p: Record<string, PaycheckPlanData>) => void;
+  selfCare: SelfCareItem[]; onUpdateCare: (i: SelfCareItem[]) => void; showToast: (m: string) => void;
 }) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [showAll,  setShowAll]  = useState(false);
+  const [pushPickerKey, setPushPickerKey] = useState<string | null>(null);
+  const [pushItemId, setPushItemId] = useState("");
   const visible = showAll ? yearPlan : yearPlan.slice(0, 8);
 
   const addToPlan = (key: string, label: string, amount: number, category: string) => {
@@ -327,6 +331,19 @@ function UpcomingChecksCard({ yearPlan, effectiveTakeHome, budgetLines, pc, payc
   };
   const isInPlan = (key: string, label: string) =>
     (paycheckPlans[key]?.oneTimeItems ?? []).some(o => o.label === label);
+
+  // Manually pin a self-care/beauty appointment to this specific check. Updates
+  // the item's lastDone to this check's date so the auto-scheduler re-derives
+  // urgency for every other upcoming check around this pinned date.
+  const pushItemToCheck = (key: string, itemId: string) => {
+    const item = selfCare.find(i => i.id === itemId);
+    if (!item) return;
+    addToPlan(key, item.name, item.cost, "self-care");
+    onUpdateCare(selfCare.map(i => i.id === itemId ? { ...i, lastDone: key } : i));
+    setPushPickerKey(null);
+    setPushItemId("");
+    showToast(`${item.name} pushed to ${format(parseISO(key), "MMM d")}`);
+  };
 
   return (
     <div className="rounded-2xl overflow-hidden" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
@@ -423,6 +440,33 @@ function UpcomingChecksCard({ yearPlan, effectiveTakeHome, budgetLines, pc, payc
                     </div>
                   </div>
                 ))}
+                {/* Manually push a beauty/self-care appointment to this specific check */}
+                <div className="pt-1.5" style={{ borderTop: `1px solid ${BORDER}` }}>
+                  {pushPickerKey === key ? (
+                    <div className="flex gap-2 items-center">
+                      <select value={pushItemId} onChange={e => setPushItemId(e.target.value)}
+                        className="flex-1 rounded-lg px-2 py-1.5 text-xs outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }}>
+                        <option value="">Choose appointment…</option>
+                        {selfCare.map(i => (
+                          <option key={i.id} value={i.id}>{i.emoji} {i.name} — {fmt$(i.cost)}</option>
+                        ))}
+                      </select>
+                      <button onClick={() => pushItemToCheck(key, pushItemId)} disabled={!pushItemId}
+                        className="text-xs px-2 py-1.5 rounded-lg font-semibold disabled:opacity-40" style={{ background: LIME, color: "#fff" }}>
+                        Push
+                      </button>
+                      <button onClick={() => { setPushPickerKey(null); setPushItemId(""); }}
+                        className="text-xs px-2 py-1.5 rounded-lg" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setPushPickerKey(key)} className="text-xs px-2 py-0.5 rounded-lg"
+                      style={{ background: "rgba(232,121,249,0.1)", color: "#E879F9", border: "1px solid rgba(232,121,249,0.2)" }}>
+                      + Push a beauty appointment here
+                    </button>
+                  )}
+                </div>
                 <div className="flex justify-between text-sm pt-1.5" style={{ borderTop: `1px solid ${BORDER}` }}>
                   <span className="font-semibold" style={{ color: "var(--text)" }}>Yours after</span>
                   <span className="text-base font-bold" style={{ color: sc }}>{fmt$(Math.max(0, freeAft))}</span>
@@ -1089,7 +1133,8 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
           <p className="text-xs font-semibold" style={{ color: MUTED, letterSpacing: "0.08em" }}>UPCOMING CHECKS</p>
         </div>
         <UpcomingChecksCard yearPlan={yearPlan} effectiveTakeHome={effectiveTakeHome} budgetLines={budgetLines} pc={pc}
-          paycheckPlans={paycheckPlans} onUpdatePaycheckPlans={onUpdatePaycheckPlans} />
+          paycheckPlans={paycheckPlans} onUpdatePaycheckPlans={onUpdatePaycheckPlans}
+          selfCare={selfCare} onUpdateCare={onUpdateCare} showToast={showToast} />
       </div>
 
       {/* ── AI CHAT ── */}
@@ -1748,6 +1793,7 @@ function BaseBudgetCard({ baseBudget, onUpdate, showToast }: {
   const [addCat, setAddCat] = useState("");
   const [addAmt, setAddAmt] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
   const [editVal, setEditVal] = useState("");
 
   const total = baseBudget.reduce((s, b) => s + b.monthlyLimit, 0);
@@ -1842,7 +1888,7 @@ function BaseBudgetCard({ baseBudget, onUpdate, showToast }: {
             </div>
           )}
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <button onClick={() => setShowAddForm(v => !v)}
               className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg"
               style={{ background: "rgba(200,255,0,0.1)", color: LIME, border: `1px solid rgba(200,255,0,0.2)` }}>
@@ -1852,6 +1898,26 @@ function BaseBudgetCard({ baseBudget, onUpdate, showToast }: {
               <button onClick={loadDefaults} className="text-xs px-3 py-1.5 rounded-lg" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>
                 Load Defaults
               </button>
+            )}
+            {baseBudget.length > 0 && !confirmReset && (
+              <button onClick={() => setConfirmReset(true)} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg"
+                style={{ background: "rgba(218,102,123,0.08)", color: ROSE, border: "1px solid rgba(218,102,123,0.2)" }}>
+                <Trash2 size={12} /> Reset All
+              </button>
+            )}
+            {confirmReset && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs" style={{ color: MUTED }}>Clear all categories?</span>
+                <button onClick={() => { onUpdate([]); setConfirmReset(false); showToast("Base budget cleared."); }}
+                  className="text-xs px-3 py-1.5 rounded-lg font-semibold"
+                  style={{ background: ROSE, color: "#fff" }}>
+                  Yes, reset
+                </button>
+                <button onClick={() => setConfirmReset(false)} className="text-xs px-3 py-1.5 rounded-lg"
+                  style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>
+                  Cancel
+                </button>
+              </div>
             )}
           </div>
 
@@ -2446,7 +2512,7 @@ function SetupFlow({ insights, insightsLoading, onDone }: {
                 <label className="text-xs mb-1.5 block" style={{ color: MUTED }}>Your next payday</label>
                 <input type="date" value={nextPayday} onChange={e => setNextPayday(e.target.value)}
                   className="w-full rounded-2xl px-4 py-3.5 text-sm outline-none"
-                  style={{ background: CARD, border: `1px solid ${BORDER}`, colorScheme: "dark" }} />
+                  style={{ background: CARD, border: `1px solid ${BORDER}` }} />
               </div>
               <div>
                 <label className="text-xs mb-2 block" style={{ color: MUTED }}>Save per check (%)</label>
@@ -2862,8 +2928,10 @@ function PaycheckPlanCard({ paydayStr, budgetLines, effectiveTakeHome, pc, paych
 
         {/* One-time items */}
         {plan.oneTimeItems.map(o => {
-          const ci        = checkIns[o.id];
-          const isChecked = !!ci;
+          const ci            = checkIns[o.id];
+          const isChecked     = !!ci;
+          const actualDiffers = ci && ci.actualAmount !== undefined && ci.actualAmount !== o.amount;
+          const isActualEdit  = actualEditId === o.id;
           return (
             <div key={o.id} className="px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}`, opacity: isChecked ? 0.65 : 1 }}>
               <div className="flex items-center justify-between">
@@ -2875,13 +2943,22 @@ function PaycheckPlanCard({ paydayStr, budgetLines, effectiveTakeHome, pc, paych
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   {isChecked ? (
-                    <span className="text-xs font-semibold" style={{ color: "#10B981" }}>Paid {fmt$(ci.actualAmount ?? o.amount)} ✓</span>
+                    <button onClick={() => { setActualEditId(isActualEdit ? null : o.id); setActualVal(String(ci.actualAmount ?? o.amount)); }}
+                      className="text-xs font-semibold" style={{ color: "#10B981" }}>
+                      Paid {fmt$(ci.actualAmount ?? o.amount)} {actualDiffers ? `(budget ${fmt$(o.amount)})` : "✓"}
+                    </button>
                   ) : (
                     <p className="text-sm font-semibold" style={{ color: RED }}>−{fmt$(o.amount)}</p>
                   )}
                   {!isChecked && <button onClick={() => removeOneTime(o.id)}><Trash2 size={11} style={{ color: MUTED }} /></button>}
                 </div>
               </div>
+              {isActualEdit && (
+                <div className="mt-2 flex gap-2 ml-8">
+                  <input type="number" value={actualVal} onChange={e => setActualVal(e.target.value)} className="flex-1 rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} placeholder="Actual amount paid" />
+                  <button onClick={() => saveActual(o.id, parseFloat(actualVal) || o.amount)} className="px-3 py-2 rounded-xl text-sm font-semibold" style={{ background: "#10B981", color: "#fff" }}>Save</button>
+                </div>
+              )}
             </div>
           );
         })}

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { id } from "@/lib/utils";
 import { celebrate } from "@/lib/confetti";
 import { TYPE_META, TYPE_ICON, defaultBlocks, toMinutes, blocksForDate, formatRange12 } from "@/lib/schedule";
+import { McatPaceCard } from "@/components/today/McatPaceCard";
 
 interface Props {
   data: DashboardData;
@@ -92,10 +93,10 @@ export function WeekView({ data, update }: Props) {
       {/* Header with navigation */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="font-serif text-4xl text-brown">This Week</h1>
-          <p className="text-sand-dark mt-1">
+          <p className="text-xs font-semibold uppercase tracking-wider text-terracotta mb-1">Week of</p>
+          <h1 className="font-serif text-4xl text-brown">
             {format(weekStart, "MMMM d")} – {format(endOfWeek(weekStart, { weekStartsOn: 1 }), "MMMM d, yyyy")}
-          </p>
+          </h1>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="secondary" size="sm" onClick={() => setWeekStart((w) => subWeeks(w, 1))}>
@@ -109,6 +110,9 @@ export function WeekView({ data, update }: Props) {
           </Button>
         </div>
       </div>
+
+      {/* MCAT pacing */}
+      <McatPaceCard data={data} />
 
       {/* Ideal daily schedule timeline */}
       <Card title="Ideal Schedule" subtitle="Your norms + Google Calendar, day by day">

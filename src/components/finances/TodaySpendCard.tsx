@@ -21,11 +21,11 @@ interface TodayData {
 }
 
 const LIME = "#7C5CFC";
-const MUTED = "rgba(30,19,64,0.45)";
+const MUTED = "var(--text-muted)";
 const RED = "#EF4444";
 const AMBER = "#F59E0B";
-const CARD = "#FFFFFF";
-const BORDER = "rgba(124,92,252,0.12)";
+const CARD = "var(--surface)";
+const BORDER = "var(--border)";
 
 function fmt$(n: number) { return `$${Math.abs(n).toLocaleString("en-US", { maximumFractionDigits: 0 })}`; }
 

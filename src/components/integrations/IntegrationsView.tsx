@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 
 const LIME = "#7C5CFC";
 const BORDER = "rgba(124,92,252,0.12)";
-const MUTED = "rgba(30,19,64,0.45)";
+const MUTED = "var(--text-muted)";
 const RED = "#EF4444";
 const GREEN = "#10B981";
 const AMBER = "#F59E0B";

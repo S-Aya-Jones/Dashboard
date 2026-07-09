@@ -47,10 +47,13 @@ export interface DrivingLog {
   id: string;
   date: string;
   route: string;
+  origin?: string;
+  destination?: string;
   distanceMiles?: number;
   anxietyBefore: number;
   anxietyAfter: number;
   notes?: string;
+  confirmed?: boolean;
 }
 
 export interface StudySession {
@@ -71,6 +74,21 @@ export interface PracticeTest {
   chemPhys?: number;
   psychSoc?: number;
   notes?: string;
+  source?: "aamc_fl" | "aamc_sample" | "aamc_section_bank" | "aamc_question_pack" | "third_party";
+  label?: string; // e.g. "FL1", "FL2" — used by the MCAT runway's full-length log
+}
+
+export interface MCATRunwayCompletion {
+  day: number; // 1-137, matches RunwayDay.day in lib/mcatRunwayPlan.ts
+  completedAt: string; // ISO timestamp
+}
+
+export interface MCATDailyLog {
+  date: string; // YYYY-MM-DD
+  ankiDone: boolean;
+  carsDone: boolean;
+  uworldPassages?: number;
+  uworldPercent?: number; // 0-100
 }
 
 export interface MCATResource {
@@ -636,8 +654,10 @@ export interface DashboardData {
   flashcards?: Flashcard[];
   flashcardReviews?: FlashcardReviewLog[];
   studyTimerLogs?: StudyTimerLog[];
+  mcatDailyLogs?: MCATDailyLog[];
   diagnosticSessions?: DiagnosticSession[];
   ankiSettings?: { newPerDay: number; reviewPerDay: number };
+  mcatRunwayCompletions?: MCATRunwayCompletion[];
   ankiDailyCount?: { date: string; newSeen: number; reviewSeen: number };
 
   // School

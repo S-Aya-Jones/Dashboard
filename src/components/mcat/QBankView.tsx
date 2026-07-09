@@ -20,6 +20,7 @@ import {
 import { DashboardData, MCATQuestion, MCATQuizSession, MCATQuizAttempt } from "@/types/dashboard";
 import { id } from "@/lib/utils";
 import { format } from "date-fns";
+import { AskAIPanel } from "@/components/mcat/AskAIPanel";
 
 // ─── Subject data ────────────────────────────────────────────────────────────
 
@@ -885,7 +886,7 @@ export function QBankView({ data, update }: Props) {
                     borderRadius: 10,
                     border: "2px solid",
                     borderColor: mode === m ? "#7C5CFC" : "var(--border)",
-                    background: mode === m ? "rgba(124,92,252,0.08)" : "white",
+                    background: mode === m ? "rgba(124,92,252,0.08)" : "var(--surface)",
                     color: mode === m ? "#7C5CFC" : "var(--text-muted)",
                     fontWeight: 600,
                     fontSize: 13,
@@ -912,7 +913,7 @@ export function QBankView({ data, update }: Props) {
                       borderRadius: 8,
                       border: "2px solid",
                       borderColor: timeLimitPerQ === t ? "#7C5CFC" : "var(--border)",
-                      background: timeLimitPerQ === t ? "rgba(124,92,252,0.08)" : "white",
+                      background: timeLimitPerQ === t ? "rgba(124,92,252,0.08)" : "var(--surface)",
                       color: timeLimitPerQ === t ? "#7C5CFC" : "var(--text-muted)",
                       fontWeight: 600,
                       fontSize: 13,
@@ -939,7 +940,7 @@ export function QBankView({ data, update }: Props) {
                     borderRadius: 10,
                     border: "2px solid",
                     borderColor: qCount === n ? "#7C5CFC" : "var(--border)",
-                    background: qCount === n ? "rgba(124,92,252,0.08)" : "white",
+                    background: qCount === n ? "rgba(124,92,252,0.08)" : "var(--surface)",
                     color: qCount === n ? "#7C5CFC" : "var(--text-muted)",
                     fontWeight: 700,
                     fontSize: 14,
@@ -973,7 +974,7 @@ export function QBankView({ data, update }: Props) {
                       borderRadius: 10,
                       border: "2px solid",
                       borderColor: active ? colors[d] : "var(--border)",
-                      background: active ? `${colors[d]}18` : "white",
+                      background: active ? `${colors[d]}18` : "var(--surface)",
                       color: active ? colors[d] : "var(--text-muted)",
                       fontWeight: 600,
                       fontSize: 13,
@@ -1010,7 +1011,7 @@ export function QBankView({ data, update }: Props) {
                     marginLeft: "auto",
                     padding: "10px 20px",
                     borderRadius: 12,
-                    background: "white",
+                    background: "var(--surface)",
                     color: "#7C5CFC",
                     fontWeight: 700,
                     fontSize: 14,
@@ -1239,7 +1240,7 @@ export function QBankView({ data, update }: Props) {
             style={{
               padding: "6px 14px",
               borderRadius: 10,
-              background: "white",
+              background: "var(--surface)",
               border: "2px solid var(--border)",
               color: "var(--text-muted)",
               fontSize: 12,
@@ -1283,7 +1284,7 @@ export function QBankView({ data, update }: Props) {
               const selected = a?.letter === choice.letter;
               const isCorrect = choice.letter === q.correctLetter;
 
-              let bg = "white";
+              let bg = "var(--surface)";
               let border = "var(--border)";
               let textColor = "var(--text)";
               let letterBg = "var(--bg)";
@@ -1383,6 +1384,7 @@ export function QBankView({ data, update }: Props) {
               <p style={{ fontSize: 14, lineHeight: 1.7, color: "var(--text)", margin: 0 }}>
                 {q.explanation}
               </p>
+              <AskAIPanel question={q} />
             </div>
           )}
         </div>
@@ -1396,7 +1398,7 @@ export function QBankView({ data, update }: Props) {
               padding: "8px 16px",
               borderRadius: 10,
               border: "2px solid var(--border)",
-              background: "white",
+              background: "var(--surface)",
               color: currentIdx === 0 ? "var(--text-muted)" : "var(--text)",
               fontWeight: 700,
               fontSize: 13,
@@ -1414,7 +1416,7 @@ export function QBankView({ data, update }: Props) {
               borderRadius: 10,
               border: "2px solid",
               borderColor: a?.flagged ? "#F59E0B" : "var(--border)",
-              background: a?.flagged ? "#FEF3C718" : "white",
+              background: a?.flagged ? "#FEF3C718" : "var(--surface)",
               color: a?.flagged ? "#F59E0B" : "var(--text-muted)",
               cursor: "pointer",
               display: "flex",
@@ -1811,6 +1813,7 @@ export function QBankView({ data, update }: Props) {
                     <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0, lineHeight: 1.6 }}>
                       {q.explanation}
                     </p>
+                    <AskAIPanel question={q} />
                   </div>
                 ))}
               </div>
@@ -1864,6 +1867,7 @@ export function QBankView({ data, update }: Props) {
                     <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0, lineHeight: 1.6 }}>
                       {q.explanation}
                     </p>
+                    <AskAIPanel question={q} />
                   </div>
                 ))}
               </div>
@@ -1889,7 +1893,7 @@ export function QBankView({ data, update }: Props) {
               padding: "12px 20px",
               borderRadius: 12,
               border: "2px solid var(--border)",
-              background: "white",
+              background: "var(--surface)",
               color: "var(--text)",
               fontWeight: 700,
               fontSize: 14,

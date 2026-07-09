@@ -96,7 +96,7 @@ function RestRing({ remaining, total }: { remaining: number; total: number }) {
   const r = 52, circ = 2 * Math.PI * r, pct = total > 0 ? remaining / total : 0;
   return (
     <svg width={124} height={124} className="-rotate-90">
-      <circle cx={62} cy={62} r={r} fill="none" stroke="rgba(124,92,252,0.07)" strokeWidth={7} />
+      <circle cx={62} cy={62} r={r} fill="none" stroke="rgba(var(--terracotta-rgb),0.07)" strokeWidth={7} />
       <circle cx={62} cy={62} r={r} fill="none" stroke="#7C5CFC" strokeWidth={7}
         strokeDasharray={`${circ * pct} ${circ}`} strokeLinecap="round"
         style={{ transition: "stroke-dasharray 1s linear" }} />
@@ -129,17 +129,17 @@ function VideoBlock({ ex, animKey }: { ex: ProgramExercise; animKey: number }) {
     <a href={`https://www.youtube.com/results?search_query=${encodeURIComponent(ex.name + " exercise form tutorial")}`}
       target="_blank" rel="noopener noreferrer"
       className="flex items-center justify-between px-4 py-3 rounded-2xl active:scale-95 transition-transform"
-      style={{ background: "var(--surface2)", border: "1px solid rgba(124,92,252,0.06)" }}>
+      style={{ background: "var(--surface2)", border: "1px solid rgba(var(--terracotta-rgb),0.06)" }}>
       <div className="flex items-center gap-3">
         <div className="w-10 h-7 rounded-lg flex items-center justify-center" style={{ background: "#FF0000" }}>
           <div className="w-0 h-0 ml-0.5" style={{ borderTop: "6px solid transparent", borderBottom: "6px solid transparent", borderLeft: "11px solid white" }} />
         </div>
         <div>
           <p className="text-sm font-medium text-ink">Watch Demo</p>
-          <p className="text-xs" style={{ color: "rgba(30,19,64,0.35)" }}>{ex.name} tutorial on YouTube</p>
+          <p className="text-xs" style={{ color: "rgba(var(--brown-rgb),0.35)" }}>{ex.name} tutorial on YouTube</p>
         </div>
       </div>
-      <ExternalLink size={13} style={{ color: "rgba(30,19,64,0.25)" }} />
+      <ExternalLink size={13} style={{ color: "rgba(var(--brown-rgb),0.25)" }} />
     </a>
   );
 }
@@ -498,24 +498,24 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
         <div style={{ fontSize: "4rem", animation: "bounce 0.6s ease-out" }}>✓</div>
         <div className="space-y-1.5">
           <h2 className="font-serif text-3xl text-ink">{day.label}</h2>
-          <p className="text-sm" style={{ color: "rgba(30,19,64,0.45)" }}>Complete.</p>
+          <p className="text-sm" style={{ color: "rgba(var(--brown-rgb),0.45)" }}>Complete.</p>
         </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
-          <div className="rounded-2xl p-4 text-center" style={{ background: "rgba(124,92,252,0.08)", border: "1px solid rgba(124,92,252,0.15)" }}>
+          <div className="rounded-2xl p-4 text-center" style={{ background: "rgba(var(--terracotta-rgb),0.08)", border: "1px solid rgba(var(--terracotta-rgb),0.15)" }}>
             <p className="font-serif text-2xl text-ink">{completedExercises.length}</p>
             <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>exercises</p>
           </div>
-          <div className="rounded-2xl p-4 text-center" style={{ background: "rgba(124,92,252,0.08)", border: "1px solid rgba(124,92,252,0.15)" }}>
+          <div className="rounded-2xl p-4 text-center" style={{ background: "rgba(var(--terracotta-rgb),0.08)", border: "1px solid rgba(var(--terracotta-rgb),0.15)" }}>
             <p className="font-serif text-2xl text-ink">{completedSets}</p>
             <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>sets done</p>
           </div>
-          <div className="rounded-2xl p-4 text-center" style={{ background: "rgba(124,92,252,0.08)", border: "1px solid rgba(124,92,252,0.15)" }}>
+          <div className="rounded-2xl p-4 text-center" style={{ background: "rgba(var(--terracotta-rgb),0.08)", border: "1px solid rgba(var(--terracotta-rgb),0.15)" }}>
             <p className="font-serif text-2xl text-ink">{totalVolume >= 1000 ? `${(totalVolume / 1000).toFixed(1)}k` : totalVolume}</p>
             <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>lbs</p>
           </div>
-          <div className="rounded-2xl p-4 text-center" style={{ background: "rgba(124,92,252,0.08)", border: "1px solid rgba(124,92,252,0.15)" }}>
+          <div className="rounded-2xl p-4 text-center" style={{ background: "rgba(var(--terracotta-rgb),0.08)", border: "1px solid rgba(var(--terracotta-rgb),0.15)" }}>
             <p className="font-serif text-2xl text-ink">{avgWeightPerSet}</p>
             <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>avg lbs</p>
           </div>
@@ -528,7 +528,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
             <span style={{ fontSize: "1.5rem" }}>🔥</span>
             <div>
               <p className="font-semibold text-ink">{streak + 1} day streak</p>
-              <p className="text-xs" style={{ color: "rgba(30,19,64,0.45)" }}>Keep showing up</p>
+              <p className="text-xs" style={{ color: "rgba(var(--brown-rgb),0.45)" }}>Keep showing up</p>
             </div>
           </div>
         )}
@@ -566,7 +566,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
       onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
 
       {/* Overall progress bar */}
-      <div style={{ height: 3, background: "rgba(124,92,252,0.06)", flexShrink: 0 }}>
+      <div style={{ height: 3, background: "rgba(var(--terracotta-rgb),0.06)", flexShrink: 0 }}>
         <div style={{ width: `${progressPct}%`, height: "100%", background: "#7C5CFC", transition: "width 0.6s ease" }} />
       </div>
 
@@ -577,16 +577,16 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
           <p className="text-xs font-semibold" style={{ color: "#7C5CFC" }}>{day.label}</p>
           <div className="flex items-center gap-0.5">
             <button onClick={() => setShowAddEx(true)}
-              className="p-2 rounded-xl active:scale-90 transition-transform" style={{ color: "rgba(30,19,64,0.35)" }}>
+              className="p-2 rounded-xl active:scale-90 transition-transform" style={{ color: "rgba(var(--brown-rgb),0.35)" }}>
               <Plus size={16} />
             </button>
             <button onClick={togglePause}
               className="p-2 rounded-xl active:scale-90 transition-transform"
-              style={{ color: paused ? "#7C5CFC" : "rgba(30,19,64,0.35)" }}>
+              style={{ color: paused ? "#7C5CFC" : "rgba(var(--brown-rgb),0.35)" }}>
               {paused ? <Play size={16} /> : <Pause size={16} />}
             </button>
             <button onClick={() => setShowExitConfirm(true)}
-              className="p-2 rounded-xl active:scale-90 transition-transform" style={{ color: "rgba(30,19,64,0.35)" }}>
+              className="p-2 rounded-xl active:scale-90 transition-transform" style={{ color: "rgba(var(--brown-rgb),0.35)" }}>
               <X size={16} />
             </button>
           </div>
@@ -602,7 +602,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
                 onClick={() => goToExercise(sectionStarts[si])}
                 className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-95"
                 style={{
-                  background: isCurrent ? section.color : done ? `${section.color}22` : "rgba(124,92,252,0.07)",
+                  background: isCurrent ? section.color : done ? `${section.color}22` : "rgba(var(--terracotta-rgb),0.07)",
                   color: isCurrent ? "#000" : done ? section.color : "var(--text-muted)",
                 }}>
                 {done && !isCurrent && <span>✓</span>}
@@ -619,7 +619,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
         <div className="flex items-center gap-2">
           <button onClick={() => goToExercise(exIdx - 1)} disabled={exIdx === 0}
             className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 active:scale-90 transition-transform"
-            style={{ background: "rgba(30,19,64,0.05)", color: exIdx === 0 ? "rgba(124,92,252,0.12)" : "rgba(30,19,64,0.55)" }}>
+            style={{ background: "rgba(var(--brown-rgb),0.05)", color: exIdx === 0 ? "rgba(var(--terracotta-rgb),0.12)" : "rgba(var(--brown-rgb),0.55)" }}>
             <ChevronLeft size={16} />
           </button>
           <div className="flex-1 flex gap-1 overflow-hidden">
@@ -632,13 +632,13 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
                     ? currentSection.color
                     : i < localExIdx
                     ? `${currentSection.color}55`
-                    : "rgba(30,19,64,0.1)",
+                    : "rgba(var(--brown-rgb),0.1)",
                 }} />
             ))}
           </div>
           <button onClick={() => goToExercise(exIdx + 1)} disabled={exIdx === exercises.length - 1}
             className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 active:scale-90 transition-transform"
-            style={{ background: "rgba(30,19,64,0.05)", color: exIdx === exercises.length - 1 ? "rgba(124,92,252,0.12)" : "rgba(30,19,64,0.55)" }}>
+            style={{ background: "rgba(var(--brown-rgb),0.05)", color: exIdx === exercises.length - 1 ? "rgba(var(--terracotta-rgb),0.12)" : "rgba(var(--brown-rgb),0.55)" }}>
             <ChevronRight size={16} />
           </button>
         </div>
@@ -650,7 +650,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
 
         {weekNum > 0 && (
           <div className="px-3 py-2 rounded-xl text-xs"
-            style={{ background: phase.isDeload ? "rgba(218,102,123,0.1)" : "rgba(124,92,252,0.06)", color: phase.isDeload ? "#DA667B" : "rgba(30,19,64,0.45)" }}>
+            style={{ background: phase.isDeload ? "rgba(218,102,123,0.1)" : "rgba(var(--terracotta-rgb),0.06)", color: phase.isDeload ? "#DA667B" : "rgba(var(--brown-rgb),0.45)" }}>
             {phase.isDeload ? "DELOAD WEEK — -40% weight" : `Week ${weekNum} · ${phase.label}`}
           </div>
         )}
@@ -668,7 +668,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
             </span>
           </div>
           <h2 className="font-serif text-3xl text-ink mt-3 leading-tight">{ex.name}</h2>
-          <p className="text-sm mt-1" style={{ color: "rgba(30,19,64,0.45)" }}>
+          <p className="text-sm mt-1" style={{ color: "rgba(var(--brown-rgb),0.45)" }}>
             Set {setIdx + 1} of {ex.sets} · {ex.reps}
           </p>
         </div>
@@ -688,7 +688,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
                   {exTimeLeft}s
                 </span>
               </div>
-              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(124,92,252,0.07)" }}>
+              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(var(--terracotta-rgb),0.07)" }}>
                 <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color, transition: "width 1s linear, background 0.5s ease" }} />
               </div>
             </div>
@@ -704,8 +704,8 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
         {/* Previous weight hint */}
         {prevWeight > 0 && (
           <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl"
-            style={{ background: "rgba(124,92,252,0.07)", border: "1px solid rgba(124,92,252,0.15)" }}>
-            <span className="text-xs flex-1" style={{ color: "rgba(30,19,64,0.45)" }}>
+            style={{ background: "rgba(var(--terracotta-rgb),0.07)", border: "1px solid rgba(var(--terracotta-rgb),0.15)" }}>
+            <span className="text-xs flex-1" style={{ color: "rgba(var(--brown-rgb),0.45)" }}>
               Last time: <span className="font-semibold text-ink">{prevWeight} lbs</span>
               {suggested !== prevWeight
                 ? <span style={{ color: "#7C5CFC" }}> → try {suggested}?</span>
@@ -713,7 +713,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
             </span>
             <button onClick={() => setWeight(String(suggested))}
               className="text-xs font-medium px-2.5 py-1 rounded-lg active:scale-95 transition-transform"
-              style={{ background: "rgba(124,92,252,0.15)", color: "#7C5CFC" }}>
+              style={{ background: "rgba(var(--terracotta-rgb),0.15)", color: "#7C5CFC" }}>
               Use
             </button>
           </div>
@@ -731,7 +731,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
             <input type="number" value={weight} onChange={(e) => setWeight(e.target.value)}
               placeholder={ex.isBodyweight ? "0" : "lbs"}
               className="flex-1 text-center text-2xl font-semibold"
-              style={{ background: "var(--surface2)", border: "1px solid rgba(124,92,252,0.12)", borderRadius: "0.75rem", padding: "0.65rem", color: "var(--text)", outline: "none" }} />
+              style={{ background: "var(--surface2)", border: "1px solid rgba(var(--terracotta-rgb),0.12)", borderRadius: "0.75rem", padding: "0.65rem", color: "var(--text)", outline: "none" }} />
             <button onClick={() => setWeight((v) => String((parseFloat(v) || 0) + 5))}
               className="w-12 h-12 rounded-xl text-xl font-semibold flex items-center justify-center active:scale-90 transition-transform"
               style={{ background: "var(--surface2)", color: "var(--text)" }}>+</button>
@@ -750,7 +750,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
             <input type="number" value={repsInput} onChange={(e) => setRepsInput(e.target.value)}
               placeholder={isTimed ? "sec" : "reps"}
               className="flex-1 text-center text-2xl font-semibold"
-              style={{ background: "var(--surface2)", border: "1px solid rgba(124,92,252,0.12)", borderRadius: "0.75rem", padding: "0.65rem", color: "var(--text)", outline: "none" }} />
+              style={{ background: "var(--surface2)", border: "1px solid rgba(var(--terracotta-rgb),0.12)", borderRadius: "0.75rem", padding: "0.65rem", color: "var(--text)", outline: "none" }} />
             <button onClick={() => setRepsInput((v) => String((parseInt(v) || 0) + (isTimed ? 5 : 1)))}
               className="w-12 h-12 rounded-xl text-xl font-semibold flex items-center justify-center active:scale-90 transition-transform"
               style={{ background: "var(--surface2)", color: "var(--text)" }}>+</button>
@@ -760,16 +760,16 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
         {/* Form cue */}
         <div className="space-y-2.5">
           <div className="flex items-start gap-3 px-4 py-3 rounded-xl"
-            style={{ background: "rgba(30,19,64,0.04)", border: "1px solid rgba(124,92,252,0.06)" }}>
-            <p className="text-sm flex-1 leading-relaxed" style={{ color: "rgba(30,19,64,0.55)" }}>{ex.formCue}</p>
+            style={{ background: "rgba(var(--brown-rgb),0.04)", border: "1px solid rgba(var(--terracotta-rgb),0.06)" }}>
+            <p className="text-sm flex-1 leading-relaxed" style={{ color: "rgba(var(--brown-rgb),0.55)" }}>{ex.formCue}</p>
             <button onClick={() => speak(`${ex.name}. ${ex.formCue}`)}
-              className="flex-shrink-0 mt-0.5 active:scale-90 transition-transform" style={{ color: "rgba(30,19,64,0.3)" }}>
+              className="flex-shrink-0 mt-0.5 active:scale-90 transition-transform" style={{ color: "rgba(var(--brown-rgb),0.3)" }}>
               <Volume2 size={14} />
             </button>
           </div>
           <button onClick={() => setShowFormChecker(true)}
             className="w-full py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 active:scale-95 transition-transform"
-            style={{ background: "rgba(124,92,252,0.08)", color: "#7C5CFC", border: "1px solid rgba(124,92,252,0.2)" }}>
+            style={{ background: "rgba(var(--terracotta-rgb),0.08)", color: "#7C5CFC", border: "1px solid rgba(var(--terracotta-rgb),0.2)" }}>
             📹 Check My Form
           </button>
         </div>
@@ -779,8 +779,8 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
           {Array.from({ length: ex.sets }, (_, i) => (
             <div key={i} className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold"
               style={{
-                background: i < setsLogged ? catColor : "rgba(124,92,252,0.07)",
-                color: i < setsLogged ? "#000" : "rgba(30,19,64,0.35)",
+                background: i < setsLogged ? catColor : "rgba(var(--terracotta-rgb),0.07)",
+                color: i < setsLogged ? "#000" : "rgba(var(--brown-rgb),0.35)",
                 animation: i === setsLogged - 1 ? "popIn 0.3s ease-out" : "none",
               }}>
               {i + 1}
@@ -794,7 +794,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
         {sectionIdx < sections.length - 1 && (
           <button onClick={skipSection}
             className="w-full py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
-            style={{ background: "rgba(30,19,64,0.05)", color: "rgba(30,19,64,0.35)" }}>
+            style={{ background: "rgba(var(--brown-rgb),0.05)", color: "rgba(var(--brown-rgb),0.35)" }}>
             <ChevronsRight size={14} />
             Skip to {sections[sectionIdx + 1].label}
           </button>
@@ -826,24 +826,24 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
             <RestRing remaining={rest.remaining} total={rest.total} />
             <div className="absolute flex flex-col items-center">
               <span className="font-serif text-5xl text-ink">{rest.remaining}</span>
-              <span className="text-xs" style={{ color: "rgba(30,19,64,0.35)" }}>sec</span>
+              <span className="text-xs" style={{ color: "rgba(var(--brown-rgb),0.35)" }}>sec</span>
             </div>
           </div>
           {exIdx + 1 < exercises.length && setIdx + 1 >= ex.sets && (
             <div className="space-y-0.5">
-              <p className="text-xs" style={{ color: "rgba(30,19,64,0.3)" }}>Up next</p>
+              <p className="text-xs" style={{ color: "rgba(var(--brown-rgb),0.3)" }}>Up next</p>
               <p className="font-serif text-xl text-ink">{exercises[exIdx + 1]?.name}</p>
             </div>
           )}
           <div className="flex gap-3">
             <button onClick={togglePause}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm active:scale-95 transition-transform"
-              style={{ background: paused ? "rgba(124,92,252,0.15)" : "rgba(124,92,252,0.07)", color: paused ? "#7C5CFC" : "var(--text-muted)" }}>
+              style={{ background: paused ? "rgba(var(--terracotta-rgb),0.15)" : "rgba(var(--terracotta-rgb),0.07)", color: paused ? "#7C5CFC" : "var(--text-muted)" }}>
               {paused ? <><Play size={14} /> Resume</> : <><Pause size={14} /> Pause</>}
             </button>
             <button onClick={skipRest}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm active:scale-95 transition-transform"
-              style={{ background: "rgba(124,92,252,0.07)", color: "var(--text-muted)" }}>
+              style={{ background: "rgba(var(--terracotta-rgb),0.07)", color: "var(--text-muted)" }}>
               <SkipForward size={14} /> Skip
             </button>
           </div>
@@ -875,11 +875,11 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
           </p>
           <p className="font-serif text-2xl text-ink">{ex.name}</p>
           {ex.formCue && (
-            <p className="text-sm max-w-xs leading-relaxed" style={{ color: "rgba(30,19,64,0.45)" }}>{ex.formCue}</p>
+            <p className="text-sm max-w-xs leading-relaxed" style={{ color: "rgba(var(--brown-rgb),0.45)" }}>{ex.formCue}</p>
           )}
           <button onClick={() => setPrepCountdown(0)}
             className="mt-2 px-6 py-2.5 rounded-xl text-sm active:scale-95 transition-transform"
-            style={{ background: "rgba(124,92,252,0.07)", color: "var(--text-muted)" }}>
+            style={{ background: "rgba(var(--terracotta-rgb),0.07)", color: "var(--text-muted)" }}>
             Skip
           </button>
         </div>
@@ -893,7 +893,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
             <p className="font-serif text-2xl text-ink leading-snug">
               Squeeze your glute now<br />— hold —<br />now load it
             </p>
-            <p className="text-xs" style={{ color: "rgba(30,19,64,0.35)" }}>Starting in 3 seconds…</p>
+            <p className="text-xs" style={{ color: "rgba(var(--brown-rgb),0.35)" }}>Starting in 3 seconds…</p>
           </div>
         </div>
       )}
@@ -901,11 +901,11 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
       {/* Exit confirmation */}
       {showExitConfirm && (
         <div className="absolute inset-0 flex items-center justify-center p-8"
-          style={{ background: "rgba(124,92,252,0.15)", zIndex: 70, animation: "fadeIn 0.15s ease-out" }}>
+          style={{ background: "rgba(var(--terracotta-rgb),0.15)", zIndex: 70, animation: "fadeIn 0.15s ease-out" }}>
           <div className="rounded-2xl p-6 w-full max-w-xs space-y-4 text-center"
             style={{ background: "var(--surface2)", animation: "popIn 0.2s ease-out" }}>
             <p className="font-serif text-xl text-ink">End this workout?</p>
-            <p className="text-sm" style={{ color: "rgba(30,19,64,0.45)" }}>
+            <p className="text-sm" style={{ color: "rgba(var(--brown-rgb),0.45)" }}>
               {completedSets > 0
                 ? `You've completed ${completedSets} set${completedSets === 1 ? "" : "s"}. Save your progress?`
                 : "No sets logged yet."}
@@ -913,7 +913,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
             <div className="flex flex-col gap-2">
               <button onClick={() => setShowExitConfirm(false)}
                 className="w-full py-3 rounded-xl text-sm font-semibold active:scale-95 transition-transform"
-                style={{ background: "rgba(124,92,252,0.08)", color: "var(--text)" }}>
+                style={{ background: "rgba(var(--terracotta-rgb),0.08)", color: "var(--text)" }}>
                 Keep going
               </button>
               {completedSets > 0 && (
@@ -941,36 +941,36 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-semibold text-ink">Add Exercise</p>
-                <p className="text-xs mt-0.5" style={{ color: "rgba(30,19,64,0.35)" }}>Added to Main Work</p>
+                <p className="text-xs mt-0.5" style={{ color: "rgba(var(--brown-rgb),0.35)" }}>Added to Main Work</p>
               </div>
               <button onClick={() => setShowAddEx(false)} style={{ color: "var(--text-muted)" }}><X size={18} /></button>
             </div>
             <input type="text" placeholder="Exercise name"
               value={addExName} onChange={(e) => setAddExName(e.target.value)}
-              style={{ width: "100%", background: "rgba(124,92,252,0.06)", border: "1px solid rgba(124,92,252,0.08)", borderRadius: "0.75rem", padding: "0.75rem", color: "var(--text)", fontSize: "0.875rem", outline: "none" }} />
+              style={{ width: "100%", background: "rgba(var(--terracotta-rgb),0.06)", border: "1px solid rgba(var(--terracotta-rgb),0.08)", borderRadius: "0.75rem", padding: "0.75rem", color: "var(--text)", fontSize: "0.875rem", outline: "none" }} />
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <p className="text-xs" style={{ color: "var(--text-muted)" }}>Sets</p>
                 <div className="flex items-center gap-2">
                   <button onClick={() => setAddExSets((s) => Math.max(1, s - 1))}
                     className="w-10 h-10 rounded-xl text-lg font-semibold flex items-center justify-center active:scale-90 transition-transform"
-                    style={{ background: "rgba(124,92,252,0.06)", color: "var(--text)" }}>−</button>
+                    style={{ background: "rgba(var(--terracotta-rgb),0.06)", color: "var(--text)" }}>−</button>
                   <span className="flex-1 text-center font-semibold text-ink">{addExSets}</span>
                   <button onClick={() => setAddExSets((s) => s + 1)}
                     className="w-10 h-10 rounded-xl text-lg font-semibold flex items-center justify-center active:scale-90 transition-transform"
-                    style={{ background: "rgba(124,92,252,0.06)", color: "var(--text)" }}>+</button>
+                    style={{ background: "rgba(var(--terracotta-rgb),0.06)", color: "var(--text)" }}>+</button>
                 </div>
               </div>
               <div className="space-y-2">
                 <p className="text-xs" style={{ color: "var(--text-muted)" }}>Reps</p>
                 <input type="text" placeholder="e.g. 10–12" value={addExReps}
                   onChange={(e) => setAddExReps(e.target.value)}
-                  style={{ width: "100%", background: "rgba(124,92,252,0.06)", border: "1px solid rgba(124,92,252,0.08)", borderRadius: "0.75rem", padding: "0.6rem 0.75rem", color: "var(--text)", fontSize: "0.875rem", outline: "none" }} />
+                  style={{ width: "100%", background: "rgba(var(--terracotta-rgb),0.06)", border: "1px solid rgba(var(--terracotta-rgb),0.08)", borderRadius: "0.75rem", padding: "0.6rem 0.75rem", color: "var(--text)", fontSize: "0.875rem", outline: "none" }} />
               </div>
             </div>
             <button onClick={addCustomExercise}
               className="w-full py-3.5 rounded-2xl font-semibold text-sm active:scale-95 transition-transform"
-              style={{ background: addExName.trim() ? "#7C5CFC" : "rgba(124,92,252,0.25)", color: addExName.trim() ? "#fff" : "var(--text-light)" }}>
+              style={{ background: addExName.trim() ? "#7C5CFC" : "rgba(var(--terracotta-rgb),0.25)", color: addExName.trim() ? "#fff" : "var(--text-light)" }}>
               Add to Main Work
             </button>
           </div>
