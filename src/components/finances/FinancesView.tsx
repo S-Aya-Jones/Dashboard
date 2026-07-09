@@ -908,6 +908,7 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
   const [showCareForm,   setShowCareForm]   = useState(false);
   const [showBillForm,   setShowBillForm]   = useState(false);
   const [showBudgetForm, setShowBudgetForm] = useState(false);
+  const [confirmReset,   setConfirmReset]   = useState(false);
   const [editId,         setEditId]         = useState<string | null>(null);
   const [editPay,        setEditPay]        = useState(false);
   const [editSavings,    setEditSavings]    = useState(false);
@@ -1281,8 +1282,19 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
               <p className="text-xs mt-0.5" style={{ color: "var(--text-light)" }}>Where your check goes each pay period</p>
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={() => onUpdateBudgetLines(budgetLines.map(l => ({ ...l, category: autoDetectCategory(l.label) })))} className="text-xs px-2 py-1.5 rounded-lg" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Auto-fix</button>
-              <button onClick={() => setShowBudgetForm(!showBudgetForm)} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg" style={{ background: "rgba(200,255,0,0.1)", color: LIME, border: `1px solid rgba(200,255,0,0.2)` }}><Plus size={12} /> Add</button>
+              {confirmReset ? (
+                <>
+                  <span className="text-xs" style={{ color: MUTED }}>Clear all?</span>
+                  <button onClick={() => { onUpdateBudgetLines([]); onUpdatePaycheckPlans({}); setConfirmReset(false); showToast("Budget lines cleared"); }} className="text-xs px-2 py-1.5 rounded-lg font-semibold" style={{ background: "rgba(239,68,68,0.15)", color: RED }}>Yes, clear</button>
+                  <button onClick={() => setConfirmReset(false)} className="text-xs px-2 py-1.5 rounded-lg" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Cancel</button>
+                </>
+              ) : (
+                <>
+                  <button onClick={() => onUpdateBudgetLines(budgetLines.map(l => ({ ...l, category: autoDetectCategory(l.label) })))} className="text-xs px-2 py-1.5 rounded-lg" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Auto-fix</button>
+                  <button onClick={() => setConfirmReset(true)} className="text-xs px-2 py-1.5 rounded-lg" style={{ background: "rgba(239,68,68,0.08)", color: RED }}>Reset</button>
+                  <button onClick={() => setShowBudgetForm(!showBudgetForm)} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg" style={{ background: "rgba(200,255,0,0.1)", color: LIME, border: `1px solid rgba(200,255,0,0.2)` }}><Plus size={12} /> Add</button>
+                </>
+              )}
             </div>
           </div>
           {(insights?.paycheckSplits ?? []).filter(s => !budgetLines.some(l => l.isDetected && l.toAccount === s.toAccount)).length > 0 && (
