@@ -595,6 +595,26 @@ export function FinancesView({ data, update }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Seed default budget lines if setup is complete but lines were cleared
+  useEffect(() => {
+    if (!pc || (data.budgetLines ?? []).length > 0) return;
+    update(d => ({
+      ...d,
+      budgetLines: [
+        { id: "bl-rent",      label: "Rent",                 amountPerCheck: 325,  category: "housing"   },
+        { id: "bl-carnote",   label: "Car Note",             amountPerCheck: 255,  category: "housing"   },
+        { id: "bl-groceries", label: "Groceries",            amountPerCheck: 220,  category: "food"      },
+        { id: "bl-gas",       label: "Gas",                  amountPerCheck: 100,  category: "transport" },
+        { id: "bl-eatout",    label: "Other / Eating out / Gifts", amountPerCheck: 150, category: "other" },
+        { id: "bl-therapy",   label: "Therapy",              amountPerCheck: 60,   category: "other"     },
+        { id: "bl-ymca",      label: "YMCA",                 amountPerCheck: 40,   category: "housing"   },
+        { id: "bl-insurance", label: "Insurance",            amountPerCheck: 40,   category: "housing"   },
+        { id: "bl-phone",     label: "Phone",                amountPerCheck: 40,   category: "other"     },
+      ],
+    }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pc]);
+
   useEffect(() => {
     fetch("/api/plaid/insights").then(r => r.json()).then((d: InsightsData) => {
       setInsights(d);
