@@ -1485,17 +1485,6 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
               )}
             </div>
           </div>
-          {(insights?.paycheckSplits ?? []).filter(s => !budgetLines.some(l => l.isDetected && l.toAccount === s.toAccount)).length > 0 && (
-            <div className="rounded-2xl px-4 py-3 mb-3" style={{ background: "rgba(200,255,0,0.04)", border: `1px solid rgba(200,255,0,0.15)` }}>
-              <p className="text-xs font-semibold mb-2" style={{ color: LIME }}>Detected recurring transfers:</p>
-              {(insights!.paycheckSplits!).filter(s => !budgetLines.some(l => l.isDetected && l.toAccount === s.toAccount)).map((s, i) => (
-                <div key={i} className="flex items-center justify-between py-1.5">
-                  <div><p className="text-sm" style={{ color: "var(--text)" }}><CatDot cat="transfer" />{s.toAccount || "Transfer"}</p><p className="text-xs" style={{ color: MUTED }}>{fmt$(s.amount)}/check · detected {s.count}x</p></div>
-                  <button onClick={() => addDetectedSplit(s)} className="text-xs px-3 py-1.5 rounded-lg font-semibold" style={{ background: LIME, color: "#fff"}}>Add</button>
-                </div>
-              ))}
-            </div>
-          )}
           <div className="rounded-2xl overflow-hidden" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
             <div className="flex items-center justify-between px-4 py-3.5" style={{ borderBottom: `1px solid ${BORDER}` }}>
               <div className="flex items-center gap-2.5"><CatDot cat="transfer" size={10} /><p className="text-sm font-semibold text-dark">Paycheck</p></div>
