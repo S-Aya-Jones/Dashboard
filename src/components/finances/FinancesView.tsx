@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { usePlaidLink } from "react-plaid-link";
-import { RefreshCw, Unlink, Plus, Trash2, Check, ChevronDown, ChevronUp, RotateCcw } from "lucide-react";
+import { RefreshCw, Unlink, Plus, Trash2, Check, ChevronDown, ChevronUp, RotateCcw, Pencil } from "lucide-react";
 import { DashboardData, PaycheckConfig, SelfCareItem, RecurringBill, P2PTransfer, AccountTransfer, BudgetLine, CreditScoreEntry } from "@/types/dashboard";
 import { id } from "@/lib/utils";
 import { parseISO, format, addDays, differenceInDays } from "date-fns";
@@ -909,6 +909,8 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
   const [showBillForm,   setShowBillForm]   = useState(false);
   const [showBudgetForm, setShowBudgetForm] = useState(false);
   const [confirmReset,   setConfirmReset]   = useState(false);
+  const [editLineId,     setEditLineId]     = useState<string | null>(null);
+  const [editLineAmt,    setEditLineAmt]    = useState("");
   const [editId,         setEditId]         = useState<string | null>(null);
   const [editPay,        setEditPay]        = useState(false);
   const [editSavings,    setEditSavings]    = useState(false);
@@ -1320,15 +1322,43 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
               </div>
             )}
             {budgetLines.map(line => (
-              <div key={line.id} className="flex items-center justify-between px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}` }}>
-                <div className="flex items-center gap-2 min-w-0">
-                  <p className="text-sm text-white truncate">{getCategoryEmoji(line.category)} {line.label}</p>
-                  {line.isDetected && <span className="text-xs px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: "rgba(200,255,0,0.1)", color: LIME }}>auto</span>}
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <p className="text-sm font-semibold" style={{ color: RED }}>−{fmt$(line.amountPerCheck)}</p>
-                  <button onClick={() => { onUpdateBudgetLines(budgetLines.filter(l => l.id !== line.id)); showToast("Removed"); }}><Trash2 size={11} style={{ color: MUTED }} /></button>
-                </div>
+              <div key={line.id} className="px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}` }}>
+                {editLineId === line.id ? (
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm text-white flex-1 truncate">{getCategoryEmoji(line.category)} {line.label}</p>
+                    <span className="text-sm" style={{ color: MUTED }}>$</span>
+                    <input
+                      type="number"
+                      value={editLineAmt}
+                      onChange={e => setEditLineAmt(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === "Enter") {
+                          const v = parseFloat(editLineAmt);
+                          if (!isNaN(v) && v >= 0) { onUpdateBudgetLines(budgetLines.map(l => l.id === line.id ? { ...l, amountPerCheck: v } : l)); showToast("Updated!"); }
+                          setEditLineId(null);
+                        }
+                        if (e.key === "Escape") setEditLineId(null);
+                      }}
+                      autoFocus
+                      className="w-20 text-sm text-right rounded-lg px-2 py-1 border"
+                      style={{ background: "rgba(124,92,252,0.08)", border: `1px solid ${BORDER}`, color: "var(--text)" }}
+                    />
+                    <button onClick={() => { const v = parseFloat(editLineAmt); if (!isNaN(v) && v >= 0) { onUpdateBudgetLines(budgetLines.map(l => l.id === line.id ? { ...l, amountPerCheck: v } : l)); showToast("Updated!"); } setEditLineId(null); }} className="text-xs px-2 py-1 rounded-lg font-semibold" style={{ background: LIME, color: "#fff" }}>Save</button>
+                    <button onClick={() => setEditLineId(null)} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>✕</button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <p className="text-sm text-white truncate">{getCategoryEmoji(line.category)} {line.label}</p>
+                      {line.isDetected && <span className="text-xs px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: "rgba(200,255,0,0.1)", color: LIME }}>auto</span>}
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <p className="text-sm font-semibold" style={{ color: RED }}>−{fmt$(line.amountPerCheck)}</p>
+                      <button onClick={() => { setEditLineId(line.id); setEditLineAmt(String(line.amountPerCheck)); }}><Pencil size={11} style={{ color: MUTED }} /></button>
+                      <button onClick={() => { onUpdateBudgetLines(budgetLines.filter(l => l.id !== line.id)); showToast("Removed"); }}><Trash2 size={11} style={{ color: MUTED }} /></button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
             <div className="flex items-center justify-between px-4 py-3.5" style={{ background: "rgba(200,255,0,0.03)" }}>
