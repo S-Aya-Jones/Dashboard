@@ -9,6 +9,7 @@ import { parseISO, format, addDays, differenceInDays } from "date-fns";
 import { TodaySpendCard } from "@/components/finances/TodaySpendCard";
 
 const LIME   = "#7C5CFC";   // purple primary (was lime)
+const ROSE   = "#DA667B";
 const BG     = "var(--bg)";
 const CARD   = "var(--surface)";
 const BORDER = "var(--border)";
@@ -1792,6 +1793,7 @@ function BaseBudgetCard({ baseBudget, onUpdate, showToast }: {
   const [addCat, setAddCat] = useState("");
   const [addAmt, setAddAmt] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
   const [editVal, setEditVal] = useState("");
 
   const total = baseBudget.reduce((s, b) => s + b.monthlyLimit, 0);
@@ -1886,7 +1888,7 @@ function BaseBudgetCard({ baseBudget, onUpdate, showToast }: {
             </div>
           )}
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <button onClick={() => setShowAddForm(v => !v)}
               className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg"
               style={{ background: "rgba(200,255,0,0.1)", color: LIME, border: `1px solid rgba(200,255,0,0.2)` }}>
@@ -1896,6 +1898,26 @@ function BaseBudgetCard({ baseBudget, onUpdate, showToast }: {
               <button onClick={loadDefaults} className="text-xs px-3 py-1.5 rounded-lg" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>
                 Load Defaults
               </button>
+            )}
+            {baseBudget.length > 0 && !confirmReset && (
+              <button onClick={() => setConfirmReset(true)} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg"
+                style={{ background: "rgba(218,102,123,0.08)", color: ROSE, border: "1px solid rgba(218,102,123,0.2)" }}>
+                <Trash2 size={12} /> Reset All
+              </button>
+            )}
+            {confirmReset && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs" style={{ color: MUTED }}>Clear all categories?</span>
+                <button onClick={() => { onUpdate([]); setConfirmReset(false); showToast("Base budget cleared."); }}
+                  className="text-xs px-3 py-1.5 rounded-lg font-semibold"
+                  style={{ background: ROSE, color: "#fff" }}>
+                  Yes, reset
+                </button>
+                <button onClick={() => setConfirmReset(false)} className="text-xs px-3 py-1.5 rounded-lg"
+                  style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>
+                  Cancel
+                </button>
+              </div>
             )}
           </div>
 
