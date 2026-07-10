@@ -110,7 +110,7 @@ export default function PrivacyPage() {
               the account holder consents to receive these messages.
             </p>
             <ul>
-              <li>Message frequency: up to 1 message per day, plus responses to account-holder-initiated commands</li>
+              <li>Message frequency: up to 2 messages per day</li>
               <li>Standard message and data rates may apply</li>
               <li>Reply <strong>STOP</strong> at any time to opt out of messages</li>
               <li>Reply <strong>HELP</strong> for assistance</li>

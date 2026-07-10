@@ -95,8 +95,7 @@ export default function TermsPage() {
                 including task summaries, habit progress, and other personal dashboard data
               </li>
               <li>
-                <strong>Message frequency:</strong> Up to 1 message per day, plus responses
-                to account-holder-initiated commands or HELP requests
+                <strong>Message frequency:</strong> Up to 2 messages per day
               </li>
               <li>
                 <strong>Message and data rates:</strong> Standard message and data rates

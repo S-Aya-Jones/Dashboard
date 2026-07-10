@@ -64,7 +64,7 @@ export default function SmsOptInPage() {
 
           {/* Opt-in consent */}
           <div style={{ display: "flex", gap: "0.75rem", alignItems: "flex-start", marginBottom: "1.25rem", padding: "1rem", background: "rgba(124,92,252,0.04)", borderRadius: "10px", border: "1px solid rgba(124,92,252,0.12)" }}>
-            <input type="checkbox" id="consent" defaultChecked style={{ marginTop: "3px", flexShrink: 0, width: 16, height: 16, accentColor: "#7C5CFC" }} />
+            <input type="checkbox" id="consent" style={{ marginTop: "3px", flexShrink: 0, width: 16, height: 16, accentColor: "#7C5CFC" }} />
             <label htmlFor="consent" style={{ fontSize: "0.85rem", lineHeight: 1.6, color: "#1E1340" }}>
               Yes, I consent to receive automated text messages from Aya&apos;s Dashboard
               (operated by Shaniqua Jones) about my daily workout reminders, wellness
