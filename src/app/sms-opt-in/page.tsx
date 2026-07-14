@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SmsOptInForm } from "@/components/SmsOptInForm";
 
 export const metadata: Metadata = {
   title: "SMS Opt-In — Aya's Dashboard",
@@ -62,16 +63,8 @@ export default function SmsOptInPage() {
             <p style={{ fontSize: "0.8rem", color: "#1E1340", fontStyle: "italic", margin: 0 }}>&ldquo;Daily check-in: 4/5 habits done, 7.5 hrs sleep, 2L water. You&apos;re killing it.&rdquo;</p>
           </div>
 
-          {/* Opt-in consent */}
-          <div style={{ display: "flex", gap: "0.75rem", alignItems: "flex-start", marginBottom: "1.25rem", padding: "1rem", background: "rgba(124,92,252,0.04)", borderRadius: "10px", border: "1px solid rgba(124,92,252,0.12)" }}>
-            <input type="checkbox" id="consent" style={{ marginTop: "3px", flexShrink: 0, width: 16, height: 16, accentColor: "#7C5CFC" }} />
-            <label htmlFor="consent" style={{ fontSize: "0.85rem", lineHeight: 1.6, color: "#1E1340" }}>
-              Yes, I consent to receive automated text messages from Aya&apos;s Dashboard
-              (operated by Shaniqua Jones) about my daily workout reminders, wellness
-              check-ins, and fitness updates. I understand I will receive up to <strong>2 messages per day</strong>.
-              Consent is not a condition of use.
-            </label>
-          </div>
+          {/* Opt-in consent — interactive form */}
+          <SmsOptInForm />
 
           {/* Required CTIA disclosures */}
           <div style={{ fontSize: "0.78rem", lineHeight: 1.8, color: "#7C6FAE", borderTop: "1px solid rgba(124,92,252,0.12)", paddingTop: "1rem", display: "grid", gap: "0.35rem" }}>

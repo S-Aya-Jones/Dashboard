@@ -7,6 +7,11 @@ import {
 } from "recharts";
 import { Plus, Flame, TrendingUp, BarChart2 } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
+import { RepCardsTab }   from "@/components/felt-safety/tabs/RepCardsTab";
+import { ParkingLotTab } from "@/components/felt-safety/tabs/ParkingLotTab";
+import { CheckinTab }    from "@/components/felt-safety/tabs/CheckinTab";
+import { MantrasTab }    from "@/components/felt-safety/tabs/MantrasTab";
+import { GardenTab }     from "@/components/felt-safety/tabs/GardenTab";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -20,7 +25,8 @@ interface TwitchLog {
 }
 
 type TriggerKey = "scorekeeping" | "owed" | "monitoring" | "directing" | "preloading" | "airing" | "other";
-type Tab = "today" | "patterns";
+type MainTab = "garden" | "twitches" | "reps" | "parking" | "checkin" | "mantras";
+type TwitchTab = "today" | "patterns";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -35,17 +41,26 @@ const TRIGGERS: { key: TriggerKey; label: string; desc: string; color: string }[
 ];
 
 const LEVELS = [
-  { min: 0,   max: 9,          name: "Novice Lifter",  desc: "Just getting started" },
-  { min: 10,  max: 24,         name: "Training Block", desc: "Building the habit" },
-  { min: 25,  max: 49,         name: "Form Check",     desc: "Pattern is forming" },
-  { min: 50,  max: 99,         name: "Heavy Set",      desc: "Consistent practice" },
-  { min: 100, max: 199,        name: "Plate Stacker",  desc: "Real momentum" },
-  { min: 200, max: 499,        name: "1RM Hunter",     desc: "Advanced practitioner" },
-  { min: 500, max: Infinity,   name: "Elite Rep",      desc: "Mastery in motion" },
+  { min: 0,   max: 9,        name: "Novice Lifter",  desc: "Just getting started" },
+  { min: 10,  max: 24,       name: "Training Block", desc: "Building the habit" },
+  { min: 25,  max: 49,       name: "Form Check",     desc: "Pattern is forming" },
+  { min: 50,  max: 99,       name: "Heavy Set",      desc: "Consistent practice" },
+  { min: 100, max: 199,      name: "Plate Stacker",  desc: "Real momentum" },
+  { min: 200, max: 499,      name: "1RM Hunter",     desc: "Advanced practitioner" },
+  { min: 500, max: Infinity, name: "Elite Rep",      desc: "Mastery in motion" },
 ];
 
 const TIME_LABELS = ["12–3a", "3–6a", "6–9a", "9a–12p", "12–3p", "3–6p", "6–9p", "9p–12a"];
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+const MAIN_TABS: { key: MainTab; emoji: string; label: string }[] = [
+  { key: "garden",   emoji: "🌿", label: "Garden"     },
+  { key: "twitches", emoji: "⚡", label: "Twitches"   },
+  { key: "reps",     emoji: "🃏", label: "Rep Cards"  },
+  { key: "parking",  emoji: "🅿️", label: "Parking Lot"},
+  { key: "checkin",  emoji: "🌙", label: "Check-in"   },
+  { key: "mantras",  emoji: "✨", label: "Mantras"    },
+];
 
 // ─── Analytics helpers ────────────────────────────────────────────────────────
 
@@ -172,8 +187,6 @@ function TwitchLogModal({ open, onClose, onSave }: {
   return (
     <Modal open={open} onClose={onClose} title="Log a Twitch" width="max-w-md">
       <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-
-        {/* Trigger chips */}
         <div>
           <p style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: "0.6rem" }}>
             What kind?
@@ -204,7 +217,6 @@ function TwitchLogModal({ open, onClose, onSave }: {
           )}
         </div>
 
-        {/* Intensity */}
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "0.35rem" }}>
             <p style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)" }}>
@@ -221,7 +233,6 @@ function TwitchLogModal({ open, onClose, onSave }: {
           </div>
         </div>
 
-        {/* Acted / Sat toggle */}
         <div>
           <p style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: "0.6rem" }}>
             What happened?
@@ -256,7 +267,6 @@ function TwitchLogModal({ open, onClose, onSave }: {
           </div>
         </div>
 
-        {/* Note */}
         <textarea
           placeholder="Note (optional)"
           value={note}
@@ -272,7 +282,6 @@ function TwitchLogModal({ open, onClose, onSave }: {
           }}
         />
 
-        {/* Submit */}
         <button onClick={handleSave} disabled={!trigger || saving} style={{
           width: "100%", padding: "0.85rem",
           borderRadius: "12px", border: "none",
@@ -299,7 +308,6 @@ function TwitchLogModal({ open, onClose, onSave }: {
 function HeatmapView({ logs }: { logs: TwitchLog[] }) {
   const grid   = buildHeatmap(logs);
   const maxVal = Math.max(1, ...grid.flat());
-
   return (
     <div>
       <p style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: "1rem" }}>
@@ -338,29 +346,218 @@ function HeatmapView({ logs }: { logs: TwitchLog[] }) {
   );
 }
 
-// ─── Main view ────────────────────────────────────────────────────────────────
+// ─── Twitch content ───────────────────────────────────────────────────────────
 
-const tabStyle = (active: boolean) => ({
-  display: "flex" as const,
-  alignItems: "center" as const,
-  gap: "0.4rem",
-  padding: "0.5rem 1rem",
-  borderRadius: "9px",
-  border: "none",
-  background: active ? "var(--surface)" : "transparent",
-  color: active ? "var(--purple)" : "var(--text-muted)",
-  fontWeight: active ? 600 : 400,
-  fontSize: "0.85rem",
-  cursor: "pointer" as const,
-  boxShadow: active ? "0 1px 4px rgba(124,92,252,0.12)" : "none",
-  transition: "all 0.15s ease",
-});
+function TwitchContent({ logs, loading }: { logs: TwitchLog[]; loading: boolean }) {
+  const [twitchTab, setTwitchTab] = useState<TwitchTab>("today");
+
+  const todayStr          = new Date().toISOString().slice(0, 10);
+  const todayLogs         = logs.filter(l => l.createdAt?.startsWith(todayStr));
+  const totalResisted     = logs.filter(l => !l.acted).length;
+  const streak            = calcResistedStreak(logs);
+  const level             = getLevel(totalResisted);
+  const allTimeRate       = logs.length > 0 ? Math.round((totalResisted / logs.length) * 100) : 0;
+  const todayResisted     = todayLogs.filter(l => !l.acted).length;
+  const todayActed        = todayLogs.filter(l => l.acted).length;
+  const ratioTrend        = buildRatioTrend(logs);
+  const intensityTrend    = buildIntensityTrend(logs);
+  const triggerBreakdown  = buildTriggerBreakdown(logs);
+  const activeTriggers    = triggerBreakdown.filter(t => t.count > 0);
+
+  const tabStyle = (active: boolean) => ({
+    display: "flex" as const, alignItems: "center" as const, gap: "0.4rem",
+    padding: "0.5rem 1rem", borderRadius: "9px", border: "none",
+    background: active ? "var(--surface)" : "transparent",
+    color: active ? "var(--purple)" : "var(--text-muted)",
+    fontWeight: active ? 600 : 400, fontSize: "0.85rem", cursor: "pointer" as const,
+    boxShadow: active ? "0 1px 4px rgba(124,92,252,0.12)" : "none",
+    transition: "all 0.15s ease",
+  });
+
+  return (
+    <div className="space-y-6">
+      {/* Hero stats */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "1rem" }}>
+        <div className="card" style={{
+          padding: "1.25rem", gridColumn: "span 2",
+          background: "linear-gradient(135deg, rgba(113,129,109,0.1) 0%, rgba(74,103,65,0.06) 100%)",
+          border: "1px solid rgba(113,129,109,0.22)",
+        }}>
+          <div style={{ display: "flex", alignItems: "flex-end", gap: "1.25rem", flexWrap: "wrap" }}>
+            <div>
+              <p style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#71816D", marginBottom: "0.15rem" }}>
+                Resisted
+              </p>
+              <p style={{ fontSize: "3.5rem", fontWeight: 900, color: "#4A6741", lineHeight: 1 }}>{totalResisted}</p>
+            </div>
+            <div style={{ paddingBottom: "0.5rem" }}>
+              <p style={{ fontSize: "0.82rem", fontWeight: 700, color: "#4A6741" }}>{level.name}</p>
+              <p style={{ fontSize: "0.72rem", color: "#71816D" }}>{level.desc}</p>
+            </div>
+            {streak > 0 && (
+              <div style={{ marginLeft: "auto", textAlign: "right", paddingBottom: "0.5rem" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.3rem", justifyContent: "flex-end" }}>
+                  <Flame size={16} style={{ color: "#F59E0B" }} />
+                  <span style={{ fontSize: "1.75rem", fontWeight: 900, color: "var(--text)" }}>{streak}</span>
+                </div>
+                <p style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>streak</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="card" style={{ padding: "1.25rem" }}>
+          <p style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: "0.4rem" }}>All-time rate</p>
+          <p style={{ fontSize: "2rem", fontWeight: 800, color: "var(--text)" }}>{allTimeRate}%</p>
+          <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>sat with it</p>
+        </div>
+
+        <div className="card" style={{ padding: "1.25rem" }}>
+          <p style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: "0.4rem" }}>Today</p>
+          <p style={{ fontSize: "2rem", fontWeight: 800, color: "var(--text)" }}>{todayLogs.length}</p>
+          <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+            {todayResisted > 0 && <span style={{ color: "#71816D" }}>{todayResisted} sat</span>}
+            {todayResisted > 0 && todayActed > 0 && " · "}
+            {todayActed > 0 && <span style={{ color: "#DA667B" }}>{todayActed} acted</span>}
+            {todayLogs.length === 0 && "—"}
+          </p>
+        </div>
+
+        <div className="card" style={{ padding: "1.25rem" }}>
+          <p style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: "0.4rem" }}>Total logged</p>
+          <p style={{ fontSize: "2rem", fontWeight: 800, color: "var(--text)" }}>{logs.length}</p>
+          <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>twitches</p>
+        </div>
+      </div>
+
+      {/* Sub-tabs */}
+      <div style={{ display: "flex", gap: "0.25rem", background: "var(--bg)", borderRadius: "12px", padding: "4px", width: "fit-content" }}>
+        <button onClick={() => setTwitchTab("today")} style={tabStyle(twitchTab === "today")}>Today</button>
+        <button onClick={() => setTwitchTab("patterns")} style={tabStyle(twitchTab === "patterns")}>
+          <TrendingUp size={14} /><span>Patterns</span>
+        </button>
+      </div>
+
+      {/* Today log */}
+      {twitchTab === "today" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+          {loading ? (
+            <div className="card" style={{ padding: "2rem", textAlign: "center", color: "var(--text-muted)" }}>Loading…</div>
+          ) : todayLogs.length === 0 ? (
+            <div className="card" style={{ padding: "2.5rem", textAlign: "center" }}>
+              <p style={{ fontSize: "1.75rem", marginBottom: "0.6rem" }}>🌿</p>
+              <p style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>No twitches logged today.</p>
+              <p style={{ color: "var(--text-light)", fontSize: "0.8rem", marginTop: "0.2rem" }}>Tap "Log a Twitch" when an urge appears.</p>
+            </div>
+          ) : (
+            todayLogs.map(log => {
+              const trigger = TRIGGERS.find(t => t.key === log.triggerType);
+              return (
+                <div key={log.id} className="card" style={{
+                  padding: "0.9rem 1.25rem",
+                  display: "flex", alignItems: "center", gap: "1rem",
+                  borderLeft: `3px solid ${log.acted ? "#DA667B" : "#71816D"}`,
+                }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap", marginBottom: log.note ? "0.3rem" : 0 }}>
+                      <span style={{ fontSize: "0.68rem", fontWeight: 700, padding: "0.18rem 0.5rem", borderRadius: "20px", background: `${trigger?.color ?? "#888"}18`, color: trigger?.color ?? "#888" }}>
+                        {trigger?.label ?? log.triggerType}
+                      </span>
+                      <span style={{ fontSize: "0.68rem", fontWeight: 700, padding: "0.18rem 0.5rem", borderRadius: "20px", background: log.acted ? "rgba(218,102,123,0.1)" : "rgba(113,129,109,0.1)", color: log.acted ? "#DA667B" : "#71816D" }}>
+                        {log.acted ? "acted" : "sat with it ✓"}
+                      </span>
+                    </div>
+                    {log.note && <p style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>{log.note}</p>}
+                  </div>
+                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    <p style={{ fontSize: "1.3rem", fontWeight: 800, color: "var(--text)", lineHeight: 1 }}>{log.intensity}</p>
+                    <p style={{ fontSize: "0.62rem", color: "var(--text-light)" }}>intensity</p>
+                  </div>
+                  <p style={{ fontSize: "0.7rem", color: "var(--text-light)", flexShrink: 0 }}>
+                    {new Date(log.createdAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+                  </p>
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
+
+      {/* Patterns */}
+      {twitchTab === "patterns" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+          <div className="card" style={{ padding: "1.5rem" }}>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: "1rem" }}>
+              <div>
+                <p style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)" }}>Restraint rate — 30 days</p>
+                <p style={{ fontSize: "0.78rem", color: "var(--text-light)", marginTop: "0.15rem" }}>% of twitches sat with. Upward trend = rewiring.</p>
+              </div>
+              <TrendingUp size={16} style={{ color: "#71816D" }} />
+            </div>
+            <ResponsiveContainer width="100%" height={160}>
+              <LineChart data={buildRatioTrend(logs)} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(124,92,252,0.08)" />
+                <XAxis dataKey="date" tick={{ fontSize: 10, fill: "var(--text-light)" }} interval={6} />
+                <YAxis tick={{ fontSize: 10, fill: "var(--text-light)" }} domain={[0, 100]} tickFormatter={v => `${v}%`} />
+                <Tooltip contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }} formatter={(v: number) => [`${v}%`, "Sat with it"]} />
+                <Line type="monotone" dataKey="rate" stroke="#71816D" strokeWidth={2.5} dot={{ r: 3, fill: "#71816D" }} connectNulls={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="card" style={{ padding: "1.5rem" }}>
+            <HeatmapView logs={logs} />
+          </div>
+
+          <div className="card" style={{ padding: "1.5rem" }}>
+            <p style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: "1rem" }}>Which twitches fire most</p>
+            {activeTriggers.length === 0 ? (
+              <p style={{ color: "var(--text-light)", fontSize: "0.85rem", textAlign: "center", padding: "1rem 0" }}>No twitches logged yet.</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={activeTriggers.length * 44 + 16}>
+                <BarChart data={activeTriggers} layout="vertical" margin={{ top: 0, right: 16, bottom: 0, left: 80 }}>
+                  <XAxis type="number" tick={{ fontSize: 10, fill: "var(--text-light)" }} allowDecimals={false} />
+                  <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: "var(--text)" }} width={78} />
+                  <Tooltip contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }} />
+                  <Bar dataKey="count" radius={[0, 6, 6, 0]}>
+                    {activeTriggers.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+
+          <div className="card" style={{ padding: "1.5rem" }}>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: "1rem" }}>
+              <div>
+                <p style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)" }}>Average intensity — 30 days</p>
+                <p style={{ fontSize: "0.78rem", color: "var(--text-light)", marginTop: "0.15rem" }}>Downward trend = urges losing their grip.</p>
+              </div>
+              <BarChart2 size={16} style={{ color: "var(--text-muted)" }} />
+            </div>
+            <ResponsiveContainer width="100%" height={140}>
+              <LineChart data={intensityTrend} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(124,92,252,0.08)" />
+                <XAxis dataKey="date" tick={{ fontSize: 10, fill: "var(--text-light)" }} interval={6} />
+                <YAxis tick={{ fontSize: 10, fill: "var(--text-light)" }} domain={[0, 10]} />
+                <Tooltip contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }} formatter={(v: number) => [v, "avg intensity"]} />
+                <Line type="monotone" dataKey="avg" stroke="var(--purple)" strokeWidth={2} dot={{ r: 3 }} connectNulls={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Main view ────────────────────────────────────────────────────────────────
 
 export function FeltSafetyView() {
   const [logs,    setLogs]    = useState<TwitchLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [logOpen, setLogOpen] = useState(false);
-  const [tab,     setTab]     = useState<Tab>("today");
+  const [tab,     setTab]     = useState<MainTab>("garden");
 
   useEffect(() => {
     fetch("/api/felt-safety/twitches")
@@ -379,19 +576,6 @@ export function FeltSafetyView() {
     const { log } = await res.json();
     setLogs(prev => [log, ...prev]);
   }, []);
-
-  const todayStr      = new Date().toISOString().slice(0, 10);
-  const todayLogs     = logs.filter(l => l.createdAt?.startsWith(todayStr));
-  const totalResisted = logs.filter(l => !l.acted).length;
-  const streak        = calcResistedStreak(logs);
-  const level         = getLevel(totalResisted);
-  const allTimeRate   = logs.length > 0 ? Math.round((totalResisted / logs.length) * 100) : 0;
-  const todayResisted = todayLogs.filter(l => !l.acted).length;
-  const todayActed    = todayLogs.filter(l => l.acted).length;
-  const ratioTrend    = buildRatioTrend(logs);
-  const intensityTrend    = buildIntensityTrend(logs);
-  const triggerBreakdown  = buildTriggerBreakdown(logs);
-  const activeTriggers    = triggerBreakdown.filter(t => t.count > 0);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -420,226 +604,37 @@ export function FeltSafetyView() {
         </button>
       </div>
 
-      {/* Hero stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "1rem" }}>
-
-        <div className="card" style={{
-          padding: "1.25rem",
-          gridColumn: "span 2",
-          background: "linear-gradient(135deg, rgba(113,129,109,0.1) 0%, rgba(74,103,65,0.06) 100%)",
-          border: "1px solid rgba(113,129,109,0.22)",
-        }}>
-          <div style={{ display: "flex", alignItems: "flex-end", gap: "1.25rem", flexWrap: "wrap" }}>
-            <div>
-              <p style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#71816D", marginBottom: "0.15rem" }}>
-                Resisted
-              </p>
-              <p style={{ fontSize: "3.5rem", fontWeight: 900, color: "#4A6741", lineHeight: 1 }}>{totalResisted}</p>
-            </div>
-            <div style={{ paddingBottom: "0.5rem" }}>
-              <p style={{ fontSize: "0.82rem", fontWeight: 700, color: "#4A6741" }}>{level.name}</p>
-              <p style={{ fontSize: "0.72rem", color: "#71816D" }}>{level.desc}</p>
-            </div>
-            {streak > 0 && (
-              <div style={{ marginLeft: "auto", textAlign: "right", paddingBottom: "0.5rem" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.3rem", justifyContent: "flex-end" }}>
-                  <Flame size={16} style={{ color: "#F59E0B" }} />
-                  <span style={{ fontSize: "1.75rem", fontWeight: 900, color: "var(--text)" }}>{streak}</span>
-                </div>
-                <p style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>streak</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="card" style={{ padding: "1.25rem" }}>
-          <p style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: "0.4rem" }}>
-            All-time rate
-          </p>
-          <p style={{ fontSize: "2rem", fontWeight: 800, color: "var(--text)" }}>{allTimeRate}%</p>
-          <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>sat with it</p>
-        </div>
-
-        <div className="card" style={{ padding: "1.25rem" }}>
-          <p style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: "0.4rem" }}>
-            Today
-          </p>
-          <p style={{ fontSize: "2rem", fontWeight: 800, color: "var(--text)" }}>{todayLogs.length}</p>
-          <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-            {todayResisted > 0 && <span style={{ color: "#71816D" }}>{todayResisted} sat</span>}
-            {todayResisted > 0 && todayActed > 0 && " · "}
-            {todayActed > 0 && <span style={{ color: "#DA667B" }}>{todayActed} acted</span>}
-            {todayLogs.length === 0 && "—"}
-          </p>
-        </div>
-
-        <div className="card" style={{ padding: "1.25rem" }}>
-          <p style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: "0.4rem" }}>
-            Total logged
-          </p>
-          <p style={{ fontSize: "2rem", fontWeight: 800, color: "var(--text)" }}>{logs.length}</p>
-          <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>twitches</p>
+      {/* Main tab nav */}
+      <div style={{ overflowX: "auto", paddingBottom: "2px" }}>
+        <div style={{ display: "flex", gap: "0.2rem", background: "var(--bg)", borderRadius: "14px", padding: "4px", width: "max-content", minWidth: "100%" }}>
+          {MAIN_TABS.map(t => (
+            <button key={t.key} onClick={() => setTab(t.key)} style={{
+              display: "flex", alignItems: "center", gap: "0.4rem",
+              padding: "0.55rem 0.9rem",
+              borderRadius: "10px", border: "none",
+              background: tab === t.key ? "var(--surface)" : "transparent",
+              color: tab === t.key ? "var(--purple)" : "var(--text-muted)",
+              fontWeight: tab === t.key ? 600 : 400,
+              fontSize: "0.82rem",
+              cursor: "pointer",
+              boxShadow: tab === t.key ? "0 1px 4px rgba(124,92,252,0.12)" : "none",
+              transition: "all 0.15s ease",
+              whiteSpace: "nowrap",
+            }}>
+              <span>{t.emoji}</span>
+              <span>{t.label}</span>
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Tabs */}
-      <div style={{ display: "flex", gap: "0.25rem", background: "var(--bg)", borderRadius: "12px", padding: "4px", width: "fit-content" }}>
-        <button onClick={() => setTab("today")} style={tabStyle(tab === "today")}>
-          <span style={{ fontSize: "0.85rem" }}>Today</span>
-        </button>
-        <button onClick={() => setTab("patterns")} style={tabStyle(tab === "patterns")}>
-          <TrendingUp size={14} />
-          <span>Patterns</span>
-        </button>
-      </div>
-
-      {/* Today */}
-      {tab === "today" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-          {loading ? (
-            <div className="card" style={{ padding: "2rem", textAlign: "center", color: "var(--text-muted)" }}>Loading…</div>
-          ) : todayLogs.length === 0 ? (
-            <div className="card" style={{ padding: "2.5rem", textAlign: "center" }}>
-              <p style={{ fontSize: "1.75rem", marginBottom: "0.6rem" }}>🌿</p>
-              <p style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>No twitches logged today.</p>
-              <p style={{ color: "var(--text-light)", fontSize: "0.8rem", marginTop: "0.2rem" }}>Tap "Log a Twitch" when an urge appears.</p>
-            </div>
-          ) : (
-            todayLogs.map(log => {
-              const trigger = TRIGGERS.find(t => t.key === log.triggerType);
-              return (
-                <div key={log.id} className="card" style={{
-                  padding: "0.9rem 1.25rem",
-                  display: "flex", alignItems: "center", gap: "1rem",
-                  borderLeft: `3px solid ${log.acted ? "#DA667B" : "#71816D"}`,
-                }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap", marginBottom: log.note ? "0.3rem" : 0 }}>
-                      <span style={{
-                        fontSize: "0.68rem", fontWeight: 700, padding: "0.18rem 0.5rem",
-                        borderRadius: "20px",
-                        background: `${trigger?.color ?? "#888"}18`,
-                        color: trigger?.color ?? "#888",
-                      }}>
-                        {trigger?.label ?? log.triggerType}
-                      </span>
-                      <span style={{
-                        fontSize: "0.68rem", fontWeight: 700, padding: "0.18rem 0.5rem",
-                        borderRadius: "20px",
-                        background: log.acted ? "rgba(218,102,123,0.1)" : "rgba(113,129,109,0.1)",
-                        color: log.acted ? "#DA667B" : "#71816D",
-                      }}>
-                        {log.acted ? "acted" : "sat with it ✓"}
-                      </span>
-                    </div>
-                    {log.note && (
-                      <p style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>{log.note}</p>
-                    )}
-                  </div>
-                  <div style={{ textAlign: "right", flexShrink: 0 }}>
-                    <p style={{ fontSize: "1.3rem", fontWeight: 800, color: "var(--text)", lineHeight: 1 }}>{log.intensity}</p>
-                    <p style={{ fontSize: "0.62rem", color: "var(--text-light)" }}>intensity</p>
-                  </div>
-                  <p style={{ fontSize: "0.7rem", color: "var(--text-light)", flexShrink: 0 }}>
-                    {new Date(log.createdAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
-                  </p>
-                </div>
-              );
-            })
-          )}
-        </div>
-      )}
-
-      {/* Patterns */}
-      {tab === "patterns" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-
-          {/* Restraint rate trend */}
-          <div className="card" style={{ padding: "1.5rem" }}>
-            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: "1rem" }}>
-              <div>
-                <p style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)" }}>
-                  Restraint rate — 30 days
-                </p>
-                <p style={{ fontSize: "0.78rem", color: "var(--text-light)", marginTop: "0.15rem" }}>
-                  % of twitches sat with. Upward trend = rewiring.
-                </p>
-              </div>
-              <TrendingUp size={16} style={{ color: "#71816D" }} />
-            </div>
-            <ResponsiveContainer width="100%" height={160}>
-              <LineChart data={ratioTrend} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(124,92,252,0.08)" />
-                <XAxis dataKey="date" tick={{ fontSize: 10, fill: "var(--text-light)" }} interval={6} />
-                <YAxis tick={{ fontSize: 10, fill: "var(--text-light)" }} domain={[0, 100]} tickFormatter={v => `${v}%`} />
-                <Tooltip
-                  contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }}
-                  formatter={(v: number) => [`${v}%`, "Sat with it"]}
-                />
-                <Line type="monotone" dataKey="rate" stroke="#71816D" strokeWidth={2.5}
-                  dot={{ r: 3, fill: "#71816D" }} connectNulls={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Heatmap */}
-          <div className="card" style={{ padding: "1.5rem" }}>
-            <HeatmapView logs={logs} />
-          </div>
-
-          {/* Trigger breakdown */}
-          <div className="card" style={{ padding: "1.5rem" }}>
-            <p style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: "1rem" }}>
-              Which twitches fire most
-            </p>
-            {activeTriggers.length === 0 ? (
-              <p style={{ color: "var(--text-light)", fontSize: "0.85rem", textAlign: "center", padding: "1rem 0" }}>
-                No twitches logged yet.
-              </p>
-            ) : (
-              <ResponsiveContainer width="100%" height={activeTriggers.length * 44 + 16}>
-                <BarChart data={activeTriggers} layout="vertical" margin={{ top: 0, right: 16, bottom: 0, left: 80 }}>
-                  <XAxis type="number" tick={{ fontSize: 10, fill: "var(--text-light)" }} allowDecimals={false} />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: "var(--text)" }} width={78} />
-                  <Tooltip contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }} />
-                  <Bar dataKey="count" radius={[0, 6, 6, 0]}>
-                    {activeTriggers.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-
-          {/* Intensity trend */}
-          <div className="card" style={{ padding: "1.5rem" }}>
-            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: "1rem" }}>
-              <div>
-                <p style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)" }}>
-                  Average intensity — 30 days
-                </p>
-                <p style={{ fontSize: "0.78rem", color: "var(--text-light)", marginTop: "0.15rem" }}>
-                  Downward trend = urges losing their grip.
-                </p>
-              </div>
-              <BarChart2 size={16} style={{ color: "var(--text-muted)" }} />
-            </div>
-            <ResponsiveContainer width="100%" height={140}>
-              <LineChart data={intensityTrend} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(124,92,252,0.08)" />
-                <XAxis dataKey="date" tick={{ fontSize: 10, fill: "var(--text-light)" }} interval={6} />
-                <YAxis tick={{ fontSize: 10, fill: "var(--text-light)" }} domain={[0, 10]} />
-                <Tooltip
-                  contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }}
-                  formatter={(v: number) => [v, "avg intensity"]}
-                />
-                <Line type="monotone" dataKey="avg" stroke="var(--purple)" strokeWidth={2}
-                  dot={{ r: 3 }} connectNulls={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-
-        </div>
-      )}
+      {/* Tab content */}
+      {tab === "garden"  && <GardenTab />}
+      {tab === "twitches" && <TwitchContent logs={logs} loading={loading} />}
+      {tab === "reps"    && <RepCardsTab />}
+      {tab === "parking" && <ParkingLotTab />}
+      {tab === "checkin" && <CheckinTab />}
+      {tab === "mantras" && <MantrasTab />}
 
       <TwitchLogModal open={logOpen} onClose={() => setLogOpen(false)} onSave={handleSave} />
     </div>
