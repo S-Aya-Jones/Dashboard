@@ -1,10 +1,6 @@
-import type { Metadata } from "next";
+"use client";
 import { DashboardShell } from "@/components/DashboardShell";
 import { FeltSafetyView } from "@/components/felt-safety/FeltSafetyView";
-
-export const metadata: Metadata = {
-  title: "Felt Safety — Aya's Dashboard",
-};
 
 export default function FeltSafetyPage() {
   return (
