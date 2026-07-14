@@ -403,12 +403,12 @@ export function ParkingLotTab() {
 
   const handleDecide = useCallback(async (id: string, decision: "raise" | "let_go") => {
     if (deciding.has(id)) return;
-    setDeciding(prev => new Set([...prev, id]));
+    setDeciding(prev => { const s = new Set(prev); s.add(id); return s; });
 
     // Optimistic UI
     if (decision === "let_go") {
       // Start fade immediately
-      setFading(prev => new Set([...prev, id]));
+      setFading(prev => { const s = new Set(prev); s.add(id); return s; });
       // After animation, mark in state
       setTimeout(() => {
         setEntries(prev =>
