@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SmsOptInForm } from "@/components/SmsOptInForm";
 
 export const metadata: Metadata = {
   title: "SMS Opt-In — Aya's Dashboard",
@@ -31,10 +32,10 @@ export default function SmsOptInPage() {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
             <tbody>
               {[
-                ["Business Name", "Aya's Dashboard"],
+                ["Business Name",  "Aya’s Dashboard"],
                 ["Owner / Operator", "Shaniqua Jones"],
-                ["Business Type", "Sole Proprietor — Personal Application"],
-                ["Contact Email", "shaniquaayajones@gmail.com"],
+                ["Business Type",  "Sole Proprietor — Personal Application"],
+                ["Contact Email",  "shaniquaayajones@gmail.com"],
               ].map(([label, val]) => (
                 <tr key={label}>
                   <td style={{ paddingBottom: "0.5rem", paddingRight: "1rem", color: "#7C6FAE", whiteSpace: "nowrap", verticalAlign: "top", fontWeight: 500 }}>{label}</td>
@@ -56,22 +57,14 @@ export default function SmsOptInPage() {
           </p>
 
           {/* Message examples */}
-          <div style={{ background: "#FAF8FF", borderRadius: "10px", padding: "1rem", marginBottom: "1rem", border: "1px solid rgba(124,92,252,0.1)" }}>
+          <div style={{ background: "#FAF8FF", borderRadius: "10px", padding: "1rem", marginBottom: "1.25rem", border: "1px solid rgba(124,92,252,0.1)" }}>
             <p style={{ fontSize: "0.75rem", fontWeight: 600, color: "#7C5CFC", margin: "0 0 0.5rem" }}>Example messages:</p>
-            <p style={{ fontSize: "0.8rem", color: "#1E1340", fontStyle: "italic", margin: "0 0 0.35rem" }}>&ldquo;Good morning! Your workout today: Upper Body Push. 3 habits completed yesterday. Stay on track! 💪&rdquo;</p>
-            <p style={{ fontSize: "0.8rem", color: "#1E1340", fontStyle: "italic", margin: 0 }}>&ldquo;Daily check-in: 4/5 habits done, 7.5 hrs sleep, 2L water. You&apos;re killing it.&rdquo;</p>
+            <p style={{ fontSize: "0.8rem", color: "#1E1340", fontStyle: "italic", margin: "0 0 0.35rem" }}>&ldquo;Aya&apos;s Dashboard: Good morning! Today&apos;s workout: Upper Body Push. Yesterday: 4/5 habits done, 7.5 hrs sleep. Reply STOP to opt out.&rdquo;</p>
+            <p style={{ fontSize: "0.8rem", color: "#1E1340", fontStyle: "italic", margin: 0 }}>&ldquo;Aya&apos;s Dashboard: Habit check-in time! How are your goals going today? Reply STOP to unsubscribe or HELP for commands.&rdquo;</p>
           </div>
 
-          {/* Opt-in consent */}
-          <div style={{ display: "flex", gap: "0.75rem", alignItems: "flex-start", marginBottom: "1.25rem", padding: "1rem", background: "rgba(124,92,252,0.04)", borderRadius: "10px", border: "1px solid rgba(124,92,252,0.12)" }}>
-            <input type="checkbox" id="consent" style={{ marginTop: "3px", flexShrink: 0, width: 16, height: 16, accentColor: "#7C5CFC" }} />
-            <label htmlFor="consent" style={{ fontSize: "0.85rem", lineHeight: 1.6, color: "#1E1340" }}>
-              Yes, I consent to receive automated text messages from Aya&apos;s Dashboard
-              (operated by Shaniqua Jones) about my daily workout reminders, wellness
-              check-ins, and fitness updates. I understand I will receive up to <strong>2 messages per day</strong>.
-              Consent is not a condition of use.
-            </label>
-          </div>
+          {/* Interactive opt-in form */}
+          <SmsOptInForm />
 
           {/* Required CTIA disclosures */}
           <div style={{ fontSize: "0.78rem", lineHeight: 1.8, color: "#7C6FAE", borderTop: "1px solid rgba(124,92,252,0.12)", paddingTop: "1rem", display: "grid", gap: "0.35rem" }}>
