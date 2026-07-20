@@ -1,0 +1,76 @@
+[
+  {
+    "exerciseId": "barbell-hip-thrust",
+    "exerciseName": "Barbell Hip Thrust",
+    "videoId": "007d7027164c49188ad8719cd4b8c417",
+    "submittedAt": "2026-06-10T05:06:44.462Z",
+    "status": "failed"
+  },
+  {
+    "exerciseId": "romanian-deadlift",
+    "exerciseName": "Romanian Deadlift",
+    "videoId": "96feb83ce05a477dabfe4e9a30926d47",
+    "submittedAt": "2026-06-10T05:06:46.096Z",
+    "status": "failed"
+  },
+  {
+    "exerciseId": "glute-bridge-hold",
+    "exerciseName": "Glute Bridge Hold",
+    "videoId": "af31e00b4aba42fda8fadceed220e89e",
+    "submittedAt": "2026-06-10T05:06:47.896Z",
+    "status": "failed"
+  },
+  {
+    "exerciseId": "dead-bug-main",
+    "exerciseName": "Dead Bug",
+    "videoId": "8941e55262cb4e6da976bef4e46abb00",
+    "submittedAt": "2026-06-10T05:06:49.525Z",
+    "status": "completed",
+    "videoUrl": "https://files2.heygen.ai/aws_pacific/avatar_tmp/9db0a4e557124956bc41e6a08402c87e/8941e55262cb4e6da976bef4e46abb00.mp4?Expires=1781672940&Signature=mr1bC8u8yRx93X0KjNk-iQPZjzKFi4~sJp14Pzwk3cEXXG3UY-dZhvPAXnrgg7N9M~G0F3uFuQlqcuO2FiEbffgJxlBEUefd~GROG3gYoJhPEEeIC2lOg3fkKsow9wOXT3CUlYwUcvWG1cbSKW-iFAP5MosDZsh737nwBE-J4F3c0YOJl0w~b8vVDAcD~CbtlqupBAzaUL2rvzQS2zqb8LP3ffI5pDw4Osv6naIEzAhlnpDOM8jXgqOk-J7qqgn3zUH0djJHqOaj29HXqELdTi3PtzsL4yXEBEO6TZ5N3SlEbf6WkoLO4IxsIk4sTLCIwtvVJvGnkt5RyjRHdDNO0A__&Key-Pair-Id=K38HBHX5LX3X2H",
+    "thumbnail": "https://files2.heygen.ai/aws_pacific/avatar_tmp/9db0a4e557124956bc41e6a08402c87e/8941e55262cb4e6da976bef4e46abb00.jpeg?Expires=1781675278&Signature=PhkKBSvW9m050RXHitT~q15jYGD4kA5IhOUF7yn8fXN~WjKhBOzgIgiORZNI0DX4hDbhHbQEIFaFBc6Ea9b-aUgb1QE~BLgj-l6YW7DTPsnDKCR3Fb1MYcBLyN5QPsupt4WyQsj9tD0hKfoUTPkExxNiAwhBotL0vDGzMNWquo5xxUJWpqRKRWAnLne0lomw~jsBF2FIvIvy-NiUfqoJwMUhNULq5-lV7AEDsimBV9VQrfRCfFyVZGmKxKYkG7TwZhLKUUqtqS9Zw7mPjq-oqBgmQc5AzueHvxV~K~8Mc3BTUFXm2mu~uxi--V6LlhFQeHheP5XCh8RrKCBKYvUtrw__&Key-Pair-Id=K38HBHX5LX3X2H"
+  },
+  {
+    "exerciseId": "pallof-press",
+    "exerciseName": "Pallof Press",
+    "videoId": "0e578899d8ae43f59c148d36095934cc",
+    "submittedAt": "2026-06-10T05:06:51.129Z",
+    "status": "completed",
+    "videoUrl": "https://files2.heygen.ai/aws_pacific/avatar_tmp/9db0a4e557124956bc41e6a08402c87e/0e578899d8ae43f59c148d36095934cc.mp4?Expires=1781672955&Signature=fwTubju5HfSPJqIJIotLCJUEbcp2Jx-g817AQkSKMHv6hn0tmU8f9hwvLc2dlCouvnPcxqfmJv9hpX8WtbNfePyawJbCeaPd~vKFBTcaTqjJIb0J5QJAeRJWDgEbpHnaYTtJNK3dHprKR11MxFqxHuXTKP68LoiiPnvwrZw~qVcN0VALEWQGnHAGDy9hE0VPHh1KGKTVEtCSyYRm-MUqBcqxtmuErClDq8DUP9kYcbprmxohqIBU8x7N9sY~N9bT5WYtGM~2cWCZhOSr8-SwBLmbNTohbRANik~Ru8BmDAaSBU3yZ1mger2x3R4KvqWxAwIM4B2~unkFvwNnfQpWgA__&Key-Pair-Id=K38HBHX5LX3X2H",
+    "thumbnail": "https://files2.heygen.ai/aws_pacific/avatar_tmp/9db0a4e557124956bc41e6a08402c87e/0e578899d8ae43f59c148d36095934cc.jpeg?Expires=1781675278&Signature=ZCW9QaWzsSF~5TWjtF1rakBATVrV4kx2r4IFuBaKgr23HDcbLB-Cn0v0R4W6HxcF1yQUptRADD5ugX6K4vLfzN6GX6Hzn25Ftm~REWO6YR3-2T~v8lnIRQxoma2GSyWsqQU7vUT24ORaR8vAeqFnRTKyTcke3PBdYzqkx~6vn5m2bwRCShfDXmVnphowISHbI3aq~uIylZkINAmBSpA544BUypz92acXYeim9vSiWxasLSARm~9jp5E~pkdcj4mvRO-0KfwaFz61ZQNJ3SPUySbjlut4GxfN7JCUZn3LtD8Q9SOcvAbVoxgnPVOtOp06~uVJv5uSpL04OO2DqYA~hA__&Key-Pair-Id=K38HBHX5LX3X2H"
+  },
+  {
+    "exerciseId": "db-shoulder-press",
+    "exerciseName": "Dumbbell Shoulder Press",
+    "videoId": "c7980bb74c1841319947ce450ccd0e1f",
+    "submittedAt": "2026-06-10T05:06:52.667Z",
+    "status": "failed"
+  },
+  {
+    "exerciseId": "db-lateral-raise",
+    "exerciseName": "Dumbbell Lateral Raise",
+    "videoId": "6ec3ac69f29b44caa38036e47162216c",
+    "submittedAt": "2026-06-10T05:06:54.280Z",
+    "status": "failed"
+  },
+  {
+    "exerciseId": "face-pull",
+    "exerciseName": "Face Pull",
+    "videoId": "84a115aa32eb40389e9499b2cdb90f00",
+    "submittedAt": "2026-06-10T05:06:55.999Z",
+    "status": "failed"
+  },
+  {
+    "exerciseId": "lat-pulldown-mon",
+    "exerciseName": "Lat Pulldown",
+    "videoId": "f97fc3f3de6749289850f721252f1da7",
+    "submittedAt": "2026-06-10T05:06:57.735Z",
+    "status": "failed"
+  },
+  {
+    "exerciseId": "seated-cable-row",
+    "exerciseName": "Seated Cable Row",
+    "videoId": "6b0b460f328a49d7882c6854a09050b8",
+    "submittedAt": "2026-06-10T05:06:59.308Z",
+    "status": "failed"
+  }
+]

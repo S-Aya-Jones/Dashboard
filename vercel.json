@@ -1,0 +1,31 @@
+{
+  "crons": [
+    { "path": "/api/cron/morning-briefing", "schedule": "0 13 * * *" },
+    { "path": "/api/cron/afternoon-check",  "schedule": "0 21 * * *" },
+    { "path": "/api/cron/evening-reminder", "schedule": "0 23 * * *" },
+    { "path": "/api/cron/night-wrap",       "schedule": "0 4 * * *"  }
+  ],
+  "headers": [
+    {
+      "source": "/sms-opt-in",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "index, follow" },
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/terms",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "index, follow" },
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/privacy",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "index, follow" },
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    }
+  ]
+}

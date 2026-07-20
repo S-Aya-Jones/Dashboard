@@ -61,10 +61,10 @@ export function ShetritionBoard({
   }
 
   const inputStyle = {
-    background: "#1C1C1C",
-    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(124,92,252,0.06)",
+    border: "1px solid rgba(124,92,252,0.12)",
     borderRadius: "10px",
-    color: "#FFFFFF",
+    color: "var(--text)",
     padding: "8px 12px",
     fontSize: "14px",
     outline: "none",
@@ -76,9 +76,9 @@ export function ShetritionBoard({
       {/* Upload controls */}
       <div
         className="rounded-2xl p-5 mb-6"
-        style={{ background: "#141414", border: "1px solid rgba(255,255,255,0.1)" }}
+        style={{ background: "var(--bg)", border: "1px solid var(--border)" }}
       >
-        <h3 className="font-serif text-lg mb-3" style={{ color: "#FFFFFF", fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
+        <h3 className="font-serif text-lg mb-3" style={{ color: "var(--text)", fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
           Add Inspiration
         </h3>
         <div className="space-y-3">
@@ -109,8 +109,8 @@ export function ShetritionBoard({
             type="button"
             onClick={() => fileRef.current?.click()}
             disabled={uploading}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-white w-full justify-center"
-            style={{ background: "#71816D" }}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium  w-full justify-center"
+            style={{ background: "#71816D", color: "var(--surface)" }}
           >
             <Camera size={15} />
             {uploading ? "Uploading…" : "Upload Screenshot or Photo"}
@@ -127,7 +127,7 @@ export function ShetritionBoard({
       </div>
 
       {nutrition.shetritionImages.length === 0 ? (
-        <div className="text-center py-16" style={{ color: "rgba(255,255,255,0.35)" }}>
+        <div className="text-center py-16" style={{ color: "var(--text-light)" }}>
           <p className="font-serif text-2xl mb-2" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
             Your board is blank
           </p>
@@ -140,17 +140,18 @@ export function ShetritionBoard({
               <div
                 className="rounded-2xl overflow-hidden transition-all duration-200"
                 style={{
-                  background: "#141414",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  boxShadow: "0 3px 14px rgba(0,0,0,0.3)",
+                  background: "var(--surface)",
+                  border: "1px solid var(--border)",
+                  boxShadow: "0 3px 14px rgba(124,92,252,0.08)",
                 }}
               >
                 <div className="relative">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={img.src} alt={img.caption ?? ""} className="w-full object-cover" />
                   <button
                     onClick={() => remove(img.id)}
                     className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
-                    style={{ background: "rgba(255,255,255,0.6)" }}
+                    style={{ background: "rgba(124,92,252,0.6)" }}
                   >
                     <X size={12} color="white" />
                   </button>
@@ -158,7 +159,7 @@ export function ShetritionBoard({
                 <div className="px-3 py-2">
                   <input
                     className="w-full text-xs bg-transparent border-none outline-none italic"
-                    style={{ color: "rgba(255,255,255,0.5)" }}
+                    style={{ color: "var(--text-muted)" }}
                     placeholder="Add a caption…"
                     defaultValue={img.caption ?? ""}
                     onBlur={(e) => updateCaption(img.id, e.target.value)}

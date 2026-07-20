@@ -70,10 +70,10 @@ export function GroceryList({
         <input
           style={{
             flex: 1,
-            background: "#1C1C1C",
-            border: "1px solid rgba(255,255,255,0.12)",
+            background: "rgba(124,92,252,0.06)",
+            border: "1px solid rgba(124,92,252,0.12)",
             borderRadius: "10px",
-            color: "#FFFFFF",
+            color: "var(--text)",
             padding: "9px 14px",
             fontSize: "14px",
             outline: "none",
@@ -85,8 +85,8 @@ export function GroceryList({
         />
         <button
           onClick={addItem}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-white"
-          style={{ background: "#71816D" }}
+          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium "
+          style={{ background: "#71816D", color: "var(--surface)" }}
         >
           <Plus size={15} /> Add
         </button>
@@ -106,7 +106,7 @@ export function GroceryList({
       )}
 
       {nutrition.groceryItems.length === 0 ? (
-        <div className="text-center py-16" style={{ color: "rgba(255,255,255,0.35)" }}>
+        <div className="text-center py-16" style={{ color: "var(--text-light)" }}>
           <p className="font-serif text-2xl mb-2" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
             List is empty
           </p>
@@ -124,7 +124,7 @@ export function GroceryList({
                   <h3 className="text-sm font-semibold uppercase tracking-wide" style={{ color: "#A8967E" }}>
                     {sec}
                   </h3>
-                  <span className="text-xs" style={{ color: "rgba(255,255,255,0.3)" }}>
+                  <span className="text-xs" style={{ color: "var(--text-light)" }}>
                     {items.filter((i) => !i.checked).length} left
                   </span>
                 </div>
@@ -133,19 +133,19 @@ export function GroceryList({
                     <div
                       key={item.id}
                       className="flex items-center gap-3 px-3 py-2 rounded-xl group transition-colors"
-                      style={{ background: item.checked ? "rgba(255,255,255,0.04)" : "#141414" }}
+                      style={{ background: item.checked ? "rgba(124,92,252,0.04)" : "var(--surface)" }}
                     >
                       <button
                         onClick={() => toggle(item.id)}
                         className="flex-shrink-0 transition-colors"
-                        style={{ color: item.checked ? "#71816D" : "rgba(255,255,255,0.3)" }}
+                        style={{ color: item.checked ? "#71816D" : "var(--text-light)" }}
                       >
                         {item.checked ? <CheckSquare size={16} /> : <Square size={16} />}
                       </button>
                       <span
                         className="flex-1 text-sm"
                         style={{
-                          color: item.checked ? "rgba(255,255,255,0.35)" : "#FFFFFF",
+                          color: item.checked ? "var(--text-light)" : "var(--text)",
                           textDecoration: item.checked ? "line-through" : "none",
                         }}
                       >

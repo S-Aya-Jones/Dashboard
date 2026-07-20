@@ -197,6 +197,123 @@ export interface MonthlyFinance {
   notes?: string;
 }
 
+export interface PaycheckConfig {
+  takeHomePerCheck: number;
+  savingsPercent: number;   // 0–100
+  nextPayday: string;       // YYYY-MM-DD
+  employer?: string;           // e.g. "HCA Healthcare"
+  projectedTakeHome?: number;  // user's manually-set expected amount
+}
+
+export interface BudgetLine {
+  id: string;
+  label: string;
+  amountPerCheck: number;
+  category: "transfer" | "housing" | "food" | "transport" | "savings" | "utilities" | "other";
+  toAccount?: string;  // e.g. "Bank of America"
+  color?: string;
+  isDetected?: boolean;
+}
+
+export interface BaseBudgetItem {
+  id: string;
+  category: string;
+  emoji: string;
+  monthlyLimit: number;
+}
+
+export interface BudgetPlanItem {
+  id: string;
+  category: string;
+  emoji: string;
+  plannedMonthly: number;
+  notes?: string;
+}
+
+export interface BudgetPlan {
+  id: string;
+  name: string;
+  createdAt: string;
+  monthlyIncome: number;
+  items: BudgetPlanItem[];
+}
+
+export interface CreditScoreEntry {
+  id: string;
+  date: string;       // YYYY-MM-DD
+  score: number;      // 300–850
+  source: string;     // "Credit Karma", "Chase", "Experian", etc.
+  notes?: string;
+}
+
+export interface SelfCareItem {
+  id: string;
+  name: string;
+  emoji: string;
+  cost: number;             // cost per appointment
+  frequencyWeeks: number;   // every N weeks
+  frequencyLabel?: string;  // human-readable label e.g. "Monthly", "Quarterly"
+  lastDone?: string;        // YYYY-MM-DD
+  color?: string;
+  priority?: number;        // 0 = highest priority; controls tie-breaking in scheduling
+}
+
+export interface RecurringBill {
+  id: string;
+  name: string;
+  amount: number;
+  dayOfMonth: number;       // 1–31
+  lastPaidDate?: string;    // YYYY-MM-DD — if >= current payday, bill is paid this period
+}
+
+export interface ScheduleBlock {
+  id: string;
+  label: string;
+  startTime: string;        // HH:MM 24h
+  endTime: string;          // HH:MM 24h
+  days: number[];           // 0=Sun .. 6=Sat, which days this block recurs on
+  type: "work" | "walk" | "mcat" | "exposure" | "meal" | "sleep" | "personal" | "other";
+  color?: string;
+  notes?: string;
+}
+
+export interface P2PTransfer {
+  id: string;
+  date: string;             // YYYY-MM-DD
+  person: string;
+  amount: number;
+  direction: "sent" | "received";
+  platform: "zelle" | "venmo" | "cashapp" | "cash" | "other";
+  note?: string;
+}
+
+export interface AccountTransfer {
+  id: string;
+  date: string;             // YYYY-MM-DD
+  fromAccount: string;
+  toAccount: string;
+  amount: number;
+  purpose?: string;         // e.g. "savings", "self-care fund"
+}
+
+export interface SinkingFund {
+  id: string;
+  name: string;
+  targetAmount: number;    // total cost of the thing
+  frequencyMonths: number; // 3 = quarterly, 6 = semi-annual, 12 = yearly
+  saved: number;           // amount saved so far
+  color?: string;
+  notes?: string;
+}
+
+export interface AffordGoal {
+  id: string;
+  name: string;
+  price: number;
+  savedSoFar: number;
+  createdAt: string;
+}
+
 export interface BudgetCategory {
   category: string; // Plaid category key e.g. FOOD_AND_DRINK
   monthlyLimit: number;
@@ -262,6 +379,9 @@ export interface MealEntry {
   tags: string[];
   notes?: string;
   createdAt: string;
+  calories?: number;
+  protein?: number; // grams
+  aiDescription?: string;
 }
 
 export interface RecipeIngredient {
@@ -383,11 +503,110 @@ export interface PushSubscriptionData {
 
 export interface SmsData {
   phoneNumber: string;
-  telegramChatId?: string; // auto-captured when user first messages the bot
+  telegramChatId?: string;
+  telegramBotUsername?: string;
   enabled: boolean;
   messages: SmsMessage[];
   reminders: SmsReminder[];
   pushSubscription?: PushSubscriptionData;
+}
+
+export interface MCATQuestion {
+  id: string;
+  subject: string;
+  topic: string;
+  difficulty: "easy" | "medium" | "hard";
+  stem: string;
+  choices: { letter: string; text: string }[];
+  correctLetter: string;
+  explanation: string;
+  createdAt: string;
+  folder?: string;
+}
+
+export interface MCATQuizAttempt {
+  questionId: string;
+  selectedLetter: string | null;
+  correct: boolean;
+  flagged: boolean;
+  timeSpentSeconds: number;
+}
+
+export interface MCATQuizSession {
+  id: string;
+  startedAt: string;
+  completedAt?: string;
+  mode: "tutor" | "timed";
+  timeLimitMinutes?: number;
+  questionIds: string[];
+  attempts: MCATQuizAttempt[];
+  subjects: string[];
+  topics: string[];
+}
+
+export interface Flashcard {
+  id: string;
+  front: string;
+  back: string;
+  subject?: string;
+  topic?: string;
+  tags: string[];
+  deck: string;
+  createdAt: string;
+  // Anki SM-2 / Miles Down compatible fields
+  state: "new" | "learning" | "review" | "relearning";
+  interval: number;       // days (review state) or ignored (learning state)
+  easeFactor: number;     // default 2.5 (250%)
+  repetitions: number;    // successful consecutive reviews
+  lapses: number;         // times failed as a review card
+  learningStep: number;   // current index in learning/relearning steps array
+  nextReview: string;     // ISO timestamp for learning/relearning; YYYY-MM-DD for review
+  lastReview?: string;    // ISO timestamp of last rating
+}
+
+export interface FlashcardReviewLog {
+  cardId: string;
+  date: string;
+  rating: 0 | 1 | 2 | 3;  // Again=0, Hard=1, Good=2, Easy=3
+  responseTimeMs: number;
+}
+
+export interface StudyTimerLog {
+  id: string;
+  date: string;           // YYYY-MM-DD
+  subject: string;
+  topic?: string;
+  durationSeconds: number;
+  startedAt: string;      // ISO
+}
+
+export interface DiagnosticSectionResult {
+  name: string;
+  questionIds: string[];
+  attempts: MCATQuizAttempt[];
+  timeLimitMinutes: number;
+  startedAt?: string;
+  completedAt?: string;
+  scaledScore?: number;   // 118–132
+}
+
+export interface DiagnosticSession {
+  id: string;
+  startedAt: string;
+  completedAt?: string;
+  sections: DiagnosticSectionResult[];
+  totalScore?: number;    // 472–528
+}
+
+export interface BeautyAnalysisEntry {
+  id: string;
+  date: string;
+  photoThumb: string;
+  skinScore: number;
+  overallRating: number;
+  apparentAge: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  analysis: any;
 }
 
 export interface DashboardData {
@@ -412,6 +631,14 @@ export interface DashboardData {
   practiceTests: PracticeTest[];
   mcatResources: MCATResource[];
   mcatTestDate?: string;
+  mcatQuestions?: MCATQuestion[];
+  mcatQuizSessions?: MCATQuizSession[];
+  flashcards?: Flashcard[];
+  flashcardReviews?: FlashcardReviewLog[];
+  studyTimerLogs?: StudyTimerLog[];
+  diagnosticSessions?: DiagnosticSession[];
+  ankiSettings?: { newPerDay: number; reviewPerDay: number };
+  ankiDailyCount?: { date: string; newSeen: number; reviewSeen: number };
 
   // School
   classes: ClassEntry[];
@@ -428,6 +655,7 @@ export interface DashboardData {
   // Skincare
   skincareProducts: SkincareProduct[];
   skinCheckIns: SkinCheckIn[];
+  beautyAnalyses?: BeautyAnalysisEntry[];
 
   // Finances
   creditCards: CreditCard[];
@@ -435,6 +663,20 @@ export interface DashboardData {
   monthlyFinances: MonthlyFinance[];
   budgetCategories: BudgetCategory[];
   financesConfig: FinancesConfig;
+  paycheckConfig?: PaycheckConfig;
+  paycheckPlans?: Record<string, { overrides: Record<string, number>; savingsOverride?: number; incomeOverride?: number; oneTimeItems: { id: string; label: string; amount: number; category: string }[]; checkIns?: Record<string, { checkedAt: string; actualAmount?: number }> }>;
+  selfCareItems?: SelfCareItem[];
+  recurringBills?: RecurringBill[];
+  budgetLines?: BudgetLine[];
+  creditScores?: CreditScoreEntry[];
+  p2pTransfers?: P2PTransfer[];
+  accountTransfers?: AccountTransfer[];
+  sinkingFunds?: SinkingFund[];
+  affordGoals?: AffordGoal[];
+  scheduleBlocks?: ScheduleBlock[];
+  monthlyIncome?: number;
+  baseBudget?: BaseBudgetItem[];
+  budgetPlans?: BudgetPlan[];
 
   // Connections
   connectionLogs: ConnectionLog[];
@@ -465,6 +707,32 @@ export interface DashboardData {
 
   // SMS / Texting
   sms?: SmsData;
+
+  // 75 Hard
+  seventyFiveHard?: SeventyFiveHardData;
+}
+
+export interface SeventyFiveHardDayLog {
+  date: string; // YYYY-MM-DD
+  workout: boolean;
+  steps: boolean;
+  water: boolean; // 64oz
+  mcat: boolean;  // 90 min
+  progressPhoto: boolean;
+  exposureTherapy: boolean;
+  diet: boolean;
+  notes?: string;
+  failed?: boolean;
+  progressPhotoUrl?: string;
+  weightPhotoUrl?: string;
+}
+
+export interface SeventyFiveHardData {
+  startDate: string; // YYYY-MM-DD (Thursday)
+  currentDay: number; // 1-75
+  active: boolean;
+  completedAt?: string;
+  logs: SeventyFiveHardDayLog[];
 }
 
 // ── Workout ────────────────────────────────────────────────────────────────
@@ -507,11 +775,67 @@ export interface BodyWeightEntry {
   weight: number; // lbs
 }
 
+export interface ExercisePR {
+  exerciseId: string;
+  exerciseName: string;
+  maxWeight: number; // heaviest weight lifted
+  reps: number; // reps at that weight
+  achievedDate: string; // YYYY-MM-DD
+}
+
+export interface BodyScanPhoto {
+  id: string;
+  date: string; // YYYY-MM-DD
+  timestamp: string; // ISO datetime
+  angle: "front" | "back" | "left" | "right" | "all"; // angle or "all" if multiple
+  photoData: string; // base64 image data
+  height?: number; // inches or cm (user's height when photo taken)
+  weight?: number; // lbs or kg (optional weight at time of photo)
+  analysis?: {
+    bodyFat: { low: number; high: number; category?: string; note?: string };
+    compositionScore: number;
+    potentialScore?: number;
+    honestAssessment?: string;
+    strengths?: string[];
+    areas?: string[];
+    roadmap?: {
+      thirtyDay?: { focus: string; expectedChange: string; actions: string[] };
+      ninetyDay?: { focus: string; expectedChange: string; actions: string[] };
+      sixMonth?: { focus: string; expectedChange: string; actions: string[] };
+    };
+  };
+}
+
+export interface FormCheckPhoto {
+  id: string;
+  date: string; // YYYY-MM-DD
+  timestamp: string; // ISO datetime
+  exerciseName: string;
+  exerciseId: string;
+  photoData: string; // base64 image data
+  formScore?: number; // 0-100
+  corrections?: string[];
+}
+
+export interface AvatarVideoUrl {
+  exerciseId: string;
+  exerciseName: string;
+  videoUrl: string; // HeyGen video URL
+  generatedAt: string; // ISO datetime
+  avatarPrompt?: string; // The prompt used to generate this video
+}
+
 export interface WorkoutData {
   sessionLogs: WorkoutSessionLog[];
   walkingLogs: WalkingLog[];
   measurements: MeasurementEntry[];
   bodyWeight: BodyWeightEntry[];
+  personalRecords?: ExercisePR[]; // PR tracking per exercise
+  bodyScanPhotos?: BodyScanPhoto[]; // Body scan photo history for progress tracking
+  formCheckPhotos?: FormCheckPhoto[]; // Form check photo history
+  avatarVideoUrls?: AvatarVideoUrl[]; // HeyGen avatar video URLs for exercises
+  lastAPTCheckDate?: string; // YYYY-MM-DD
+  lastMeasurementReminder?: string; // YYYY-MM-DD
   goalWeight?: number;
   programStartDate?: string; // YYYY-MM-DD
 }

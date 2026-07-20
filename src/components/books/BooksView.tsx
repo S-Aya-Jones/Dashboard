@@ -204,7 +204,7 @@ function SearchRow({
               <button
                 key={opt.value}
                 onClick={() => onShelf(opt.value)}
-                className="text-[11px] px-2.5 py-1 rounded-lg bg-terracotta text-white hover:bg-terracotta/80 transition-colors"
+                className="text-[11px] px-2.5 py-1 rounded-lg bg-terracotta hover:bg-terracotta/80 transition-colors"
               >
                 {opt.label}
               </button>
@@ -269,7 +269,7 @@ function BookCard({
         // eslint-disable-next-line @next/next/no-img-element
         <img src={book.coverUrl} alt="" className="w-10 h-14 object-cover rounded shadow-soft flex-shrink-0" />
       ) : (
-        <div className="w-10 h-14 rounded flex-shrink-0 flex items-center justify-center" style={{ background: "rgba(255,255,255,0.3)" }}>
+        <div className="w-10 h-14 rounded flex-shrink-0 flex items-center justify-center" style={{ background: "rgba(124,92,252,0.3)" }}>
           <BookMarked size={16} className="text-brown" />
         </div>
       )}
@@ -294,7 +294,7 @@ function BookCard({
               <button
                 key={opt.value}
                 onClick={() => { onMove(book.id, opt.value); setMoving(false); }}
-                className="text-[11px] px-2 py-0.5 rounded-full bg-terracotta/10 text-terracotta hover:bg-terracotta hover:text-white transition-colors"
+                className="text-[11px] px-2 py-0.5 rounded-full bg-terracotta/10 text-terracotta hover:bg-terracotta transition-colors"
               >
                 {opt.label}
               </button>
