@@ -80,11 +80,13 @@ function EmailDetail({ email, onClose }: { email: Email; onClose: () => void }) 
   const [replyText, setReplyText] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const [showFull, setShowFull] = useState(false);
 
   const handleSend = async () => {
     if (!replyText.trim()) return;
     setSending(true);
+    setSendError(null);
     try {
       const res = await fetch("/api/gmail/reply", {
         method: "POST",
@@ -97,8 +99,19 @@ function EmailDetail({ email, onClose }: { email: Email; onClose: () => void }) 
           body:      replyText,
         }),
       });
-      if (res.ok) { setSent(true); setReplyText(""); setReplyOpen(false); }
-    } finally { setSending(false); }
+      if (res.ok) {
+        setSent(true);
+        setReplyText("");
+        setReplyOpen(false);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setSendError(data.error ?? `Failed to send (${res.status})`);
+      }
+    } catch (e) {
+      setSendError(e instanceof Error ? e.message : "Network error");
+    } finally {
+      setSending(false);
+    }
   };
 
   const handleAddReminder = async () => {
@@ -168,6 +181,7 @@ function EmailDetail({ email, onClose }: { email: Email; onClose: () => void }) 
       {/* Reply */}
       <div style={{ borderTop: "1px solid var(--border)", padding: "0.75rem 1.25rem" }}>
         {sent && <p style={{ margin: "0 0 0.5rem", fontSize: "0.8rem", color: "#22c55e" }}>✓ Reply sent</p>}
+        {sendError && <p style={{ margin: "0 0 0.5rem", fontSize: "0.8rem", color: "#ef4444" }}>Error: {sendError}</p>}
         {!replyOpen ? (
           <button onClick={() => setReplyOpen(true)}
             style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 1rem", background: "var(--purple)", color: "#fff", border: "none", borderRadius: 10, fontSize: "0.85rem", fontWeight: 600, cursor: "pointer" }}>
@@ -201,17 +215,27 @@ export function SchoolInbox() {
   const [emails, setEmails]           = useState<Email[]>([]);
   const [loading, setLoading]         = useState(true);
   const [refreshing, setRefreshing]   = useState(false);
+  const [syncError, setSyncError]     = useState<string | null>(null);
   const [selected, setSelected]       = useState<Email | null>(null);
   const [tab, setTab]                 = useState<"all" | "school">("all");
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setRefreshing(true);
+    setSyncError(null);
     try {
       const res = await fetch("/api/gmail/emails");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setSyncError(data.error ?? `Sync failed (${res.status})`);
+        return;
+      }
       const data = await res.json();
       setConnected(data.connected ?? false);
       setUserEmail(data.userEmail ?? null);
       setEmails(data.emails ?? []);
+      if (data.syncError) setSyncError(data.syncError);
+    } catch (e) {
+      setSyncError(e instanceof Error ? e.message : "Network error");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -288,6 +312,14 @@ export function SchoolInbox() {
           </button>
         </div>
       </div>
+
+      {/* Sync error banner */}
+      {syncError && (
+        <div style={{ marginBottom: "0.75rem", padding: "0.6rem 1rem", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 10, fontSize: "0.8rem", color: "#ef4444" }}>
+          Gmail sync issue: {syncError}
+          {syncError.includes("401") || syncError.includes("403") ? " — try disconnecting and reconnecting Gmail." : ""}
+        </div>
+      )}
 
       {/* Upcoming deadlines strip */}
       {deadlines.length > 0 && (

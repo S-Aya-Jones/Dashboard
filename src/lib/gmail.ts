@@ -124,6 +124,7 @@ export async function getFreshGmailToken(): Promise<string | null> {
       grant_type:    "refresh_token",
     }),
   });
+  if (!res.ok) return null;
   const data = await res.json();
   if (!data.access_token) return null;
 
@@ -206,6 +207,10 @@ export async function fetchGmailMessages(accessToken: string, maxResults = 30): 
     `${GMAIL}/users/me/messages?maxResults=${maxResults}&labelIds=INBOX`,
     { headers: { Authorization: `Bearer ${accessToken}` } },
   );
+  if (!listRes.ok) {
+    const err = await listRes.json().catch(() => ({}));
+    throw new Error(`Gmail list failed ${listRes.status}: ${JSON.stringify(err)}`);
+  }
   const listData = await listRes.json();
   const ids: string[] = (listData.messages ?? []).map((m: { id: string }) => m.id);
   if (!ids.length) return [];
@@ -267,10 +272,9 @@ export async function gmailReply(accessToken: string, threadId: string, to: stri
   const res = await fetch(`${GMAIL}/users/me/messages/send`, {
     method:  "POST",
     headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ raw, threadId }),
+    body: JSON.stringify({ raw: encoded, threadId }),
   });
 
-  void encoded; // encoded version not used (using raw directly)
   return res.ok;
 }
 
