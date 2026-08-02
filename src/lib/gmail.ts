@@ -27,12 +27,17 @@ export async function ensureGmailTables() {
       id            TEXT PRIMARY KEY DEFAULT 'singleton',
       access_token  TEXT NOT NULL,
       refresh_token TEXT,
-      expires_at    TIMESTAMPTZ NOT NULL,
+      expires_at    TEXT NOT NULL,
       user_email    TEXT,
       user_name     TEXT,
-      updated_at    TIMESTAMPTZ DEFAULT NOW()
+      updated_at    TEXT
     )
   `;
+  // Forward-compatible migrations: add columns that may be missing from older schema
+  await sql`ALTER TABLE gmail_tokens ADD COLUMN IF NOT EXISTS user_email TEXT`;
+  await sql`ALTER TABLE gmail_tokens ADD COLUMN IF NOT EXISTS user_name TEXT`;
+  await sql`ALTER TABLE gmail_tokens ADD COLUMN IF NOT EXISTS updated_at TEXT`;
+  // If expires_at was TIMESTAMPTZ it can still store text — no migration needed for reads
   await sql`
     CREATE TABLE IF NOT EXISTS school_emails (
       id               TEXT PRIMARY KEY,
@@ -40,17 +45,18 @@ export async function ensureGmailTables() {
       subject          TEXT,
       sender_name      TEXT,
       sender_email     TEXT,
-      received_at      TIMESTAMPTZ,
+      received_at      TEXT,
       body_preview     TEXT,
       body_content     TEXT,
       is_read          BOOLEAN DEFAULT false,
       is_blackboard    BOOLEAN DEFAULT false,
       deadline_title   TEXT,
-      deadline_at      TIMESTAMPTZ,
+      deadline_at      TEXT,
       reminder_created BOOLEAN DEFAULT false,
-      synced_at        TIMESTAMPTZ DEFAULT NOW()
+      synced_at        TEXT
     )
   `;
+  await sql`ALTER TABLE school_emails ADD COLUMN IF NOT EXISTS reminder_created BOOLEAN DEFAULT false`;
 }
 
 // ─── Token storage ────────────────────────────────────────────────────────────
@@ -92,10 +98,13 @@ export async function getGmailTokens(): Promise<TokenRow | null> {
   const rows = await sql`SELECT * FROM gmail_tokens WHERE id = 'singleton'`;
   if (!rows.length) return null;
   const r = rows[0];
+  const expiresAtRaw = r.expires_at;
+  const expiresAt = expiresAtRaw instanceof Date ? expiresAtRaw : new Date(String(expiresAtRaw));
+  if (isNaN(expiresAt.getTime())) return null;
   return {
     accessToken:  r.access_token as string,
     refreshToken: (r.refresh_token as string) ?? null,
-    expiresAt:    r.expires_at instanceof Date ? r.expires_at : new Date(String(r.expires_at)),
+    expiresAt,
     userEmail:    (r.user_email as string) ?? null,
     userName:     (r.user_name  as string) ?? null,
   };
