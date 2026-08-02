@@ -3,7 +3,7 @@ import { neon } from "@neondatabase/serverless";
 const AUTH_URL  = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GMAIL     = "https://gmail.googleapis.com/gmail/v1";
-const REDIRECT  = "https://dashboard-phi-six-70.vercel.app/api/auth/google/callback";
+const REDIRECT  = process.env.GOOGLE_REDIRECT_URI ?? "https://dashboard-phi-six-70.vercel.app/api/auth/google/callback";
 const SCOPES    = [
   "https://www.googleapis.com/auth/gmail.readonly",
   "https://www.googleapis.com/auth/gmail.send",
