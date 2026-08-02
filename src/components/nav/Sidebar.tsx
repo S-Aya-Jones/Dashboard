@@ -21,7 +21,7 @@ const navItems = [
   { href: "/skincare",     label: "Skincare",         icon: Sparkles },
   { href: "/finances",     label: "Finances",         icon: DollarSign },
   { href: "/felt-safety",  label: "Felt Safety",      icon: Shield },
-  { href: "/reminders",   label: "Reminders",        icon: Bell   },
+  { href: "/reminders",   label: "Telegram",         icon: Bell   },
   { href: "/integrations", label: "Integrations",     icon: LayoutGrid },
   { href: "/vision",       label: "Vision",           icon: Gem },
   { href: "/nutrition",    label: "Food Journal",     icon: UtensilsCrossed },
