@@ -4,7 +4,7 @@
     { "path": "/api/cron/afternoon-check",  "schedule": "0 21 * * *"   },
     { "path": "/api/cron/evening-reminder", "schedule": "0 23 * * *"   },
     { "path": "/api/cron/night-wrap",       "schedule": "0 4 * * *"    },
-    { "path": "/api/cron/reminders",        "schedule": "*/10 * * * *" }
+    { "path": "/api/cron/reminders",        "schedule": "0 14 * * *" }
   ],
   "headers": [
     {
