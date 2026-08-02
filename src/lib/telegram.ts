@@ -48,12 +48,15 @@ export async function ensureTelegramTables() {
   `;
   await sql`
     CREATE TABLE IF NOT EXISTS inbound_logs (
-      id             TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-      raw_text       TEXT NOT NULL,
-      parsed_type    TEXT,
-      parsed_payload JSONB,
-      received_at    TIMESTAMPTZ DEFAULT NOW()
+      id          TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      raw_text    TEXT NOT NULL,
+      parsed_type TEXT,
+      received_at TIMESTAMPTZ DEFAULT NOW()
     )
+  `;
+  // Drop the JSONB column if it exists from an earlier schema version
+  await sql`
+    ALTER TABLE inbound_logs DROP COLUMN IF EXISTS parsed_payload
   `;
   // Seed one example reminder on first run
   const count = await sql`SELECT COUNT(*) as cnt FROM reminders`;
@@ -84,7 +87,6 @@ export interface InboundLog {
   id: string;
   rawText: string;
   parsedType?: string;
-  parsedPayload?: Record<string, unknown>;
   receivedAt: string;
 }
 
@@ -256,13 +258,13 @@ export async function advanceReminder(r: Reminder): Promise<void> {
 export async function logInbound(
   rawText: string,
   parsedType?: string,
-  parsedPayload?: Record<string, unknown>,
+  _parsedPayload?: Record<string, unknown>,
 ): Promise<void> {
   await ensureTelegramTables();
   const sql = getDb();
   await sql`
-    INSERT INTO inbound_logs (raw_text, parsed_type, parsed_payload)
-    VALUES (${rawText}, ${parsedType ?? null}, ${parsedPayload ? JSON.stringify(parsedPayload) : null})
+    INSERT INTO inbound_logs (raw_text, parsed_type)
+    VALUES (${rawText}, ${parsedType ?? null})
   `;
 }
 
@@ -273,10 +275,9 @@ export async function getRecentInboundLogs(limit = 50): Promise<InboundLog[]> {
     SELECT * FROM inbound_logs ORDER BY received_at DESC LIMIT ${limit}
   `;
   return rows.map(r => ({
-    id: r.id as string,
-    rawText: r.raw_text as string,
+    id:         r.id as string,
+    rawText:    r.raw_text as string,
     parsedType: (r.parsed_type as string) ?? undefined,
-    parsedPayload: r.parsed_payload as Record<string, unknown> ?? undefined,
     receivedAt: (r.received_at as Date).toISOString(),
   }));
 }

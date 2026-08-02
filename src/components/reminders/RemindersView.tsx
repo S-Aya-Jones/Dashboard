@@ -16,10 +16,10 @@ interface Reminder {
 }
 
 interface InboundLog {
-  id: string;
-  rawText: string;
+  id:          string;
+  rawText:     string;
   parsedType?: string;
-  receivedAt: string;
+  receivedAt:  string;
 }
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
