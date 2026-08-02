@@ -112,8 +112,13 @@ export async function getGmailTokens(): Promise<TokenRow | null> {
   if (!rows.length) return null;
   const r = rows[0];
   const expiresAtRaw = r.expires_at;
-  const expiresAt = expiresAtRaw instanceof Date ? expiresAtRaw : new Date(String(expiresAtRaw));
-  if (isNaN(expiresAt.getTime())) return null;
+  let expiresAt = expiresAtRaw instanceof Date ? expiresAtRaw : new Date(String(expiresAtRaw));
+  if (isNaN(expiresAt.getTime())) {
+    // Non-standard format from TIMESTAMPTZ→TEXT migration — truncate to 3 decimal places
+    const fixed = String(expiresAtRaw).replace(/(\.\d{3})\d+/, "$1").replace(" ", "T");
+    expiresAt = new Date(fixed);
+  }
+  if (isNaN(expiresAt.getTime())) expiresAt = new Date(0); // fallback: treat as expired, triggers refresh
   return {
     accessToken:  r.access_token as string,
     refreshToken: (r.refresh_token as string) ?? null,
