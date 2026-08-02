@@ -74,6 +74,8 @@ function ReminderCard({ r, onToggle, onDelete }: {
     ? `Daily at ${fmt12(r.timeOfDay)}`
     : r.scheduleType === "weekly"
     ? `${fmtDays(r.daysOfWeek ?? [])} at ${fmt12(r.timeOfDay)}`
+    : r.nextRunAt
+    ? `Once · ${new Date(r.nextRunAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })} at ${fmt12(r.timeOfDay)}`
     : `Once at ${fmt12(r.timeOfDay)}`;
 
   return (
@@ -95,10 +97,12 @@ function ReminderCard({ r, onToggle, onDelete }: {
 }
 
 interface FormState {
-  title: string; body: string; scheduleType: "daily" | "weekly";
-  hour: string; minute: string; ampm: "AM" | "PM"; daysOfWeek: number[];
+  title: string; body: string; scheduleType: "daily" | "weekly" | "once";
+  hour: string; minute: string; ampm: "AM" | "PM"; daysOfWeek: number[]; date: string;
 }
-const BLANK: FormState = { title: "", body: "", scheduleType: "daily", hour: "7", minute: "00", ampm: "PM", daysOfWeek: [] };
+const BLANK: FormState = { title: "", body: "", scheduleType: "daily", hour: "7", minute: "00", ampm: "PM", daysOfWeek: [], date: "" };
+
+const ALL_MINUTES = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, "0"));
 
 export function RemindersView() {
   const [tab,       setTab]       = useState<"messages" | "reminders">("messages");
@@ -154,15 +158,21 @@ export function RemindersView() {
 
   const handleCreate = async () => {
     if (!form.title.trim()) return;
+    if (form.scheduleType === "once" && !form.date) return;
     setSaving(true);
     let h = parseInt(form.hour, 10);
     if (form.ampm === "PM" && h !== 12) h += 12;
     if (form.ampm === "AM" && h === 12) h = 0;
     const timeOfDay = `${h.toString().padStart(2, "0")}:${form.minute}`;
+    let nextRunAt: string | undefined;
+    if (form.scheduleType === "once" && form.date) {
+      const [yr, mo, dy] = form.date.split("-").map(Number);
+      nextRunAt = new Date(yr, mo - 1, dy, h, parseInt(form.minute), 0, 0).toISOString();
+    }
     try {
       const res = await fetch("/api/reminders", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: form.title.trim(), body: form.body.trim() || undefined, scheduleType: form.scheduleType, timeOfDay, daysOfWeek: form.scheduleType === "weekly" ? form.daysOfWeek : undefined }),
+        body: JSON.stringify({ title: form.title.trim(), body: form.body.trim() || undefined, scheduleType: form.scheduleType, timeOfDay, daysOfWeek: form.scheduleType === "weekly" ? form.daysOfWeek : undefined, nextRunAt }),
       });
       if (res.ok) { const created = await res.json(); setReminders(prev => [created, ...prev]); setForm(BLANK); setShowForm(false); }
     } finally { setSaving(false); }
@@ -264,9 +274,9 @@ export function RemindersView() {
                 <input placeholder="Body (optional)" value={form.body} onChange={e => setForm(p => ({ ...p, body: e.target.value }))}
                   style={{ width: "100%", padding: "0.6rem 0.75rem", borderRadius: 8, border: "1.5px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: "0.9rem", boxSizing: "border-box" }} />
                 <div style={{ display: "flex", gap: "0.5rem" }}>
-                  {(["daily", "weekly"] as const).map(t => (
+                  {(["daily", "weekly", "once"] as const).map(t => (
                     <button key={t} onClick={() => setForm(p => ({ ...p, scheduleType: t }))}
-                      style={{ flex: 1, padding: "0.5rem", borderRadius: 8, border: `1.5px solid ${form.scheduleType === t ? "var(--purple)" : "var(--border)"}`, background: form.scheduleType === t ? "rgba(124,92,252,0.1)" : "var(--bg)", color: form.scheduleType === t ? "var(--purple)" : "var(--text-muted)", fontWeight: 600, cursor: "pointer", fontSize: "0.85rem", textTransform: "capitalize" }}>
+                      style={{ flex: 1, padding: "0.5rem", borderRadius: 8, border: `1.5px solid ${form.scheduleType === t ? "var(--purple)" : "var(--border)"}`, background: form.scheduleType === t ? "rgba(124,92,252,0.1)" : "var(--bg)", color: form.scheduleType === t ? "var(--purple)" : "var(--text-muted)", fontWeight: 600, cursor: "pointer", fontSize: "0.82rem", textTransform: "capitalize" }}>
                       {t}
                     </button>
                   ))}
@@ -281,6 +291,10 @@ export function RemindersView() {
                     ))}
                   </div>
                 )}
+                {form.scheduleType === "once" && (
+                  <input type="date" value={form.date} onChange={e => setForm(p => ({ ...p, date: e.target.value }))}
+                    style={{ width: "100%", padding: "0.6rem 0.75rem", borderRadius: 8, border: "1.5px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: "0.9rem", boxSizing: "border-box" }} />
+                )}
                 <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
                   <select value={form.hour} onChange={e => setForm(p => ({ ...p, hour: e.target.value }))}
                     style={{ flex: 1, padding: "0.55rem 0.5rem", borderRadius: 8, border: "1.5px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: "0.9rem" }}>
@@ -289,7 +303,7 @@ export function RemindersView() {
                   <span style={{ color: "var(--text-muted)", fontWeight: 700 }}>:</span>
                   <select value={form.minute} onChange={e => setForm(p => ({ ...p, minute: e.target.value }))}
                     style={{ flex: 1, padding: "0.55rem 0.5rem", borderRadius: 8, border: "1.5px solid var(--border)", background: "var(--bg)", color: "var(--text)", fontSize: "0.9rem" }}>
-                    {["00", "15", "30", "45"].map(m => <option key={m} value={m}>{m}</option>)}
+                    {ALL_MINUTES.map(m => <option key={m} value={m}>{m}</option>)}
                   </select>
                   <div style={{ display: "flex", borderRadius: 8, overflow: "hidden", border: "1.5px solid var(--border)" }}>
                     {(["AM", "PM"] as const).map(ap => (
@@ -300,7 +314,8 @@ export function RemindersView() {
                     ))}
                   </div>
                 </div>
-                <button onClick={handleCreate} disabled={saving || !form.title.trim() || (form.scheduleType === "weekly" && form.daysOfWeek.length === 0)}
+                <button onClick={handleCreate}
+                  disabled={saving || !form.title.trim() || (form.scheduleType === "weekly" && form.daysOfWeek.length === 0) || (form.scheduleType === "once" && !form.date)}
                   style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem", padding: "0.65rem", background: "var(--purple)", color: "#fff", border: "none", borderRadius: 10, fontWeight: 600, fontSize: "0.9rem", cursor: saving ? "wait" : "pointer", opacity: saving ? 0.7 : 1 }}>
                   <Check size={15} /> {saving ? "Saving…" : "Create Reminder"}
                 </button>
