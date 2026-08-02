@@ -247,6 +247,11 @@ export function SchoolInbox() {
     if (params.get("connected") === "1") {
       window.history.replaceState({}, "", window.location.pathname);
     }
+    const urlError = params.get("error");
+    if (urlError) {
+      setSyncError(`OAuth error: ${urlError}`);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
     load();
   }, [load]);
 
@@ -272,6 +277,11 @@ export function SchoolInbox() {
         <h1 style={{ margin: "0 0 0.25rem", fontFamily: "Georgia, serif", fontSize: "1.4rem", color: "var(--text)" }}>School Inbox</h1>
         <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--text-muted)" }}>Connect Gmail to read emails & Blackboard notifications</p>
       </div>
+      {syncError && (
+        <div style={{ marginBottom: "1rem", padding: "0.6rem 1rem", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 10, fontSize: "0.82rem", color: "#ef4444" }}>
+          {syncError}
+        </div>
+      )}
       <div style={{ background: "var(--surface)", borderRadius: 20, border: "1.5px solid var(--border)", padding: "2rem", textAlign: "center", maxWidth: 420 }}>
         <div style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(124,92,252,0.1)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1rem" }}>
           <Mail size={26} style={{ color: "var(--purple)" }} />
