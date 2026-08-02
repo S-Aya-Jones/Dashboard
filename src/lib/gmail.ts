@@ -37,6 +37,19 @@ export async function ensureGmailTables() {
   await sql`ALTER TABLE gmail_tokens ADD COLUMN IF NOT EXISTS user_email TEXT`;
   await sql`ALTER TABLE gmail_tokens ADD COLUMN IF NOT EXISTS user_name TEXT`;
   await sql`ALTER TABLE gmail_tokens ADD COLUMN IF NOT EXISTS updated_at TEXT`;
+  // Migrate expires_at from TIMESTAMPTZ to TEXT if needed (TIMESTAMPTZ causes silent write failures)
+  await sql`
+    DO $$ BEGIN
+      IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'gmail_tokens' AND column_name = 'expires_at'
+        AND data_type = 'timestamp with time zone'
+      ) THEN
+        ALTER TABLE gmail_tokens ALTER COLUMN expires_at TYPE TEXT USING expires_at::TEXT;
+        ALTER TABLE gmail_tokens ALTER COLUMN updated_at TYPE TEXT USING updated_at::TEXT;
+      END IF;
+    END $$
+  `;
   // If expires_at was TIMESTAMPTZ it can still store text — no migration needed for reads
   await sql`
     CREATE TABLE IF NOT EXISTS school_emails (
