@@ -164,7 +164,7 @@ export function RemindersView() {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: form.title.trim(), body: form.body.trim() || undefined, scheduleType: form.scheduleType, timeOfDay, daysOfWeek: form.scheduleType === "weekly" ? form.daysOfWeek : undefined }),
       });
-      if (res.ok) { setReminders(prev => [await res.json(), ...prev]); setForm(BLANK); setShowForm(false); }
+      if (res.ok) { const created = await res.json(); setReminders(prev => [created, ...prev]); setForm(BLANK); setShowForm(false); }
     } finally { setSaving(false); }
   };
 
