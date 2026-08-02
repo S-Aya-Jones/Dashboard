@@ -10,12 +10,24 @@ import {
   formatDaysOfWeek,
 } from "@/lib/telegram";
 
+export async function GET() {
+  return NextResponse.json({
+    ok: true,
+    hasBotToken:      !!process.env.TELEGRAM_BOT_TOKEN,
+    hasChatId:        !!process.env.TELEGRAM_CHAT_ID,
+    hasWebhookSecret: !!process.env.TELEGRAM_WEBHOOK_SECRET,
+    hasDbUrl:         !!process.env.DATABASE_URL,
+    chatId:           process.env.TELEGRAM_CHAT_ID ?? null,
+  });
+}
+
 export async function POST(req: NextRequest) {
+  try {
   const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
   if (secret) {
     const incoming = req.headers.get("X-Telegram-Bot-Api-Secret-Token");
     if (incoming !== secret) {
-      return NextResponse.json({ ok: false }, { status: 401 });
+      return NextResponse.json({ ok: false, error: "bad secret" }, { status: 401 });
     }
   }
 
@@ -164,4 +176,8 @@ export async function POST(req: NextRequest) {
   await replyTelegram(chatId, "📝 Logged.");
 
   return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error("[telegram webhook error]", err);
+    return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
+  }
 }
