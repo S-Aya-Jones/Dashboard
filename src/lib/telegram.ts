@@ -268,18 +268,27 @@ export async function logInbound(
   `;
 }
 
-export async function getRecentInboundLogs(limit = 50): Promise<InboundLog[]> {
+export async function getRecentInboundLogs(_limit = 50): Promise<InboundLog[]> {
   await ensureTelegramTables();
   const sql = getDb();
   const rows = await sql`
-    SELECT * FROM inbound_logs ORDER BY received_at DESC LIMIT ${limit}
+    SELECT id, raw_text, parsed_type, received_at
+    FROM inbound_logs
+    ORDER BY received_at DESC
+    LIMIT 50
   `;
   return rows.map(r => ({
     id:         r.id as string,
     rawText:    r.raw_text as string,
     parsedType: (r.parsed_type as string) ?? undefined,
-    receivedAt: (r.received_at as Date).toISOString(),
+    receivedAt: r.received_at instanceof Date
+      ? r.received_at.toISOString()
+      : String(r.received_at),
   }));
+}
+
+function toIso(v: unknown): string {
+  return v instanceof Date ? v.toISOString() : String(v);
 }
 
 function reminderFromRow(r: Record<string, unknown>): Reminder {
@@ -290,8 +299,8 @@ function reminderFromRow(r: Record<string, unknown>): Reminder {
     scheduleType: r.schedule_type as "daily" | "weekly" | "once",
     timeOfDay:    r.time_of_day as string,
     daysOfWeek:   (r.days_of_week as number[]) ?? undefined,
-    nextRunAt:    r.next_run_at ? (r.next_run_at as Date).toISOString() : undefined,
+    nextRunAt:    r.next_run_at ? toIso(r.next_run_at) : undefined,
     active:       r.active as boolean,
-    createdAt:    (r.created_at as Date).toISOString(),
+    createdAt:    toIso(r.created_at),
   };
 }
