@@ -467,10 +467,10 @@ export function SchoolInbox() {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
           <button onClick={scanHistory} disabled={scanning}
-            title="Scan last 3 months for appointments, deadlines, bills"
+            title="Scan last 12 months for appointments, deadlines, bills"
             style={{ display: "flex", alignItems: "center", gap: "0.3rem", padding: "0.35rem 0.75rem", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 8, fontSize: "0.78rem", color: "var(--text-muted)", cursor: "pointer", opacity: scanning ? 0.6 : 1 }}>
             <Search size={12} style={{ animation: scanning ? "spin 0.8s linear infinite" : "none" }} />
-            {scanning ? "Scanning…" : "Scan 3mo"}
+            {scanning ? "Scanning…" : "Scan 12mo"}
           </button>
           <button onClick={() => load()} disabled={refreshing}
             style={{ display: "flex", alignItems: "center", gap: "0.3rem", padding: "0.35rem 0.75rem", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 8, fontSize: "0.78rem", color: "var(--text-muted)", cursor: "pointer", opacity: refreshing ? 0.6 : 1 }}>
@@ -485,9 +485,14 @@ export function SchoolInbox() {
 
       {/* Sync error banner */}
       {syncError && (
-        <div style={{ marginBottom: "0.75rem", padding: "0.6rem 1rem", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 10, fontSize: "0.8rem", color: "#ef4444" }}>
-          Sync issue: {syncError}
-          {(syncError.includes("401") || syncError.includes("403")) && " — try disconnecting and reconnecting."}
+        <div style={{ marginBottom: "0.75rem", padding: "0.6rem 1rem", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 10, fontSize: "0.8rem", color: "#ef4444", display: "flex", alignItems: "flex-start", gap: "0.75rem", flexWrap: "wrap" }}>
+          <span style={{ flex: 1 }}>Sync issue: {syncError}</span>
+          {(syncError.includes("401") || syncError.includes("403")) && (
+            <a href="/api/auth/google"
+              style={{ flexShrink: 0, padding: "0.25rem 0.75rem", background: "#ef4444", color: "#fff", borderRadius: 6, fontWeight: 700, fontSize: "0.75rem", textDecoration: "none", whiteSpace: "nowrap" }}>
+              Reconnect Gmail
+            </a>
+          )}
         </div>
       )}
 
