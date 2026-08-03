@@ -639,7 +639,7 @@ export async function getUpcomingEvents(daysAhead = 14): Promise<(EmailEvent & {
     SELECT * FROM email_events
     WHERE is_past = false AND event_date >= ${now} AND event_date <= ${cutoff}
     ORDER BY event_date ASC
-    LIMIT 30
+    LIMIT 100
   `;
   return rows.map(r => ({
     id:            r.id as string,
