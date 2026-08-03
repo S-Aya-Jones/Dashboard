@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { exchangeGoogleCode, saveGmailTokens, getGmailTokens } from "@/lib/gmail";
+import { exchangeGoogleCode, saveGmailTokens } from "@/lib/gmail";
 
 export const dynamic = "force-dynamic";
 
@@ -38,12 +38,6 @@ export async function GET(req: NextRequest) {
       userEmail,
       userName,
     );
-
-    // Verify the save actually persisted
-    const verify = await getGmailTokens();
-    if (!verify) {
-      return NextResponse.redirect(`${BASE}/school-inbox?error=save_failed`);
-    }
 
     return NextResponse.redirect(`${BASE}/school-inbox?connected=1`);
   } catch (err) {
