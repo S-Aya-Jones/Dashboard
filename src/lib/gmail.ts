@@ -514,9 +514,11 @@ export async function ensureEventTables() {
       source_sender  TEXT,
       source_preview TEXT,
       notified       BOOLEAN DEFAULT false,
+      notified_1h    BOOLEAN DEFAULT false,
       created_at     TEXT DEFAULT NOW()::TEXT
     )
   `;
+  await sql`ALTER TABLE email_events ADD COLUMN IF NOT EXISTS notified_1h BOOLEAN DEFAULT false`;
   await sql`
     CREATE TABLE IF NOT EXISTS notified_emails (
       id                TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
@@ -682,6 +684,35 @@ export async function getUnnotifiedUrgentEvents(): Promise<Array<EmailEvent & { 
 export async function markEventNotified(id: string): Promise<void> {
   const sql = db();
   await sql`UPDATE email_events SET notified = true WHERE id = ${id}`;
+}
+
+export async function getEventsComingIn1Hour(): Promise<Array<EmailEvent & { id: string }>> {
+  await ensureEventTables();
+  const sql = db();
+  const soon    = new Date(Date.now() + 30  * 60000).toISOString(); // 30 min from now
+  const horizon = new Date(Date.now() + 90  * 60000).toISOString(); // 90 min from now
+  const rows = await sql`
+    SELECT * FROM email_events
+    WHERE notified_1h = false AND is_past = false
+    AND event_date >= ${soon} AND event_date <= ${horizon}
+    ORDER BY event_date ASC
+  `;
+  return rows.map(r => ({
+    id:            r.id as string,
+    emailId:       r.email_id as string,
+    eventType:     r.event_type as EmailEvent["eventType"],
+    title:         r.title as string,
+    eventDate:     String(r.event_date),
+    isPast:        false,
+    sourceSubject: String(r.source_subject ?? ""),
+    sourceSender:  String(r.source_sender ?? ""),
+    sourcePreview: String(r.source_preview ?? ""),
+  }));
+}
+
+export async function markEvent1hNotified(id: string): Promise<void> {
+  const sql = db();
+  await sql`UPDATE email_events SET notified_1h = true WHERE id = ${id}`;
 }
 
 export async function hasBeenUrgentNotified(emailId: string): Promise<boolean> {

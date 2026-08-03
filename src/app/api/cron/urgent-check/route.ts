@@ -8,6 +8,8 @@ import {
   hasBeenUrgentNotified,
   markUrgentNotified,
   getUpcomingEvents,
+  getEventsComingIn1Hour,
+  markEvent1hNotified,
 } from "@/lib/gmail";
 
 export const dynamic = "force-dynamic";
@@ -31,6 +33,17 @@ function fmtEventDate(iso: string): string {
 
 export async function GET(_req: NextRequest) {
   try {
+    // 0. 1-hour alerts — fire before anything else
+    const oneHourEvents = await getEventsComingIn1Hour();
+    for (const ev of oneHourEvents) {
+      const timeStr = new Date(ev.eventDate).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" });
+      const diffMin = Math.round((new Date(ev.eventDate).getTime() - Date.now()) / 60000);
+      const source = ev.sourceSender || ev.sourceSubject || "";
+      const msg = `Starting in ${diffMin} min — ${ev.title}${source ? `\n\n${timeStr} · ${source}` : `\n\n${timeStr}`}`;
+      await sendTelegram(msg);
+      await markEvent1hNotified(ev.id);
+    }
+
     // 1. Upcoming events (within 48h) not yet notified
     const urgentEvents = await getUnnotifiedUrgentEvents();
 

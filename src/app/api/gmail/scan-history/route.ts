@@ -11,30 +11,36 @@ import {
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-// Senders/subjects worth fetching full body for date extraction
+// Broad net — anything that might reference a date or scheduled event
 function isDateRelevant(subject: string, sender: string, snippet: string): boolean {
   const text = `${subject} ${sender} ${snippet}`.toLowerCase();
-  return /appointment|therapy|session|scheduled|see you|bill due|payment due|amount due|autopay|deadline|due date|due by|submit by|assignment due|quiz|exam/.test(text);
+  return /appointment|therapy|session|scheduled|see you|bill due|payment due|amount due|autopay|deadline|due date|due by|submit by|assignment due|quiz|exam|gym|workout|fitness|class|lecture|reservation|booking|confirmed|reminder|starting|begins|check.?in|your visit|your order|delivery|pickup|meeting|interview|confirmation/.test(text);
 }
 
 export async function POST() {
   const token = await getFreshGmailToken();
   if (!token) return NextResponse.json({ error: "Not connected" }, { status: 401 });
 
-  // Build date string 6 months ago in YYYY/MM/DD format
-  const sixMonthsAgo = new Date(Date.now() - 182 * 86400000);
-  const after = `${sixMonthsAgo.getFullYear()}/${String(sixMonthsAgo.getMonth() + 1).padStart(2, "0")}/${String(sixMonthsAgo.getDate()).padStart(2, "0")}`;
+  // Build date string 12 months ago in YYYY/MM/DD format
+  const twelveMonthsAgo = new Date(Date.now() - 365 * 86400000);
+  const after = `${twelveMonthsAgo.getFullYear()}/${String(twelveMonthsAgo.getMonth() + 1).padStart(2, "0")}/${String(twelveMonthsAgo.getDate()).padStart(2, "0")}`;
 
-  // Search for emails likely to contain dates/events (narrows from all email to relevant subset)
-  const query = `in:inbox after:${after} (appointment OR therapy OR session OR scheduled OR "bill due" OR "payment due" OR "amount due" OR autopay OR deadline OR "due date" OR "due by" OR "assignment due" OR quiz OR exam)`;
+  // Broad query — cast a wide net for any scheduled/time-based emails
+  const query = `in:inbox after:${after} (appointment OR therapy OR session OR scheduled OR "bill due" OR "payment due" OR "amount due" OR autopay OR deadline OR "due date" OR "due by" OR "assignment due" OR quiz OR exam OR gym OR workout OR reservation OR booking OR confirmation OR reminder OR class OR lecture OR meeting)`;
 
-  // Fetch up to 200 IDs in two pages
+  // Fetch up to 400 IDs in four pages
   const page1 = await fetchGmailMetadataPage(token, query, 100);
   const page2 = page1.nextPageToken
     ? await fetchGmailMetadataPage(token, query, 100, page1.nextPageToken)
+    : { ids: [], nextPageToken: undefined };
+  const page3 = page2.nextPageToken
+    ? await fetchGmailMetadataPage(token, query, 100, page2.nextPageToken)
+    : { ids: [], nextPageToken: undefined };
+  const page4 = page3.nextPageToken
+    ? await fetchGmailMetadataPage(token, query, 100, page3.nextPageToken)
     : { ids: [] };
 
-  const allIds = Array.from(new Set([...page1.ids, ...page2.ids]));
+  const allIds = Array.from(new Set([...page1.ids, ...page2.ids, ...page3.ids, ...page4.ids]));
 
   if (!allIds.length) {
     return NextResponse.json({ scanned: 0, eventsFound: 0, future: 0, past: 0 });
@@ -66,10 +72,10 @@ export async function POST() {
     }));
   }
 
-  // Full fetch in batches of 10 (rate limit friendly)
+  // Full fetch in batches of 10 — up to 100 emails (rate limit friendly)
   const allEvents = [];
   const fullBatches: string[][] = [];
-  for (let i = 0; i < Math.min(toFullFetch.length, 60); i += 10) {
+  for (let i = 0; i < Math.min(toFullFetch.length, 100); i += 10) {
     fullBatches.push(toFullFetch.slice(i, i + 10));
   }
 
