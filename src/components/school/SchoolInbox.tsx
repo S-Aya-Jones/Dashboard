@@ -1,9 +1,17 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { Mail, RefreshCw, Reply, X, BookOpen, Bell, ChevronDown, ChevronUp, ExternalLink, Heart, DollarSign, AlertCircle, Inbox } from "lucide-react";
+import { Mail, RefreshCw, Reply, X, BookOpen, Bell, ChevronDown, ChevronUp, ExternalLink, Heart, DollarSign, AlertCircle, Inbox, Calendar, Search } from "lucide-react";
 
 type EmailCategory = "school" | "health" | "bills" | "action" | "spam" | "general";
+
+interface UpcomingEvent {
+  id:            string;
+  eventType:     "appointment" | "deadline" | "payment" | "event";
+  title:         string;
+  eventDate:     string;
+  sourceSender:  string;
+}
 
 interface Email {
   id:            string;
@@ -241,19 +249,49 @@ function EmailDetail({ email, onClose }: { email: Email; onClose: () => void }) 
   );
 }
 
+const EVENT_TYPE_COLOR: Record<string, string> = {
+  appointment: "#22c55e",
+  deadline:    "#f97316",
+  payment:     "#ef4444",
+  event:       "var(--purple)",
+};
+
+function fmtUpcomingEvent(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  const diffD = Math.round((d.getTime() - now.getTime()) / 86400000);
+  const dateStr = d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  const timeStr = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  if (diffD === 0) return `today ${timeStr}`;
+  if (diffD === 1) return `tomorrow ${timeStr}`;
+  return `${dateStr}`;
+}
+
 export function SchoolInbox() {
-  const [connected, setConnected]     = useState<boolean | null>(null);
-  const [userEmail, setUserEmail]     = useState<string | null>(null);
-  const [emails, setEmails]           = useState<Email[]>([]);
-  const [total, setTotal]             = useState(0);
-  const [loading, setLoading]         = useState(true);
-  const [refreshing, setRefreshing]   = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [syncError, setSyncError]     = useState<string | null>(null);
-  const [lastSynced, setLastSynced]   = useState<Date | null>(null);
-  const [selected, setSelected]       = useState<Email | null>(null);
-  const [tab, setTab]                 = useState<TabKey>("all");
+  const [connected, setConnected]         = useState<boolean | null>(null);
+  const [userEmail, setUserEmail]         = useState<string | null>(null);
+  const [emails, setEmails]               = useState<Email[]>([]);
+  const [total, setTotal]                 = useState(0);
+  const [loading, setLoading]             = useState(true);
+  const [refreshing, setRefreshing]       = useState(false);
+  const [loadingMore, setLoadingMore]     = useState(false);
+  const [syncError, setSyncError]         = useState<string | null>(null);
+  const [lastSynced, setLastSynced]       = useState<Date | null>(null);
+  const [selected, setSelected]           = useState<Email | null>(null);
+  const [tab, setTab]                     = useState<TabKey>("all");
+  const [scanning, setScanning]           = useState(false);
+  const [scanResult, setScanResult]       = useState<string | null>(null);
+  const [upcomingEvents, setUpcomingEvents] = useState<UpcomingEvent[]>([]);
   const autoRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const loadUpcomingEvents = useCallback(async () => {
+    try {
+      const res = await fetch("/api/gmail/upcoming-events");
+      if (!res.ok) return;
+      const data = await res.json();
+      setUpcomingEvents(data.events ?? []);
+    } catch { /* non-fatal */ }
+  }, []);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setRefreshing(true);
@@ -272,13 +310,33 @@ export function SchoolInbox() {
       setTotal(data.total ?? 0);
       if (data.syncError) setSyncError(data.syncError);
       setLastSynced(new Date());
+      loadUpcomingEvents();
     } catch (e) {
       setSyncError(e instanceof Error ? e.message : "Network error");
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [loadUpcomingEvents]);
+
+  const scanHistory = async () => {
+    setScanning(true);
+    setScanResult(null);
+    try {
+      const res = await fetch("/api/gmail/scan-history", { method: "POST" });
+      const data = await res.json();
+      if (data.error) {
+        setScanResult(`Scan error: ${data.error}`);
+      } else {
+        setScanResult(`Found ${data.eventsFound} events (${data.future} upcoming, ${data.past} past) across ${data.scanned} emails`);
+        loadUpcomingEvents();
+      }
+    } catch (e) {
+      setScanResult(e instanceof Error ? e.message : "Scan failed");
+    } finally {
+      setScanning(false);
+    }
+  };
 
   const loadMore = async () => {
     setLoadingMore(true);
@@ -408,6 +466,12 @@ export function SchoolInbox() {
           </p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <button onClick={scanHistory} disabled={scanning}
+            title="Scan last 3 months for appointments, deadlines, bills"
+            style={{ display: "flex", alignItems: "center", gap: "0.3rem", padding: "0.35rem 0.75rem", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 8, fontSize: "0.78rem", color: "var(--text-muted)", cursor: "pointer", opacity: scanning ? 0.6 : 1 }}>
+            <Search size={12} style={{ animation: scanning ? "spin 0.8s linear infinite" : "none" }} />
+            {scanning ? "Scanning…" : "Scan 3mo"}
+          </button>
           <button onClick={() => load()} disabled={refreshing}
             style={{ display: "flex", alignItems: "center", gap: "0.3rem", padding: "0.35rem 0.75rem", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 8, fontSize: "0.78rem", color: "var(--text-muted)", cursor: "pointer", opacity: refreshing ? 0.6 : 1 }}>
             <RefreshCw size={12} style={{ animation: refreshing ? "spin 0.8s linear infinite" : "none" }} />
@@ -424,6 +488,35 @@ export function SchoolInbox() {
         <div style={{ marginBottom: "0.75rem", padding: "0.6rem 1rem", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 10, fontSize: "0.8rem", color: "#ef4444" }}>
           Sync issue: {syncError}
           {(syncError.includes("401") || syncError.includes("403")) && " — try disconnecting and reconnecting."}
+        </div>
+      )}
+
+      {/* Scan result banner */}
+      {scanResult && (
+        <div style={{ marginBottom: "0.75rem", padding: "0.5rem 1rem", background: "rgba(124,92,252,0.07)", border: "1px solid rgba(124,92,252,0.2)", borderRadius: 10, fontSize: "0.78rem", color: "var(--purple)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span>{scanResult}</span>
+          <button onClick={() => setScanResult(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 0 }}><X size={14} /></button>
+        </div>
+      )}
+
+      {/* Upcoming events from email parsing */}
+      {upcomingEvents.length > 0 && (
+        <div style={{ marginBottom: "0.75rem" }}>
+          <p style={{ margin: "0 0 0.4rem", fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: "0.3rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            <Calendar size={11} /> Coming up
+          </p>
+          <div style={{ display: "flex", gap: "0.5rem", overflowX: "auto", paddingBottom: "0.25rem" }}>
+            {upcomingEvents.slice(0, 6).map(ev => {
+              const color = EVENT_TYPE_COLOR[ev.eventType] ?? "var(--purple)";
+              return (
+                <div key={ev.id} style={{ flexShrink: 0, padding: "0.45rem 0.7rem", background: color + "12", border: `1px solid ${color}44`, borderRadius: 10 }}>
+                  <p style={{ margin: 0, fontSize: "0.68rem", fontWeight: 700, color, textTransform: "uppercase" }}>{ev.eventType}</p>
+                  <p style={{ margin: "0.1rem 0 0", fontSize: "0.78rem", fontWeight: 600, color: "var(--text)", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.title}</p>
+                  <p style={{ margin: "0.1rem 0 0", fontSize: "0.7rem", color: "var(--text-muted)" }}>{fmtUpcomingEvent(ev.eventDate)}</p>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 

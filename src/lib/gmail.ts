@@ -498,6 +498,259 @@ export async function getStoredEmailCount(category?: EmailCategory): Promise<num
   return Number(rows[0]?.n ?? 0);
 }
 
+// ─── Event extraction & notification tables ───────────────────────────────────
+
+export async function ensureEventTables() {
+  const sql = db();
+  await sql`
+    CREATE TABLE IF NOT EXISTS email_events (
+      id             TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      email_id       TEXT NOT NULL,
+      event_type     TEXT NOT NULL,
+      title          TEXT NOT NULL,
+      event_date     TEXT NOT NULL,
+      is_past        BOOLEAN NOT NULL DEFAULT false,
+      source_subject TEXT,
+      source_sender  TEXT,
+      source_preview TEXT,
+      notified       BOOLEAN DEFAULT false,
+      created_at     TEXT DEFAULT NOW()::TEXT
+    )
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS notified_emails (
+      id                TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      email_id          TEXT NOT NULL UNIQUE,
+      notified_at       TEXT NOT NULL
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS idx_email_events_date ON email_events(event_date)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_email_events_notified ON email_events(notified, is_past)`;
+}
+
+export interface EmailEvent {
+  emailId:       string;
+  eventType:     "appointment" | "deadline" | "payment" | "event";
+  title:         string;
+  eventDate:     string; // ISO
+  isPast:        boolean;
+  sourceSubject: string;
+  sourceSender:  string;
+  sourcePreview: string;
+}
+
+function tryParseDate(raw: string): Date | null {
+  const cleaned = raw.trim().slice(0, 80);
+  let d = new Date(cleaned);
+  if (!isNaN(d.getTime())) return d;
+  // Try appending current year when missing
+  d = new Date(`${cleaned} ${new Date().getFullYear()}`);
+  if (!isNaN(d.getTime())) return d;
+  return null;
+}
+
+export function extractEventsFromEmail(
+  emailId: string,
+  subject: string,
+  senderName: string,
+  senderEmail: string,
+  bodyPreview: string,
+  bodyContent: string,
+): EmailEvent[] {
+  const events: EmailEvent[] = [];
+  const now = new Date();
+  const sender = senderName || senderEmail || "";
+  const text = `${subject} ${bodyPreview} ${bodyContent.slice(0, 4000)}`;
+
+  function scan(
+    patterns: RegExp[],
+    type: EmailEvent["eventType"],
+    defaultTitle: string,
+  ) {
+    for (const p of patterns) {
+      const re = new RegExp(p.source, "gi");
+      const m = re.exec(text);
+      if (!m || !m[1]) continue;
+      const parsed = tryParseDate(m[1]);
+      if (!parsed) continue;
+      // If no 4-digit year in match and date already passed, roll to next year
+      if (!/\d{4}/.test(m[1]) && parsed < now) parsed.setFullYear(parsed.getFullYear() + 1);
+      // Skip dates more than 1 year out (likely noise)
+      if (parsed.getTime() - now.getTime() > 366 * 86400000) continue;
+      events.push({
+        emailId,
+        eventType: type,
+        title: (subject || defaultTitle).slice(0, 120),
+        eventDate: parsed.toISOString(),
+        isPast: parsed < now,
+        sourceSubject: subject,
+        sourceSender: sender,
+        sourcePreview: bodyPreview.slice(0, 150),
+      });
+      return; // one event per type per email
+    }
+  }
+
+  // Appointments
+  scan([
+    /(?:appointment|session|therapy|visit|consultation)\s+(?:is\s+)?(?:scheduled\s+)?(?:for|on)\s+([\w,.\s\/:-]+?(?:am|pm|\d{4}|\d{1,2}\/\d{1,2}))/i,
+    /(?:see\s+you|we'll\s+see\s+you)\s+(?:on\s+)?([\w,.\s]+(?:\d{4}|\d{1,2}\/\d{1,2}|\w+\s+\d{1,2}))/i,
+    /reminder[:\s]+(?:your\s+)?(?:appointment|session|visit)\s+(?:is\s+)?(?:on\s+)?([\w,.\s\/:-]+?(?:am|pm|\d{4}|\d{1,2}\/\d{1,2}))/i,
+    /(?:scheduled\s+for|confirmed\s+for)\s+([\w,.\s\/:-]+?(?:am|pm|\d{4}|\d{1,2}\/\d{1,2}))/i,
+  ], "appointment", `Appointment from ${sender}`);
+
+  // Payments / bills
+  scan([
+    /(?:payment|bill|amount|balance|minimum)\s+(?:of\s+\$[\d,.]+\s+)?(?:is\s+)?due\s+(?:on\s+)?([\w,.\s\/:-]+?(?:\d{4}|\d{1,2}\/\d{1,2}|\w+\s+\d{1,2}))/i,
+    /(?:pay(?:ment)?\s+by|due\s+by)\s+([\w,.\s\/:-]+?(?:\d{4}|\d{1,2}\/\d{1,2}|\w+\s+\d{1,2}))/i,
+    /autopay\s+(?:on|scheduled\s+for)\s+([\w,.\s\/:-]+?(?:\d{4}|\d{1,2}\/\d{1,2}|\w+\s+\d{1,2}))/i,
+  ], "payment", `Bill from ${sender}`);
+
+  // Deadlines
+  scan([
+    /(?:assignment|homework|quiz|exam|project|submission|paper)\s+(?:is\s+)?due\s+(?:on\s+|by\s+)?([\w,.\s\/:-]+?(?:am|pm|\d{4}|\d{1,2}\/\d{1,2}))/i,
+    /due\s+(?:date|by)[:\s]+([\w,.\s\/:-]+?(?:am|pm|\d{4}|\d{1,2}\/\d{1,2}))/i,
+    /deadline[:\s]+([\w,.\s\/:-]+?(?:\d{4}|\d{1,2}\/\d{1,2}|\w+\s+\d{1,2}))/i,
+    /submit\s+by\s+([\w,.\s\/:-]+?(?:am|pm|\d{4}|\d{1,2}\/\d{1,2}))/i,
+  ], "deadline", `Deadline: ${subject}`);
+
+  return events;
+}
+
+export async function upsertEmailEvents(events: EmailEvent[]): Promise<void> {
+  if (!events.length) return;
+  await ensureEventTables();
+  const sql = db();
+  for (const ev of events) {
+    await sql`
+      INSERT INTO email_events (email_id, event_type, title, event_date, is_past, source_subject, source_sender, source_preview)
+      VALUES (${ev.emailId}, ${ev.eventType}, ${ev.title}, ${ev.eventDate}, ${ev.isPast}, ${ev.sourceSubject}, ${ev.sourceSender}, ${ev.sourcePreview})
+      ON CONFLICT DO NOTHING
+    `;
+  }
+}
+
+export async function getUpcomingEvents(daysAhead = 14): Promise<EmailEvent & { id: string; notified: boolean }[]> {
+  await ensureEventTables();
+  const sql = db();
+  const cutoff = new Date(Date.now() + daysAhead * 86400000).toISOString();
+  const now = new Date().toISOString();
+  const rows = await sql`
+    SELECT * FROM email_events
+    WHERE is_past = false AND event_date >= ${now} AND event_date <= ${cutoff}
+    ORDER BY event_date ASC
+    LIMIT 30
+  `;
+  return rows.map(r => ({
+    id:            r.id as string,
+    emailId:       r.email_id as string,
+    eventType:     r.event_type as EmailEvent["eventType"],
+    title:         r.title as string,
+    eventDate:     String(r.event_date),
+    isPast:        Boolean(r.is_past),
+    sourceSubject: String(r.source_subject ?? ""),
+    sourceSender:  String(r.source_sender ?? ""),
+    sourcePreview: String(r.source_preview ?? ""),
+    notified:      Boolean(r.notified),
+  }));
+}
+
+export async function getUnnotifiedUrgentEvents(): Promise<(EmailEvent & { id: string })[]> {
+  await ensureEventTables();
+  const sql = db();
+  const now = new Date().toISOString();
+  const horizon = new Date(Date.now() + 48 * 3600000).toISOString();
+  const rows = await sql`
+    SELECT * FROM email_events
+    WHERE notified = false AND is_past = false
+    AND event_date >= ${now} AND event_date <= ${horizon}
+    ORDER BY event_date ASC
+  `;
+  return rows.map(r => ({
+    id:            r.id as string,
+    emailId:       r.email_id as string,
+    eventType:     r.event_type as EmailEvent["eventType"],
+    title:         r.title as string,
+    eventDate:     String(r.event_date),
+    isPast:        false,
+    sourceSubject: String(r.source_subject ?? ""),
+    sourceSender:  String(r.source_sender ?? ""),
+    sourcePreview: String(r.source_preview ?? ""),
+  }));
+}
+
+export async function markEventNotified(id: string): Promise<void> {
+  const sql = db();
+  await sql`UPDATE email_events SET notified = true WHERE id = ${id}`;
+}
+
+export async function hasBeenUrgentNotified(emailId: string): Promise<boolean> {
+  await ensureEventTables();
+  const sql = db();
+  const rows = await sql`SELECT 1 FROM notified_emails WHERE email_id = ${emailId}`;
+  return rows.length > 0;
+}
+
+export async function markUrgentNotified(emailId: string): Promise<void> {
+  await ensureEventTables();
+  const sql = db();
+  const now = new Date().toISOString();
+  await sql`
+    INSERT INTO notified_emails (email_id, notified_at)
+    VALUES (${emailId}, ${now})
+    ON CONFLICT (email_id) DO NOTHING
+  `;
+}
+
+// History scan: fetch one page of Gmail results (metadata only, fast)
+export async function fetchGmailMetadataPage(
+  accessToken: string,
+  query: string,
+  maxResults = 100,
+  pageToken?: string,
+): Promise<{ ids: string[]; nextPageToken?: string }> {
+  const params = new URLSearchParams({ q: query, maxResults: String(maxResults), format: "metadata" });
+  if (pageToken) params.set("pageToken", pageToken);
+  const res = await fetch(`${GMAIL}/users/me/messages?${params}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) return { ids: [] };
+  const data = await res.json();
+  return {
+    ids: (data.messages ?? []).map((m: { id: string }) => m.id),
+    nextPageToken: data.nextPageToken,
+  };
+}
+
+// Fetch a single email with full body for event parsing
+export async function fetchSingleEmail(accessToken: string, id: string): Promise<ParsedEmail | null> {
+  try {
+    const res = await fetch(`${GMAIL}/users/me/messages/${id}?format=full`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!res.ok) return null;
+    const msg = await res.json();
+    const headers: GmailHeader[] = msg.payload?.headers ?? [];
+    const from = hdr(headers, "from");
+    const nameMatch = from.match(/^"?([^"<]+)"?\s*<?([^>]*)>?$/);
+    const senderName  = nameMatch?.[1]?.trim() ?? from;
+    const senderEmail = nameMatch?.[2]?.trim() ?? from;
+    const dateStr = hdr(headers, "date");
+    const body = decodeBody(msg.payload ?? {});
+    return {
+      id,
+      threadId:    msg.threadId as string,
+      subject:     hdr(headers, "subject"),
+      senderName,
+      senderEmail,
+      receivedAt:  dateStr ? new Date(dateStr).toISOString() : new Date().toISOString(),
+      bodyPreview: msg.snippet as string ?? "",
+      bodyContent: body.slice(0, 8000),
+      isRead:      !(msg.labelIds ?? []).includes("UNREAD"),
+    };
+  } catch { return null; }
+}
+
 // For morning briefing intelligence
 export async function getActionableEmails(): Promise<{ deadlines: StoredEmail[]; health: StoredEmail[]; bills: StoredEmail[]; action: StoredEmail[] }> {
   await ensureGmailTables();

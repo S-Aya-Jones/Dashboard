@@ -6,7 +6,7 @@ import { google } from "googleapis";
 import { getPlaidClient, getPlaidItems, decryptToken } from "@/lib/plaid";
 import { sendTelegram } from "@/lib/telegram";
 import { sendPushNotification } from "@/lib/push";
-import { getActionableEmails } from "@/lib/gmail";
+import { getActionableEmails, getUpcomingEvents } from "@/lib/gmail";
 
 const client = new Anthropic();
 
@@ -75,13 +75,12 @@ async function getTodayCalendarEvents() {
     const auth = getAuthedClient();
     const calendar = google.calendar({ version: "v3", auth });
     const now = new Date();
-    const endOfDay = new Date(now);
-    endOfDay.setHours(23, 59, 59, 999);
+    const sevenDaysOut = new Date(Date.now() + 7 * 86400000);
     const resp = await calendar.events.list({
       calendarId: "primary",
       timeMin: now.toISOString(),
-      timeMax: endOfDay.toISOString(),
-      maxResults: 10,
+      timeMax: sevenDaysOut.toISOString(),
+      maxResults: 15,
       singleEvents: true,
       orderBy: "startTime",
     });
@@ -90,6 +89,9 @@ async function getTodayCalendarEvents() {
       start: e.start?.dateTime ?? e.start?.date,
       allDay: !e.start?.dateTime,
       location: e.location,
+      isToday: e.start?.dateTime
+        ? new Date(e.start.dateTime).toDateString() === now.toDateString()
+        : false,
     }));
   } catch { return []; }
 }
@@ -134,13 +136,14 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const [data, accounts, transactions, calendarEvents, emails, emailIntel] = await Promise.all([
+    const [data, accounts, transactions, calendarEvents, emails, emailIntel, upcomingEvents] = await Promise.all([
       loadData(),
       getAccounts(),
       getRecentTransactions(),
       getTodayCalendarEvents(),
       getImportantEmails(),
       getActionableEmails().catch(() => ({ deadlines: [], health: [], bills: [], action: [] })),
+      getUpcomingEvents(7).catch(() => []),
     ]);
 
     const today = new Date().toISOString().slice(0, 10);
@@ -267,11 +270,16 @@ export async function GET(req: NextRequest) {
       },
       email: {
         unreadCount: emails.length,
-        importantEmails: emails.slice(0, 5),
+        importantEmails: emails.slice(0, 3),
         upcomingDeadlines: emailIntel.deadlines.slice(0, 5).map(e => ({ subject: e.subject, due: e.deadlineAt })),
         appointmentsThisWeek: emailIntel.health.slice(0, 3).map(e => ({ subject: e.subject, from: e.senderName, preview: e.bodyPreview?.slice(0, 80) })),
         billsDue: emailIntel.bills.slice(0, 3).map(e => ({ subject: e.subject, from: e.senderName })),
         needsAction: emailIntel.action.slice(0, 3).map(e => ({ subject: e.subject, from: e.senderName })),
+        parsedEvents: upcomingEvents.slice(0, 6).map(e => ({
+          type: e.eventType,
+          title: e.title,
+          when: new Date(e.eventDate).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" }),
+        })),
       },
     };
 
