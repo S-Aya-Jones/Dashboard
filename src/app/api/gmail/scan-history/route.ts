@@ -21,9 +21,9 @@ export async function POST() {
   const token = await getFreshGmailToken();
   if (!token) return NextResponse.json({ error: "Not connected" }, { status: 401 });
 
-  // Build date string 3 months ago in YYYY/MM/DD format
-  const threeMonthsAgo = new Date(Date.now() - 92 * 86400000);
-  const after = `${threeMonthsAgo.getFullYear()}/${String(threeMonthsAgo.getMonth() + 1).padStart(2, "0")}/${String(threeMonthsAgo.getDate()).padStart(2, "0")}`;
+  // Build date string 6 months ago in YYYY/MM/DD format
+  const sixMonthsAgo = new Date(Date.now() - 182 * 86400000);
+  const after = `${sixMonthsAgo.getFullYear()}/${String(sixMonthsAgo.getMonth() + 1).padStart(2, "0")}/${String(sixMonthsAgo.getDate()).padStart(2, "0")}`;
 
   // Search for emails likely to contain dates/events (narrows from all email to relevant subset)
   const query = `in:inbox after:${after} (appointment OR therapy OR session OR scheduled OR "bill due" OR "payment due" OR "amount due" OR autopay OR deadline OR "due date" OR "due by" OR "assignment due" OR quiz OR exam)`;

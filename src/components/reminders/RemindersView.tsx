@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Bell, Plus, Trash2, Check, X, MessageSquare, RefreshCw } from "lucide-react";
+import { Bell, Plus, Trash2, Check, X, MessageSquare, RefreshCw, BookOpen, Calendar } from "lucide-react";
 
 interface Reminder {
   id: string;
@@ -20,6 +20,15 @@ interface InboundLog {
   rawText:     string;
   parsedType?: string;
   receivedAt:  string;
+}
+
+interface UpcomingEvent {
+  id:            string;
+  eventType:     string;
+  title:         string;
+  eventDate:     string;
+  sourceSender:  string;
+  sourceSubject: string;
 }
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -46,6 +55,39 @@ function fmtRelative(iso: string) {
   if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
+
+function fmtEventDate(iso: string) {
+  const d   = new Date(iso);
+  const now = new Date();
+  const diffDays = Math.round((d.getTime() - now.getTime()) / 86400000);
+  const timeStr = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" });
+  const dateStr = d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "America/Chicago" });
+
+  if (diffDays === 0)      return `Today at ${timeStr}`;
+  if (diffDays === 1)      return `Tomorrow at ${timeStr}`;
+  if (diffDays <= 6)       return `${dateStr} (${diffDays}d)`;
+  return dateStr;
+}
+
+function urgencyColor(iso: string): string {
+  const diffDays = Math.round((new Date(iso).getTime() - Date.now()) / 86400000);
+  if (diffDays <= 1)  return "#ef4444";
+  if (diffDays <= 3)  return "#f97316";
+  if (diffDays <= 7)  return "#eab308";
+  return "var(--purple)";
+}
+
+function isCourseDeadline(e: UpcomingEvent): boolean {
+  return e.sourceSender === "Microbiology" || e.sourceSender === "Cell & Molecular Bio" ||
+    e.sourceSender === "Physiology" || e.sourceSender === "Biochemistry";
+}
+
+const COURSE_COLORS: Record<string, string> = {
+  "Microbiology":         "#22c55e",
+  "Cell & Molecular Bio": "#7C5CFC",
+  "Physiology":           "#06b6d4",
+  "Biochemistry":         "#f97316",
+};
 
 const TYPE_COLORS: Record<string, string> = {
   remind_created: "#22c55e",
@@ -105,14 +147,17 @@ const BLANK: FormState = { title: "", body: "", scheduleType: "daily", hour: "7"
 const ALL_MINUTES = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, "0"));
 
 export function RemindersView() {
-  const [tab,       setTab]       = useState<"messages" | "reminders">("messages");
-  const [reminders, setReminders] = useState<Reminder[]>([]);
-  const [logs,      setLogs]      = useState<InboundLog[]>([]);
-  const [loading,   setLoading]   = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [showForm,  setShowForm]  = useState(false);
-  const [saving,    setSaving]    = useState(false);
-  const [form,      setForm]      = useState<FormState>(BLANK);
+  const [tab,          setTab]          = useState<"deadlines" | "messages" | "reminders">("deadlines");
+  const [reminders,    setReminders]    = useState<Reminder[]>([]);
+  const [logs,         setLogs]         = useState<InboundLog[]>([]);
+  const [events,       setEvents]       = useState<UpcomingEvent[]>([]);
+  const [loading,      setLoading]      = useState(true);
+  const [refreshing,   setRefreshing]   = useState(false);
+  const [seeding,      setSeeding]      = useState(false);
+  const [seedMsg,      setSeedMsg]      = useState("");
+  const [showForm,     setShowForm]     = useState(false);
+  const [saving,       setSaving]       = useState(false);
+  const [form,         setForm]         = useState<FormState>(BLANK);
 
   const loadLogs = useCallback(async (silent = false) => {
     if (!silent) setRefreshing(true);
@@ -124,6 +169,16 @@ export function RemindersView() {
     }
   }, []);
 
+  const loadEvents = useCallback(async () => {
+    try {
+      const res = await fetch("/api/gmail/upcoming-events");
+      if (res.ok) {
+        const data = await res.json();
+        setEvents(data.events ?? []);
+      }
+    } catch { /* non-fatal */ }
+  }, []);
+
   const load = useCallback(async () => {
     try {
       const [rRes, lRes] = await Promise.all([
@@ -132,14 +187,14 @@ export function RemindersView() {
       ]);
       if (rRes.ok) setReminders(await rRes.json());
       if (lRes.ok) setLogs(await lRes.json());
+      await loadEvents();
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loadEvents]);
 
   useEffect(() => { load(); }, [load]);
 
-  // Auto-refresh messages every 30s when on messages tab
   useEffect(() => {
     if (tab !== "messages") return;
     const t = setInterval(() => loadLogs(true), 30_000);
@@ -154,6 +209,21 @@ export function RemindersView() {
   const handleDelete = async (id: string) => {
     setReminders(prev => prev.filter(r => r.id !== id));
     await fetch(`/api/reminders/${id}`, { method: "DELETE" });
+  };
+
+  const handleSeedDeadlines = async () => {
+    setSeeding(true);
+    setSeedMsg("");
+    try {
+      const res = await fetch("/api/courses/seed", { method: "POST" });
+      const data = await res.json();
+      setSeedMsg(data.message ?? "Done");
+      await loadEvents();
+    } catch (e) {
+      setSeedMsg("Error seeding: " + String(e));
+    } finally {
+      setSeeding(false);
+    }
   };
 
   const handleCreate = async () => {
@@ -186,6 +256,9 @@ export function RemindersView() {
   const active   = reminders.filter(r => r.active);
   const inactive = reminders.filter(r => !r.active);
 
+  const courseEvents = events.filter(isCourseDeadline);
+  const emailEvents  = events.filter(e => !isCourseDeadline(e));
+
   if (loading) return (
     <div style={{ display: "flex", justifyContent: "center", paddingTop: "3rem" }}>
       <div style={{ width: 32, height: 32, borderRadius: "50%", border: "2px solid var(--purple)", borderTopColor: "transparent", animation: "spin 0.8s linear infinite" }} />
@@ -203,16 +276,109 @@ export function RemindersView() {
       {/* Tabs */}
       <div style={{ display: "flex", gap: "0.25rem", marginBottom: "1.25rem", background: "var(--bg)", borderRadius: 12, padding: "0.25rem" }}>
         {([
+          { key: "deadlines", label: "Deadlines", icon: <BookOpen size={14} />,      count: events.length },
           { key: "messages",  label: "Messages",  icon: <MessageSquare size={14} />, count: logs.length },
-          { key: "reminders", label: "Reminders", icon: <Bell size={14} />,          count: active.length },
+          { key: "reminders", label: "Reminders", icon: <Bell size={14} />,           count: active.length },
         ] as const).map(({ key, label, icon, count }) => (
           <button key={key} onClick={() => setTab(key)}
-            style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem", padding: "0.6rem 1rem", borderRadius: 10, border: "none", background: tab === key ? "var(--surface)" : "transparent", color: tab === key ? "var(--purple)" : "var(--text-muted)", fontWeight: tab === key ? 600 : 500, fontSize: "0.85rem", cursor: "pointer", boxShadow: tab === key ? "0 1px 4px rgba(0,0,0,0.08)" : "none", transition: "all 0.15s" }}>
+            style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem", padding: "0.6rem 0.6rem", borderRadius: 10, border: "none", background: tab === key ? "var(--surface)" : "transparent", color: tab === key ? "var(--purple)" : "var(--text-muted)", fontWeight: tab === key ? 600 : 500, fontSize: "0.8rem", cursor: "pointer", boxShadow: tab === key ? "0 1px 4px rgba(0,0,0,0.08)" : "none", transition: "all 0.15s" }}>
             {icon} {label}
             {count > 0 && <span style={{ fontSize: "0.7rem", background: tab === key ? "var(--purple)" : "var(--border)", color: tab === key ? "#fff" : "var(--text-muted)", borderRadius: 10, padding: "0.05rem 0.4rem", fontWeight: 700 }}>{count}</span>}
           </button>
         ))}
       </div>
+
+      {/* ── Deadlines tab ── */}
+      {tab === "deadlines" && (
+        <div>
+          {/* Seed button + status */}
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1rem" }}>
+            <button onClick={handleSeedDeadlines} disabled={seeding}
+              style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.45rem 0.9rem", background: "rgba(124,92,252,0.1)", border: "1.5px solid var(--purple)", borderRadius: 10, color: "var(--purple)", fontSize: "0.8rem", fontWeight: 600, cursor: seeding ? "wait" : "pointer", opacity: seeding ? 0.6 : 1 }}>
+              <RefreshCw size={13} style={{ animation: seeding ? "spin 0.8s linear infinite" : "none" }} />
+              {seeding ? "Seeding…" : "Sync Course Deadlines"}
+            </button>
+            {seedMsg && <span style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>{seedMsg}</span>}
+          </div>
+
+          {/* Course deadlines */}
+          {courseEvents.length > 0 && (
+            <div style={{ marginBottom: "1.5rem" }}>
+              <p style={{ margin: "0 0 0.6rem", fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.08em", color: "var(--text-muted)", textTransform: "uppercase" }}>
+                Course Exams &amp; Quizzes
+              </p>
+
+              {/* Course legend */}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginBottom: "0.75rem" }}>
+                {Object.entries(COURSE_COLORS).map(([course, color]) => (
+                  <span key={course} style={{ display: "flex", alignItems: "center", gap: "0.3rem", padding: "0.2rem 0.6rem", background: `${color}18`, borderRadius: 20, fontSize: "0.7rem", color, fontWeight: 600, border: `1px solid ${color}40` }}>
+                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: color, flexShrink: 0 }} />
+                    {course}
+                  </span>
+                ))}
+              </div>
+
+              <div style={{ display: "grid", gap: "0.45rem" }}>
+                {courseEvents.map(ev => {
+                  const color = COURSE_COLORS[ev.sourceSender] ?? "var(--purple)";
+                  const isExam = ev.title.toLowerCase().includes("exam");
+                  const urg = urgencyColor(ev.eventDate);
+                  return (
+                    <div key={ev.id} style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.75rem 1rem", background: "var(--surface)", borderRadius: 12, border: `1.5px solid ${isExam ? `${urg}60` : "var(--border)"}`, position: "relative", overflow: "hidden" }}>
+                      <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: color, borderRadius: "4px 0 0 4px" }} />
+                      <div style={{ flex: 1, minWidth: 0, paddingLeft: "0.25rem" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.15rem" }}>
+                          <p style={{ margin: 0, fontWeight: 700, fontSize: "0.88rem", color: "var(--text)" }}>{ev.title}</p>
+                          {isExam && <span style={{ fontSize: "0.65rem", fontWeight: 700, background: `${urg}20`, color: urg, padding: "0.1rem 0.45rem", borderRadius: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>EXAM</span>}
+                        </div>
+                        <p style={{ margin: 0, fontSize: "0.78rem", color: isExam ? urg : "var(--text-muted)", fontWeight: isExam ? 600 : 400 }}>
+                          <Calendar size={11} style={{ display: "inline", marginRight: 4, verticalAlign: "middle" }} />
+                          {fmtEventDate(ev.eventDate)}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {courseEvents.length === 0 && (
+            <div style={{ textAlign: "center", padding: "2rem 1rem", background: "var(--surface)", borderRadius: 16, border: "1.5px dashed var(--border)", marginBottom: "1.5rem" }}>
+              <BookOpen size={28} style={{ color: "var(--text-muted)", opacity: 0.4, marginBottom: "0.5rem" }} />
+              <p style={{ margin: "0 0 0.35rem", fontWeight: 600, color: "var(--text)", fontSize: "0.9rem" }}>No course deadlines loaded</p>
+              <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--text-muted)" }}>Click "Sync Course Deadlines" to load all exams and quizzes from your syllabi.</p>
+            </div>
+          )}
+
+          {/* Email-derived events */}
+          {emailEvents.length > 0 && (
+            <div>
+              <p style={{ margin: "0 0 0.6rem", fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.08em", color: "var(--text-muted)", textTransform: "uppercase" }}>
+                From Your Inbox
+              </p>
+              <div style={{ display: "grid", gap: "0.45rem" }}>
+                {emailEvents.map(ev => (
+                  <div key={ev.id} style={{ display: "flex", alignItems: "flex-start", gap: "0.75rem", padding: "0.75rem 1rem", background: "var(--surface)", borderRadius: 12, border: "1px solid var(--border)" }}>
+                    <div style={{ flexShrink: 0, marginTop: 3, width: 8, height: 8, borderRadius: "50%", background: ev.eventType === "appointment" ? "#22c55e" : ev.eventType === "payment" ? "#f97316" : "var(--purple)" }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ margin: "0 0 0.15rem", fontWeight: 600, fontSize: "0.88rem", color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ev.title}</p>
+                      <p style={{ margin: 0, fontSize: "0.77rem", color: "var(--text-muted)" }}>{fmtEventDate(ev.eventDate)} · {ev.sourceSender}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {events.length === 0 && (
+            <div style={{ textAlign: "center", padding: "2rem 1rem", color: "var(--text-muted)" }}>
+              <p style={{ margin: 0, fontSize: "0.85rem" }}>No upcoming events detected from email.</p>
+              <p style={{ margin: "0.25rem 0 0", fontSize: "0.78rem" }}>Run "Scan Email History" in School Inbox to parse past emails for dates.</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Messages tab ── */}
       {tab === "messages" && (
