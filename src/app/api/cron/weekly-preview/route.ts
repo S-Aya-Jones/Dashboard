@@ -119,12 +119,14 @@ Be specific and real — she needs to feel like you actually know what's on her 
     const { loadData: ld, saveData } = await import("@/lib/db");
     const freshData = await ld();
     const phone = process.env.USER_PHONE_NUMBER ?? "6156811609";
-    const sms = (freshData.sms as { messages?: unknown[] }) ?? { phoneNumber: phone, enabled: true, messages: [], reminders: [] };
-    (sms.messages as unknown[]) ??= [];
-    (sms.messages as unknown[]).push({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const smsAny = freshData.sms as any ?? { phoneNumber: phone, enabled: true, messages: [], reminders: [] };
+    smsAny.messages ??= [];
+    smsAny.messages.push({
       id: `weekly-${Date.now()}`, direction: "outbound", body: text, timestamp: new Date().toISOString(),
     });
-    freshData.sms = sms;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    freshData.sms = smsAny as any;
     await saveData(freshData);
 
     return NextResponse.json({ success: true, text });
