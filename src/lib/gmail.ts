@@ -630,7 +630,7 @@ export async function upsertEmailEvents(events: EmailEvent[]): Promise<void> {
   }
 }
 
-export async function getUpcomingEvents(daysAhead = 14): Promise<EmailEvent & { id: string; notified: boolean }[]> {
+export async function getUpcomingEvents(daysAhead = 14): Promise<(EmailEvent & { id: string; notified: boolean })[]> {
   await ensureEventTables();
   const sql = db();
   const cutoff = new Date(Date.now() + daysAhead * 86400000).toISOString();
@@ -655,7 +655,7 @@ export async function getUpcomingEvents(daysAhead = 14): Promise<EmailEvent & { 
   }));
 }
 
-export async function getUnnotifiedUrgentEvents(): Promise<(EmailEvent & { id: string })[]> {
+export async function getUnnotifiedUrgentEvents(): Promise<Array<EmailEvent & { id: string }>> {
   await ensureEventTables();
   const sql = db();
   const now = new Date().toISOString();
