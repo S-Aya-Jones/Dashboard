@@ -83,15 +83,15 @@ function EmailRow({ email, onSelect, selected }: {
           </span>
         )}
         <span style={{ flex: 1, fontWeight: email.isRead ? 400 : 600, fontSize: "0.85rem", color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {email.senderName ?? email.senderEmail ?? "Unknown"}
+          {email.senderName || email.senderEmail || "Unknown"}
         </span>
         <span style={{ fontSize: "0.72rem", color: "var(--text-muted)", flexShrink: 0 }}>{fmtDate(email.receivedAt)}</span>
       </div>
       <p style={{ margin: 0, fontSize: "0.82rem", fontWeight: email.isRead ? 400 : 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-        {email.subject ?? "(no subject)"}
+        {email.subject || "(no subject)"}
       </p>
       <p style={{ margin: "0.15rem 0 0", fontSize: "0.75rem", color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-        {email.bodyPreview ?? ""}
+        {email.bodyPreview || ""}
       </p>
       {email.deadlineAt && (
         <div style={{ marginTop: "0.3rem", display: "flex", alignItems: "center", gap: "0.3rem" }}>
@@ -323,7 +323,10 @@ export function SchoolInbox() {
     setUserEmail(null);
   };
 
+  const hasContent = (e: Email) => !!(e.subject || e.senderName || e.senderEmail);
+
   const tabFilter = (e: Email): boolean => {
+    if (!hasContent(e)) return false;
     if (tab === "all")    return true;
     if (tab === "school") return e.isBlackboard || e.category === "school";
     return e.category === tab;

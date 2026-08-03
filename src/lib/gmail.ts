@@ -473,6 +473,22 @@ export async function getStoredEmails(limit = 50, offset = 0, category?: EmailCa
   }));
 }
 
+export async function purgeSpamFromDb(ids: string[]): Promise<void> {
+  if (!ids.length) return;
+  const sql = db();
+  // Delete specific spam IDs plus retroactively clean up any old promo emails not yet marked
+  await sql`DELETE FROM school_emails WHERE id = ANY(${ids}::text[])`;
+  // Retroactive cleanup: mark obvious spam that got stored before detection was added
+  await sql`
+    DELETE FROM school_emails
+    WHERE category = 'general'
+    AND (
+      lower(subject) SIMILAR TO '%(flash sale|% off|limited time|tick-tock|sale ends|buy [0-9]+ get|promo code|exclusive deal|shop now|don''t miss|last chance)%'
+      OR (lower(body_preview) LIKE '%unsubscribe%' AND lower(subject) SIMILAR TO '%(sale|off|deal|promo|offer|save|discount|coupon|free shipping|win|winner|prize|claim)%')
+    )
+  `;
+}
+
 export async function getStoredEmailCount(category?: EmailCategory): Promise<number> {
   await ensureGmailTables();
   const sql = db();

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   getGmailTokens, getFreshGmailToken,
   fetchGmailMessages, upsertGmailEmails, getStoredEmails, getStoredEmailCount,
-  categorizeEmail, gmailTrash,
+  categorizeEmail, gmailTrash, purgeSpamFromDb,
 } from "@/lib/gmail";
 
 export const dynamic = "force-dynamic";
@@ -22,15 +22,19 @@ export async function GET(req: NextRequest) {
     if (token) {
       const live = await fetchGmailMessages(token, 50);
       const toStore = [];
+      const spamIds: string[] = [];
       for (const email of live) {
         const cat = categorizeEmail(email);
         if (cat === "spam") {
-          gmailTrash(token, email.id).catch(() => {}); // fire-and-forget, non-blocking
+          gmailTrash(token, email.id).catch(() => {}); // fire-and-forget
+          spamIds.push(email.id);
           trashed++;
         } else {
           toStore.push(email);
         }
       }
+      // Remove spam from DB (covers emails stored before spam detection was added)
+      if (spamIds.length) await purgeSpamFromDb(spamIds);
       await upsertGmailEmails(toStore);
     } else {
       syncError = "Could not refresh Gmail token — please reconnect.";
