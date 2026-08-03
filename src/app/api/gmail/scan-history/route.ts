@@ -34,7 +34,7 @@ export async function POST() {
     ? await fetchGmailMetadataPage(token, query, 100, page1.nextPageToken)
     : { ids: [] };
 
-  const allIds = [...new Set([...page1.ids, ...page2.ids])];
+  const allIds = Array.from(new Set([...page1.ids, ...page2.ids]));
 
   if (!allIds.length) {
     return NextResponse.json({ scanned: 0, eventsFound: 0, future: 0, past: 0 });
