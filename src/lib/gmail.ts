@@ -33,11 +33,10 @@ export async function ensureGmailTables() {
       updated_at    TEXT
     )
   `;
-  // Forward-compatible migrations: add columns that may be missing from older schema
   await sql`ALTER TABLE gmail_tokens ADD COLUMN IF NOT EXISTS user_email TEXT`;
   await sql`ALTER TABLE gmail_tokens ADD COLUMN IF NOT EXISTS user_name TEXT`;
   await sql`ALTER TABLE gmail_tokens ADD COLUMN IF NOT EXISTS updated_at TEXT`;
-  // Migrate expires_at from TIMESTAMPTZ to TEXT if needed (TIMESTAMPTZ causes silent write failures)
+  // Migrate TIMESTAMPTZ → TEXT (TIMESTAMPTZ causes silent write failures in Neon HTTP driver)
   await sql`
     DO $$ BEGIN
       IF EXISTS (
@@ -50,7 +49,6 @@ export async function ensureGmailTables() {
       END IF;
     END $$
   `;
-  // If expires_at was TIMESTAMPTZ it can still store text — no migration needed for reads
   await sql`
     CREATE TABLE IF NOT EXISTS school_emails (
       id               TEXT PRIMARY KEY,
@@ -66,10 +64,12 @@ export async function ensureGmailTables() {
       deadline_title   TEXT,
       deadline_at      TEXT,
       reminder_created BOOLEAN DEFAULT false,
+      category         TEXT DEFAULT 'general',
       synced_at        TEXT
     )
   `;
   await sql`ALTER TABLE school_emails ADD COLUMN IF NOT EXISTS reminder_created BOOLEAN DEFAULT false`;
+  await sql`ALTER TABLE school_emails ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'general'`;
 }
 
 // ─── Token storage ────────────────────────────────────────────────────────────
@@ -118,7 +118,7 @@ export async function getGmailTokens(): Promise<TokenRow | null> {
     const fixed = String(expiresAtRaw).replace(/(\.\d{3})\d+/, "$1").replace(" ", "T");
     expiresAt = new Date(fixed);
   }
-  if (isNaN(expiresAt.getTime())) expiresAt = new Date(0); // fallback: treat as expired, triggers refresh
+  if (isNaN(expiresAt.getTime())) expiresAt = new Date(0); // treat as expired, triggers refresh
   return {
     accessToken:  r.access_token as string,
     refreshToken: (r.refresh_token as string) ?? null,
@@ -228,8 +228,7 @@ export interface ParsedEmail {
   isRead:      boolean;
 }
 
-export async function fetchGmailMessages(accessToken: string, maxResults = 30): Promise<ParsedEmail[]> {
-  // 1. List message IDs
+export async function fetchGmailMessages(accessToken: string, maxResults = 50): Promise<ParsedEmail[]> {
   const listRes = await fetch(
     `${GMAIL}/users/me/messages?maxResults=${maxResults}&labelIds=INBOX`,
     { headers: { Authorization: `Bearer ${accessToken}` } },
@@ -242,10 +241,9 @@ export async function fetchGmailMessages(accessToken: string, maxResults = 30): 
   const ids: string[] = (listData.messages ?? []).map((m: { id: string }) => m.id);
   if (!ids.length) return [];
 
-  // 2. Batch fetch each message
   const results: ParsedEmail[] = [];
   await Promise.all(
-    ids.slice(0, 20).map(async id => {
+    ids.slice(0, 50).map(async id => {
       try {
         const msgRes = await fetch(
           `${GMAIL}/users/me/messages/${id}?format=full`,
@@ -313,9 +311,18 @@ export async function gmailMarkRead(accessToken: string, messageId: string): Pro
   });
 }
 
-// ─── Blackboard detection ─────────────────────────────────────────────────────
+export async function gmailTrash(accessToken: string, messageId: string): Promise<void> {
+  await fetch(`${GMAIL}/users/me/messages/${messageId}/trash`, {
+    method:  "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
 
-const BB_SENDERS = [/blackboard/i, /instructure/i, /canvas/i, /desire2learn/i, /brightspace/i, /mmc\.edu/i];
+// ─── Email categorization ─────────────────────────────────────────────────────
+
+export type EmailCategory = "school" | "health" | "bills" | "action" | "spam" | "general";
+
+const BB_SENDERS  = [/blackboard/i, /instructure/i, /canvas/i, /desire2learn/i, /brightspace/i, /mmc\.edu/i];
 const BB_SUBJECTS = [
   /assignment.*due/i, /due.*date/i, /new assignment/i, /grade.*posted/i,
   /announcement/i, /quiz.*available/i, /test.*available/i, /course.*update/i,
@@ -327,6 +334,40 @@ export function isSchoolEmail(e: ParsedEmail): boolean {
     BB_SENDERS.some(p => p.test(e.senderEmail) || p.test(e.senderName)) ||
     BB_SUBJECTS.some(p => p.test(e.subject))
   );
+}
+
+export function categorizeEmail(e: ParsedEmail): EmailCategory {
+  // School is highest priority
+  if (isSchoolEmail(e)) return "school";
+
+  const subj   = e.subject.toLowerCase();
+  const sender = (e.senderEmail + " " + e.senderName).toLowerCase();
+  const body   = (e.bodyPreview + " " + e.bodyContent.slice(0, 600)).toLowerCase();
+
+  // Health / appointments
+  if (
+    /therapy|therapist|counseling|mental.health|psychiatr|patient.portal|mychart|athenahealth|labcorp|quest.diagnostic/i.test(sender) ||
+    /appointment|appt|therapy.*session|session.*reminder|lab.result|prescription|refill|your.*visit|visit.*confirm/i.test(subj)
+  ) return "health";
+
+  // Bills / financial
+  if (
+    /billing|invoice|payment|statement|utilities|electric|water.*company|gas.company|internet|xfinity|comcast|att|verizon|t-mobile|sprint|insurance|landlord|leasing/i.test(sender) ||
+    /payment.due|bill.due|amount.due|statement.available|invoice|balance.due|past.due|autopay|rent.due|minimum.payment|your.bill/i.test(subj)
+  ) return "bills";
+
+  // Action required
+  if (
+    /action.required|response.required|respond.by|reply.by|urgent.*action|your.response|please.respond|rsvp|verification.required|verify.your|confirm.your|confirmation.needed|expires.soon|expiration.notice|renew.your|deadline.*today/i.test(subj)
+  ) return "action";
+
+  // Spam / promo — last resort, only if unsubscribe is present and not financial
+  if (
+    /\bsale\b|% off|\bdiscount\b|\bdeal\b|\bcoupon\b|\bpromo\b|limited.time|flash.sale|you.won|winner.*prize|claim.your.reward|exclusive.offer/i.test(subj) ||
+    (/unsubscribe|manage.*preferences|opt.out/i.test(body) && !/bank|credit.union|chase|wells.fargo|capital.one|navy.federal|insurance|medical/i.test(sender))
+  ) return "spam";
+
+  return "general";
 }
 
 export function extractDeadline(e: ParsedEmail): { title: string; deadlineAt: string } | null {
@@ -360,19 +401,22 @@ export async function upsertGmailEmails(emails: ParsedEmail[]): Promise<void> {
   await ensureGmailTables();
   const sql = db();
   for (const e of emails) {
-    const school   = isSchoolEmail(e);
+    const category = categorizeEmail(e);
+    const school   = category === "school";
     const deadline = school ? extractDeadline(e) : null;
     await sql`
       INSERT INTO school_emails
         (id, thread_id, subject, sender_name, sender_email, received_at,
-         body_preview, body_content, is_read, is_blackboard, deadline_title, deadline_at)
+         body_preview, body_content, is_read, is_blackboard, deadline_title, deadline_at, category)
       VALUES (
         ${e.id}, ${e.threadId}, ${e.subject}, ${e.senderName}, ${e.senderEmail},
         ${e.receivedAt}, ${e.bodyPreview}, ${e.bodyContent}, ${e.isRead},
-        ${school}, ${deadline?.title ?? null}, ${deadline?.deadlineAt ?? null}
+        ${school}, ${deadline?.title ?? null}, ${deadline?.deadlineAt ?? null},
+        ${category}
       )
       ON CONFLICT (id) DO UPDATE
         SET is_read   = EXCLUDED.is_read,
+            category  = EXCLUDED.category,
             synced_at = NOW()
     `;
   }
@@ -391,16 +435,27 @@ export interface StoredEmail {
   isBlackboard:  boolean;
   deadlineTitle: string | null;
   deadlineAt:    string | null;
+  category:      EmailCategory;
 }
 
-export async function getStoredEmails(limit = 50): Promise<StoredEmail[]> {
+export async function getStoredEmails(limit = 50, offset = 0, category?: EmailCategory): Promise<StoredEmail[]> {
   await ensureGmailTables();
   const sql = db();
-  const rows = await sql`
-    SELECT id, thread_id, subject, sender_name, sender_email, received_at,
-           body_preview, body_content, is_read, is_blackboard, deadline_title, deadline_at
-    FROM school_emails ORDER BY received_at DESC LIMIT 50
-  `;
+  const rows = category
+    ? await sql`
+        SELECT id, thread_id, subject, sender_name, sender_email, received_at,
+               body_preview, body_content, is_read, is_blackboard, deadline_title, deadline_at, category
+        FROM school_emails
+        WHERE category = ${category}
+        ORDER BY received_at DESC LIMIT ${limit} OFFSET ${offset}
+      `
+    : await sql`
+        SELECT id, thread_id, subject, sender_name, sender_email, received_at,
+               body_preview, body_content, is_read, is_blackboard, deadline_title, deadline_at, category
+        FROM school_emails
+        WHERE category != 'spam'
+        ORDER BY received_at DESC LIMIT ${limit} OFFSET ${offset}
+      `;
   return rows.map(r => ({
     id:            r.id as string,
     threadId:      (r.thread_id as string) ?? null,
@@ -414,5 +469,53 @@ export async function getStoredEmails(limit = 50): Promise<StoredEmail[]> {
     isBlackboard:  Boolean(r.is_blackboard),
     deadlineTitle: (r.deadline_title as string) ?? null,
     deadlineAt:    r.deadline_at ? (r.deadline_at instanceof Date ? r.deadline_at.toISOString() : String(r.deadline_at)) : null,
+    category:      (r.category as EmailCategory) ?? "general",
   }));
+}
+
+export async function getStoredEmailCount(category?: EmailCategory): Promise<number> {
+  await ensureGmailTables();
+  const sql = db();
+  const rows = category
+    ? await sql`SELECT COUNT(*)::int as n FROM school_emails WHERE category = ${category}`
+    : await sql`SELECT COUNT(*)::int as n FROM school_emails WHERE category != 'spam'`;
+  return Number(rows[0]?.n ?? 0);
+}
+
+// For morning briefing intelligence
+export async function getActionableEmails(): Promise<{ deadlines: StoredEmail[]; health: StoredEmail[]; bills: StoredEmail[]; action: StoredEmail[] }> {
+  await ensureGmailTables();
+  const sql = db();
+  const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+  const rows = await sql`
+    SELECT id, thread_id, subject, sender_name, sender_email, received_at,
+           body_preview, body_content, is_read, is_blackboard, deadline_title, deadline_at, category
+    FROM school_emails
+    WHERE received_at > ${sevenDaysAgo}
+    AND category IN ('school', 'health', 'bills', 'action')
+    ORDER BY received_at DESC
+    LIMIT 30
+  `;
+  const all = rows.map(r => ({
+    id:            r.id as string,
+    threadId:      (r.thread_id as string) ?? null,
+    subject:       (r.subject as string) ?? null,
+    senderName:    (r.sender_name as string) ?? null,
+    senderEmail:   (r.sender_email as string) ?? null,
+    receivedAt:    r.received_at instanceof Date ? r.received_at.toISOString() : String(r.received_at),
+    bodyPreview:   (r.body_preview as string) ?? null,
+    bodyContent:   (r.body_content as string) ?? null,
+    isRead:        Boolean(r.is_read),
+    isBlackboard:  Boolean(r.is_blackboard),
+    deadlineTitle: (r.deadline_title as string) ?? null,
+    deadlineAt:    r.deadline_at ? String(r.deadline_at) : null,
+    category:      (r.category as EmailCategory) ?? "general",
+  }));
+  const soon = new Date(Date.now() + 14 * 86400000).toISOString();
+  return {
+    deadlines: all.filter(e => e.deadlineAt && e.deadlineAt < soon),
+    health:    all.filter(e => e.category === "health"),
+    bills:     all.filter(e => e.category === "bills"),
+    action:    all.filter(e => e.category === "action"),
+  };
 }

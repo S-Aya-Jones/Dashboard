@@ -4,8 +4,9 @@ import { loadData } from "@/lib/db";
 import { getAuthedClient } from "@/lib/google";
 import { google } from "googleapis";
 import { getPlaidClient, getPlaidItems, decryptToken } from "@/lib/plaid";
-import nodemailer from "nodemailer";
+import { sendTelegram } from "@/lib/telegram";
 import { sendPushNotification } from "@/lib/push";
+import { getActionableEmails } from "@/lib/gmail";
 
 const client = new Anthropic();
 
@@ -133,12 +134,13 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const [data, accounts, transactions, calendarEvents, emails] = await Promise.all([
+    const [data, accounts, transactions, calendarEvents, emails, emailIntel] = await Promise.all([
       loadData(),
       getAccounts(),
       getRecentTransactions(),
       getTodayCalendarEvents(),
       getImportantEmails(),
+      getActionableEmails().catch(() => ({ deadlines: [], health: [], bills: [], action: [] })),
     ]);
 
     const today = new Date().toISOString().slice(0, 10);
@@ -266,22 +268,26 @@ export async function GET(req: NextRequest) {
       email: {
         unreadCount: emails.length,
         importantEmails: emails.slice(0, 5),
+        upcomingDeadlines: emailIntel.deadlines.slice(0, 5).map(e => ({ subject: e.subject, due: e.deadlineAt })),
+        appointmentsThisWeek: emailIntel.health.slice(0, 3).map(e => ({ subject: e.subject, from: e.senderName, preview: e.bodyPreview?.slice(0, 80) })),
+        billsDue: emailIntel.bills.slice(0, 3).map(e => ({ subject: e.subject, from: e.senderName })),
+        needsAction: emailIntel.action.slice(0, 3).map(e => ({ subject: e.subject, from: e.senderName })),
       },
     };
 
-    const systemPrompt = `You are Aya's personal AI assistant delivering her morning briefing via SMS. Aya is a pre-med student working toward medical school (Meharry), doing 75 Hard, managing her finances carefully, and building a disciplined life.
+    const systemPrompt = `You are Aya's personal AI assistant delivering her morning briefing via Telegram. Aya is a pre-med student working toward medical school (Meharry), doing 75 Hard, managing her finances carefully, and building a disciplined life.
 
 Your job: write a concise, warm, intelligent morning briefing that feels like it came from someone who KNOWS her life — not a generic bot.
 
 Format rules:
-- Start with "Good morning Aya - Day [X] of 75 Hard"
-- Use plain text only — NO emojis, no markdown, no asterisks, no bullet symbols — this is a plain SMS
+- Start with "Good morning Aya — Day [X] of 75 Hard"
+- Plain text — no markdown asterisks, no bullet symbols
 - Use line breaks to separate sections
 - Be specific — use actual numbers, actual names, actual dates
-- If something needs her attention, say so directly
+- If something needs her attention, call it out directly (deadline, appointment, bill due)
 - End with one sharp motivational line specific to where she is right now
 - Keep it under 300 words total
-- Sections: 75 Hard recap → Health → Money → MCAT → Calendar → Emails → Closing
+- Sections: 75 Hard recap → Health → Money → MCAT → Calendar → Inbox intel (deadlines, appointments, bills) → Closing
 
 Tone: warm, direct, like a brilliant friend who has full context on her life. Not corporate. Not generic.`;
 
@@ -292,28 +298,13 @@ Tone: warm, direct, like a brilliant friend who has full context on her life. No
       messages: [{ role: "user", content: JSON.stringify(context) }],
     });
 
-    const rawBriefing = msg.content[0].type === "text" ? msg.content[0].text : "Good morning Aya! Your morning briefing had a hiccup — check your dashboard.";
-    // Strip emojis/symbols so SMS gateway renders cleanly
-    // eslint-disable-next-line no-control-regex
-    const briefing = rawBriefing.replace(/[^\x00-\x7F]/g, "").replace(/\s{2,}/g, " ").trim();
+    const briefing = msg.content[0].type === "text" ? msg.content[0].text : "Good morning Aya! Your morning briefing had a hiccup — check your dashboard.";
 
-    // Send via T-Mobile gateway
-    const gmailUser = process.env.GMAIL_USER;
-    const gmailPass = process.env.GMAIL_APP_PASSWORD;
+    // Send via Telegram
+    await sendTelegram(briefing);
+
+    // Save to SMS log for dashboard history
     const phone = process.env.USER_PHONE_NUMBER ?? "6156811609";
-
-    if (gmailUser && gmailPass) {
-      const digits = phone.replace(/\D/g, "").replace(/^1/, "");
-      const transporter = nodemailer.createTransport({ service: "gmail", auth: { user: gmailUser, pass: gmailPass } });
-      await transporter.sendMail({
-        from: gmailUser,
-        to: `${digits}@tmomail.net`,
-        subject: " ",
-        text: briefing,
-      });
-    }
-
-    // Save briefing to SMS log
     const sms = data.sms ?? { phoneNumber: phone, enabled: true, messages: [], reminders: [] };
     sms.messages = [...(sms.messages ?? []), {
       id: `briefing-${Date.now()}`,

@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { Mail, RefreshCw, Reply, X, BookOpen, Bell, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { Mail, RefreshCw, Reply, X, BookOpen, Bell, ChevronDown, ChevronUp, ExternalLink, Heart, DollarSign, AlertCircle, Inbox } from "lucide-react";
+
+type EmailCategory = "school" | "health" | "bills" | "action" | "spam" | "general";
 
 interface Email {
   id:            string;
@@ -16,6 +18,22 @@ interface Email {
   isBlackboard:  boolean;
   deadlineTitle: string | null;
   deadlineAt:    string | null;
+  category:      EmailCategory;
+}
+
+type TabKey = "all" | "school" | "health" | "bills" | "action";
+
+const CATEGORY_COLOR: Record<EmailCategory, string> = {
+  school:  "var(--purple)",
+  health:  "#22c55e",
+  bills:   "#f97316",
+  action:  "#ef4444",
+  spam:    "#6b7280",
+  general: "transparent",
+};
+
+function categoryLabel(c: EmailCategory) {
+  return { school: "BB", health: "APPT", bills: "BILL", action: "!", spam: "", general: "" }[c];
 }
 
 function fmtDate(iso: string) {
@@ -31,27 +49,37 @@ function fmtDeadline(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
+function fmtTimeAgo(d: Date) {
+  const mins = Math.floor((Date.now() - d.getTime()) / 60000);
+  if (mins < 1) return "just now";
+  if (mins === 1) return "1 min ago";
+  if (mins < 60) return `${mins} min ago`;
+  return `${Math.floor(mins / 60)}h ago`;
+}
+
 function EmailRow({ email, onSelect, selected }: {
   email: Email;
   onSelect: (e: Email) => void;
   selected: boolean;
 }) {
+  const tag = categoryLabel(email.category);
+  const color = CATEGORY_COLOR[email.category];
   return (
     <div onClick={() => onSelect(email)}
       style={{
         padding: "0.75rem 1rem", cursor: "pointer",
         background: selected ? "rgba(124,92,252,0.08)" : email.isRead ? "var(--bg)" : "var(--surface)",
         borderBottom: "1px solid var(--border)",
-        borderLeft: selected ? "3px solid var(--purple)" : "3px solid transparent",
+        borderLeft: `3px solid ${selected ? "var(--purple)" : color !== "transparent" ? color : "transparent"}`,
         transition: "background 0.15s",
       }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.2rem" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.2rem" }}>
         {!email.isRead && (
           <div style={{ flexShrink: 0, width: 7, height: 7, borderRadius: "50%", background: "var(--purple)" }} />
         )}
-        {email.isBlackboard && (
-          <span style={{ fontSize: "0.65rem", fontWeight: 700, background: "rgba(124,92,252,0.15)", color: "var(--purple)", borderRadius: 4, padding: "0.1rem 0.35rem" }}>
-            BB
+        {tag && (
+          <span style={{ fontSize: "0.62rem", fontWeight: 700, background: color + "22", color, borderRadius: 4, padding: "0.1rem 0.3rem", flexShrink: 0 }}>
+            {tag}
           </span>
         )}
         <span style={{ flex: 1, fontWeight: email.isRead ? 400 : 600, fontSize: "0.85rem", color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -132,9 +160,10 @@ function EmailDetail({ email, onClose }: { email: Email; onClose: () => void }) 
     alert("Reminder added to Telegram!");
   };
 
+  const color = CATEGORY_COLOR[email.category];
+
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
-      {/* Header */}
       <div style={{ padding: "1rem 1.25rem", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "flex-start", gap: "0.75rem" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <h2 style={{ margin: "0 0 0.25rem", fontSize: "1rem", fontWeight: 700, color: "var(--text)" }}>
@@ -144,11 +173,16 @@ function EmailDetail({ email, onClose }: { email: Email; onClose: () => void }) 
             <strong>{email.senderName ?? email.senderEmail}</strong>
             {email.senderName && <span> &lt;{email.senderEmail}&gt;</span>}
             {" · "}{new Date(email.receivedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+            {email.category !== "general" && (
+              <span style={{ marginLeft: "0.5rem", fontSize: "0.7rem", fontWeight: 700, color, background: color + "22", borderRadius: 4, padding: "0.1rem 0.35rem" }}>
+                {email.category.toUpperCase()}
+              </span>
+            )}
           </p>
           {email.deadlineAt && (
             <div style={{ marginTop: "0.5rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
               <span style={{ fontSize: "0.75rem", background: "rgba(249,115,22,0.12)", color: "#f97316", borderRadius: 6, padding: "0.2rem 0.5rem", fontWeight: 600 }}>
-                📅 Due {fmtDeadline(email.deadlineAt)}
+                Due {fmtDeadline(email.deadlineAt)}
               </span>
               <button onClick={handleAddReminder}
                 style={{ fontSize: "0.72rem", background: "rgba(124,92,252,0.12)", color: "var(--purple)", border: "none", borderRadius: 6, padding: "0.2rem 0.5rem", cursor: "pointer", fontWeight: 600 }}>
@@ -162,7 +196,6 @@ function EmailDetail({ email, onClose }: { email: Email; onClose: () => void }) 
         </button>
       </div>
 
-      {/* Body */}
       <div style={{ flex: 1, overflow: "auto", padding: "1rem 1.25rem" }}>
         <div style={{ fontSize: "0.85rem", color: "var(--text)", lineHeight: 1.7, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
           {showFull
@@ -178,9 +211,8 @@ function EmailDetail({ email, onClose }: { email: Email; onClose: () => void }) 
         )}
       </div>
 
-      {/* Reply */}
       <div style={{ borderTop: "1px solid var(--border)", padding: "0.75rem 1.25rem" }}>
-        {sent && <p style={{ margin: "0 0 0.5rem", fontSize: "0.8rem", color: "#22c55e" }}>✓ Reply sent</p>}
+        {sent && <p style={{ margin: "0 0 0.5rem", fontSize: "0.8rem", color: "#22c55e" }}>Reply sent</p>}
         {sendError && <p style={{ margin: "0 0 0.5rem", fontSize: "0.8rem", color: "#ef4444" }}>Error: {sendError}</p>}
         {!replyOpen ? (
           <button onClick={() => setReplyOpen(true)}
@@ -213,17 +245,21 @@ export function SchoolInbox() {
   const [connected, setConnected]     = useState<boolean | null>(null);
   const [userEmail, setUserEmail]     = useState<string | null>(null);
   const [emails, setEmails]           = useState<Email[]>([]);
+  const [total, setTotal]             = useState(0);
   const [loading, setLoading]         = useState(true);
   const [refreshing, setRefreshing]   = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [syncError, setSyncError]     = useState<string | null>(null);
+  const [lastSynced, setLastSynced]   = useState<Date | null>(null);
   const [selected, setSelected]       = useState<Email | null>(null);
-  const [tab, setTab]                 = useState<"all" | "school">("all");
+  const [tab, setTab]                 = useState<TabKey>("all");
+  const autoRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setRefreshing(true);
     setSyncError(null);
     try {
-      const res = await fetch("/api/gmail/emails");
+      const res = await fetch("/api/gmail/emails?limit=50&offset=0");
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         setSyncError(data.error ?? `Sync failed (${res.status})`);
@@ -233,7 +269,9 @@ export function SchoolInbox() {
       setConnected(data.connected ?? false);
       setUserEmail(data.userEmail ?? null);
       setEmails(data.emails ?? []);
+      setTotal(data.total ?? 0);
       if (data.syncError) setSyncError(data.syncError);
+      setLastSynced(new Date());
     } catch (e) {
       setSyncError(e instanceof Error ? e.message : "Network error");
     } finally {
@@ -241,6 +279,23 @@ export function SchoolInbox() {
       setRefreshing(false);
     }
   }, []);
+
+  const loadMore = async () => {
+    setLoadingMore(true);
+    try {
+      const res = await fetch(`/api/gmail/emails?limit=50&offset=${emails.length}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setEmails(prev => {
+        const seen = new Set(prev.map(e => e.id));
+        const fresh = (data.emails ?? []).filter((e: Email) => !seen.has(e.id));
+        return [...prev, ...fresh];
+      });
+      setTotal(data.total ?? total);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -255,6 +310,12 @@ export function SchoolInbox() {
     load();
   }, [load]);
 
+  // Auto-refresh every 5 minutes
+  useEffect(() => {
+    autoRefreshRef.current = setInterval(() => load(true), 5 * 60 * 1000);
+    return () => { if (autoRefreshRef.current) clearInterval(autoRefreshRef.current); };
+  }, [load]);
+
   const disconnect = async () => {
     await fetch("/api/gmail/disconnect", { method: "POST" });
     setConnected(false);
@@ -262,8 +323,35 @@ export function SchoolInbox() {
     setUserEmail(null);
   };
 
-  const displayed = tab === "school" ? emails.filter(e => e.isBlackboard) : emails;
+  const tabFilter = (e: Email): boolean => {
+    if (tab === "all")    return true;
+    if (tab === "school") return e.isBlackboard || e.category === "school";
+    return e.category === tab;
+  };
+
+  const displayed = emails.filter(tabFilter);
   const deadlines = emails.filter(e => e.deadlineAt).sort((a, b) => new Date(a.deadlineAt!).getTime() - new Date(b.deadlineAt!).getTime());
+
+  // "Needs You" = action emails + school emails with upcoming deadlines (within 14 days)
+  const soon = Date.now() + 14 * 86400000;
+  const needsYou = emails.filter(e =>
+    e.category === "action" ||
+    (e.category === "school" && e.deadlineAt && new Date(e.deadlineAt).getTime() < soon)
+  );
+
+  const tabs: { key: TabKey; label: string; icon: React.ReactNode; color?: string }[] = [
+    { key: "all",    label: "All",     icon: <Inbox size={13} /> },
+    { key: "school", label: "School",  icon: <BookOpen size={13} />, color: "var(--purple)" },
+    { key: "health", label: "Health",  icon: <Heart size={13} />,    color: "#22c55e" },
+    { key: "bills",  label: "Bills",   icon: <DollarSign size={13} />, color: "#f97316" },
+    { key: "action", label: "Action",  icon: <AlertCircle size={13} />, color: "#ef4444" },
+  ];
+
+  const countFor = (key: TabKey) => {
+    if (key === "all") return emails.length;
+    if (key === "school") return emails.filter(e => e.isBlackboard || e.category === "school").length;
+    return emails.filter(e => e.category === key).length;
+  };
 
   if (loading) return (
     <div style={{ display: "flex", justifyContent: "center", paddingTop: "3rem" }}>
@@ -274,8 +362,8 @@ export function SchoolInbox() {
   if (!connected) return (
     <div>
       <div style={{ marginBottom: "1.5rem" }}>
-        <h1 style={{ margin: "0 0 0.25rem", fontFamily: "Georgia, serif", fontSize: "1.4rem", color: "var(--text)" }}>School Inbox</h1>
-        <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--text-muted)" }}>Connect Gmail to read emails & Blackboard notifications</p>
+        <h1 style={{ margin: "0 0 0.25rem", fontFamily: "Georgia, serif", fontSize: "1.4rem", color: "var(--text)" }}>Inbox</h1>
+        <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--text-muted)" }}>Connect Gmail to read emails, Blackboard notifications, and get smart Telegram briefings</p>
       </div>
       {syncError && (
         <div style={{ marginBottom: "1rem", padding: "0.6rem 1rem", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 10, fontSize: "0.82rem", color: "#ef4444" }}>
@@ -288,7 +376,7 @@ export function SchoolInbox() {
         </div>
         <h2 style={{ margin: "0 0 0.5rem", fontSize: "1.1rem", color: "var(--text)" }}>Connect your Gmail</h2>
         <p style={{ margin: "0 0 1.25rem", fontSize: "0.84rem", color: "var(--text-muted)", lineHeight: 1.6 }}>
-          Sign in with your personal Gmail. Forward your school email or set Blackboard notifications to go there — we'll read everything and send you Telegram reminders for due dates.
+          Sign in with your personal Gmail. We'll auto-sort school, health, bills, and action items — and feed the important stuff into your daily Telegram briefings.
         </p>
         <a href="/api/auth/google"
           style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", padding: "0.7rem 1.5rem", background: "var(--purple)", color: "#fff", borderRadius: 12, fontWeight: 700, fontSize: "0.9rem", textDecoration: "none" }}>
@@ -308,14 +396,19 @@ export function SchoolInbox() {
   return (
     <div>
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.75rem" }}>
         <div>
-          <h1 style={{ margin: "0 0 0.15rem", fontFamily: "Georgia, serif", fontSize: "1.4rem", color: "var(--text)" }}>School Inbox</h1>
-          <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--text-muted)" }}>{userEmail}</p>
+          <h1 style={{ margin: "0 0 0.1rem", fontFamily: "Georgia, serif", fontSize: "1.4rem", color: "var(--text)" }}>Inbox</h1>
+          <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--text-muted)" }}>
+            {userEmail}
+            {lastSynced && <span style={{ marginLeft: "0.5rem" }}>· synced {fmtTimeAgo(lastSynced)}</span>}
+          </p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-          <button onClick={() => load()} style={{ display: "flex", alignItems: "center", gap: "0.3rem", padding: "0.35rem 0.75rem", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 8, fontSize: "0.78rem", color: "var(--text-muted)", cursor: "pointer" }}>
-            <RefreshCw size={12} style={{ animation: refreshing ? "spin 0.8s linear infinite" : "none" }} /> Refresh
+          <button onClick={() => load()} disabled={refreshing}
+            style={{ display: "flex", alignItems: "center", gap: "0.3rem", padding: "0.35rem 0.75rem", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 8, fontSize: "0.78rem", color: "var(--text-muted)", cursor: "pointer", opacity: refreshing ? 0.6 : 1 }}>
+            <RefreshCw size={12} style={{ animation: refreshing ? "spin 0.8s linear infinite" : "none" }} />
+            {refreshing ? "Syncing…" : "Refresh"}
           </button>
           <button onClick={disconnect} style={{ padding: "0.35rem 0.75rem", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 8, fontSize: "0.78rem", color: "var(--text-muted)", cursor: "pointer" }}>
             Disconnect
@@ -326,17 +419,38 @@ export function SchoolInbox() {
       {/* Sync error banner */}
       {syncError && (
         <div style={{ marginBottom: "0.75rem", padding: "0.6rem 1rem", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 10, fontSize: "0.8rem", color: "#ef4444" }}>
-          Gmail sync issue: {syncError}
-          {syncError.includes("401") || syncError.includes("403") ? " — try disconnecting and reconnecting Gmail." : ""}
+          Sync issue: {syncError}
+          {(syncError.includes("401") || syncError.includes("403")) && " — try disconnecting and reconnecting."}
+        </div>
+      )}
+
+      {/* Needs You section */}
+      {needsYou.length > 0 && (
+        <div style={{ marginBottom: "0.75rem", padding: "0.75rem 1rem", background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 12 }}>
+          <p style={{ margin: "0 0 0.5rem", fontSize: "0.75rem", fontWeight: 700, color: "#ef4444", display: "flex", alignItems: "center", gap: "0.3rem" }}>
+            <AlertCircle size={13} /> Needs your attention
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
+            {needsYou.slice(0, 4).map(e => (
+              <div key={e.id} onClick={() => { setSelected(e); setTab("all"); }} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <span style={{ fontSize: "0.78rem", color: "var(--text)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+                  {e.subject ?? "(no subject)"}
+                </span>
+                {e.deadlineAt && (
+                  <span style={{ fontSize: "0.7rem", color: "#f97316", fontWeight: 600, flexShrink: 0 }}>Due {fmtDeadline(e.deadlineAt)}</span>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
       {/* Upcoming deadlines strip */}
       {deadlines.length > 0 && (
-        <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem", overflowX: "auto", paddingBottom: "0.25rem" }}>
+        <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.75rem", overflowX: "auto", paddingBottom: "0.25rem" }}>
           {deadlines.slice(0, 5).map(e => (
             <div key={e.id} onClick={() => setSelected(e)} style={{ flexShrink: 0, padding: "0.5rem 0.75rem", background: "rgba(249,115,22,0.08)", border: "1px solid rgba(249,115,22,0.25)", borderRadius: 10, cursor: "pointer" }}>
-              <p style={{ margin: 0, fontSize: "0.72rem", fontWeight: 700, color: "#f97316" }}>📅 {fmtDeadline(e.deadlineAt!)}</p>
+              <p style={{ margin: 0, fontSize: "0.72rem", fontWeight: 700, color: "#f97316" }}>Due {fmtDeadline(e.deadlineAt!)}</p>
               <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--text)", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.deadlineTitle}</p>
             </div>
           ))}
@@ -344,17 +458,29 @@ export function SchoolInbox() {
       )}
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: "0.25rem", marginBottom: "0.75rem", background: "var(--bg)", borderRadius: 10, padding: "0.2rem" }}>
-        {([
-          { key: "all",    label: "All Mail",        icon: <Mail size={13} />,     count: emails.length },
-          { key: "school", label: "Blackboard / School", icon: <BookOpen size={13} />, count: emails.filter(e => e.isBlackboard).length },
-        ] as const).map(({ key, label, icon, count }) => (
-          <button key={key} onClick={() => setTab(key)}
-            style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.35rem", padding: "0.5rem 0.75rem", borderRadius: 8, border: "none", background: tab === key ? "var(--surface)" : "transparent", color: tab === key ? "var(--purple)" : "var(--text-muted)", fontWeight: tab === key ? 600 : 500, fontSize: "0.82rem", cursor: "pointer", boxShadow: tab === key ? "0 1px 4px rgba(0,0,0,0.08)" : "none" }}>
-            {icon} {label}
-            {count > 0 && <span style={{ fontSize: "0.68rem", background: tab === key ? "var(--purple)" : "var(--border)", color: tab === key ? "#fff" : "var(--text-muted)", borderRadius: 8, padding: "0.05rem 0.35rem", fontWeight: 700 }}>{count}</span>}
-          </button>
-        ))}
+      <div style={{ display: "flex", gap: "0.2rem", marginBottom: "0.75rem", overflowX: "auto" }}>
+        {tabs.map(({ key, label, icon, color }) => {
+          const count = countFor(key);
+          const active = tab === key;
+          return (
+            <button key={key} onClick={() => setTab(key)}
+              style={{
+                flexShrink: 0, display: "flex", alignItems: "center", gap: "0.3rem",
+                padding: "0.45rem 0.8rem", borderRadius: 20, border: "1.5px solid",
+                borderColor: active ? (color ?? "var(--purple)") : "var(--border)",
+                background: active ? ((color ?? "var(--purple)") + "18") : "var(--bg)",
+                color: active ? (color ?? "var(--purple)") : "var(--text-muted)",
+                fontWeight: active ? 700 : 500, fontSize: "0.8rem", cursor: "pointer",
+              }}>
+              {icon} {label}
+              {count > 0 && (
+                <span style={{ fontSize: "0.67rem", background: active ? (color ?? "var(--purple)") : "var(--border)", color: active ? "#fff" : "var(--text-muted)", borderRadius: 8, padding: "0.05rem 0.3rem", fontWeight: 700 }}>
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* Split view: list + detail */}
@@ -366,13 +492,22 @@ export function SchoolInbox() {
               <div style={{ padding: "2rem", textAlign: "center", color: "var(--text-muted)" }}>
                 <Mail size={28} style={{ opacity: 0.3, marginBottom: "0.5rem" }} />
                 <p style={{ margin: 0, fontSize: "0.85rem" }}>
-                  {tab === "school" ? "No Blackboard emails yet. Set your notification email in Blackboard to your Gmail." : "No emails. Make sure Gmail is connected and emails are forwarded."}
+                  {tab === "school" ? "No school emails yet." : `No ${tab} emails.`}
                 </p>
               </div>
             ) : displayed.map(e => (
               <EmailRow key={e.id} email={e} onSelect={setSelected} selected={selected?.id === e.id} />
             ))}
           </div>
+          {/* Load more */}
+          {emails.length < total && (
+            <div style={{ borderTop: "1px solid var(--border)", padding: "0.6rem", textAlign: "center" }}>
+              <button onClick={loadMore} disabled={loadingMore}
+                style={{ fontSize: "0.78rem", color: "var(--purple)", background: "none", border: "none", cursor: "pointer", fontWeight: 600, opacity: loadingMore ? 0.6 : 1 }}>
+                {loadingMore ? "Loading…" : `Load more (${total - emails.length} remaining)`}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Email detail panel */}

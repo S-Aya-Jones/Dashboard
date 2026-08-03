@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { loadData } from "@/lib/db";
-import nodemailer from "nodemailer";
+import { sendTelegram } from "@/lib/telegram";
 import { sendPushNotification } from "@/lib/push";
 
 const client = new Anthropic();
@@ -61,20 +61,11 @@ Start with "Night wrap —"`,
       messages: [{ role: "user", content: JSON.stringify(context) }],
     });
 
-    const raw = msg.content[0].type === "text" ? msg.content[0].text : "Night wrap — log today's progress on your dashboard before you sleep.";
-    // eslint-disable-next-line no-control-regex
-    const text = raw.replace(/[^\x00-\x7F]/g, "").replace(/\s{2,}/g, " ").trim();
+    const text = msg.content[0].type === "text" ? msg.content[0].text : "Night wrap — log today's progress on your dashboard before you sleep.";
 
-    const gmailUser = process.env.GMAIL_USER;
-    const gmailPass = process.env.GMAIL_APP_PASSWORD;
+    await sendTelegram(text);
+
     const phone = process.env.USER_PHONE_NUMBER ?? "6156811609";
-
-    if (gmailUser && gmailPass) {
-      const digits = phone.replace(/\D/g, "").replace(/^1/, "");
-      const transporter = nodemailer.createTransport({ service: "gmail", auth: { user: gmailUser, pass: gmailPass } });
-      await transporter.sendMail({ from: gmailUser, to: `${digits}@tmomail.net`, subject: " ", text });
-    }
-
     const sms = data.sms ?? { phoneNumber: phone, enabled: true, messages: [], reminders: [] };
     sms.messages = [...(sms.messages ?? []), {
       id: `nightwrap-${Date.now()}`, direction: "outbound" as const, body: text, timestamp: new Date().toISOString(),
