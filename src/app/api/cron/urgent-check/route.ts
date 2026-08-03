@@ -29,12 +29,7 @@ function fmtEventDate(iso: string): string {
   return `${dateStr} at ${timeStr}`;
 }
 
-export async function GET(req: NextRequest) {
-  const auth = req.headers.get("authorization");
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export async function GET(_req: NextRequest) {
   try {
     // 1. Upcoming events (within 48h) not yet notified
     const urgentEvents = await getUnnotifiedUrgentEvents();
