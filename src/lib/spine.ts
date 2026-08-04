@@ -360,7 +360,9 @@ export async function runDispatch(origin: string): Promise<DispatchResult> {
   }
 
   return {
-    chicagoTime: now.toLocaleString("en-US", { timeZone: TZ }),
+    // `now` is already Chicago wall-clock (chicagoNow) — format without a
+    // second timeZone shift
+    chicagoTime: now.toLocaleString("en-US"),
     fired,
     remindersSent,
     urgentCheck,
@@ -405,7 +407,7 @@ export async function getSpineHealth() {
   } catch { /* db unavailable — config flags still useful */ }
 
   return {
-    chicagoTime: now.toLocaleString("en-US", { timeZone: TZ }),
+    chicagoTime: now.toLocaleString("en-US"),
     config,
     todaySlots,
     recentRuns,
