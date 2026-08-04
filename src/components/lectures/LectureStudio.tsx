@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Upload, Loader2, FileAudio, Trash2, Download, ChevronRight } from "lucide-react";
+import { Upload, Loader2, FileAudio, Trash2, Download, ChevronRight, KeyRound, Check } from "lucide-react";
 import { LectureDetail } from "./LectureDetail";
 
 const COURSES = ["Physiology", "Biochemistry", "Microbiology", "Cell & Molecular Bio", "MCAT", "Other"];
@@ -26,6 +26,40 @@ export function LectureStudio() {
   const [mp3Url, setMp3Url] = useState<string | null>(null);
   const [mp3Name, setMp3Name] = useState<string>("lecture.mp3");
   const fileInput = useRef<HTMLInputElement>(null);
+  const [keyState, setKeyState] = useState<{ configured: boolean; hint: string | null } | null>(null);
+  const [keyInput, setKeyInput] = useState("");
+  const [keySaving, setKeySaving] = useState(false);
+  const [keyError, setKeyError] = useState<string | null>(null);
+
+  const refreshKey = useCallback(async () => {
+    try {
+      const res = await fetch("/api/settings/openai-key");
+      const d = await res.json();
+      setKeyState({ configured: !!d.configured, hint: d.hint ?? null });
+    } catch { setKeyState({ configured: false, hint: null }); }
+  }, []);
+
+  useEffect(() => { refreshKey(); }, [refreshKey]);
+
+  async function saveKey() {
+    setKeySaving(true);
+    setKeyError(null);
+    try {
+      const res = await fetch("/api/settings/openai-key", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: keyInput.trim() }),
+      });
+      const d = await res.json();
+      if (!res.ok) { setKeyError(d.error ?? "Could not save key"); return; }
+      setKeyInput("");
+      await refreshKey();
+    } catch (e) {
+      setKeyError(String(e));
+    } finally {
+      setKeySaving(false);
+    }
+  }
 
   const refresh = useCallback(async () => {
     try {
@@ -99,6 +133,10 @@ export function LectureStudio() {
         });
         if (!res.ok) {
           const d = await res.json().catch(() => ({}));
+          if (d.error === "NO_OPENAI_KEY") {
+            await refreshKey();
+            throw new Error("Add your OpenAI transcription key above, then drop the file again — your MP3 is already downloadable below.");
+          }
           throw new Error(d.error ?? `chunk ${i} failed (${res.status})`);
         }
       }
@@ -132,6 +170,48 @@ export function LectureStudio() {
 
   return (
     <div className="space-y-6">
+      {/* One-time Whisper key setup */}
+      {keyState && !keyState.configured && (
+        <div className="rounded-2xl p-6" style={{ background: "var(--surface)", border: "1.5px solid var(--purple)" }}>
+          <div className="flex items-center gap-2 mb-2">
+            <KeyRound size={18} style={{ color: "var(--purple)" }} />
+            <h3 className="font-semibold" style={{ color: "var(--text)" }}>One-time setup: transcription key</h3>
+          </div>
+          <p className="text-sm mb-3" style={{ color: "var(--text-muted)" }}>
+            Lecture Studio uses OpenAI Whisper to transcribe audio (about 36¢ per hour of lecture).
+            Create a key at{" "}
+            <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer"
+              className="underline" style={{ color: "var(--purple)" }}>platform.openai.com/api-keys</a>
+            {" "}and paste it below — it&apos;s stored in your dashboard, no Vercel editing needed.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <input
+              type="password"
+              value={keyInput}
+              onChange={e => setKeyInput(e.target.value)}
+              placeholder="sk-..."
+              className="flex-1 min-w-[240px] rounded-lg px-3 py-2 text-sm"
+              style={{ background: "var(--bg)", border: "1.5px solid var(--border)", color: "var(--text)" }}
+            />
+            <button
+              onClick={saveKey}
+              disabled={keySaving || !keyInput.trim()}
+              className="px-5 py-2 rounded-lg font-semibold text-white text-sm disabled:opacity-40"
+              style={{ background: "var(--purple)" }}>
+              {keySaving ? "Verifying…" : "Save key"}
+            </button>
+          </div>
+          {keyError && <p className="text-sm mt-2" style={{ color: "#c0392b" }}>{keyError}</p>}
+        </div>
+      )}
+
+      {keyState?.configured && (
+        <div className="flex items-center gap-2 text-xs" style={{ color: "var(--text-muted)" }}>
+          <Check size={14} style={{ color: "#2eaf6e" }} />
+          Transcription key active {keyState.hint ? `(${keyState.hint})` : ""}
+        </div>
+      )}
+
       {/* Upload card */}
       <div className="rounded-2xl p-6" style={{ background: "var(--surface)", border: "1.5px solid var(--border)" }}>
         <div className="flex flex-wrap items-center gap-3 mb-4">

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { saveChunkText } from "@/lib/lectures";
+import { getAppKey } from "@/lib/appkeys";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -8,10 +9,10 @@ export const maxDuration = 60;
 // via OpenAI Whisper. Chunks exist because Vercel caps request bodies at
 // 4.5MB and Whisper caps files at 25MB.
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-  const key = process.env.OPENAI_API_KEY;
+  const key = await getAppKey("OPENAI_API_KEY");
   if (!key) {
     return NextResponse.json(
-      { error: "OPENAI_API_KEY is not set — add it in Vercel → Settings → Environment Variables (used for Whisper transcription)" },
+      { error: "NO_OPENAI_KEY" },
       { status: 400 },
     );
   }
