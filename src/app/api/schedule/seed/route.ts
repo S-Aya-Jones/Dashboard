@@ -113,13 +113,18 @@ async function seed() {
     }
   }
 
+  const tokenExpired =
+    failed.length > 0 && failed.every(f => f.error.includes("invalid_grant"));
+
   return NextResponse.json({
     ok: failed.length === 0,
     calendars: cals,
     created,
     skipped,
-    failed,
-    message: `Created ${created.length}, skipped ${skipped.length} (already present), failed ${failed.length}`,
+    failed: tokenExpired ? failed.slice(0, 1) : failed,
+    message: tokenExpired
+      ? "Google connection expired (invalid_grant). Fix: visit /api/google/auth, open the returned url, approve access, copy the refresh token into the GOOGLE_REFRESH_TOKEN env var on Vercel, redeploy, then visit this endpoint again."
+      : `Created ${created.length}, skipped ${skipped.length} (already present), failed ${failed.length}`,
   });
 }
 

@@ -643,7 +643,7 @@ export async function getUpcomingEvents(daysAhead = 14): Promise<(EmailEvent & {
     ORDER BY event_date ASC
     LIMIT 100
   `;
-  return rows.map(r => ({
+  const events = rows.map(r => ({
     id:            r.id as string,
     emailId:       r.email_id as string,
     eventType:     r.event_type as EmailEvent["eventType"],
@@ -655,6 +655,17 @@ export async function getUpcomingEvents(daysAhead = 14): Promise<(EmailEvent & {
     sourcePreview: String(r.source_preview ?? ""),
     notified:      Boolean(r.notified),
   }));
+
+  // Dedupe near-identical events parsed from separate emails about the same
+  // thing (e.g. "Payment scheduled for Aug 7" arriving twice): same title +
+  // same calendar day → keep the first
+  const seen = new Set<string>();
+  return events.filter(e => {
+    const key = `${e.title.trim().toLowerCase()}|${e.eventDate.slice(0, 10)}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 export async function getUnnotifiedUrgentEvents(): Promise<Array<EmailEvent & { id: string }>> {

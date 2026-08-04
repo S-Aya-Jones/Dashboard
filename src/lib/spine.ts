@@ -318,6 +318,15 @@ export async function runDispatch(origin: string): Promise<DispatchResult> {
   const nowMin = minutesOfDay(now);
   const fired: string[] = [];
 
+  // Heartbeat: proves the external pinger is alive even when no slot is due
+  {
+    const sql = db();
+    await sql`
+      INSERT INTO cron_runs (slot, day, detail) VALUES ('heartbeat', ${day}, 'ping')
+      ON CONFLICT (slot, day) DO UPDATE SET sent_at = NOW()
+    `;
+  }
+
   // 1. Time-of-day slots
   for (const slot of SLOTS) {
     if (!slot.days.includes(dow)) continue;
@@ -360,7 +369,9 @@ export async function runDispatch(origin: string): Promise<DispatchResult> {
   }
 
   return {
-    chicagoTime: now.toLocaleString("en-US", { timeZone: TZ }),
+    // `now` is already Chicago wall-clock (chicagoNow) — format without a
+    // second timeZone shift
+    chicagoTime: now.toLocaleString("en-US"),
     fired,
     remindersSent,
     urgentCheck,
@@ -386,12 +397,16 @@ export async function getSpineHealth() {
   let todaySlots: unknown[] = [];
   let activeReminders = 0;
   let upcomingAssessments = 0;
+  let lastPing: string | null = null;
 
   try {
     await ensureCronRuns();
     const sql = db();
+    const hb = await sql`SELECT MAX(sent_at) AS last FROM cron_runs WHERE slot = 'heartbeat'`;
+    lastPing = hb[0]?.last ? String(hb[0].last) : null;
     recentRuns = await sql`
       SELECT slot, day, sent_at, detail FROM cron_runs
+      WHERE slot != 'heartbeat'
       ORDER BY sent_at DESC LIMIT 25
     `;
     const todayRows = await sql`SELECT slot FROM cron_runs WHERE day = ${day}`;
@@ -405,7 +420,9 @@ export async function getSpineHealth() {
   } catch { /* db unavailable — config flags still useful */ }
 
   return {
-    chicagoTime: now.toLocaleString("en-US", { timeZone: TZ }),
+    chicagoTime: now.toLocaleString("en-US"),
+    // when the external pinger last hit dispatch — null means it has never run
+    lastPing,
     config,
     todaySlots,
     recentRuns,
