@@ -5,6 +5,7 @@
     { "path": "/api/cron/evening-reminder", "schedule": "0 23 * * *"  },
     { "path": "/api/cron/night-wrap",       "schedule": "0 4 * * *"   },
     { "path": "/api/cron/reminders",        "schedule": "0 14 * * *"  },
+    { "path": "/api/cron/skincare-reminder", "schedule": "55 0 * * *" },
     { "path": "/api/cron/weekly-preview",   "schedule": "0 1 * * 1"   }
   ],
   "headers": [
