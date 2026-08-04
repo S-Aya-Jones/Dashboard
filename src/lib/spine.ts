@@ -307,6 +307,17 @@ export interface DispatchResult {
   fired: string[];
   remindersSent: number;
   urgentCheck: string;
+  heartbeatRow?: unknown;
+  dbHost?: string | null;
+}
+
+// Diagnostic: which database host this function actually talks to (no secrets)
+export function dbHost(): string | null {
+  try {
+    return new URL(process.env.DATABASE_URL ?? "").host || null;
+  } catch {
+    return null;
+  }
 }
 
 export async function runDispatch(origin: string): Promise<DispatchResult> {
@@ -319,12 +330,18 @@ export async function runDispatch(origin: string): Promise<DispatchResult> {
   const fired: string[] = [];
 
   // Heartbeat: proves the external pinger is alive even when no slot is due
+  let heartbeatRow: unknown = null;
   {
     const sql = db();
     await sql`
       INSERT INTO cron_runs (slot, day, detail) VALUES ('heartbeat', ${day}, 'ping')
       ON CONFLICT (slot, day) DO UPDATE SET sent_at = NOW()
     `;
+    const check = await sql`
+      SELECT slot, day, sent_at FROM cron_runs WHERE slot = 'heartbeat'
+      ORDER BY sent_at DESC LIMIT 1
+    `;
+    heartbeatRow = check[0] ?? "MISSING AFTER INSERT";
   }
 
   // 1. Time-of-day slots
@@ -375,6 +392,8 @@ export async function runDispatch(origin: string): Promise<DispatchResult> {
     fired,
     remindersSent,
     urgentCheck,
+    heartbeatRow,
+    dbHost: dbHost(),
   };
 }
 
