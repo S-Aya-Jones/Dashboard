@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { neon } from "@neondatabase/serverless";
+import { neonClient } from "@/lib/neon";
 
 export const dynamic = "force-dynamic";
 
 function db() {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL not set");
-  return neon(url);
+  return neonClient(url);
 }
 
 // All course deadlines extracted from syllabi

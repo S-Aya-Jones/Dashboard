@@ -1,4 +1,4 @@
-import { neon } from "@neondatabase/serverless";
+import { neonClient } from "@/lib/neon";
 
 const AUTH_URL   = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize";
 const TOKEN_URL  = "https://login.microsoftonline.com/common/oauth2/v2.0/token";
@@ -9,7 +9,7 @@ const REDIRECT   = "https://dashboard-phi-six-70.vercel.app/api/auth/microsoft/c
 function db() {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL not set");
-  return neon(url);
+  return neonClient(url);
 }
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
