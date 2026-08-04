@@ -1,4 +1,4 @@
-import { neon } from "@neondatabase/serverless";
+import { neonClient } from "@/lib/neon";
 
 const AUTH_URL  = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
@@ -17,7 +17,7 @@ const SCOPES    = [
 function db() {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL not set");
-  return neon(url);
+  return neonClient(url);
 }
 
 // ─── Schema ───────────────────────────────────────────────────────────────────

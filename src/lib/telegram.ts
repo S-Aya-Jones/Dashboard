@@ -1,9 +1,9 @@
-import { neon } from "@neondatabase/serverless";
+import { neonClient } from "@/lib/neon";
 
 function getDb() {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL is not set");
-  return neon(url);
+  return neonClient(url);
 }
 
 // ─── Send helper ──────────────────────────────────────────────────────────────

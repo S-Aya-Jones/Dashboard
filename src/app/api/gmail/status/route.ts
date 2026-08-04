@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { neon } from "@neondatabase/serverless";
+import { neonClient } from "@/lib/neon";
 
 export const dynamic = "force-dynamic";
 
@@ -7,7 +7,7 @@ export async function GET() {
   const url = process.env.DATABASE_URL;
   if (!url) return NextResponse.json({ error: "no DATABASE_URL" });
 
-  const sql = neon(url);
+  const sql = neonClient(url);
 
   try {
     // Check what columns exist and their types
