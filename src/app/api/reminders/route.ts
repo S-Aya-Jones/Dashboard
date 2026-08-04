@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getReminders, createReminder } from "@/lib/telegram";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const reminders = await getReminders();
   return NextResponse.json(reminders);

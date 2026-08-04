@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getParkingLotEntries, insertParkingLotEntry } from "@/lib/felt-safety-db";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const entries = await getParkingLotEntries();
   return NextResponse.json({ entries });

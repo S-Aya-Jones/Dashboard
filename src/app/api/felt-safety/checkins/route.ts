@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCheckins, insertCheckin } from "@/lib/felt-safety-db";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const checkins = await getCheckins();
   return NextResponse.json({ checkins });

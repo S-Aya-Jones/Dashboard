@@ -3,6 +3,8 @@ import { ImapFlow } from "imapflow";
 import { loadData, saveData } from "@/lib/db";
 import { SmsMessage } from "@/types/dashboard";
 
+export const dynamic = "force-dynamic";
+
 const TMOBILE_SENDER_DOMAIN = "tmomail.net";
 
 function parseIntent(raw: string): { reply: string; action: string; weightUpdate?: number; stepsUpdate?: number } {

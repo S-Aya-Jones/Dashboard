@@ -6,6 +6,8 @@ import { randomUUID } from "crypto";
 import { format } from "date-fns";
 import { Flashcard } from "@/types/dashboard";
 
+export const dynamic = "force-dynamic";
+
 export const maxDuration = 300;
 
 // ── HTML stripping ──────────────────────────────────────────────────────────

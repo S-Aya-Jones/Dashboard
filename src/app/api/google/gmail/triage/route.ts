@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 
+export const dynamic = "force-dynamic";
+
 const client = new Anthropic();
 
 export type TriageCategory = "reply" | "appointment" | "bill" | "school" | "spam" | "fyi";

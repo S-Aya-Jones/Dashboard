@@ -10,6 +10,8 @@ import {
   formatDaysOfWeek,
 } from "@/lib/telegram";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   return NextResponse.json({
     ok: true,

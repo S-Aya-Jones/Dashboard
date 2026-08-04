@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 // GET /api/telegram/setup?domain=https://your-app.vercel.app
 // Registers the webhook URL with Telegram so it starts forwarding messages
 export async function GET(req: NextRequest) {

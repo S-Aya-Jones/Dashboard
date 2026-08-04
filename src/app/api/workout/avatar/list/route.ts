@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 // List and manage stored avatar video URLs
 export async function GET() {
   // This would retrieve from the user's workout data

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getPlaidClient, getPlaidItems, decryptToken } from "@/lib/plaid";
 
+export const dynamic = "force-dynamic";
+
 const cache = new Map<string, { data: unknown; expiry: number }>();
 
 export async function GET() {

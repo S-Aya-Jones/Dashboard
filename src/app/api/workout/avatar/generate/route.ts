@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 // HeyGen API integration for generating exercise demonstration videos
 // Requires HEYGEN_API_KEY environment variable
 

@@ -4,6 +4,8 @@ import mammoth from "mammoth";
 import JSZip from "jszip";
 import { randomUUID } from "crypto";
 
+export const dynamic = "force-dynamic";
+
 export const maxDuration = 300;
 
 const client = new Anthropic();

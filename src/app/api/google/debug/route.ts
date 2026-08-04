@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getAuthedClient } from "@/lib/google";
 import { google } from "googleapis";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const token = process.env.GOOGLE_REFRESH_TOKEN ?? "";
   const clientId = process.env.GOOGLE_CLIENT_ID ?? "";

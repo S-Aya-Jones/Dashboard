@@ -3,6 +3,8 @@ import { put } from "@vercel/blob";
 import Anthropic from "@anthropic-ai/sdk";
 import { loadData, saveData } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 const client = new Anthropic();
 
 export async function POST(req: NextRequest) {

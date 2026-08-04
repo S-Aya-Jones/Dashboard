@@ -8,6 +8,8 @@ import { sendTelegram } from "@/lib/telegram";
 import { sendPushNotification } from "@/lib/push";
 import { getActionableEmails, getUpcomingEvents } from "@/lib/gmail";
 
+export const dynamic = "force-dynamic";
+
 const client = new Anthropic();
 
 async function getAccounts() {

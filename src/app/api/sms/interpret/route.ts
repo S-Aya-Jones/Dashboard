@@ -3,6 +3,8 @@ import Anthropic from "@anthropic-ai/sdk";
 import { loadData, saveData } from "@/lib/db";
 import { sendPushNotification } from "@/lib/push";
 
+export const dynamic = "force-dynamic";
+
 const client = new Anthropic();
 
 export async function POST(req: NextRequest) {
