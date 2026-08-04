@@ -10,6 +10,8 @@ const SCOPES    = [
   "https://www.googleapis.com/auth/gmail.modify",
   "https://www.googleapis.com/auth/userinfo.email",
   "https://www.googleapis.com/auth/userinfo.profile",
+  // Calendar — the same stored token powers the schedule view + seeder
+  "https://www.googleapis.com/auth/calendar",
 ].join(" ");
 
 function db() {
