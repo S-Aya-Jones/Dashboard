@@ -147,15 +147,15 @@ function buildStudyBlocksMsg(assessments: Assessment[], dow: number): string {
 function buildLeaveWorkMsg(dow: number): string {
   switch (dow) {
     case 1:
-      return "2:25 — wrap it up. Today's drive home is the EXTENDED route (driving exposure #1 this week). Take it slow, you've got nothing until 5. Home ~3:20, classes stream til 5 — light tasks only.";
+      return "2:25 — wrap it up. Today's drive home is the EXTENDED route (driving exposure #1 this week). Take it slow, you've got nothing until 5. Home ~3:20 — free afternoon: flashcards, admin, breathe. Block 1 at 5:00.";
     case 2:
-      return "2:25 — head home, direct route. Classes stream til 5 while you knock out flashcards and light tasks. Block 1 hits at 5:00.";
+      return "2:25 — head home, direct route. Free afternoon: flashcards, admin, decompress. Block 1 hits at 5:00.";
     case 4:
-      return "2:25 — head home. Classes til 5. At 4:30: short neighborhood exposure drive (#2 this week) — 20 minutes, then Block 1 at 5:00.";
+      return "2:25 — head home. Free afternoon til 4:30, then the short neighborhood exposure drive (#2 this week) — 20 minutes, then Block 1 at 5:00.";
     case 5:
-      return "2:25 — it's Friday. If it's payday: 30-min budget check when you get home (bills tab is already sorted). Classes wind down at 5, then it's Geandra time. Enjoy it — you earned it.";
+      return "2:25 — it's Friday, no classes today. If it's payday: 30-min budget check when you get home (bills tab is already sorted). Light study 3:30–5, then it's Geandra time. Enjoy it — you earned it.";
     default:
-      return "2:25 — head home. Classes stream til 5, Block 1 at 5:00.";
+      return "2:25 — head home. Free afternoon, Block 1 at 5:00.";
   }
 }
 
@@ -177,11 +177,11 @@ function buildWeekPlanMsg(assessments: Assessment[]): string {
 
 const DAY_TEMPLATES: Record<number, string> = {
   0: "Sunday: study 7–8:30 → church → family → groceries → cook (Mon–Wed) → study 5–6:30 → week planning at 7.",
-  1: "Monday: gym 5:15 → work + classes → extended-route drive home → Block 1 at 5, Block 2 at 7.",
-  2: "Tuesday: gym 5:15 → work + classes → Block 1 at 5, Block 2 at 7.",
-  3: "Wednesday (WFH): MCAT 5:15–6:45 → work from home → therapy at lunch → cook during classes → light review only.",
-  4: "Thursday: gym 5:15 → work + classes → 4:30 short exposure drive → Block 1 at 5, Block 2 at 7.",
-  5: "Friday: gym 5:15 → work + classes → budget check if payday → Geandra tonight.",
+  1: "Monday: gym 5:15 → work · Biochem 8–10 · Physio 10–12 → extended-route drive home → Block 1 at 5, Block 2 at 7.",
+  2: "Tuesday: gym 5:15 → work · CMB 8–10 · Micro 10–12 → Block 1 at 5, Block 2 at 7.",
+  3: "Wednesday (WFH): MCAT 5:15–6:45 → WFH · Biochem 8–10 · Physio 10–12 → therapy at lunch → cook at 3 → light review only.",
+  4: "Thursday: gym 5:15 → work · CMB 8–10 · Micro 10–12 → 4:30 short exposure drive → Block 1 at 5, Block 2 at 7.",
+  5: "Friday: gym 5:15 → work (no classes!) → budget check if payday → Geandra tonight.",
   6: "Saturday: shadowing 7:30–11:30 → major driving exposure 12:30 → cleaning → open evening.",
 };
 

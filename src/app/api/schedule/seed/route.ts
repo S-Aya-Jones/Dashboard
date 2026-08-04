@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 // Anchor dates are the week of Aug 4–10, 2026 — recurrences run forward.
 
 interface Series {
-  cal: "gym" | "study" | "primary";
+  cal: "gym" | "study" | "classes" | "primary";
   summary: string;
   desc: string;
   anchor: string;      // YYYY-MM-DD of first occurrence
@@ -24,6 +24,12 @@ interface Series {
 
 const TEMPLATE: Series[] = [
   { cal: "gym", summary: "🏋️ Gym", desc: "Bag packed the night before. Home 6:10, shower, work at 7.", anchor: "2026-08-06", start: "05:15", end: "06:10", rrule: "RRULE:FREQ=WEEKLY;BYDAY=MO,TU,TH,FR" },
+
+  // Actual class meeting times (synchronous, streamed at work) — Fall 2026
+  { cal: "classes", summary: "🧪 Biochemistry (GMHS 707-01)", desc: "Capture mode: flag confusion, make flashcards.", anchor: "2026-08-05", start: "08:00", end: "10:00", rrule: "RRULE:FREQ=WEEKLY;BYDAY=MO,WE;UNTIL=20261218T235959Z" },
+  { cal: "classes", summary: "🫀 Physiology (GMHS 709-01)", desc: "Capture mode: flag confusion, make flashcards.", anchor: "2026-08-05", start: "10:00", end: "12:00", rrule: "RRULE:FREQ=WEEKLY;BYDAY=MO,WE;UNTIL=20261218T235959Z" },
+  { cal: "classes", summary: "🧬 CMB (GMHS 710-01)", desc: "Capture mode: flag confusion, make flashcards.", anchor: "2026-08-06", start: "08:00", end: "10:00", rrule: "RRULE:FREQ=WEEKLY;BYDAY=TU,TH;UNTIL=20261218T235959Z" },
+  { cal: "classes", summary: "🦠 Microbiology (GMHS 706-1)", desc: "Capture mode: flag confusion, make flashcards.", anchor: "2026-08-06", start: "10:00", end: "12:00", rrule: "RRULE:FREQ=WEEKLY;BYDAY=TU,TH;UNTIL=20261218T235959Z" },
 
   { cal: "study", summary: "📚 Study Block 1 — nearest assessment, questions first", desc: "10 practice questions COLD, then study the misses. The 4:55pm Telegram ping names tonight's course.", anchor: "2026-08-04", start: "17:00", end: "18:30", rrule: "RRULE:FREQ=WEEKLY;BYDAY=MO,TU,TH" },
   { cal: "study", summary: "📚 Study Block 2 — second course + error log", desc: "Second-nearest course. Every miss goes in the error log — that's the exam study guide.", anchor: "2026-08-04", start: "19:00", end: "20:00", rrule: "RRULE:FREQ=WEEKLY;BYDAY=MO,TU,TH" },
@@ -50,13 +56,14 @@ const TEMPLATE: Series[] = [
 ];
 
 async function resolveCalendars(calendar: calendar_v3.Calendar) {
-  const map: Record<string, string> = { gym: "primary", study: "primary", primary: "primary" };
+  const map: Record<string, string> = { gym: "primary", study: "primary", classes: "primary", primary: "primary" };
   try {
     const list = await calendar.calendarList.list();
     for (const c of list.data.items ?? []) {
       const name = (c.summary ?? "").trim().toLowerCase();
       if (name === "gym" && c.id) map.gym = c.id;
       if (name === "study" && c.id) map.study = c.id;
+      if (name === "fall classes" && c.id) map.classes = c.id;
     }
   } catch { /* fall back to primary for everything */ }
   return map;
