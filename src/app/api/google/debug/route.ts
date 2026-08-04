@@ -18,8 +18,29 @@ export async function GET() {
   try {
     const auth = await getAuthedClient();
     const gmail = google.gmail({ version: "v1", auth });
-    await gmail.users.getProfile({ userId: "me" });
-    return NextResponse.json({ status: "ok", ...info });
+    const profile = await gmail.users.getProfile({ userId: "me" });
+
+    // Which account's calendars does this token actually see?
+    let calendars: Array<{ name: string; primary: boolean }> = [];
+    let calendarError: string | null = null;
+    try {
+      const cal = google.calendar({ version: "v3", auth });
+      const list = await cal.calendarList.list();
+      calendars = (list.data.items ?? []).map(c => ({
+        name: c.summary ?? "(unnamed)",
+        primary: !!c.primary,
+      }));
+    } catch (ce) {
+      calendarError = ce instanceof Error ? ce.message : String(ce);
+    }
+
+    return NextResponse.json({
+      status: "ok",
+      connectedAccount: profile.data.emailAddress ?? "(unknown)",
+      calendars,
+      calendarError,
+      ...info,
+    });
   } catch (e: unknown) {
     return NextResponse.json({
       status: "error",
