@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { google } from "googleapis";
 import { getAuthedClient } from "@/lib/google";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   if (!process.env.GOOGLE_REFRESH_TOKEN) return NextResponse.json({ error: "not_connected" }, { status: 401 });
   const { searchParams } = req.nextUrl;

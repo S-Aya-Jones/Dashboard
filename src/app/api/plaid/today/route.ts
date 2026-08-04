@@ -4,6 +4,8 @@ import { loadData } from "@/lib/db";
 import nodemailer from "nodemailer";
 import Anthropic from "@anthropic-ai/sdk";
 
+export const dynamic = "force-dynamic";
+
 const anthropic = new Anthropic();
 
 const CAT_MAP: Record<string, string> = {

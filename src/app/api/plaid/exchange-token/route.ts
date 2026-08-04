@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getPlaidClient, upsertPlaidItem } from "@/lib/plaid";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(req: Request) {
   try {
     const { publicToken, metadata } = await req.json();

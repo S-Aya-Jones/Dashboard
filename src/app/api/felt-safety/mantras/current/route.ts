@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentMantra } from "@/lib/felt-safety-db";
 
+export const dynamic = "force-dynamic";
+
 // Public endpoint — Twilio webhooks can hit this to pull current mantra for SMS
 export async function GET(req: NextRequest) {
   const faithMode = req.nextUrl.searchParams.get("faith");

@@ -4,6 +4,8 @@ import { Flashcard } from "@/types/dashboard";
 import { randomUUID } from "crypto";
 import { format } from "date-fns";
 
+export const dynamic = "force-dynamic";
+
 const client = new Anthropic();
 
 interface GenerateRequest {

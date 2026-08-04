@@ -4,6 +4,8 @@ import { loadData } from "@/lib/db";
 import { sendTelegram } from "@/lib/telegram";
 import { sendPushNotification } from "@/lib/push";
 
+export const dynamic = "force-dynamic";
+
 const client = new Anthropic();
 
 export async function GET(req: NextRequest) {

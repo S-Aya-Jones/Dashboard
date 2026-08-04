@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getRepCards, insertRepCard } from "@/lib/felt-safety-db";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const cards = await getRepCards();
   return NextResponse.json({ cards });

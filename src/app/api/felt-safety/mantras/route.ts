@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getMantras, insertMantra } from "@/lib/felt-safety-db";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   const faithMode = req.nextUrl.searchParams.get("faith");
   const mantras   = await getMantras(faithMode === null ? undefined : faithMode === "true");

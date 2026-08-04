@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { MCATQuestion } from "@/types/dashboard";
 import { randomUUID } from "crypto";
 
+export const dynamic = "force-dynamic";
+
 const client = new Anthropic();
 
 const SYSTEM_PROMPT = `You are an elite MCAT tutor with board-level accuracy in all MCAT content areas. You genuinely teach — not just summarize.

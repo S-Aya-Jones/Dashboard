@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { insertTwitchLog, getTwitchLogs } from "@/lib/felt-safety-db";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const logs = await getTwitchLogs();

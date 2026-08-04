@@ -1,6 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 interface DebtCtx {
   takeHome: number;
   creditCards: { name: string; balance: number; minimumPayment: number | null; purchaseApr: number | null }[];

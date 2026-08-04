@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 
+export const dynamic = "force-dynamic";
+
 // eslint-disable-next-line no-control-regex
 function stripEmojis(text: string): string {
   return text.replace(/[^\x00-\x7F]/g, "").replace(/\s{2,}/g, " ").trim();

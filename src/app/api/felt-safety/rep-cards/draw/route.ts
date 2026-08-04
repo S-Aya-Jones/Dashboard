@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTodayDraw, drawCard, redrawCard, getRepCards, getRepCompletions } from "@/lib/felt-safety-db";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const completions = await getRepCompletions();
   const todayDraw   = await getTodayDraw();

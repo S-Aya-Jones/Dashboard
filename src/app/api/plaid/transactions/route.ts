@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getPlaidClient, getPlaidItems, decryptToken } from "@/lib/plaid";
 import { format, subDays, parseISO } from "date-fns";
 
+export const dynamic = "force-dynamic";
+
 const cache = new Map<string, { data: unknown; expiry: number }>();
 const TTL   = 5 * 60 * 1000;
 

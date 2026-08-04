@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getPlaidClient, getPlaidItems, decryptToken } from "@/lib/plaid";
 import { format, subDays, parseISO, differenceInDays, addDays } from "date-fns";
 
+export const dynamic = "force-dynamic";
+
 interface RawTxn { id: string; name: string; amount: number; date: string; category: string; }
 
 // ── Keyword definitions ───────────────────────────────────────────────────────

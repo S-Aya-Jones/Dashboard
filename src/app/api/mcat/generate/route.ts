@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { MCATQuestion } from "@/types/dashboard";
 import { randomUUID } from "crypto";
 
+export const dynamic = "force-dynamic";
+
 const client = new Anthropic();
 
 interface GenerateRequest {

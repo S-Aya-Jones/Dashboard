@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getOAuth2Client } from "@/lib/google";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
   if (!code) return NextResponse.json({ error: "No code provided" }, { status: 400 });
