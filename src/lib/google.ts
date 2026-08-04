@@ -15,9 +15,19 @@ export function getOAuth2Client() {
   );
 }
 
-export function getAuthedClient() {
+export async function getAuthedClient() {
   const oauth2 = getOAuth2Client();
-  oauth2.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN });
+  // Prefer the refresh token stored by the in-app Google connect flow
+  // (gmail_tokens table — refreshed whenever she reconnects from the
+  // dashboard); the GOOGLE_REFRESH_TOKEN env var is the fallback.
+  let dbToken: string | null = null;
+  try {
+    const { getGmailTokens } = await import("@/lib/gmail");
+    dbToken = (await getGmailTokens())?.refreshToken ?? null;
+  } catch { /* table unavailable — fall back to env */ }
+  oauth2.setCredentials({
+    refresh_token: dbToken ?? process.env.GOOGLE_REFRESH_TOKEN,
+  });
   return oauth2;
 }
 

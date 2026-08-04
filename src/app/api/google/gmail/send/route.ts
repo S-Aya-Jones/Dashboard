@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
   const { threadId, to, subject, body } = await req.json();
 
   try {
-    const auth = getAuthedClient();
+    const auth = await getAuthedClient();
     const gmail = google.gmail({ version: "v1", auth });
 
     const message = [`To: ${to}`, `Subject: ${subject}`, "Content-Type: text/plain; charset=utf-8", "", body].join("\r\n");

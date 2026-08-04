@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
   const threadId = searchParams.get("threadId");
 
   try {
-    const auth = getAuthedClient();
+    const auth = await getAuthedClient();
     const gmail = google.gmail({ version: "v1", auth });
 
     if (threadId) {
@@ -52,7 +52,7 @@ export async function DELETE(req: NextRequest) {
   if (!threadIds?.length) return NextResponse.json({ error: "No threadIds" }, { status: 400 });
 
   try {
-    const auth = getAuthedClient();
+    const auth = await getAuthedClient();
     const gmail = google.gmail({ version: "v1", auth });
     await Promise.all(threadIds.map((id: string) => gmail.users.threads.trash({ userId: "me", id })));
     return NextResponse.json({ success: true, deleted: threadIds.length });

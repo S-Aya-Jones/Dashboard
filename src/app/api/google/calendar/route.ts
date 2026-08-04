@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
   const days = parseInt(searchParams.get("days") ?? "30");
 
   try {
-    const auth = getAuthedClient();
+    const auth = await getAuthedClient();
     const calendar = google.calendar({ version: "v3", auth });
     const timeMin = new Date().toISOString();
     const timeMax = new Date(Date.now() + days * 86400000).toISOString();
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
   const { title, date, time, duration, description, allDay } = await req.json();
 
   try {
-    const auth = getAuthedClient();
+    const auth = await getAuthedClient();
     const calendar = google.calendar({ version: "v3", auth });
 
     let start, end;

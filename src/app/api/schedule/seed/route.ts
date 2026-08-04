@@ -78,10 +78,10 @@ async function alreadySeeded(calendar: calendar_v3.Calendar, calId: string, summ
 }
 
 async function seed() {
-  if (!process.env.GOOGLE_REFRESH_TOKEN) {
-    return NextResponse.json({ ok: false, error: "Google not connected (GOOGLE_REFRESH_TOKEN missing)" }, { status: 400 });
+  const auth = await getAuthedClient();
+  if (!auth.credentials.refresh_token) {
+    return NextResponse.json({ ok: false, error: "Google not connected — visit /api/google/auth and approve access first" }, { status: 400 });
   }
-  const auth = getAuthedClient();
   const calendar = google.calendar({ version: "v3", auth });
   const cals = await resolveCalendars(calendar);
 

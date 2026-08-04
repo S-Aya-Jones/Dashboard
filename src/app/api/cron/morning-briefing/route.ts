@@ -72,7 +72,7 @@ async function getRecentTransactions() {
 async function getTodayCalendarEvents() {
   try {
     if (!process.env.GOOGLE_REFRESH_TOKEN) return [];
-    const auth = getAuthedClient();
+    const auth = await getAuthedClient();
     const calendar = google.calendar({ version: "v3", auth });
     const now = new Date();
     const sevenDaysOut = new Date(Date.now() + 7 * 86400000);
@@ -99,7 +99,7 @@ async function getTodayCalendarEvents() {
 async function getImportantEmails() {
   try {
     if (!process.env.GOOGLE_REFRESH_TOKEN) return [];
-    const auth = getAuthedClient();
+    const auth = await getAuthedClient();
     const gmail = google.gmail({ version: "v1", auth });
     const list = await gmail.users.threads.list({
       userId: "me",
