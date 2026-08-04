@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
 
   try {
     if (process.env.GOOGLE_REFRESH_TOKEN) {
-      const auth = getAuthedClient();
+      const auth = await getAuthedClient();
       const calendar = google.calendar({ version: "v3", auth });
 
       // Gym / Study / Fall Classes / Family etc. all feed the day view

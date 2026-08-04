@@ -35,7 +35,7 @@ export async function GET() {
 
   // ── Calendar: events starting in the next 30 minutes ──
   try {
-    const auth = getAuthedClient();
+    const auth = await getAuthedClient();
     const calendar = google.calendar({ version: "v3", auth });
     const now = new Date();
     const soon = new Date(now.getTime() + 31 * 60000);
@@ -65,7 +65,7 @@ export async function GET() {
 
   // ── Gmail: unread reply-needed threads (checked at most once per session via header) ──
   try {
-    const auth = getAuthedClient();
+    const auth = await getAuthedClient();
     const gmail = google.gmail({ version: "v1", auth });
     const list = await gmail.users.threads.list({ userId: "me", q: "in:inbox is:unread", maxResults: 5, labelIds: ["INBOX"] });
     const count = list.data.resultSizeEstimate ?? 0;

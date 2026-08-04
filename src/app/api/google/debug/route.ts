@@ -14,7 +14,7 @@ export async function GET() {
   };
 
   try {
-    const auth = getAuthedClient();
+    const auth = await getAuthedClient();
     const gmail = google.gmail({ version: "v1", auth });
     await gmail.users.getProfile({ userId: "me" });
     return NextResponse.json({ status: "ok", ...info });
