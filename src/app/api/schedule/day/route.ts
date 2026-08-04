@@ -5,20 +5,29 @@ import { getUpcomingEvents } from "@/lib/gmail";
 
 export const dynamic = "force-dynamic";
 
+// Midnight-to-midnight window for a Chicago calendar day, as true UTC
+// instants. Computing this with server-local setHours() shifted the window
+// ~5-6h early and silently hid evening events (7pm+ Chicago).
+function chicagoDayWindow(dateStr: string) {
+  const tz = "America/Chicago";
+  const probe = new Date(`${dateStr}T12:00:00Z`);
+  const utcView = new Date(probe.toLocaleString("en-US", { timeZone: "UTC" }));
+  const chiView = new Date(probe.toLocaleString("en-US", { timeZone: tz }));
+  const offsetMs = utcView.getTime() - chiView.getTime(); // 5h CDT / 6h CST
+  const dayStart = new Date(new Date(`${dateStr}T00:00:00Z`).getTime() + offsetMs);
+  const dayEnd = new Date(dayStart.getTime() + 24 * 3600000 - 1);
+  return { dayStart, dayEnd };
+}
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   // date param: YYYY-MM-DD, defaults to today (Chicago time)
   const dateParm = searchParams.get("date");
   const tz = "America/Chicago";
 
-  const targetDate = dateParm
-    ? new Date(`${dateParm}T00:00:00`)
-    : new Date(new Date().toLocaleDateString("en-CA", { timeZone: tz }) + "T00:00:00");
-
-  const dayStart = new Date(targetDate);
-  dayStart.setHours(0, 0, 0, 0);
-  const dayEnd = new Date(targetDate);
-  dayEnd.setHours(23, 59, 59, 999);
+  const dateStr = dateParm
+    ?? new Date().toLocaleDateString("en-CA", { timeZone: tz });
+  const { dayStart, dayEnd } = chicagoDayWindow(dateStr);
 
   // ── Google Calendar events — aggregated across ALL her calendars ────────
   const calEvents: Array<{
@@ -89,7 +98,7 @@ export async function GET(req: NextRequest) {
     }));
 
   return NextResponse.json({
-    date: targetDate.toISOString().slice(0, 10),
+    date: dateStr,
     calEvents,
     emailEvents,
   });
