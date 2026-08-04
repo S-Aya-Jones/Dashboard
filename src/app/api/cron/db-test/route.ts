@@ -29,20 +29,23 @@ export async function GET() {
 
     const staticCount = await sql`SELECT COUNT(*) AS c FROM cron_runs WHERE slot LIKE 'cachetest%'`;
 
-    // Nonce inside the SQL text itself — unique query string, uncacheable
-    const q = `SELECT COUNT(*) AS c, MAX(sent_at) AS m FROM cron_runs WHERE slot LIKE 'cachetest%' /* ${nonce} */`;
-    const nonceCount = await sql.query(q);
-
-    const hbNonce = await sql.query(
-      `SELECT slot, day, sent_at FROM cron_runs WHERE slot = 'heartbeat' /* ${nonce} */`
-    );
+    // Nonce as a parameter — the HTTP request body differs every call, so a
+    // body-keyed cache can never serve these from a prior execution
+    const nonceCount = await sql`
+      SELECT COUNT(*) AS c, MAX(sent_at) AS m FROM cron_runs
+      WHERE slot LIKE 'cachetest%' AND ${nonce} <> ''
+    `;
+    const hbNonce = await sql`
+      SELECT slot, day, sent_at FROM cron_runs
+      WHERE slot = 'heartbeat' AND ${nonce} <> ''
+    `;
 
     return NextResponse.json({
       marker: "v3",
       nonce,
       staticCount: Number(staticCount[0]?.c ?? -1),
-      nonceCount: Number((nonceCount as Array<Record<string, unknown>>)[0]?.c ?? -1),
-      nonceMax: (nonceCount as Array<Record<string, unknown>>)[0]?.m ?? null,
+      nonceCount: Number(nonceCount[0]?.c ?? -1),
+      nonceMax: nonceCount[0]?.m ?? null,
       heartbeatViaNonce: hbNonce,
     });
   } catch (e) {
