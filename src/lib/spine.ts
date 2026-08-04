@@ -337,11 +337,13 @@ export async function runDispatch(origin: string): Promise<DispatchResult> {
       INSERT INTO cron_runs (slot, day, detail) VALUES ('heartbeat', ${day}, 'ping')
       ON CONFLICT (slot, day) DO UPDATE SET sent_at = NOW()
     `;
+    await sql`UPDATE cron_runs SET sent_at = NOW() WHERE slot = 'heartbeat' AND day = ${day}`;
     const check = await sql`
       SELECT slot, day, sent_at FROM cron_runs WHERE slot = 'heartbeat'
       ORDER BY sent_at DESC LIMIT 1
     `;
-    heartbeatRow = check[0] ?? "MISSING AFTER INSERT";
+    const count = await sql`SELECT COUNT(*) AS cnt FROM cron_runs`;
+    heartbeatRow = { row: check[0] ?? "MISSING AFTER INSERT", totalRows: Number(count[0]?.cnt ?? -1) };
   }
 
   // 1. Time-of-day slots
@@ -418,11 +420,16 @@ export async function getSpineHealth() {
   let upcomingAssessments = 0;
   let lastPing: string | null = null;
 
+  let hbDebug: unknown = null;
+
   try {
     await ensureCronRuns();
     const sql = db();
     const hb = await sql`SELECT MAX(sent_at) AS last FROM cron_runs WHERE slot = 'heartbeat'`;
     lastPing = hb[0]?.last ? String(hb[0].last) : null;
+    const rows = await sql`SELECT slot, day, sent_at FROM cron_runs WHERE slot = 'heartbeat' LIMIT 5`;
+    const count = await sql`SELECT COUNT(*) AS cnt FROM cron_runs`;
+    hbDebug = { rawMax: hb[0] ?? null, heartbeatRows: rows, totalRows: Number(count[0]?.cnt ?? -1), dbHost: dbHost() };
     recentRuns = await sql`
       SELECT slot, day, sent_at, detail FROM cron_runs
       WHERE slot != 'heartbeat'
@@ -442,6 +449,7 @@ export async function getSpineHealth() {
     chicagoTime: now.toLocaleString("en-US"),
     // when the external pinger last hit dispatch — null means it has never run
     lastPing,
+    hbDebug,
     config,
     todaySlots,
     recentRuns,
