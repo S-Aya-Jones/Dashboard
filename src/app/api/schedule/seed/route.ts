@@ -69,19 +69,30 @@ async function resolveCalendars(calendar: calendar_v3.Calendar) {
   return map;
 }
 
-async function alreadySeeded(calendar: calendar_v3.Calendar, calId: string, summary: string): Promise<boolean> {
+// One listing per calendar: recurring-series masters intersecting the next
+// two weeks, keyed by exact summary. (The old q-search matcher couldn't
+// handle em-dashes/slashes in titles and let duplicates through.)
+async function listSeriesBySummary(
+  calendar: calendar_v3.Calendar,
+  calId: string,
+): Promise<Map<string, Array<{ id: string; created: string }>>> {
+  const map = new Map<string, Array<{ id: string; created: string }>>();
   try {
     const resp = await calendar.events.list({
       calendarId: calId,
-      q: summary.replace(/[^a-zA-Z0-9 ]/g, "").trim().slice(0, 40),
       timeMin: new Date().toISOString(),
-      maxResults: 5,
-      singleEvents: true,
+      timeMax: new Date(Date.now() + 14 * 86400000).toISOString(),
+      maxResults: 2500,
+      singleEvents: false,
     });
-    return (resp.data.items ?? []).some(e => e.summary === summary);
-  } catch {
-    return false;
-  }
+    for (const e of resp.data.items ?? []) {
+      if (!e.id || !e.summary) continue;
+      const list = map.get(e.summary) ?? [];
+      list.push({ id: e.id, created: e.created ?? "" });
+      map.set(e.summary, list);
+    }
+  } catch { /* treat as empty */ }
+  return map;
 }
 
 async function seed() {
@@ -94,12 +105,35 @@ async function seed() {
 
   const created: string[] = [];
   const skipped: string[] = [];
+  const deduped: string[] = [];
   const failed: Array<{ summary: string; error: string }> = [];
+
+  // One listing per distinct calendar, then dedupe + exact-match skip
+  const templateSummaries = new Set(TEMPLATE.map(s => s.summary));
+  const byCal = new Map<string, Map<string, Array<{ id: string; created: string }>>>();
+  for (const calId of Array.from(new Set(Object.values(cals)))) {
+    byCal.set(calId, await listSeriesBySummary(calendar, calId));
+  }
+
+  // Remove duplicate series a previous buggy run created: keep the oldest
+  for (const [calId, seriesMap] of Array.from(byCal.entries())) {
+    for (const [summary, entries] of Array.from(seriesMap.entries())) {
+      if (!templateSummaries.has(summary) || entries.length <= 1) continue;
+      entries.sort((a, b) => a.created.localeCompare(b.created));
+      for (const dupe of entries.slice(1)) {
+        try {
+          await calendar.events.delete({ calendarId: calId, eventId: dupe.id });
+          deduped.push(summary);
+        } catch { /* already gone */ }
+      }
+      seriesMap.set(summary, entries.slice(0, 1));
+    }
+  }
 
   for (const s of TEMPLATE) {
     const calId = cals[s.cal];
     try {
-      if (await alreadySeeded(calendar, calId, s.summary)) {
+      if ((byCal.get(calId)?.get(s.summary)?.length ?? 0) > 0) {
         skipped.push(s.summary);
         continue;
       }
@@ -128,10 +162,11 @@ async function seed() {
     calendars: cals,
     created,
     skipped,
+    deduped,
     failed: tokenExpired ? failed.slice(0, 1) : failed,
     message: tokenExpired
-      ? "Google connection expired (invalid_grant). Fix: visit /api/google/auth, open the returned url, approve access, copy the refresh token into the GOOGLE_REFRESH_TOKEN env var on Vercel, redeploy, then visit this endpoint again."
-      : `Created ${created.length}, skipped ${skipped.length} (already present), failed ${failed.length}`,
+      ? "Google connection expired (invalid_grant). Fix: visit /api/google/auth, approve access, then visit this endpoint again."
+      : `Created ${created.length}, skipped ${skipped.length}, removed ${deduped.length} duplicates, failed ${failed.length}`,
   });
 }
 
