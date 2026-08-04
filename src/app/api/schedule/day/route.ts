@@ -20,35 +20,53 @@ export async function GET(req: NextRequest) {
   const dayEnd = new Date(targetDate);
   dayEnd.setHours(23, 59, 59, 999);
 
-  // ── Google Calendar events ──────────────────────────────────────────────
+  // ── Google Calendar events — aggregated across ALL her calendars ────────
   const calEvents: Array<{
     id: string; title: string; start: string; end: string | null;
-    allDay: boolean; location?: string; source: "calendar";
+    allDay: boolean; location?: string; source: "calendar"; calendar?: string;
   }> = [];
 
   try {
     if (process.env.GOOGLE_REFRESH_TOKEN) {
       const auth = getAuthedClient();
       const calendar = google.calendar({ version: "v3", auth });
-      const resp = await calendar.events.list({
-        calendarId: "primary",
-        timeMin: dayStart.toISOString(),
-        timeMax: dayEnd.toISOString(),
-        maxResults: 50,
-        singleEvents: true,
-        orderBy: "startTime",
-      });
-      for (const e of (resp.data.items ?? [])) {
-        calEvents.push({
-          id: e.id ?? `cal-${Math.random()}`,
-          title: e.summary ?? "(no title)",
-          start: e.start?.dateTime ?? e.start?.date ?? dayStart.toISOString(),
-          end:   e.end?.dateTime ?? e.end?.date ?? null,
-          allDay: !e.start?.dateTime,
-          location: e.location ?? undefined,
-          source: "calendar",
-        });
-      }
+
+      // Gym / Study / Fall Classes / Family etc. all feed the day view
+      let calendarIds: Array<{ id: string; name?: string }> = [{ id: "primary" }];
+      try {
+        const list = await calendar.calendarList.list();
+        const items = (list.data.items ?? []).filter(c => c.id);
+        if (items.length) {
+          calendarIds = items.map(c => ({ id: c.id!, name: c.summary ?? undefined }));
+        }
+      } catch { /* fall back to primary only */ }
+
+      const results = await Promise.all(
+        calendarIds.map(async (c) => {
+          try {
+            const resp = await calendar.events.list({
+              calendarId: c.id,
+              timeMin: dayStart.toISOString(),
+              timeMax: dayEnd.toISOString(),
+              maxResults: 50,
+              singleEvents: true,
+              orderBy: "startTime",
+            });
+            return (resp.data.items ?? []).map(e => ({
+              id: e.id ?? `cal-${c.id}-${e.summary ?? ""}`,
+              title: e.summary ?? "(no title)",
+              start: e.start?.dateTime ?? e.start?.date ?? dayStart.toISOString(),
+              end:   e.end?.dateTime ?? e.end?.date ?? null,
+              allDay: !e.start?.dateTime,
+              location: e.location ?? undefined,
+              source: "calendar" as const,
+              calendar: c.name,
+            }));
+          } catch { return []; }
+        })
+      );
+      for (const batch of results) calEvents.push(...batch);
+      calEvents.sort((a, b) => a.start.localeCompare(b.start));
     }
   } catch { /* calendar unavailable */ }
 
