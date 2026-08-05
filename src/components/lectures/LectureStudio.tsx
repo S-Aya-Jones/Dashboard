@@ -23,14 +23,18 @@ type Phase =
 const PIPELINE_STEPS = [
   { key: "convert",    label: "Extract audio" },
   { key: "transcribe", label: "Transcribe" },
-  { key: "notes",      label: "Notes" },
-  { key: "concept map",label: "Concept map" },
+  { key: "notes (part 1)", label: "Notes 1" },
+  { key: "notes (part 2)", label: "Notes 2" },
+  { key: "concept map", label: "Concept map" },
   { key: "exam focus", label: "Exam focus" },
-  { key: "quiz & flashcards", label: "Quiz & cards" },
-  { key: "question bank 1/4", label: "Bank 1" },
-  { key: "question bank 2/4", label: "Bank 2" },
-  { key: "question bank 3/4", label: "Bank 3" },
-  { key: "question bank 4/4", label: "Bank 4" },
+  { key: "quiz", label: "Quiz" },
+  { key: "flashcards", label: "Cards" },
+  { key: "question bank 1/6", label: "Bank 1" },
+  { key: "question bank 2/6", label: "Bank 2" },
+  { key: "question bank 3/6", label: "Bank 3" },
+  { key: "question bank 4/6", label: "Bank 4" },
+  { key: "question bank 5/6", label: "Bank 5" },
+  { key: "question bank 6/6", label: "Bank 6" },
 ];
 
 function Pipeline({ phase }: { phase: Phase }) {
@@ -233,10 +237,12 @@ export function LectureStudio() {
   // Three separate requests — one combined call exceeded Vercel's 60s cap
   async function runGeneration(id: string) {
     const stages: Array<{ key: string; label: string }> = [
-      { key: "notes", label: "notes" },
-      { key: "map",   label: "concept map" },
-      { key: "exam",  label: "exam focus" },
-      { key: "quiz",  label: "quiz & flashcards" },
+      { key: "notes1", label: "notes (part 1)" },
+      { key: "notes2", label: "notes (part 2)" },
+      { key: "map",    label: "concept map" },
+      { key: "exam",   label: "exam focus" },
+      { key: "quiz",   label: "quiz" },
+      { key: "cards",  label: "flashcards" },
     ];
     for (const st of stages) {
       setPhase({ step: "generating", what: st.label });
@@ -248,9 +254,9 @@ export function LectureStudio() {
       }
     }
 
-    // Question bank: 4 batches, ~46 questions across every exam format
-    for (let b = 0; b < 4; b++) {
-      setPhase({ step: "generating", what: `question bank ${b + 1}/4` });
+    // Question bank: 6 batches, ~46 questions across every exam format
+    for (let b = 0; b < 6; b++) {
+      setPhase({ step: "generating", what: `question bank ${b + 1}/6` });
       const res = await fetch(`/api/lectures/${id}/bank?batch=${b}`, { method: "POST" });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
