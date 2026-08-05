@@ -107,6 +107,12 @@ export async function insertQuestions(
   return n;
 }
 
+export async function clearQuestions(lectureId: string): Promise<void> {
+  await ensureQbankTables();
+  const sql = db();
+  await sql`DELETE FROM questions WHERE lecture_id = ${lectureId}`;
+}
+
 export async function countQuestions(lectureId: string): Promise<number> {
   await ensureQbankTables();
   const sql = db();

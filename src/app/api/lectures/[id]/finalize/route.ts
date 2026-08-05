@@ -13,22 +13,46 @@ const client = new Anthropic();
 //   map   → mermaid concept map
 //   exam  → objectives, high-yield, predicted questions, traps
 //   quiz  → quiz + flashcards
-type Stage = "notes" | "map" | "exam" | "quiz";
+type Stage = "notes1" | "notes2" | "map" | "exam" | "quiz" | "cards";
 
 const MAX_TRANSCRIPT = 60000;
 
 const CONTEXT = `The student is a master's (MHS) student at Meharry Medical College on a pre-med track, taking Biochemistry, Physiology, Microbiology, and Cell & Molecular Biology. Her assessments are graduate-level quizzes and exams. She needs materials that prepare her for those exams — not summaries of what was said.`;
 
 const PROMPTS: Record<Stage, { system: string; maxTokens: number }> = {
-  notes: {
-    maxTokens: 8000,
+  notes1: {
+    maxTokens: 4500,
     system: `You write graduate-level study notes from a lecture transcript. ${CONTEXT}
+
+You are given the FIRST HALF of a lecture. Cover it completely.
 
 Return ONLY JSON (no markdown fences):
 {
-  "title": "specific topic title, e.g. 'Cardiac Action Potentials & Excitation-Contraction Coupling'",
+  "title": "specific topic title for the whole lecture, e.g. 'Cardiac Action Potentials & Excitation-Contraction Coupling'",
   "summary": "2-3 sentences: what this lecture covers and why it matters clinically",
-  "outline": "the full notes in markdown"
+  "outline": "notes for this half, in markdown"
+}
+
+The outline is her primary study document — it must be able to REPLACE re-watching the lecture. Requirements:
+- Use ## for major topics, ### for subtopics
+- Explain MECHANISMS step by step, not just names. If the lecture describes a pathway, cascade, or process, write out the actual sequence of steps with the molecules/structures involved.
+- **Bold** every key term, enzyme, hormone, structure, or value the first time it appears
+- Include every number, normal range, threshold, and value stated in the lecture
+- Use markdown tables to compare things the lecture contrasts (types, classes, mechanisms, phases)
+- Add a "> " blockquote line marked **Why this matters:** under complex sections, connecting the concept to physiology or disease
+- Where the lecturer signals emphasis ("this is important", "you'll see this again", "remember"), mark that content with **[EMPHASIZED]** at the end of the line
+- Be thorough. Long, complete notes are the goal — do not compress or summarize away detail.`,
+  },
+
+  notes2: {
+    maxTokens: 4500,
+    system: `You write graduate-level study notes from a lecture transcript. ${CONTEXT}
+
+You are given the SECOND HALF of a lecture. Cover it completely. Do not repeat the first half.
+
+Return ONLY JSON (no markdown fences):
+{
+  "outline": "notes for this half, in markdown — continue the same heading style"
 }
 
 The outline is her primary study document — it must be able to REPLACE re-watching the lecture. Requirements:
@@ -69,7 +93,7 @@ SYNTAX RULES — a syntax error makes the map unusable:
   },
 
   exam: {
-    maxTokens: 5000,
+    maxTokens: 4500,
     system: `You predict what a graduate course will actually test from this lecture. ${CONTEXT}
 
 Return ONLY JSON (no markdown fences):
@@ -80,30 +104,37 @@ Return ONLY JSON (no markdown fences):
   "traps": ["specific confusions, look-alike terms, or reversed relationships students get wrong on exams for this material"]
 }
 
-Give 5-7 objectives, 6-8 high-yield topics (confidence: high/medium), 5-6 predicted questions, 4-5 traps.
+Give 5-6 objectives, 6 high-yield topics (confidence: high/medium), 5 predicted questions, 4 traps.
 Base predictions on: what the lecturer emphasized or repeated, what is mechanistically central, what has clinical correlation, and what is classically tested in this subject. Be specific to THIS lecture's content — no generic study advice.`,
   },
 
   quiz: {
-    maxTokens: 8000,
+    maxTokens: 4500,
     system: `You write exam-level practice questions from a lecture transcript. ${CONTEXT}
 
 Return ONLY JSON (no markdown fences):
-{
-  "quiz": [ { "q": "question text", "choices": ["A","B","C","D"], "answer": 0, "explanation": "why the right answer is right AND why each tempting wrong answer is wrong", "difficulty": "exam-level" } ],
-  "flashcards": [ { "front": "prompt", "back": "answer" } ]
-}
+{ "quiz": [ { "q": "question text", "choices": ["A","B","C","D"], "answer": 0, "explanation": "why the right answer is right AND why the most tempting wrong answer is wrong", "difficulty": "exam-level" } ] }
 
-QUIZ — exactly 10 questions, written at the difficulty of a real graduate exam:
+Exactly 10 questions, written at the difficulty of a real graduate exam:
 - Most should be APPLICATION: clinical vignettes, "what happens if X is blocked", predict-the-outcome, interpret-the-data, compare-two-conditions. Avoid "what is the definition of X".
 - Every distractor must be plausible — something a student who half-knows the material would pick. No throwaway options.
 - The explanation must teach: state why the answer is correct, then explicitly address why the most tempting distractor is wrong.
 - Cover the full breadth of the lecture, not just the beginning.
+`,
+  },
 
-FLASHCARDS — exactly 15, atomic and testable:
+  cards: {
+    maxTokens: 3000,
+    system: `You write flashcards from a lecture transcript. ${CONTEXT}
+
+Return ONLY JSON (no markdown fences):
+{ "flashcards": [ { "front": "prompt", "back": "answer" } ] }
+
+Exactly 15, atomic and testable:
 - Mechanisms ("What triggers X?"), relationships ("What happens to Y when Z rises?"), values, and distinctions
 - Front asks one specific thing; back answers it completely but concisely
-- No vague prompts like "Describe the lecture topic"`,
+- No vague prompts like "Describe the lecture topic"
+- Spread across the whole lecture`,
   },
 };
 
@@ -119,7 +150,7 @@ function parseJson(raw: string) {
 }
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-  const stage = (req.nextUrl.searchParams.get("stage") ?? "notes") as Stage;
+  const stage = (req.nextUrl.searchParams.get("stage") ?? "notes1") as Stage;
   if (!PROMPTS[stage]) {
     return NextResponse.json({ error: `unknown stage '${stage}'` }, { status: 400 });
   }
@@ -130,7 +161,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     // Stage 1 assembles the transcript; later stages reuse the stored one
     let transcript = lecture.transcript ?? "";
-    if (stage === "notes" || !transcript) {
+    if (stage === "notes1" || !transcript) {
       const chunks = await getChunkTexts(params.id);
       transcript = chunks.join("\n\n").trim();
       if (!transcript) {
@@ -139,6 +170,17 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       await updateLecture(params.id, { status: "generating", transcript });
     }
 
+    // Notes are written in halves so neither call approaches the 60s cap
+    const capped = transcript.slice(0, MAX_TRANSCRIPT);
+    const mid = Math.floor(capped.length / 2);
+    const slice =
+      stage === "notes1" ? capped.slice(0, mid) :
+      stage === "notes2" ? capped.slice(mid) :
+      capped;
+    const part =
+      stage === "notes1" ? " (first half)" :
+      stage === "notes2" ? " (second half)" : "";
+
     const { system, maxTokens } = PROMPTS[stage];
     const msg = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
@@ -146,26 +188,30 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       system,
       messages: [{
         role: "user",
-        content: `Course: ${lecture.course}\n\nLecture transcript:\n\n${transcript.slice(0, MAX_TRANSCRIPT)}`,
+        content: `Course: ${lecture.course}\n\nLecture transcript${part}:\n\n${slice}`,
       }],
     });
 
     const raw = msg.content[0].type === "text" ? msg.content[0].text : "";
     const parsed = parseJson(raw);
 
-    if (stage === "notes") {
+    if (stage === "notes1") {
       await updateLecture(params.id, {
         title: parsed.title || lecture.title,
         summary: parsed.summary ?? "",
         outline: parsed.outline ?? "",
       });
+    } else if (stage === "notes2") {
+      const first = (await getLecture(params.id))?.outline ?? "";
+      await updateLecture(params.id, { outline: `${first}\n\n${parsed.outline ?? ""}`.trim() });
     } else if (stage === "map") {
       await updateLecture(params.id, { conceptMap: parsed.conceptMap ?? "" });
     } else if (stage === "exam") {
       await updateLecture(params.id, { examFocus: JSON.stringify(parsed) });
+    } else if (stage === "quiz") {
+      await updateLecture(params.id, { quiz: JSON.stringify(parsed.quiz ?? []) });
     } else {
       await updateLecture(params.id, {
-        quiz: JSON.stringify(parsed.quiz ?? []),
         flashcards: JSON.stringify(parsed.flashcards ?? []),
         status: "ready",
       });

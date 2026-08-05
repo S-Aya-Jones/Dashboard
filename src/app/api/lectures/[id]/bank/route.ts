@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { getLecture } from "@/lib/lectures";
-import { insertQuestions, countQuestions } from "@/lib/qbank";
+import { insertQuestions, countQuestions, clearQuestions } from "@/lib/qbank";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -14,55 +14,60 @@ const MAX_TRANSCRIPT = 55000;
 // duplicate each other's work.
 const BATCHES: Array<{ label: string; spec: string }> = [
   {
-    label: "Single best answer",
-    spec: `Write 14 questions with format "mcq" (single best answer).
+    label: "Clinical vignettes",
+    spec: `Write 8 questions with format "mcq" (single best answer).
 payload: { "choices": ["...","...","...","..."] }  — exactly 4 choices
 answer: the INDEX of the correct choice as a string, e.g. "2"
 
-Mix of:
-- 6 clinical/applied vignettes ("A patient presents with…", "In an experiment where X is inhibited…")
-- 4 mechanism questions ("What is the immediate consequence of…", "Which step is rate-limiting…")
-- 4 "which one of these" discrimination questions where all options are real, related entities and only one fits the stem exactly`,
+All 8 are applied: "A patient presents with…", "In an experiment where X is inhibited…", "What happens to Y if Z rises…". Predict-the-outcome and reason-from-mechanism.`,
   },
   {
-    label: "Select-all + data interpretation",
-    spec: `Write 12 questions split between two formats.
-
-SIX with format "sata" (select all that apply):
-payload: { "choices": ["...","...","...","...","..."] }  — exactly 5 choices
-answer: comma-separated INDICES of ALL correct choices, e.g. "0,2,4"  (2-4 should be correct)
-Stem must say "Select all that apply."
-
-SIX with format "data" (interpret values, then choose):
-payload: { "table": "a small markdown table or a short list of values/results from the lecture", "choices": ["...","...","...","..."] }
+    label: "Which one of these",
+    spec: `Write 8 questions with format "mcq" (single best answer).
+payload: { "choices": ["...","...","...","..."] }  — exactly 4 choices
 answer: index of the correct choice as a string
-These present lab values, experimental results, or measurements and ask what they indicate.`,
+
+All 8 are DISCRIMINATION questions: every option is a real, related entity from the lecture and only one fits the stem exactly. Enzymes, structures, bonds, organisms, phases — things that are easy to confuse with each other.`,
   },
   {
-    label: "Sequencing + matching",
-    spec: `Write 10 questions split between two formats.
+    label: "Select all that apply",
+    spec: `Write 7 questions with format "sata".
+payload: { "choices": ["...","...","...","...","..."] }  — exactly 5 choices
+answer: comma-separated INDICES of ALL correct choices, e.g. "0,2,4"  (2-4 correct)
+Every stem ends with "Select all that apply."`,
+  },
+  {
+    label: "Data interpretation",
+    spec: `Write 7 questions with format "data".
+payload: { "table": "a small markdown table or short list of values, lab results, or experimental measurements drawn from the lecture", "choices": ["...","...","...","..."] }
+answer: index of the correct choice as a string
+Each presents values and asks what they indicate, what changed, or what would happen next.`,
+  },
+  {
+    label: "Sequencing & matching",
+    spec: `Write 8 questions split between two formats.
 
-FIVE with format "order" (put the steps in sequence) — ideal for pathways, cascades, cycles:
-payload: { "items": ["step text", "step text", ...] }  — 4-6 steps, listed in SCRAMBLED order
-answer: comma-separated indices of payload.items in their CORRECT sequence, e.g. "2,0,3,1"
+FOUR with format "order" — pathways, cascades, cycles:
+payload: { "items": ["step text", ...] }  — 4-6 steps in SCRAMBLED order
+answer: comma-separated indices of payload.items in CORRECT sequence, e.g. "2,0,3,1"
 
-FIVE with format "match" (match column A to column B):
+FOUR with format "match":
 payload: { "left": ["term","term","term","term"], "right": ["description","description","description","description"] }
 answer: comma-separated index into payload.right for each payload.left item, in order, e.g. "2,0,3,1"
-Use for enzyme→function, organism→disease, hormone→effect, structure→role.`,
+Use enzyme→function, organism→disease, hormone→effect, structure→role.`,
   },
   {
-    label: "Written & trace-it",
-    spec: `Write 10 free-response questions the student answers in writing (or sketches on paper), then self-grades against a rubric.
+    label: "Written & draw-it",
+    spec: `Write 8 free-response questions she answers in writing (or sketches on paper), then self-grades against a rubric.
 
-FIVE with format "short":
-payload: { "rubric": ["specific point a full-credit answer must contain", "...", "..."] }  — 3-5 rubric points
+FOUR with format "short":
+payload: { "rubric": ["specific point a full-credit answer must contain", "...", "..."] }  — 3-5 points
 answer: a complete model answer, 3-6 sentences
 
-FIVE with format "trace" — these are the "draw this / trace the pathway" questions:
-prompt must ask her to DRAW or TRACE something: a pathway, a cascade, a feedback loop, a structure with labels, a graph of a relationship, or a flow of events. e.g. "Draw the complete pathway from X to Y, labeling every enzyme and the rate-limiting step."
-payload: { "rubric": ["each element the drawing must include", "...", "..."] }  — 4-6 rubric points
-answer: a complete model description of what the correct drawing contains, written as an ordered walkthrough she can compare her sketch against`,
+FOUR with format "trace" — the "draw this" questions:
+prompt must ask her to DRAW or TRACE something: a pathway, cascade, feedback loop, labelled structure, a graph of a relationship, or a flow of events. e.g. "Draw the complete pathway from X to Y, labeling every enzyme and the rate-limiting step."
+payload: { "rubric": ["each element the drawing must include", "...", "..."] }  — 4-6 points
+answer: a model description of the correct drawing, as an ordered walkthrough she can check her sketch against`,
   },
 ];
 
@@ -103,7 +108,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     const msg = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 8000,
+      max_tokens: 4500,
       system: `${SYSTEM_BASE}\n\nTHIS BATCH — ${label}:\n${spec}`,
       messages: [{
         role: "user",
@@ -114,6 +119,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const raw = msg.content[0].type === "text" ? msg.content[0].text : "";
     const parsed = parseJson(raw);
     const items = Array.isArray(parsed.questions) ? parsed.questions : [];
+    // Batch 0 starts a fresh bank so re-running (Resume) never duplicates
+    if (batch === 0) await clearQuestions(params.id);
     const added = await insertQuestions(params.id, lecture.course, items);
     const total = await countQuestions(params.id);
 
