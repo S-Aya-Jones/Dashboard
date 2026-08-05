@@ -113,32 +113,69 @@ function pickBlocks(assessments: Assessment[]): { b1?: Assessment; b2?: Assessme
 
 // ─── Message builders ────────────────────────────────────────────────────────
 
+// Classes are Mon/Wed Biochem 8-10 + Physio 10-12, Tue/Thu CMB 8-10 + Micro
+// 10-12. Evenings anchor to that morning's subjects — same-day review is the
+// strongest lever against forgetting — UNLESS an assessment is close, in
+// which case the deadline wins.
+const DAY_SUBJECTS: Record<number, string[]> = {
+  1: ["Biochemistry", "Physiology"],
+  2: ["Cell & Molecular Bio", "Microbiology"],
+  3: ["Biochemistry", "Physiology"],
+  4: ["Microbiology", "Cell & Molecular Bio"],  // flipped so Micro isn't always second
+};
+
+function isUrgent(a: Assessment): boolean {
+  const isExam = /exam/i.test(a.title);
+  return a.daysOut >= 0 && a.daysOut <= (isExam ? 7 : 5);
+}
+
 function buildStudyBlocksMsg(assessments: Assessment[], dow: number): string {
   const { b1, b2 } = pickBlocks(assessments);
   const tomorrow = assessments.filter(a => a.daysOut === 1);
+  const urgent = assessments.filter(isUrgent);
 
   if (dow === 3) {
     // Wednesday: post-therapy — light night only
     let msg =
-      "4:55 — Wednesday is a light night (therapy day). No new material: " +
-      "flashcards, lecture rewatch, organize notes. Dinner from today's cook.";
+      "4:55 \u2014 Wednesday is a light night (therapy day). No new material: " +
+      "flashcards and a rewatch of this morning's Biochem and Physio.";
     if (tomorrow.length) {
-      msg += `\n\n⚠️ Tomorrow: ${tomorrow.map(a => a.title).join(", ")} — do the final review, then sleep.`;
+      msg += `\n\n\u26a0\ufe0f Tomorrow: ${tomorrow.map(a => a.title).join(", ")} \u2014 do the final review, then sleep.`;
     }
     return msg;
   }
 
-  let msg = "4:55 — study blocks tonight:\n";
-  if (b1) {
-    msg += `\nBlock 1 (5:00–6:30): ${b1.course} — practice questions first. ${fmtAssessment(b1)}`;
+  let msg: string;
+
+  if (urgent.length > 0) {
+    // Deadline mode — nearest assessments take the blocks
+    msg = "4:55 \u2014 study blocks tonight (exam mode):\n";
+    if (b1) msg += `\nBlock 1 (5:00\u20136:30): ${b1.course} \u2014 practice questions first. ${fmtAssessment(b1)}`;
+    if (b2) msg += `\nBlock 2 (7:00\u20138:00): ${b2.course} \u2014 ${fmtAssessment(b2)}. Log every miss.`;
+  } else if (DAY_SUBJECTS[dow]) {
+    // Quiet stretch — review what you heard in class this morning
+    const [first, second] = DAY_SUBJECTS[dow];
+    msg =
+      "4:55 \u2014 study blocks tonight (same-day review \u2014 you had both this morning):\n" +
+      `\nBlock 1 (5:00\u20136:30): ${first} \u2014 questions first, then the notes` +
+      `\nBlock 2 (7:00\u20138:00): ${second} \u2014 log every miss in the error log`;
+    const soon = assessments.filter(a => a.daysOut >= 0).slice(0, 1);
+    if (soon.length) msg += `\n\nNext up: ${fmtAssessment(soon[0])}`;
+  } else if (dow === 5) {
+    msg =
+      "4:55 \u2014 Friday, no classes today. Give this block to whichever course felt worst this week, " +
+      "then it's Geandra time.";
+  } else if (dow === 0) {
+    msg = "4:55 \u2014 Sunday: run the error log, then the nearest assessment.";
+    if (b1) msg += `\n\nStart with ${b1.course} \u2014 ${fmtAssessment(b1)}`;
   } else {
-    msg += "\nBlock 1 (5:00–6:30): review this week's lectures — no assessments on the board.";
+    msg = "4:55 \u2014 study blocks tonight:\n";
+    if (b1) msg += `\nBlock 1 (5:00\u20136:30): ${b1.course}`;
+    if (b2) msg += `\nBlock 2 (7:00\u20138:00): ${b2.course}`;
   }
-  if (b2) {
-    msg += `\nBlock 2 (7:00–8:00): ${b2.course} — ${fmtAssessment(b2)}. Log every miss in the error log.`;
-  }
+
   if (tomorrow.length) {
-    msg += `\n\n⚠️ TOMORROW: ${tomorrow.map(a => a.title).join(", ")}. Block 1 becomes final review. Early night.`;
+    msg += `\n\n\u26a0\ufe0f TOMORROW: ${tomorrow.map(a => a.title).join(", ")}. Block 1 becomes final review. Early night.`;
   }
   msg += "\n\nSkincare at 8, lights out at 9.";
   return msg;
