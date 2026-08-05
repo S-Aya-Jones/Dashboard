@@ -27,6 +27,10 @@ const PIPELINE_STEPS = [
   { key: "concept map",label: "Concept map" },
   { key: "exam focus", label: "Exam focus" },
   { key: "quiz & flashcards", label: "Quiz & cards" },
+  { key: "question bank 1/4", label: "Bank 1" },
+  { key: "question bank 2/4", label: "Bank 2" },
+  { key: "question bank 3/4", label: "Bank 3" },
+  { key: "question bank 4/4", label: "Bank 4" },
 ];
 
 function Pipeline({ phase }: { phase: Phase }) {
@@ -241,6 +245,16 @@ export function LectureStudio() {
         const d = await res.json().catch(() => ({}));
         const detail = d.error ?? (res.status === 504 ? "timed out" : `HTTP ${res.status}`);
         throw new Error(`Generating ${st.label} failed: ${detail}. Your transcript is saved — press Resume on the lecture below to pick up from here.`);
+      }
+    }
+
+    // Question bank: 4 batches, ~46 questions across every exam format
+    for (let b = 0; b < 4; b++) {
+      setPhase({ step: "generating", what: `question bank ${b + 1}/4` });
+      const res = await fetch(`/api/lectures/${id}/bank?batch=${b}`, { method: "POST" });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(`Question bank batch ${b + 1} failed: ${d.error ?? res.status}. Press Resume to continue.`);
       }
     }
   }
