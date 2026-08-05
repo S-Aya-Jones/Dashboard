@@ -7,6 +7,7 @@ import {
   ZoomIn, ZoomOut, Sparkles, Trophy, Zap, Brain, ThumbsUp, ThumbsDown, Repeat,
   Share2, Copy, Download,
 } from "lucide-react";
+import { renderMath, MATH_CSS } from "@/lib/mathText";
 
 interface QuizQ { q: string; choices: string[]; answer: number; explanation: string; difficulty?: string }
 interface Card { front: string; back: string }
@@ -187,7 +188,7 @@ function esc(s: string) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 function inline(s: string) {
-  return esc(s)
+  return renderMath(esc(s))
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
     .replace(/\*(.+?)\*/g, "<em>$1</em>")
     .replace(/`(.+?)`/g, '<code class="md-code">$1</code>')
@@ -300,6 +301,7 @@ function NotesView({ text }: { text: string }) {
         .md-table th { background:rgba(124,92,252,.10); color:var(--text); font-weight:700;
                        text-align:left; padding:.6rem .7rem; border:1px solid var(--border); }
         .md-table td { padding:.55rem .7rem; border:1px solid var(--border); color:var(--text); line-height:1.6; }
+        ${MATH_CSS}
       `}</style>
 
       <div className="flex flex-wrap items-center gap-3 mb-4">
