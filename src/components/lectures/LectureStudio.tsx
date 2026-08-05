@@ -15,7 +15,7 @@ type Phase =
   | { step: "loading-ffmpeg" }
   | { step: "converting" }
   | { step: "transcribing"; done: number; total: number }
-  | { step: "generating" }
+  | { step: "generating"; what: string }
   | { step: "error"; message: string };
 
 export function LectureStudio() {
@@ -141,17 +141,43 @@ export function LectureStudio() {
         }
       }
 
-      setPhase({ step: "generating" });
-      const fin = await fetch(`/api/lectures/${id}/finalize`, { method: "POST" });
-      if (!fin.ok) {
-        const d = await fin.json().catch(() => ({}));
-        throw new Error(d.error ?? `generation failed (${fin.status})`);
-      }
+      await runGeneration(id);
 
       setPhase({ step: "idle" });
       await refresh();
       setSelected(id);
     } catch (e) {
+      await refresh();
+      setPhase({ step: "error", message: String(e).slice(0, 400) });
+    }
+  }
+
+  // Three separate requests — one combined call exceeded Vercel's 60s cap
+  async function runGeneration(id: string) {
+    const stages: Array<{ key: string; label: string }> = [
+      { key: "notes", label: "notes" },
+      { key: "map",   label: "concept map" },
+      { key: "quiz",  label: "quiz & flashcards" },
+    ];
+    for (const st of stages) {
+      setPhase({ step: "generating", what: st.label });
+      const res = await fetch(`/api/lectures/${id}/finalize?stage=${st.key}`, { method: "POST" });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        const detail = d.error ?? (res.status === 504 ? "timed out" : `HTTP ${res.status}`);
+        throw new Error(`Generating ${st.label} failed: ${detail}. Your transcript is saved — press Resume on the lecture below to pick up from here.`);
+      }
+    }
+  }
+
+  async function resumeGeneration(id: string) {
+    try {
+      await runGeneration(id);
+      setPhase({ step: "idle" });
+      await refresh();
+      setSelected(id);
+    } catch (e) {
+      await refresh();
       setPhase({ step: "error", message: String(e).slice(0, 400) });
     }
   }
@@ -256,7 +282,7 @@ export function LectureStudio() {
               {phase.step === "loading-ffmpeg" && "Loading audio engine (first time takes ~15s)…"}
               {phase.step === "converting" && "Extracting audio → MP3 (in your browser, nothing uploaded yet)…"}
               {phase.step === "transcribing" && `Transcribing chunk ${phase.done + 1} of ${phase.total}…`}
-              {phase.step === "generating" && "Claude is writing your notes, concept map, quiz and flashcards…"}
+              {phase.step === "generating" && `Writing your ${phase.what}…`}
             </div>
           </div>
         )}
@@ -296,9 +322,17 @@ export function LectureStudio() {
             <div className="flex-1 min-w-0">
               <div className="font-semibold truncate" style={{ color: "var(--text)" }}>{l.title}</div>
               <div className="text-xs" style={{ color: "var(--text-muted)" }}>
-                {l.course} · {l.status === "ready" ? (l.summary ?? "") : `status: ${l.status}`}
+                {l.course} · {l.status === "ready" ? (l.summary ?? "") : `transcript saved — generation ${l.status === "error" ? "failed" : "unfinished"}`}
               </div>
             </div>
+            {l.status !== "ready" && !busy && (
+              <button
+                onClick={e => { e.stopPropagation(); resumeGeneration(l.id); }}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white flex-shrink-0"
+                style={{ background: "var(--purple)" }}>
+                Resume
+              </button>
+            )}
             <button
               onClick={e => { e.stopPropagation(); removeLecture(l.id); }}
               className="p-2 rounded-lg"
