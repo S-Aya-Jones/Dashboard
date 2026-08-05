@@ -132,10 +132,11 @@ export default async function SharedNotesPage({ params }: { params: { token: str
 
       <main className="wrap">
         <div className="bar">
-          <a className="btn" href={`/api/notes/${params.token}?format=md`}>
-            <Download size={14} /> Download notes
+          <a className="btn" href={`/api/notes/${params.token}?format=docx`}>
+            <Download size={14} /> Download for Word
           </a>
           <a className="btn alt" href={`/notes/${params.token}?print=1`}>Print / Save as PDF</a>
+          <a className="btn alt" href={`/api/notes/${params.token}?format=md`}>Markdown</a>
         </div>
 
         <header className="hdr">

@@ -167,9 +167,9 @@ function SharePanel({ id, initial }: { id: string; initial: string | null }) {
               className="text-xs font-semibold underline" style={{ color: "var(--purple)" }}>
               Preview what they&apos;ll see
             </a>
-            <a href={`/api/notes/${token}?format=md`}
+            <a href={`/api/notes/${token}?format=docx`}
               className="inline-flex items-center gap-1 text-xs font-semibold underline" style={{ color: "var(--purple)" }}>
-              <Download size={12} /> Download a copy
+              <Download size={12} /> Download for Word
             </a>
             <button onClick={() => toggle(false)} disabled={busy}
               className="text-xs font-semibold underline ml-auto" style={{ color: "#c0392b" }}>
