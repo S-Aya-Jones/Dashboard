@@ -26,12 +26,12 @@ const PROMPTS: Record<Stage, { system: string; maxTokens: number }> = {
 
 You are given the FIRST HALF of a lecture. Cover it completely.
 
-Return ONLY JSON (no markdown fences):
-{
-  "title": "specific topic title for the whole lecture, e.g. 'Cardiac Action Potentials & Excitation-Contraction Coupling'",
-  "summary": "2-3 sentences: what this lecture covers and why it matters clinically",
-  "outline": "notes for this half, in markdown"
-}
+Respond in PLAIN TEXT, not JSON, in exactly this shape:
+
+TITLE: a specific topic title for the whole lecture, e.g. Cardiac Action Potentials and Excitation-Contraction Coupling
+SUMMARY: 2-3 sentences on what this lecture covers and why it matters clinically
+---
+(then the markdown notes for this half)
 
 The outline is her primary study document — it must be able to REPLACE re-watching the lecture. Requirements:
 - Use ## for major topics, ### for subtopics
@@ -50,10 +50,7 @@ The outline is her primary study document — it must be able to REPLACE re-watc
 
 You are given the SECOND HALF of a lecture. Cover it completely. Do not repeat the first half.
 
-Return ONLY JSON (no markdown fences):
-{
-  "outline": "notes for this half, in markdown — continue the same heading style"
-}
+Respond in PLAIN TEXT, not JSON: just the markdown notes for this half, continuing the same heading style. No preamble.
 
 The outline is her primary study document — it must be able to REPLACE re-watching the lecture. Requirements:
 - Use ## for major topics, ### for subtopics
@@ -70,8 +67,7 @@ The outline is her primary study document — it must be able to REPLACE re-watc
     maxTokens: 3000,
     system: `You build a concept map from a lecture transcript. ${CONTEXT}
 
-Return ONLY JSON (no markdown fences):
-{ "conceptMap": "a mermaid flowchart" }
+Respond with the raw mermaid diagram only — no JSON, no markdown fences, no commentary.
 
 Requirements for the mermaid diagram:
 - Start with: flowchart TD
@@ -139,14 +135,37 @@ Exactly 15, atomic and testable:
 };
 
 function parseJson(raw: string) {
-  const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "");
+  const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
+  try { return JSON.parse(cleaned); } catch { /* try harder */ }
   try {
-    return JSON.parse(cleaned);
-  } catch {
     const m = cleaned.match(/\{[\s\S]*\}/);
-    if (!m) throw new Error("model returned unparseable output");
-    return JSON.parse(m[0]);
+    if (m) return JSON.parse(m[0]);
+  } catch { /* truncated — salvage below */ }
+
+  // Truncated mid-array: keep every complete {...} object we can find
+  const key = cleaned.match(/"(\w+)"\s*:\s*\[/)?.[1];
+  const objects: unknown[] = [];
+  let depth = 0, start = -1, inStr = false, esc = false;
+  for (let i = cleaned.indexOf("[") + 1; i < cleaned.length && i > 0; i++) {
+    const c = cleaned[i];
+    if (inStr) {
+      if (esc) esc = false;
+      else if (c === "\\") esc = true;
+      else if (c === '"') inStr = false;
+      continue;
+    }
+    if (c === '"') inStr = true;
+    else if (c === "{") { if (depth === 0) start = i; depth++; }
+    else if (c === "}") {
+      depth--;
+      if (depth === 0 && start >= 0) {
+        try { objects.push(JSON.parse(cleaned.slice(start, i + 1))); } catch { /* skip */ }
+        start = -1;
+      }
+    }
   }
+  if (key && objects.length) return { [key]: objects };
+  throw new Error("model returned unparseable output");
 }
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
@@ -193,20 +212,36 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     });
 
     const raw = msg.content[0].type === "text" ? msg.content[0].text : "";
-    const parsed = parseJson(raw);
 
     if (stage === "notes1") {
+      // TITLE: / SUMMARY: / --- / markdown
+      const title = raw.match(/^TITLE:\s*(.+)$/m)?.[1]?.trim();
+      const summary = raw.match(/^SUMMARY:\s*([\s\S]*?)(?:\n---|\n##|$)/m)?.[1]?.trim();
+      const body = raw.includes("---") ? raw.slice(raw.indexOf("---") + 3).trim() : raw.trim();
       await updateLecture(params.id, {
-        title: parsed.title || lecture.title,
-        summary: parsed.summary ?? "",
-        outline: parsed.outline ?? "",
+        title: title || lecture.title,
+        summary: summary ?? "",
+        outline: body,
       });
-    } else if (stage === "notes2") {
+      return NextResponse.json({ ok: true, stage });
+    }
+
+    if (stage === "notes2") {
       const first = (await getLecture(params.id))?.outline ?? "";
-      await updateLecture(params.id, { outline: `${first}\n\n${parsed.outline ?? ""}`.trim() });
-    } else if (stage === "map") {
-      await updateLecture(params.id, { conceptMap: parsed.conceptMap ?? "" });
-    } else if (stage === "exam") {
+      const body = raw.replace(/^```(?:markdown)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
+      await updateLecture(params.id, { outline: `${first}\n\n${body}`.trim() });
+      return NextResponse.json({ ok: true, stage });
+    }
+
+    if (stage === "map") {
+      const chart = raw.replace(/^```(?:mermaid)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
+      await updateLecture(params.id, { conceptMap: chart });
+      return NextResponse.json({ ok: true, stage });
+    }
+
+    const parsed = parseJson(raw);
+
+    if (stage === "exam") {
       await updateLecture(params.id, { examFocus: JSON.stringify(parsed) });
     } else if (stage === "quiz") {
       await updateLecture(params.id, { quiz: JSON.stringify(parsed.quiz ?? []) });
