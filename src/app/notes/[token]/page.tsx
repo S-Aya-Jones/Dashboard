@@ -1,6 +1,7 @@
 import { getSharedNotes } from "@/lib/lectures";
 import { Download } from "lucide-react";
 import { renderMath, MATH_CSS } from "@/lib/mathText";
+import { PrintButton } from "@/components/notes/PrintButton";
 
 export const dynamic = "force-dynamic";
 
@@ -117,7 +118,7 @@ export default async function SharedNotesPage({ params }: { params: { token: str
         .btn { display: inline-flex; align-items: center; gap: .4rem; font-size: .84rem; font-weight: 600;
                padding: .55rem 1rem; border-radius: 9px; text-decoration: none;
                background: #7C5CFC; color: #fff; border: none; }
-        .btn.alt { background: #fff; color: #4b4b63; border: 1.5px solid #e5e7eb; }
+        .btn.alt { background: #fff; color: #4b4b63; border: 1.5px solid #e5e7eb; cursor: pointer; font-family: inherit; }
         .foot { margin-top: 3.5rem; padding-top: 1.25rem; border-top: 1px solid #e5e7eb;
                 font-size: .76rem; color: #9ca3af; }
         ${MATH_CSS}
@@ -135,7 +136,7 @@ export default async function SharedNotesPage({ params }: { params: { token: str
           <a className="btn" href={`/api/notes/${params.token}?format=docx`}>
             <Download size={14} /> Download for Word
           </a>
-          <a className="btn alt" href={`/notes/${params.token}?print=1`}>Print / Save as PDF</a>
+          <PrintButton />
           <a className="btn alt" href={`/api/notes/${params.token}?format=md`}>Markdown</a>
         </div>
 
