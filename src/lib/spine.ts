@@ -306,6 +306,37 @@ export const SLOTS: Slot[] = [
     },
   },
   {
+    key: "exposure-saturday",
+    days: [6],
+    time: "11:45",
+    graceMin: 90,
+    run: async () => {
+      await sendTelegram(
+        "11:45 \u2014 big driving exposure at 12:30, right off the back of therapy while it's fresh.\n\n" +
+        "\u2022 Open your saved route in the app (Exposure \u2192 Routes) \u2014 highways and tolls already avoided\n" +
+        "\u2022 Rate your fear before you turn the key, at the worst moment, and when you park\n" +
+        "\u2022 Panicking is allowed. Turning back is the only thing that costs you\n\n" +
+        "Log it when you're home \u2014 that's what draws the curve."
+      );
+      return "sent";
+    },
+  },
+  {
+    key: "exposure-checkin",
+    days: [0],
+    time: "18:00",
+    graceMin: 90,
+    run: async () => {
+      await sendTelegram(
+        "6:00 \u2014 weekly exposure check-in (5 minutes, in the app under Exposure \u2192 Check-in).\n\n" +
+        "What could you do this week that you couldn't a month ago? What did you avoid? " +
+        "What's the one step for next week?\n\n" +
+        "Bring it to therapy \u2014 it's exactly what they ask you."
+      );
+      return "sent";
+    },
+  },
+  {
     key: "week-plan",
     days: [0],
     time: "19:00",
