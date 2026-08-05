@@ -26,17 +26,17 @@ export function LectureStudio() {
   const [mp3Url, setMp3Url] = useState<string | null>(null);
   const [mp3Name, setMp3Name] = useState<string>("lecture.mp3");
   const fileInput = useRef<HTMLInputElement>(null);
-  const [keyState, setKeyState] = useState<{ configured: boolean; hint: string | null } | null>(null);
+  const [keyState, setKeyState] = useState<{ configured: boolean; hint: string | null; provider: string | null } | null>(null);
   const [keyInput, setKeyInput] = useState("");
   const [keySaving, setKeySaving] = useState(false);
   const [keyError, setKeyError] = useState<string | null>(null);
 
   const refreshKey = useCallback(async () => {
     try {
-      const res = await fetch("/api/settings/openai-key");
+      const res = await fetch("/api/settings/transcription-key");
       const d = await res.json();
-      setKeyState({ configured: !!d.configured, hint: d.hint ?? null });
-    } catch { setKeyState({ configured: false, hint: null }); }
+      setKeyState({ configured: !!d.configured, hint: d.hint ?? null, provider: d.provider ?? null });
+    } catch { setKeyState({ configured: false, hint: null, provider: null }); }
   }, []);
 
   useEffect(() => { refreshKey(); }, [refreshKey]);
@@ -45,7 +45,7 @@ export function LectureStudio() {
     setKeySaving(true);
     setKeyError(null);
     try {
-      const res = await fetch("/api/settings/openai-key", {
+      const res = await fetch("/api/settings/transcription-key", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ key: keyInput.trim() }),
@@ -133,9 +133,9 @@ export function LectureStudio() {
         });
         if (!res.ok) {
           const d = await res.json().catch(() => ({}));
-          if (d.error === "NO_OPENAI_KEY") {
+          if (d.error === "NO_TRANSCRIPTION_KEY") {
             await refreshKey();
-            throw new Error("Add your OpenAI transcription key above, then drop the file again — your MP3 is already downloadable below.");
+            throw new Error("Add your transcription key above, then drop the file again — your MP3 is already downloadable below.");
           }
           throw new Error(d.error ?? `chunk ${i} failed (${res.status})`);
         }
@@ -178,18 +178,20 @@ export function LectureStudio() {
             <h3 className="font-semibold" style={{ color: "var(--text)" }}>One-time setup: transcription key</h3>
           </div>
           <p className="text-sm mb-3" style={{ color: "var(--text-muted)" }}>
-            Lecture Studio uses OpenAI Whisper to transcribe audio (about 36¢ per hour of lecture).
-            Create a key at{" "}
+            Paste a transcription API key — either one works:{" "}
+            <a href="https://whisper-api.com/" target="_blank" rel="noreferrer"
+              className="underline" style={{ color: "var(--purple)" }}>whisper-api.com</a>
+            {" "}(keys start with <code>wai_</code>) or{" "}
             <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer"
-              className="underline" style={{ color: "var(--purple)" }}>platform.openai.com/api-keys</a>
-            {" "}and paste it below — it&apos;s stored in your dashboard, no Vercel editing needed.
+              className="underline" style={{ color: "var(--purple)" }}>OpenAI</a>
+            {" "}(keys start with <code>sk-</code>). Stored in your dashboard — no Vercel editing needed.
           </p>
           <div className="flex flex-wrap gap-2">
             <input
               type="password"
               value={keyInput}
               onChange={e => setKeyInput(e.target.value)}
-              placeholder="sk-..."
+              placeholder="wai_... or sk-..."
               className="flex-1 min-w-[240px] rounded-lg px-3 py-2 text-sm"
               style={{ background: "var(--bg)", border: "1.5px solid var(--border)", color: "var(--text)" }}
             />
@@ -208,7 +210,7 @@ export function LectureStudio() {
       {keyState?.configured && (
         <div className="flex items-center gap-2 text-xs" style={{ color: "var(--text-muted)" }}>
           <Check size={14} style={{ color: "#2eaf6e" }} />
-          Transcription key active {keyState.hint ? `(${keyState.hint})` : ""}
+          Transcription key active{keyState.provider === "whisperapi" ? " — whisper-api.com" : keyState.provider === "openai" ? " — OpenAI Whisper" : ""} {keyState.hint ? `(${keyState.hint})` : ""}
         </div>
       )}
 

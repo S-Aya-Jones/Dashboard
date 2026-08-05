@@ -1,20 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { saveChunkText } from "@/lib/lectures";
 import { getAppKey } from "@/lib/appkeys";
+import { transcribeAudio } from "@/lib/transcribe";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-// Receives one ~5-minute audio chunk (base64, ≤ ~2MB) and transcribes it
-// via OpenAI Whisper. Chunks exist because Vercel caps request bodies at
-// 4.5MB and Whisper caps files at 25MB.
+// Receives one ~5-minute audio chunk (base64, ≤ ~2MB) and transcribes it.
+// Chunks exist because Vercel caps request bodies at 4.5MB.
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-  const key = await getAppKey("OPENAI_API_KEY");
+  const key =
+    (await getAppKey("TRANSCRIPTION_API_KEY")) ?? (await getAppKey("OPENAI_API_KEY"));
   if (!key) {
-    return NextResponse.json(
-      { error: "NO_OPENAI_KEY" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "NO_TRANSCRIPTION_KEY" }, { status: 400 });
   }
 
   try {
@@ -24,26 +22,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 
     const buf = Buffer.from(audioBase64, "base64");
-    const form = new FormData();
-    form.append("file", new Blob([buf], { type: "audio/mpeg" }), `chunk${index}.mp3`);
-    form.append("model", "whisper-1");
-    form.append("response_format", "text");
+    const text = await transcribeAudio(key, buf, `chunk${index}.mp3`);
 
-    const res = await fetch("https://api.openai.com/v1/audio/transcriptions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${key}` },
-      body: form,
-    });
-
-    if (!res.ok) {
-      const detail = await res.text();
-      return NextResponse.json({ error: `Whisper ${res.status}: ${detail.slice(0, 300)}` }, { status: 502 });
-    }
-
-    const text = await res.text();
-    await saveChunkText(params.id, Number(index), text.trim());
+    await saveChunkText(params.id, Number(index), text);
     return NextResponse.json({ ok: true, index: Number(index), chars: text.length });
   } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 500 });
+    return NextResponse.json({ error: String(e).slice(0, 400) }, { status: 502 });
   }
 }
