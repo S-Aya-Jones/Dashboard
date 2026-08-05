@@ -157,6 +157,7 @@ export function LectureStudio() {
     const stages: Array<{ key: string; label: string }> = [
       { key: "notes", label: "notes" },
       { key: "map",   label: "concept map" },
+      { key: "exam",  label: "exam focus" },
       { key: "quiz",  label: "quiz & flashcards" },
     ];
     for (const st of stages) {

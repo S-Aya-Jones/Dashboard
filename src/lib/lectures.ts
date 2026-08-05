@@ -21,9 +21,11 @@ export async function ensureLectureTables() {
       concept_map     TEXT,
       quiz            TEXT,
       flashcards      TEXT,
+      exam_focus      TEXT,
       created_at      TIMESTAMPTZ DEFAULT NOW()
     )
   `;
+  await sql`ALTER TABLE lectures ADD COLUMN IF NOT EXISTS exam_focus TEXT`;
   await sql`
     CREATE TABLE IF NOT EXISTS lecture_chunks (
       lecture_id TEXT NOT NULL,
@@ -57,6 +59,7 @@ export interface LectureRow {
   conceptMap: string | null;
   quiz: string | null;
   flashcards: string | null;
+  examFocus: string | null;
   createdAt: string;
 }
 
@@ -73,6 +76,7 @@ function fromRow(r: Record<string, unknown>): LectureRow {
     conceptMap: (r.concept_map as string) ?? null,
     quiz: (r.quiz as string) ?? null,
     flashcards: (r.flashcards as string) ?? null,
+    examFocus: (r.exam_focus as string) ?? null,
     createdAt: String(r.created_at),
   };
 }
@@ -93,7 +97,8 @@ export async function listLectures(): Promise<LectureRow[]> {
   const sql = db();
   const rows = await sql`
     SELECT id, course, title, status, chunks_expected, summary, created_at,
-           NULL as transcript, NULL as outline, NULL as concept_map, NULL as quiz, NULL as flashcards
+           NULL as transcript, NULL as outline, NULL as concept_map, NULL as quiz,
+           NULL as flashcards, NULL as exam_focus
     FROM lectures ORDER BY created_at DESC LIMIT 100
   `;
   return rows.map(fromRow);
@@ -132,7 +137,8 @@ export async function updateLecture(
   id: string,
   fields: Partial<{
     status: string; transcript: string; summary: string;
-    outline: string; conceptMap: string; quiz: string; flashcards: string; title: string;
+    outline: string; conceptMap: string; quiz: string; flashcards: string;
+    title: string; examFocus: string;
   }>,
 ): Promise<void> {
   const sql = db();
@@ -145,6 +151,7 @@ export async function updateLecture(
   if (fields.quiz !== undefined)       await sql`UPDATE lectures SET quiz = ${fields.quiz} WHERE id = ${id}`;
   if (fields.flashcards !== undefined) await sql`UPDATE lectures SET flashcards = ${fields.flashcards} WHERE id = ${id}`;
   if (fields.title !== undefined)      await sql`UPDATE lectures SET title = ${fields.title} WHERE id = ${id}`;
+  if (fields.examFocus !== undefined)  await sql`UPDATE lectures SET exam_focus = ${fields.examFocus} WHERE id = ${id}`;
 }
 
 export async function logMisses(
