@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Check, X, RotateCcw, Target, AlertTriangle, Flame,
   ZoomIn, ZoomOut, Sparkles, Trophy, Zap, Brain, ThumbsUp, ThumbsDown, Repeat,
+  Share2, Copy, Download,
 } from "lucide-react";
 
 interface QuizQ { q: string; choices: string[]; answer: number; explanation: string; difficulty?: string }
@@ -20,7 +21,7 @@ interface Lecture {
   id: string; course: string; title: string; status: string;
   transcript: string | null; summary: string | null; outline: string | null;
   conceptMap: string | null; quiz: string | null; flashcards: string | null;
-  examFocus: string | null;
+  examFocus: string | null; shareToken?: string | null;
 }
 
 const TABS = ["Notes", "Exam Focus", "Concept Map", "Quiz", "Flashcards", "Transcript"] as const;
@@ -104,6 +105,78 @@ export function LectureDetail({ id, onBack }: { id: string; onBack: () => void }
           )}
         </motion.div>
       </AnimatePresence>
+
+      {tab === "Notes" && <SharePanel id={lecture.id} initial={lecture.shareToken ?? null} />}
+    </div>
+  );
+}
+
+// ── Sharing: one lecture's notes, by link, revocable ─────────────────────────
+
+function SharePanel({ id, initial }: { id: string; initial: string | null }) {
+  const [token, setToken] = useState<string | null>(initial ?? null);
+  const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const url = token && typeof window !== "undefined" ? `${window.location.origin}/notes/${token}` : "";
+
+  async function toggle(enabled: boolean) {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/lectures/${id}/share`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled }),
+      });
+      const d = await res.json();
+      setToken(d.token ?? null);
+    } finally { setBusy(false); }
+  }
+
+  return (
+    <div className="rounded-2xl p-5" style={{ background: "var(--surface)", border: "1.5px solid var(--border)" }}>
+      <div className="flex items-center gap-2 mb-1">
+        <Share2 size={16} style={{ color: "var(--purple)" }} />
+        <h3 className="font-bold text-sm" style={{ color: "var(--text)" }}>Share these notes</h3>
+      </div>
+      <p className="text-xs mb-3 leading-relaxed" style={{ color: "var(--text-muted)" }}>
+        Creates a link to <strong>only this lecture&apos;s notes</strong>. No transcript, no quiz, no other
+        lectures, and no way into the rest of your dashboard. Turn it off any time and the link dies.
+      </p>
+
+      {!token ? (
+        <button onClick={() => toggle(true)} disabled={busy}
+          className="px-4 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-50"
+          style={{ background: "var(--purple)" }}>
+          {busy ? "Creating…" : "Create share link"}
+        </button>
+      ) : (
+        <div className="space-y-2">
+          <div className="flex gap-2 flex-wrap">
+            <input readOnly value={url} onFocus={e => e.currentTarget.select()}
+              className="flex-1 min-w-[200px] rounded-lg px-3 py-2 text-xs"
+              style={{ background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)" }} />
+            <button
+              onClick={() => { navigator.clipboard?.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 1800); }}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-white"
+              style={{ background: copied ? "#2bb3a3" : "var(--purple)" }}>
+              <Copy size={13} /> {copied ? "Copied" : "Copy"}
+            </button>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <a href={url} target="_blank" rel="noreferrer"
+              className="text-xs font-semibold underline" style={{ color: "var(--purple)" }}>
+              Preview what they&apos;ll see
+            </a>
+            <a href={`/api/notes/${token}?format=md`}
+              className="inline-flex items-center gap-1 text-xs font-semibold underline" style={{ color: "var(--purple)" }}>
+              <Download size={12} /> Download a copy
+            </a>
+            <button onClick={() => toggle(false)} disabled={busy}
+              className="text-xs font-semibold underline ml-auto" style={{ color: "#c0392b" }}>
+              Turn off link
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

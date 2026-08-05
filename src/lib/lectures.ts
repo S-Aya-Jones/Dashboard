@@ -26,6 +26,8 @@ export async function ensureLectureTables() {
     )
   `;
   await sql`ALTER TABLE lectures ADD COLUMN IF NOT EXISTS exam_focus TEXT`;
+  await sql`ALTER TABLE lectures ADD COLUMN IF NOT EXISTS share_token TEXT`;
+  await sql`CREATE UNIQUE INDEX IF NOT EXISTS lectures_share_token_idx ON lectures (share_token) WHERE share_token IS NOT NULL`;
   await sql`
     CREATE TABLE IF NOT EXISTS lecture_chunks (
       lecture_id TEXT NOT NULL,
@@ -60,6 +62,7 @@ export interface LectureRow {
   quiz: string | null;
   flashcards: string | null;
   examFocus: string | null;
+  shareToken: string | null;
   createdAt: string;
 }
 
@@ -77,6 +80,7 @@ function fromRow(r: Record<string, unknown>): LectureRow {
     quiz: (r.quiz as string) ?? null,
     flashcards: (r.flashcards as string) ?? null,
     examFocus: (r.exam_focus as string) ?? null,
+    shareToken: (r.share_token as string) ?? null,
     createdAt: String(r.created_at),
   };
 }
@@ -98,7 +102,7 @@ export async function listLectures(): Promise<LectureRow[]> {
   const rows = await sql`
     SELECT id, course, title, status, chunks_expected, summary, created_at,
            NULL as transcript, NULL as outline, NULL as concept_map, NULL as quiz,
-           NULL as flashcards, NULL as exam_focus
+           NULL as flashcards, NULL as exam_focus, share_token
     FROM lectures ORDER BY created_at DESC LIMIT 100
   `;
   return rows.map(fromRow);
@@ -176,4 +180,43 @@ export async function getErrorLog(course?: string) {
     ? await sql`SELECT * FROM error_log WHERE course = ${course} ORDER BY missed_at DESC LIMIT 200`
     : await sql`SELECT * FROM error_log ORDER BY missed_at DESC LIMIT 200`;
   return rows;
+}
+
+
+// ─── Public sharing ──────────────────────────────────────────────────────────
+// A share link exposes ONE lecture's notes and nothing else. Revocable.
+
+export async function setShareToken(id: string, enabled: boolean): Promise<string | null> {
+  await ensureLectureTables();
+  const sql = db();
+  if (!enabled) {
+    await sql`UPDATE lectures SET share_token = NULL WHERE id = ${id}`;
+    return null;
+  }
+  const existing = await sql`SELECT share_token FROM lectures WHERE id = ${id}`;
+  const current = existing[0]?.share_token as string | null;
+  if (current) return current;
+  const token = `${Math.random().toString(36).slice(2, 10)}${Math.random().toString(36).slice(2, 10)}`;
+  await sql`UPDATE lectures SET share_token = ${token} WHERE id = ${id}`;
+  return token;
+}
+
+/** Only the fields a shared reader should ever see. */
+export async function getSharedNotes(token: string) {
+  await ensureLectureTables();
+  const sql = db();
+  const rows = await sql`
+    SELECT title, course, summary, outline, concept_map, created_at
+    FROM lectures WHERE share_token = ${token}
+  `;
+  if (!rows.length) return null;
+  const r = rows[0];
+  return {
+    title: r.title as string,
+    course: r.course as string,
+    summary: (r.summary as string) ?? "",
+    outline: (r.outline as string) ?? "",
+    conceptMap: (r.concept_map as string) ?? "",
+    createdAt: String(r.created_at),
+  };
 }
