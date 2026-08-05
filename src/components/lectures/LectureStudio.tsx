@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Upload, Loader2, FileAudio, Trash2, Download, ChevronRight, KeyRound, Check } from "lucide-react";
+import { Upload, Loader2, FileAudio, Trash2, Download, ChevronRight, KeyRound, Check, Sparkles } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { LectureDetail } from "./LectureDetail";
 
 const COURSES = ["Physiology", "Biochemistry", "Microbiology", "Cell & Molecular Bio", "MCAT", "Other"];
@@ -17,6 +18,79 @@ type Phase =
   | { step: "transcribing"; done: number; total: number }
   | { step: "generating"; what: string }
   | { step: "error"; message: string };
+
+
+const PIPELINE_STEPS = [
+  { key: "convert",    label: "Extract audio" },
+  { key: "transcribe", label: "Transcribe" },
+  { key: "notes",      label: "Notes" },
+  { key: "concept map",label: "Concept map" },
+  { key: "exam focus", label: "Exam focus" },
+  { key: "quiz & flashcards", label: "Quiz & cards" },
+];
+
+function Pipeline({ phase }: { phase: Phase }) {
+  const activeKey =
+    phase.step === "loading-ffmpeg" || phase.step === "converting" ? "convert"
+    : phase.step === "transcribing" ? "transcribe"
+    : phase.step === "generating" ? phase.what
+    : "";
+  const activeIdx = PIPELINE_STEPS.findIndex(s => s.key === activeKey);
+
+  const detail =
+    phase.step === "loading-ffmpeg" ? "Loading the audio engine — first run takes ~15s"
+    : phase.step === "converting" ? "Converting in your browser — nothing uploaded yet"
+    : phase.step === "transcribing" ? `Chunk ${phase.done + 1} of ${phase.total}`
+    : phase.step === "generating" ? "Claude is writing this section"
+    : "";
+
+  return (
+    <div className="p-5 rounded-xl" style={{ background: "var(--bg)" }}>
+      <div className="flex flex-wrap gap-x-2 gap-y-3 mb-4">
+        {PIPELINE_STEPS.map((s, i) => {
+          const done = activeIdx > i;
+          const active = activeIdx === i;
+          return (
+            <div key={s.key} className="flex items-center gap-2">
+              <motion.div
+                animate={active ? { scale: [1, 1.15, 1] } : { scale: 1 }}
+                transition={active ? { repeat: Infinity, duration: 1.4 } : {}}
+                className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0"
+                style={{
+                  background: done ? "#2bb3a3" : active ? "var(--purple)" : "var(--surface)",
+                  color: done || active ? "white" : "var(--text-muted)",
+                  border: done || active ? "none" : "1.5px solid var(--border)",
+                }}>
+                {done ? <Check size={12} /> : i + 1}
+              </motion.div>
+              <span className="text-xs font-medium"
+                style={{ color: active ? "var(--text)" : done ? "#2bb3a3" : "var(--text-muted)" }}>
+                {s.label}
+              </span>
+              {i < PIPELINE_STEPS.length - 1 && (
+                <span className="w-4 h-px" style={{ background: "var(--border)" }} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="h-1.5 rounded-full overflow-hidden mb-3" style={{ background: "var(--surface)" }}>
+        <motion.div className="h-full rounded-full"
+          style={{ background: "linear-gradient(90deg,#7C5CFC,#ec4899)" }}
+          animate={{ width: `${((activeIdx + 1) / PIPELINE_STEPS.length) * 100}%` }}
+          transition={{ type: "spring", stiffness: 90, damping: 20 }} />
+      </div>
+
+      <div className="flex items-center gap-2 text-sm" style={{ color: "var(--text-muted)" }}>
+        <motion.span animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1.6, ease: "linear" }}>
+          <Sparkles size={14} style={{ color: "var(--purple)" }} />
+        </motion.span>
+        {detail}
+      </div>
+    </div>
+  );
+}
 
 export function LectureStudio() {
   const [lectures, setLectures] = useState<LectureListItem[]>([]);
@@ -265,28 +339,22 @@ export function LectureStudio() {
         />
 
         {!busy && (
-          <button
+          <motion.button
             onClick={() => fileInput.current?.click()}
-            className="w-full rounded-xl border-2 border-dashed p-10 flex flex-col items-center gap-3 transition-colors"
+            whileHover={{ scale: 1.01, borderColor: "var(--purple)" }}
+            whileTap={{ scale: 0.99 }}
+            className="w-full rounded-xl border-2 border-dashed p-10 flex flex-col items-center gap-3"
             style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
           >
-            <Upload size={32} style={{ color: "var(--purple)" }} />
+            <motion.span animate={{ y: [0, -6, 0] }} transition={{ repeat: Infinity, duration: 2.4, ease: "easeInOut" }}>
+              <Upload size={32} style={{ color: "var(--purple)" }} />
+            </motion.span>
             <span className="font-semibold" style={{ color: "var(--text)" }}>Drop a lecture recording (MP4 or audio)</span>
-            <span className="text-xs">Converted to MP3 in your browser → transcribed → notes, concept map, quiz &amp; flashcards</span>
-          </button>
+            <span className="text-xs">Converted to MP3 in your browser → transcribed → notes, concept map, exam focus, quiz &amp; flashcards</span>
+          </motion.button>
         )}
 
-        {busy && (
-          <div className="flex items-center gap-3 p-6 rounded-xl" style={{ background: "var(--bg)" }}>
-            <Loader2 className="animate-spin" style={{ color: "var(--purple)" }} />
-            <div style={{ color: "var(--text)" }}>
-              {phase.step === "loading-ffmpeg" && "Loading audio engine (first time takes ~15s)…"}
-              {phase.step === "converting" && "Extracting audio → MP3 (in your browser, nothing uploaded yet)…"}
-              {phase.step === "transcribing" && `Transcribing chunk ${phase.done + 1} of ${phase.total}…`}
-              {phase.step === "generating" && `Writing your ${phase.what}…`}
-            </div>
-          </div>
-        )}
+        {busy && <Pipeline phase={phase} />}
 
         {phase.step === "error" && (
           <div className="p-4 rounded-xl text-sm" style={{ background: "rgba(220,60,60,0.08)", color: "#c0392b", border: "1px solid rgba(220,60,60,0.25)" }}>
@@ -313,8 +381,11 @@ export function LectureStudio() {
           <p className="text-sm" style={{ color: "var(--text-muted)" }}>No lectures yet — drop your first recording above.</p>
         )}
         {lectures.map(l => (
-          <div
+          <motion.div
             key={l.id}
+            layout
+            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+            whileHover={{ y: -2, boxShadow: "0 6px 20px rgba(124,92,252,.13)" }}
             className="rounded-xl p-4 flex items-center gap-4 cursor-pointer"
             style={{ background: "var(--surface)", border: "1.5px solid var(--border)" }}
             onClick={() => l.status === "ready" && setSelected(l.id)}
@@ -343,7 +414,7 @@ export function LectureStudio() {
               <Trash2 size={16} />
             </button>
             {l.status === "ready" && <ChevronRight size={18} style={{ color: "var(--text-muted)" }} />}
-          </div>
+          </motion.div>
         ))}
       </div>
     </div>
