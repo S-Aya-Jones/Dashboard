@@ -41,6 +41,7 @@ The outline is her primary study document — it must be able to REPLACE re-watc
 - Use markdown tables to compare things the lecture contrasts (types, classes, mechanisms, phases)
 - Add a "> " blockquote line marked **Why this matters:** under complex sections, connecting the concept to physiology or disease
 - Where the lecturer signals emphasis ("this is important", "you'll see this again", "remember"), mark that content with **[EMPHASIZED]** at the end of the line
+- Write formulas and chemistry in PLAIN READABLE NOTATION, never LaTeX. No $, $$, \\text{}, \\frac, or backslash commands. Write pH = -log[H+], Kw = [H+][OH-] = 10^-14, pH + pOH = 14, ATP -> ADP + Pi. Use ^ for exponents and charges.
 - Be thorough. Long, complete notes are the goal — do not compress or summarize away detail.`,
   },
 
@@ -60,6 +61,7 @@ The outline is her primary study document — it must be able to REPLACE re-watc
 - Use markdown tables to compare things the lecture contrasts (types, classes, mechanisms, phases)
 - Add a "> " blockquote line marked **Why this matters:** under complex sections, connecting the concept to physiology or disease
 - Where the lecturer signals emphasis ("this is important", "you'll see this again", "remember"), mark that content with **[EMPHASIZED]** at the end of the line
+- Write formulas and chemistry in PLAIN READABLE NOTATION, never LaTeX. No $, $$, \\text{}, \\frac, or backslash commands. Write pH = -log[H+], Kw = [H+][OH-] = 10^-14, pH + pOH = 14, ATP -> ADP + Pi. Use ^ for exponents and charges.
 - Be thorough. Long, complete notes are the goal — do not compress or summarize away detail.`,
   },
 

@@ -1,5 +1,6 @@
 import { getSharedNotes } from "@/lib/lectures";
 import { Download } from "lucide-react";
+import { renderMath, MATH_CSS } from "@/lib/mathText";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +11,7 @@ function esc(s: string) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 function inline(s: string) {
-  return esc(s)
+  return renderMath(esc(s))
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
     .replace(/\*(.+?)\*/g, "<em>$1</em>")
     .replace(/`(.+?)`/g, "<code>$1</code>")
@@ -119,6 +120,8 @@ export default async function SharedNotesPage({ params }: { params: { token: str
         .btn.alt { background: #fff; color: #4b4b63; border: 1.5px solid #e5e7eb; }
         .foot { margin-top: 3.5rem; padding-top: 1.25rem; border-top: 1px solid #e5e7eb;
                 font-size: .76rem; color: #9ca3af; }
+        ${MATH_CSS}
+        .eq-block { background: #f6f4ff; border-left-color: #7C5CFC; }
         @media print {
           .bar, .foot { display: none; }
           .wrap { max-width: none; padding: 0; }
