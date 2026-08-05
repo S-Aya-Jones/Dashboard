@@ -708,27 +708,41 @@ function Flashcards({ json }: { json: string }) {
         </div>
       </div>
 
-      <div style={{ perspective: 1200 }} className="w-full max-w-xl">
+      {/* One face rendered at a time — no backface-visibility, so the two
+          sides can never overlap and the card grows with long answers */}
+      <div style={{ perspective: 1400 }} className="w-full max-w-xl">
         <motion.div
           onClick={() => setFlipped(f => !f)}
-          animate={{ rotateY: flipped ? 180 : 0 }}
-          transition={{ type: "spring", stiffness: 260, damping: 24 }}
-          style={{ transformStyle: "preserve-3d", position: "relative", minHeight: 230, cursor: "pointer" }}>
-          <div style={{ backfaceVisibility: "hidden", position: "absolute", inset: 0 }}
-            className="rounded-2xl p-8 flex flex-col items-center justify-center text-center gap-3"
-            >
-            <div className="absolute inset-0 rounded-2xl" style={{ background: "var(--bg)", border: "2px solid var(--purple)" }} />
-            <span className="relative text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Question</span>
-            <span className="relative text-lg leading-relaxed" style={{ color: "var(--text)" }}>{card.front}</span>
-            <span className="relative text-xs" style={{ color: "var(--text-muted)" }}>tap to flip</span>
-          </div>
-          <div style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)", position: "absolute", inset: 0 }}
-            className="rounded-2xl p-8 flex flex-col items-center justify-center text-center gap-3">
-            <div className="absolute inset-0 rounded-2xl"
-              style={{ background: "linear-gradient(135deg,rgba(124,92,252,.12),rgba(236,72,153,.10))", border: "2px solid var(--purple)" }} />
-            <span className="relative text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--purple)" }}>Answer</span>
-            <span className="relative text-lg leading-relaxed" style={{ color: "var(--text)" }}>{card.back}</span>
-          </div>
+          animate={{ rotateY: flipped ? 360 : 0 }}
+          transition={{ type: "spring", stiffness: 210, damping: 22 }}
+          className="rounded-2xl cursor-pointer"
+          style={{
+            minHeight: 230,
+            display: "flex", flexDirection: "column",
+            alignItems: "center", justifyContent: "center",
+            gap: ".75rem", padding: "2rem", textAlign: "center",
+            background: flipped
+              ? "linear-gradient(135deg,rgba(124,92,252,.13),rgba(236,72,153,.10))"
+              : "var(--bg)",
+            border: "2px solid var(--purple)",
+          }}>
+          <AnimatePresence mode="wait">
+            <motion.div key={flipped ? "back" : "front"}
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ duration: 0.16 }}
+              className="flex flex-col items-center gap-3">
+              <span className="text-[10px] font-bold uppercase tracking-wider"
+                style={{ color: flipped ? "var(--purple)" : "var(--text-muted)" }}>
+                {flipped ? "Answer" : "Question"}
+              </span>
+              <span className="text-lg leading-relaxed" style={{ color: "var(--text)" }}>
+                {flipped ? card.back : card.front}
+              </span>
+              {!flipped && <span className="text-xs" style={{ color: "var(--text-muted)" }}>tap to flip</span>}
+            </motion.div>
+          </AnimatePresence>
         </motion.div>
       </div>
 
