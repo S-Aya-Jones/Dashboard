@@ -34,9 +34,9 @@ const WEEK: Record<number, { name: string; blocks: Block[] }> = {
     { start: "12:00", end: "14:30", label: "Work (no classes) · heights dose 1:30", cat: "work", note: "Flashcards in the gaps" },
     { start: "14:30", end: "15:20", label: "Extended-route drive home", cat: "exposure", note: "Driving exposure #1 — no time pressure" },
     { start: "15:20", end: "17:00", label: "Flex — flashcards, admin, breathe", cat: "rest" },
-    { start: "17:00", end: "18:30", label: "Study Block 1 — nearest assessment, questions first", cat: "study" },
+    { start: "17:00", end: "18:30", label: "Block 1 — Biochemistry", cat: "study", note: "Same-day review · questions first · deadline overrides in exam weeks" },
     { start: "18:30", end: "19:00", label: "Dinner (Sunday-cooked)", cat: "life" },
-    { start: "19:00", end: "20:00", label: "Study Block 2 — second course + error log", cat: "study" },
+    { start: "19:00", end: "20:00", label: "Block 2 — Physiology", cat: "study", note: "Log every miss in the error log" },
     { start: "20:00", end: "21:00", label: "Skincare hour + call him", cat: "rest", note: "Gym bag staged · lights out at 9" },
   ]},
   2: { name: "Tuesday", blocks: [
@@ -47,19 +47,19 @@ const WEEK: Record<number, { name: string; blocks: Block[] }> = {
     { start: "12:00", end: "14:30", label: "Work (no classes) · heights dose 1:30", cat: "work" },
     { start: "14:30", end: "15:00", label: "Drive home — direct", cat: "work" },
     { start: "15:00", end: "17:00", label: "Flex — flashcards, admin, breathe", cat: "rest" },
-    { start: "17:00", end: "18:30", label: "Study Block 1 — questions first", cat: "study" },
+    { start: "17:00", end: "18:30", label: "Block 1 — Cell & Molecular Bio", cat: "study", note: "Same-day review · questions first" },
     { start: "18:30", end: "19:00", label: "Dinner", cat: "life" },
-    { start: "19:00", end: "20:00", label: "Study Block 2 + error log", cat: "study" },
+    { start: "19:00", end: "20:00", label: "Block 2 — Microbiology", cat: "study", note: "Log every miss" },
     { start: "20:00", end: "21:00", label: "Skincare hour + call", cat: "rest" },
   ]},
   3: { name: "Wednesday · WFH", blocks: [
     { start: "05:00", end: "05:15", label: "Up", cat: "rest" },
-    { start: "05:15", end: "06:45", label: "MCAT block — freshest 90 min of the week", cat: "study" },
+    { start: "05:15", end: "06:45", label: "MCAT — content review only", cat: "study", note: "Parked at 90 min/week until Sep 1, then scales up" },
     { start: "07:00", end: "12:00", label: "WFH · Biochem 8–10 · Physio 10–12", cat: "work", note: "Capture mode from your desk" },
     { start: "12:00", end: "13:00", label: "Therapy (lunch)", cat: "therapy", note: "Anchored to the no-driving day" },
     { start: "13:00", end: "15:00", label: "Work winds down", cat: "work" },
     { start: "15:00", end: "17:00", label: "Cook Thu/Fri meals", cat: "life", note: "Lecture recordings playing" },
-    { start: "17:00", end: "18:30", label: "Light review only — no new material post-therapy", cat: "study" },
+    { start: "17:00", end: "18:30", label: "Light review — Biochem + Physio flashcards", cat: "study", note: "No new material after therapy" },
     { start: "18:30", end: "19:00", label: "Dinner", cat: "life" },
     { start: "19:00", end: "20:00", label: "Buffer — deliberately empty", cat: "rest", note: "Absorbs the week's overflow" },
     { start: "20:00", end: "21:00", label: "Skincare hour + call", cat: "rest" },
@@ -72,9 +72,9 @@ const WEEK: Record<number, { name: string; blocks: Block[] }> = {
     { start: "12:00", end: "14:30", label: "Work (no classes) · heights dose 1:30", cat: "work" },
     { start: "14:30", end: "16:30", label: "Home · flex — flashcards, admin", cat: "rest" },
     { start: "16:30", end: "17:00", label: "Short exposure drive", cat: "exposure", note: "Driving exposure #2 — 20-min loop" },
-    { start: "17:00", end: "18:30", label: "Study Block 1 — questions first", cat: "study" },
+    { start: "17:00", end: "18:30", label: "Block 1 — Microbiology", cat: "study", note: "Flipped so Micro isn't always the tired block" },
     { start: "18:30", end: "19:00", label: "Dinner", cat: "life" },
-    { start: "19:00", end: "20:00", label: "Study Block 2 + error log", cat: "study" },
+    { start: "19:00", end: "20:00", label: "Block 2 — Cell & Molecular Bio", cat: "study" },
     { start: "20:00", end: "21:00", label: "Skincare hour + call", cat: "rest" },
   ]},
   5: { name: "Friday", blocks: [
@@ -83,7 +83,7 @@ const WEEK: Record<number, { name: string; blocks: Block[] }> = {
     { start: "06:10", end: "07:00", label: "Shower, ready, breakfast", cat: "rest" },
     { start: "07:00", end: "14:30", label: "Work — no classes on Fridays", cat: "work", note: "Heights doses 10:00 & 1:30 · clean work day" },
     { start: "15:00", end: "15:30", label: "Budget check (paydays)", cat: "life", note: "Bills tab is already sorted" },
-    { start: "15:30", end: "17:00", label: "Friday light study — wrap the week", cat: "study" },
+    { start: "15:30", end: "17:00", label: "Weakest subject of the week", cat: "study", note: "No classes Friday — the pressure valve · 2nd shadowing slot fits here" },
     { start: "18:00", end: "21:00", label: "Geandra time 💜", cat: "people", note: "The week's one late night — bed by 10:30" },
   ]},
   6: { name: "Saturday", blocks: [
@@ -147,7 +147,7 @@ export function WeekPlanView() {
       </div>
 
       <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-        Exam-week mode (auto, week of any exam): shadowing pauses · Saturday exposure shrinks to a 30-min maintenance drive · MCAT drops to Wednesday only · freed hours go to the error log.
+        Evenings anchor to that morning’s classes (Mon/Wed Biochem+Physio, Tue/Thu CMB+Micro) — same-day review is the strongest defence against forgetting. Within 5 days of a quiz or 7 of an exam, that course takes Block 1 instead. Exam-week mode: shadowing pauses · Saturday exposure shrinks to a 30-min maintenance drive · MCAT drops to Wednesday only.
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
