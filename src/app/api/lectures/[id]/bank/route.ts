@@ -85,11 +85,36 @@ Universal rules:
 - Write at real exam difficulty. Prefer application, prediction, and discrimination over recall of definitions.`;
 
 function parseJson(raw: string) {
-  const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "");
-  try { return JSON.parse(cleaned); } catch { /* fall through */ }
-  const m = cleaned.match(/\{[\s\S]*\}/);
-  if (!m) throw new Error("model returned unparseable output");
-  return JSON.parse(m[0]);
+  const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
+  try { return JSON.parse(cleaned); } catch { /* try harder */ }
+  try {
+    const m = cleaned.match(/\{[\s\S]*\}/);
+    if (m) return JSON.parse(m[0]);
+  } catch { /* truncated — salvage below */ }
+
+  // Truncated mid-array: keep every complete question object we can parse
+  const objects: unknown[] = [];
+  let depth = 0, start = -1, inStr = false, esc = false;
+  for (let i = cleaned.indexOf("[") + 1; i < cleaned.length && i > 0; i++) {
+    const c = cleaned[i];
+    if (inStr) {
+      if (esc) esc = false;
+      else if (c === "\\") esc = true;
+      else if (c === '"') inStr = false;
+      continue;
+    }
+    if (c === '"') inStr = true;
+    else if (c === "{") { if (depth === 0) start = i; depth++; }
+    else if (c === "}") {
+      depth--;
+      if (depth === 0 && start >= 0) {
+        try { objects.push(JSON.parse(cleaned.slice(start, i + 1))); } catch { /* skip */ }
+        start = -1;
+      }
+    }
+  }
+  if (objects.length) return { questions: objects };
+  throw new Error("model returned unparseable output");
 }
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
