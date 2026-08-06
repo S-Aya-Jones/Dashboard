@@ -8,8 +8,10 @@ import { GroceryList } from "./GroceryList";
 import { PantryTracker } from "./PantryTracker";
 import { WeeklyFoodReview } from "./WeeklyFoodReview";
 import { MealScanView } from "./MealScanView";
+import { FindMeals } from "./FindMeals";
 
 const TABS = [
+  { id: "find",     label: "Find Meals" },
   { id: "scan",     label: "Meal Scan" },
   { id: "meals",    label: "Meal Log" },
   { id: "recipes",  label: "Recipe Vault" },
@@ -35,7 +37,7 @@ export function NutritionView({
   data: DashboardData;
   update: (fn: (d: DashboardData) => DashboardData) => void;
 }) {
-  const [tab, setTab] = useState<TabId>("meals");
+  const [tab, setTab] = useState<TabId>("find");
   const nutrition = data.nutrition ?? EMPTY_NUTRITION;
 
   function onUpdate(n: NutritionData) {
@@ -56,7 +58,7 @@ export function NutritionView({
           Food Journal
         </h1>
         <p className="text-sm" style={{ color: "var(--text-light)" }}>
-          Log meals, save recipes, and keep your kitchen in check.
+          Find something you actually want to eat, then let it fill the grocery list.
         </p>
       </div>
 
@@ -102,6 +104,7 @@ export function NutritionView({
 
       {/* Content */}
       <div>
+        {tab === "find"    && <FindMeals    nutrition={nutrition} onUpdate={onUpdate} />}
         {tab === "scan"    && <MealScanView />}
         {tab === "meals"   && <MealLog       nutrition={nutrition} onUpdate={onUpdate} />}
         {tab === "recipes" && <RecipeVault   nutrition={nutrition} onUpdate={onUpdate} />}
