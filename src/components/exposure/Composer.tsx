@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Car, Mountain, MapPin, Plus, Trash2, Timer } from "lucide-react";
+import { AddressInput } from "./AddressInput";
 
 // A fixed ladder is always generic — the same drive is easy at 5am and hard at
 // 5pm. So instead of listing tasks, you compose the real conditions and the
@@ -356,7 +357,7 @@ function PlaceManager({ places, reload }: { places: Place[]; reload: () => void 
       {adding && (
         <div className="mt-3 space-y-2">
           <input value={label} onChange={e => setLabel(e.target.value)} placeholder="Name it — Home, Meharry, Gym" style={sel} />
-          <input value={address} onChange={e => setAddress(e.target.value)} placeholder="Full address, including city" style={sel} />
+          <AddressInput value={address} onChange={setAddress} placeholder="Start typing the address…" />
           <div className="flex gap-2">
             <button onClick={() => setAdding(false)} className="flex-1 py-2 rounded-lg text-sm font-semibold"
               style={{ background: "var(--bg)", color: "var(--text-muted)" }}>Cancel</button>
