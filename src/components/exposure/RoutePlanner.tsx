@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Navigation, KeyRound, Check, AlertTriangle, Route as RouteIcon, Save, ChevronDown } from "lucide-react";
+import { Navigation, KeyRound, Check, AlertTriangle, Route as RouteIcon, Save, ChevronDown, Smartphone, Copy } from "lucide-react";
 
 interface Step { instruction: string; distanceText: string }
 interface RouteOption {
@@ -210,11 +210,94 @@ export function RoutePlanner({ onSaved }: { onSaved: () => void }) {
         <p className="text-sm" style={{ color: "var(--text-muted)" }}>No routes came back for those addresses.</p>
       )}
 
+      <ShortcutSetup />
+
       <p className="text-[11px] leading-relaxed" style={{ color: "var(--text-muted)" }}>
         Bridges and interstates are detected by reading the actual turn-by-turn directions Google returns.
         It catches anything named — &ldquo;… Bridge&rdquo;, I-24, US-31 — but an unnamed overpass can slip through,
         so treat a clean result as a strong start, not a guarantee.
       </p>
+    </div>
+  );
+}
+
+
+/** iOS Shortcuts automation: the only way to capture a drive without
+ *  touching the phone while driving. */
+function ShortcutSetup() {
+  const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
+  const base = typeof window !== "undefined" ? window.location.origin : "";
+
+  const copy = (text: string, key: string) => {
+    navigator.clipboard?.writeText(text);
+    setCopied(key);
+    setTimeout(() => setCopied(null), 1600);
+  };
+
+  const rows: Array<{ key: string; when: string; body: string }> = [
+    { key: "start", when: "When CarPlay connects (or: I leave Home)", body: '{"action":"start","label":"Drive","lat":[Current Location→Latitude],"lng":[Current Location→Longitude]}' },
+    { key: "end", when: "When CarPlay disconnects (or: I arrive Home)", body: '{"action":"end","lat":[Current Location→Latitude],"lng":[Current Location→Longitude]}' },
+    { key: "turnback", when: "Manual shortcut — tap if you turn around", body: '{"action":"turnback","lat":[Current Location→Latitude],"lng":[Current Location→Longitude]}' },
+  ];
+
+  return (
+    <div className="rounded-2xl p-5" style={{ background: "var(--surface)", border: "1.5px solid var(--border)" }}>
+      <button onClick={() => setOpen(o => !o)} className="flex items-center gap-2 w-full text-left">
+        <Smartphone size={17} style={{ color: "var(--purple)" }} />
+        <h3 className="font-bold text-sm flex-1" style={{ color: "var(--text)" }}>
+          Track drives automatically with iPhone Shortcuts
+        </h3>
+        <ChevronDown size={16} style={{ color: "var(--text-muted)", transform: open ? "rotate(180deg)" : undefined }} />
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden">
+            <p className="text-xs mt-3 mb-3 leading-relaxed" style={{ color: "var(--text-muted)" }}>
+              A browser can&apos;t track you in the background, but an iPhone <strong>Personal Automation</strong> can —
+              it fires on its own, screen locked, phone in your pocket. Each one below is:
+              Shortcuts app → Automation → <em>+</em> → pick the trigger → <strong>Get Current Location</strong> →
+              <strong> Get Contents of URL</strong> → Run Immediately (turn OFF &ldquo;Ask Before Running&rdquo;).
+            </p>
+
+            <div className="rounded-lg px-3 py-2 mb-3 flex items-center gap-2 flex-wrap"
+              style={{ background: "var(--bg)", border: "1px solid var(--border)" }}>
+              <span className="text-[11px] font-bold" style={{ color: "var(--text-muted)" }}>URL (all three):</span>
+              <code className="text-[11px] flex-1 min-w-[180px]" style={{ color: "var(--text)" }}>{base}/api/drive</code>
+              <button onClick={() => copy(`${base}/api/drive`, "url")}
+                className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold text-white"
+                style={{ background: copied === "url" ? "#2bb3a3" : "var(--purple)" }}>
+                <Copy size={10} /> {copied === "url" ? "Copied" : "Copy"}
+              </button>
+              <span className="text-[11px] w-full" style={{ color: "var(--text-muted)" }}>
+                Method: POST · Request Body: JSON
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              {rows.map(r => (
+                <div key={r.key} className="rounded-lg p-3" style={{ background: "var(--bg)", border: "1px solid var(--border)" }}>
+                  <div className="text-xs font-bold mb-1" style={{ color: "var(--purple)" }}>{r.when}</div>
+                  <code className="text-[10px] block leading-relaxed break-all" style={{ color: "var(--text)" }}>{r.body}</code>
+                  <button onClick={() => copy(r.body, r.key)}
+                    className="mt-1.5 inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-bold"
+                    style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)" }}>
+                    <Copy size={10} /> {copied === r.key ? "Copied" : "Copy body"}
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <p className="text-[11px] mt-3 leading-relaxed" style={{ color: "var(--text-muted)" }}>
+              The bracketed parts are Shortcuts variables — insert them from the variable picker, don&apos;t type them.
+              When a drive ends you&apos;ll get a text with the distance and duration, and it appears on your
+              habituation curve ready for fear ratings.
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
