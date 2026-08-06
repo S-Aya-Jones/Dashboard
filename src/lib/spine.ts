@@ -7,6 +7,7 @@ import {
 } from "@/lib/telegram";
 import { getUpcomingEvents } from "@/lib/gmail";
 import { sendSms } from "@/lib/sms";
+import { dueNotifications, markNotified, upsertObligation } from "@/lib/obligations";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // The notification spine: every scheduled ping in Aya's day, fired by
@@ -294,6 +295,28 @@ export const SLOTS: Slot[] = [
     },
   },
   {
+    key: "read-school-mail",
+    days: [0, 1, 2, 3, 4, 5, 6],
+    time: "07:10",
+    graceMin: 180,
+    run: async ({ origin }) => {
+      const res = await fetch(`${origin}/api/school/extract`, { method: "POST", cache: "no-store" });
+      const d = await res.json().catch(() => ({}));
+      return `found ${d.found ?? 0} of ${d.scanned ?? 0}`;
+    },
+  },
+  {
+    key: "money-watch",
+    days: [0, 1, 2, 3, 4, 5, 6],
+    time: "09:00",
+    graceMin: 180,
+    run: async ({ origin }) => {
+      const res = await fetch(`${origin}/api/finance/watch`, { method: "POST", cache: "no-store" });
+      const d = await res.json().catch(() => ({}));
+      return `${d.created ?? 0} money events`;
+    },
+  },
+  {
     key: "leave-work",
     days: [1, 2, 4, 5],  // not Wed (WFH), not weekends
     time: "14:25",
@@ -383,8 +406,20 @@ export interface DispatchResult {
   chicagoTime: string;
   fired: string[];
   remindersSent: number;
+  obligationsSent?: number;
   urgentCheck: string;
 }
+
+// Her weekly template, so today's blocks can warn 30 minutes ahead
+const DAY_BLOCKS: Record<number, Array<[string, string]>> = {
+  1: [["05:15", "Gym"], ["17:00", "Block 1 — Biochemistry"], ["19:00", "Block 2 — Physiology"], ["20:00", "Skincare hour"]],
+  2: [["05:15", "Gym"], ["17:00", "Block 1 — CMB"], ["19:00", "Block 2 — Microbiology"], ["20:00", "Skincare hour"]],
+  3: [["05:15", "MCAT block"], ["12:00", "Therapy"], ["15:00", "Cook Thu/Fri meals"], ["17:00", "Light review"], ["20:00", "Skincare hour"]],
+  4: [["05:15", "Gym"], ["16:30", "Short exposure drive"], ["17:00", "Block 1 — Microbiology"], ["19:00", "Block 2 — CMB"], ["20:00", "Skincare hour"]],
+  5: [["05:15", "Gym"], ["15:30", "Weakest subject"], ["18:00", "Geandra time"]],
+  6: [["07:30", "Shadowing"], ["12:30", "Major driving exposure"], ["15:30", "Cleaning reset"]],
+  0: [["07:00", "Long study"], ["09:00", "Church"], ["14:00", "Groceries"], ["15:00", "Cook Mon–Wed"], ["19:00", "Week planning"]],
+};
 
 export async function runDispatch(origin: string): Promise<DispatchResult> {
   await ensureCronRuns();
@@ -406,6 +441,23 @@ export async function runDispatch(origin: string): Promise<DispatchResult> {
     await sql`DELETE FROM cron_runs WHERE slot LIKE 'cachetest%'`;
   }
 
+  // 1a. 30-minute warning before each block on today's template
+  if (nowMin >= 5 * 60 && nowMin <= 21 * 60) {
+    for (const [hhmm, label] of DAY_BLOCKS[dow] ?? []) {
+      const start = slotMinutes(hhmm);
+      const warnAt = start - 30;
+      if (nowMin < warnAt || nowMin > warnAt + 6) continue;
+      const key = `warn-${hhmm}`;
+      if (!(await claimSlot(key, day, label))) continue;
+      const t12 = (() => {
+        const [h, m] = hhmm.split(":").map(Number);
+        return `${h % 12 || 12}:${m.toString().padStart(2, "0")}${h >= 12 ? "pm" : "am"}`;
+      })();
+      await notify(`⏱ 30 minutes — ${label} at ${t12}.`);
+      fired.push(key);
+    }
+  }
+
   // 1. Time-of-day slots
   for (const slot of SLOTS) {
     if (!slot.days.includes(dow)) continue;
@@ -423,7 +475,21 @@ export async function runDispatch(origin: string): Promise<DispatchResult> {
     }
   }
 
-  // 2. Due user reminders — minute-precision now instead of a 9am daily sweep
+  // 2. The obligation engine — anything crossing a lead threshold. Runs on
+  //    every dispatch but stays quiet outside waking hours.
+  let obligationsSent = 0;
+  if (nowMin >= 7 * 60 && nowMin <= 21 * 60) {
+    try {
+      const due = await dueNotifications();
+      for (const d of due.slice(0, 4)) {   // never dump a wall of alerts
+        await notify(d.message);
+        await markNotified(d.id, d.stage);
+        obligationsSent++;
+      }
+    } catch { /* engine unavailable */ }
+  }
+
+  // 2b. Due user reminders — minute-precision now instead of a 9am daily sweep
   let remindersSent = 0;
   try {
     const due = await getDueReminders();
@@ -453,6 +519,7 @@ export async function runDispatch(origin: string): Promise<DispatchResult> {
     chicagoTime: now.toLocaleString("en-US"),
     fired,
     remindersSent,
+    obligationsSent,
     urgentCheck,
   };
 }
