@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Navigation, KeyRound, Check, AlertTriangle, Route as RouteIcon, Save, ChevronDown, Smartphone, Copy } from "lucide-react";
+import { AddressInput } from "./AddressInput";
 
 interface Step { instruction: string; distanceText: string }
 interface RouteOption {
@@ -12,6 +13,13 @@ interface RouteOption {
 }
 
 export function RoutePlanner({ onSaved }: { onSaved: () => void }) {
+  const [places, setPlaces] = useState<Array<{ label: string; address: string }>>([]);
+  useEffect(() => {
+    fetch("/api/exposure").then(r => r.json())
+      .then(d => setPlaces((d.places ?? []).map((p: { label: string; address: string }) => ({ label: p.label, address: p.address }))))
+      .catch(() => {});
+  }, []);
+
   const [keyState, setKeyState] = useState<{ configured: boolean; hint: string | null } | null>(null);
   const [keyInput, setKeyInput] = useState("");
   const [keyErr, setKeyErr] = useState<string | null>(null);
@@ -121,12 +129,8 @@ export function RoutePlanner({ onSaved }: { onSaved: () => void }) {
           )}
         </div>
         <div className="space-y-2">
-          <input value={origin} onChange={e => setOrigin(e.target.value)} placeholder="Start address"
-            className="w-full rounded-lg px-3 py-2 text-sm"
-            style={{ background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)" }} />
-          <input value={destination} onChange={e => setDestination(e.target.value)} placeholder="Destination address"
-            className="w-full rounded-lg px-3 py-2 text-sm"
-            style={{ background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)" }} />
+          <AddressInput value={origin} onChange={setOrigin} placeholder="Start — type an address or pick a saved place" saved={places} />
+          <AddressInput value={destination} onChange={setDestination} placeholder="Destination" saved={places} />
           <label className="flex items-center gap-2 text-sm" style={{ color: "var(--text)" }}>
             <input type="checkbox" checked={avoidHighways} onChange={e => setAvoidHighways(e.target.checked)} />
             Avoid interstates, tolls and ferries
