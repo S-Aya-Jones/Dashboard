@@ -12,31 +12,28 @@ import { useState } from "react";
 import { SaveIndicator } from "@/components/ui/SaveIndicator";
 
 const navItems = [
-  { href: "/75hard",       label: "75 Hard",          icon: Zap },
   { href: "/",             label: "Today",            icon: Sun },
-  { href: "/week",         label: "This Week",        icon: Calendar },
-  { href: "/exposure",     label: "Exposure Therapy", icon: Brain },
-  { href: "/mcat",         label: "Med School",       icon: BookOpen },
+  { href: "/schedule",     label: "Schedule",         icon: Clock },
   { href: "/lectures",     label: "Lecture Studio",   icon: Mic },
   { href: "/qbank",        label: "Question Bank",    icon: ListChecks },
+  { href: "/exposure",     label: "Exposure",         icon: Brain },
   { href: "/school-inbox", label: "School Inbox",     icon: Mail },
+  { href: "/mcat",         label: "Med School",       icon: BookOpen },
+  { href: "/finances",     label: "Finances",         icon: DollarSign },
+  { href: "/reminders",    label: "Telegram",         icon: Bell },
+  { href: "/felt-safety",  label: "Felt Safety",      icon: Shield },
   { href: "/fitness",      label: "Fitness",          icon: Dumbbell },
   { href: "/skincare",     label: "Skincare",         icon: Sparkles },
-  { href: "/finances",     label: "Finances",         icon: DollarSign },
-  { href: "/felt-safety",  label: "Felt Safety",      icon: Shield },
-  { href: "/schedule",    label: "Schedule",         icon: Clock  },
-  { href: "/reminders",   label: "Telegram",         icon: Bell   },
-  { href: "/integrations", label: "Integrations",     icon: LayoutGrid },
+  { href: "/nutrition",    label: "Food",             icon: UtensilsCrossed },
   { href: "/vision",       label: "Vision",           icon: Gem },
-  { href: "/nutrition",    label: "Food Journal",     icon: UtensilsCrossed },
 ];
 
 const mobileMain = [
-  { href: "/75hard",       label: "75 Hard",      icon: Zap },
-  { href: "/",             label: "Today",        icon: Sun },
-  { href: "/finances",     label: "Finances",     icon: DollarSign },
-  { href: "/mcat",         label: "Med",          icon: BookOpen },
-  { href: "/fitness",      label: "Fitness",      icon: Dumbbell },
+  { href: "/",          label: "Today",    icon: Sun },
+  { href: "/schedule",  label: "Schedule", icon: Clock },
+  { href: "/lectures",  label: "Lectures", icon: Mic },
+  { href: "/qbank",     label: "Qbank",    icon: ListChecks },
+  { href: "/exposure",  label: "Exposure", icon: Brain },
 ];
 
 interface SidebarProps {
