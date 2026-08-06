@@ -187,7 +187,7 @@ function SmartInsights({ data }: { data: DashboardData }) {
           </div>
           <p className="text-2xl font-bold" style={{ color: "var(--text)" }}>{shadowingHours.toFixed(1)} hrs</p>
           <p className="text-xs mt-0.5 mb-2" style={{ color: "var(--text-muted)" }}>
-            {shadowingLeft > 0 ? `${shadowingLeft.toFixed(1)} hrs to 200-hr goal` : "Goal reached! 🎉"}
+            {shadowingLeft > 0 ? `${shadowingLeft.toFixed(1)} hrs to 200-hr goal` : "Goal reached!"}
           </p>
           <div className="h-1.5 rounded-full" style={{ background: "rgba(180,85,47,0.1)" }}>
             <div className="h-1.5 rounded-full transition-all" style={{ width: `${shadowingPct}%`, background: "var(--grad)" }} />
@@ -246,7 +246,7 @@ function SmartInsights({ data }: { data: DashboardData }) {
     const recent3 = checkIns.slice(0, 3).reduce((s, c) => s + c.level, 0) / 3;
     const older3  = checkIns.slice(-3).reduce((s, c) => s + c.level, 0) / 3;
     const trend = recent3 < older3 - 0.5 ? "improving" : recent3 > older3 + 0.5 ? "rising" : "steady";
-    const trendEmoji = trend === "improving" ? "📉" : trend === "rising" ? "📈" : "〰️";
+    const trendEmoji = trend === "improving" ? "↓" : trend === "rising" ? "↑" : "→";
     const trendColor = trend === "improving" ? "var(--green)" : trend === "rising" ? "var(--red)" : "var(--text-muted)";
     widgets.push({
       key: "mood",

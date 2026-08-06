@@ -20,8 +20,8 @@ export async function GET(req: NextRequest) {
   for (const r of due) {
     const timeStr = formatTimeOfDay(r.timeOfDay);
     const text = r.body
-      ? `⏰ <b>${r.title}</b>\n${r.body}\n\n<i>${timeStr} reminder</i>`
-      : `⏰ <b>${r.title}</b>\n\n<i>${timeStr} reminder</i>`;
+      ? `<b>${r.title}</b>\n${r.body}\n\n<i>${timeStr} reminder</i>`
+      : `<b>${r.title}</b>\n\n<i>${timeStr} reminder</i>`;
     await sendTelegram(text);
     await advanceReminder(r);
     sent++;

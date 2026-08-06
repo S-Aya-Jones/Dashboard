@@ -342,7 +342,7 @@ export function RepCardsTab() {
     return (
       <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
         <div className="card" style={{ padding: "2.5rem", textAlign: "center" }}>
-          <p style={{ fontSize: "2rem", marginBottom: "0.6rem" }}>🃏</p>
+          <p style={{ fontSize: "2rem", marginBottom: "0.6rem" }}></p>
           <p style={{ fontWeight: 700, color: "var(--text)", marginBottom: "0.3rem" }}>No card available today</p>
           <p style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
             Log twitches to unlock higher tiers and more cards.

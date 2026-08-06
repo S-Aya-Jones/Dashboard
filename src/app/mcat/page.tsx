@@ -132,7 +132,7 @@ export default function Page() {
                       boxShadow: "0 4px 16px rgba(180,85,47,0.4)",
                       opacity: selectedSubject ? 1 : 0.6,
                     }}>
-                    Start Timer ⚡
+                    Start Timer
                   </button>
                 </div>
 

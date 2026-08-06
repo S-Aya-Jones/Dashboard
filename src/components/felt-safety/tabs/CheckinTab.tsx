@@ -15,10 +15,10 @@ interface Checkin {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const DAY_RATINGS = [
-  { key: "stormy", label: "Stormy", emoji: "🌩️", color: "#DA667B", bg: "rgba(218,102,123,0.08)", border: "rgba(218,102,123,0.42)" },
-  { key: "choppy", label: "Choppy", emoji: "🌊",  color: "#F59E0B", bg: "rgba(245,158,11,0.08)",  border: "rgba(245,158,11,0.42)"  },
-  { key: "steady", label: "Steady", emoji: "⛵",  color: "#B4552F", bg: "rgba(180,85,47,0.08)",  border: "rgba(180,85,47,0.42)"  },
-  { key: "calm",   label: "Calm",   emoji: "🌅",  color: "#71816D", bg: "rgba(113,129,109,0.08)", border: "rgba(113,129,109,0.42)" },
+  { key: "stormy", label: "Stormy", color: "#DA667B", bg: "rgba(218,102,123,0.08)", border: "rgba(218,102,123,0.42)" },
+  { key: "choppy", label: "Choppy", color: "#F59E0B", bg: "rgba(245,158,11,0.08)",  border: "rgba(245,158,11,0.42)"  },
+  { key: "steady", label: "Steady", color: "#B4552F", bg: "rgba(180,85,47,0.08)",  border: "rgba(180,85,47,0.42)"  },
+  { key: "calm",   label: "Calm",   color: "#71816D", bg: "rgba(113,129,109,0.08)", border: "rgba(113,129,109,0.42)" },
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -154,7 +154,7 @@ function CompletedTodayCard({ checkin }: { checkin: Checkin }) {
       gap: "1.25rem",
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-        <span style={{ fontSize: "1.85rem", lineHeight: 1 }}>{rating.emoji}</span>
+        <span style={{ width: 14, height: 14, borderRadius: "50%", background: rating.color, flexShrink: 0 }} />
         <div style={{ flex: 1 }}>
           <p style={{
             fontSize: "0.62rem",
@@ -212,7 +212,7 @@ function DigestCard({ checkin }: { checkin: Checkin }) {
       gap: "0.55rem",
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
-        <span style={{ fontSize: "1.05rem", lineHeight: 1, flexShrink: 0 }}>{rating.emoji}</span>
+        <span style={{ width: 9, height: 9, borderRadius: "50%", background: rating.color, flexShrink: 0 }} />
         <span style={{
           fontSize: "0.68rem",
           fontWeight: 700,
@@ -249,7 +249,6 @@ function DigestCard({ checkin }: { checkin: Checkin }) {
 function EmptyDigest() {
   return (
     <div className="card" style={{ padding: "1.75rem", textAlign: "center" }}>
-      <p style={{ fontSize: "1.5rem", marginBottom: "0.5rem" }}>🌿</p>
       <p style={{ color: "var(--text-muted)", fontSize: "0.88rem", fontWeight: 500 }}>
         No check-ins yet.
       </p>
@@ -369,7 +368,6 @@ export function CheckinTab() {
       {/* Submitted but todayCheckin not yet in state (edge case) */}
       {!loading && submitted && !todayCheckin && (
         <div className="card animate-fade-in" style={{ padding: "2rem", textAlign: "center" }}>
-          <p style={{ fontSize: "1.75rem", marginBottom: "0.5rem" }}>🌅</p>
           <p style={{ fontWeight: 700, color: "var(--text)", marginBottom: "0.25rem" }}>
             Check-in logged.
           </p>
@@ -462,7 +460,7 @@ export function CheckinTab() {
                     outline: "none",
                   }}
                 >
-                  <span style={{ fontSize: "1.45rem", lineHeight: 1 }}>{r.emoji}</span>
+                  <span style={{ width: 11, height: 11, borderRadius: "50%", background: r.color, flexShrink: 0 }} />
                   <span style={{
                     fontSize: "0.72rem",
                     fontWeight: dayRating === r.key ? 700 : 500,

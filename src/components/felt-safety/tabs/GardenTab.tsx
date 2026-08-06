@@ -275,13 +275,12 @@ export function GardenTab() {
       {/* Garden legend */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "0.75rem" }}>
         {[
-          { emoji: "🌳", label: "Tree size", value: `${stats.totalResisted} resisted`, note: "grows with restraint" },
-          { emoji: "🌸", label: "Flowers",   value: `${Math.min(stats.completedReps, 8)} / 8`,  note: "from rep completions" },
-          { emoji: "🌤️",  label: "Sun rays",  value: stats.checkinsStreak > 0 ? `${stats.checkinsStreak}-day streak` : "No streak yet", note: "daily check-ins" },
-          { emoji: "🐦", label: "Birds",     value: `${stats.parkingLetGoCount} released`,      note: "parking lot let-gos" },
+          { label: "Tree size", value: `${stats.totalResisted} resisted`, note: "grows with restraint" },
+          { label: "Flowers",   value: `${Math.min(stats.completedReps, 8)} / 8`,  note: "from rep completions" },
+          { label: "Sun rays",  value: stats.checkinsStreak > 0 ? `${stats.checkinsStreak}-day streak` : "No streak yet", note: "daily check-ins" },
+          { label: "Birds",     value: `${stats.parkingLetGoCount} released`,      note: "parking lot let-gos" },
         ].map(item => (
           <div key={item.label} className="card" style={{ padding: "0.9rem 1rem" }}>
-            <p style={{ fontSize: "1.4rem", margin: "0 0 0.35rem" }}>{item.emoji}</p>
             <p style={{ fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--text-muted)", margin: "0 0 0.15rem" }}>{item.label}</p>
             <p style={{ fontSize: "0.95rem", fontWeight: 700, color: "var(--text)", margin: "0 0 0.1rem" }}>{item.value}</p>
             <p style={{ fontSize: "0.7rem", color: "var(--text-light)", margin: 0 }}>{item.note}</p>
@@ -292,7 +291,6 @@ export function GardenTab() {
       {/* Tier 3 badge */}
       {stats.hasCompletedTier3 && (
         <div className="card" style={{ padding: "1.25rem", background: "linear-gradient(135deg, rgba(212,184,150,0.15) 0%, rgba(218,102,123,0.08) 100%)", border: "1px solid rgba(212,184,150,0.4)", textAlign: "center" }}>
-          <p style={{ fontSize: "1.75rem", margin: "0 0 0.4rem" }}>🏅</p>
           <p style={{ fontSize: "0.88rem", fontWeight: 700, color: "var(--text)", margin: "0 0 0.2rem" }}>Tier 3 Complete</p>
           <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", margin: 0, fontStyle: "italic" }}>
             You&apos;ve done the hardest reps. The golden flower blooms for you.

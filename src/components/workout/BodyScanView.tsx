@@ -198,7 +198,7 @@ export function BodyScanView({ data, update }: Props) {
           {/* Capture section */}
           <div className="rounded-2xl p-5 space-y-4" style={{ background: "var(--surface)", border: "1px solid rgba(180,85,47,0.15)" }}>
             <div>
-              <p className="font-semibold text-sm" style={{ color: "var(--text)" }}>📸 Body Scan Analysis</p>
+              <p className="font-semibold text-sm" style={{ color: "var(--text)" }}>Body Scan Analysis</p>
               <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Height-based AI feedback on your body composition</p>
             </div>
 
@@ -291,7 +291,7 @@ export function BodyScanView({ data, update }: Props) {
             {/* Info box */}
             <div className="rounded-xl p-3 text-xs" style={{ background: "rgba(180,85,47,0.05)" }}>
               <p style={{ color: "var(--text-muted)" }}>
-                📊 AI Coach will analyze your body composition, provide honest feedback, and give you a personalized roadmap for 30, 90, and 180 days.
+AI Coach will analyze your body composition, provide honest feedback, and give you a personalized roadmap for 30, 90, and 180 days.
               </p>
             </div>
           </div>

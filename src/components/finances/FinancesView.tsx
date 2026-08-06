@@ -410,7 +410,7 @@ function UpcomingChecksCard({ yearPlan, effectiveTakeHome, budgetLines, pc, payc
                 )}
                 {slot.dueBills.map(b => (
                   <div key={b.id} className="flex items-center justify-between text-sm gap-2">
-                    <span style={{ color: MUTED }}>🧾 {b.name}</span>
+                    <span style={{ color: MUTED }}>{b.name}</span>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <span className="font-semibold" style={{ color: AMBER }}>−{fmt$(b.amount)}</span>
                       {isInPlan(key, b.name) ? (
@@ -1142,7 +1142,7 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
                 <p className="text-5xl mb-2">{focus.emoji}</p>
                 <h2 className="text-2xl font-bold" style={{ color: "var(--text)" }}>{focus.name}</h2>
                 <p className="text-sm mt-1 font-semibold" style={{ color: current.canAfford ? LIME : RED }}>
-                  {fmt$(focus.cost)} · {current.canAfford ? "you can swing it ✓" : "tight this check ⚠️"}
+                  {fmt$(focus.cost)} · {current.canAfford ? "you can swing it ✓" : "tight this check"}
                 </p>
                 <p className="text-xs mt-0.5" style={{ color: MUTED }}>
                   {freqLabel(focus.frequencyWeeks, focus.frequencyLabel)}{focus.lastDone ? ` · last ${format(parseISO(focus.lastDone), "MMM d")}` : ""}
@@ -1578,7 +1578,7 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
                 <div className="grid grid-cols-2 gap-2">
                   <input type="number" value={budgetAmt} onChange={e => setBudgetAmt(e.target.value)} placeholder="Per check ($)" className="rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }} />
                   <select value={budgetCat} onChange={e => setBudgetCat(e.target.value as BudgetLine["category"])} className="rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }}>
-                    <option value="housing">🏠 Housing</option><option value="transfer">🏦 Transfer</option><option value="food">🛒 Food</option><option value="transport">🚗 Transport</option><option value="utilities">💡 Utilities</option><option value="savings">💰 Savings</option><option value="other">📌 Other</option>
+                    <option value="housing">Housing</option><option value="transfer">Transfer</option><option value="food">Food</option><option value="transport">Transport</option><option value="utilities">Utilities</option><option value="savings">Savings</option><option value="other">Other</option>
                   </select>
                 </div>
                 <input value={budgetToAcct} onChange={e => setBudgetToAcct(e.target.value)} placeholder="To account (optional)" className="w-full rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }} />
@@ -1691,7 +1691,7 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
               {(insights!.bills!).filter(b => !bills.some(rb => rb.name.toLowerCase().includes(b.name.toLowerCase().slice(0, 6)) || b.name.toLowerCase().includes(rb.name.toLowerCase().slice(0, 6)))).map((b, i) => (
                 <div key={i} className="flex items-center justify-between py-1.5">
                   <div>
-                    <p className="text-sm" style={{ color: "var(--text)" }}>🧾 {b.name}</p>
+                    <p className="text-sm" style={{ color: "var(--text)" }}>{b.name}</p>
                     <p className="text-xs" style={{ color: MUTED }}>{fmt$(b.amount)} · due {b.dayOfMonth}{ordinal(b.dayOfMonth)}</p>
                   </div>
                   <button onClick={() => { onUpdateBills([...bills, { id: id(), name: b.name, amount: b.amount, dayOfMonth: b.dayOfMonth }]); showToast("Bill added!"); }}
@@ -1785,16 +1785,16 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
 
 // ── Base Budget Card ──────────────────────────────────────────────────────────
 const BASE_BUDGET_DEFAULTS = [
-  { emoji: "🏠", category: "Housing" },
-  { emoji: "🛒", category: "Groceries" },
-  { emoji: "🍽️", category: "Eating Out" },
-  { emoji: "⛽", category: "Gas" },
-  { emoji: "👗", category: "Shopping" },
-  { emoji: "💊", category: "Health" },
-  { emoji: "🎉", category: "Fun / Entertainment" },
-  { emoji: "📦", category: "Subscriptions" },
-  { emoji: "💇", category: "Self-Care" },
-  { emoji: "✈️", category: "Travel" },
+  { emoji: "", category: "Housing" },
+  { emoji: "", category: "Groceries" },
+  { emoji: "", category: "Eating Out" },
+  { emoji: "", category: "Gas" },
+  { emoji: "", category: "Shopping" },
+  { emoji: "", category: "Health" },
+  { emoji: "", category: "Fun / Entertainment" },
+  { emoji: "", category: "Subscriptions" },
+  { emoji: "", category: "Self-Care" },
+  { emoji: "", category: "Travel" },
 ];
 
 function BaseBudgetCard({ baseBudget, onUpdate, showToast }: {
@@ -1804,7 +1804,7 @@ function BaseBudgetCard({ baseBudget, onUpdate, showToast }: {
 }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
-  const [addEmoji, setAddEmoji] = useState("📌");
+  const [addEmoji, setAddEmoji] = useState("");
   const [addCat, setAddCat] = useState("");
   const [addAmt, setAddAmt] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
@@ -1825,7 +1825,7 @@ function BaseBudgetCard({ baseBudget, onUpdate, showToast }: {
     if (!addCat || !addAmt) return;
     const newItem: BaseBudgetItem = { id: id(), category: addCat, emoji: addEmoji, monthlyLimit: parseFloat(addAmt) };
     onUpdate([...baseBudget, newItem]);
-    setAddCat(""); setAddAmt(""); setAddEmoji("📌"); setShowAddForm(false);
+    setAddCat(""); setAddAmt(""); setAddEmoji(""); setShowAddForm(false);
     showToast("Added!");
   }
 
@@ -1941,15 +1941,15 @@ function BaseBudgetCard({ baseBudget, onUpdate, showToast }: {
 
 // ── Budget Planner Card ───────────────────────────────────────────────────────
 const PLAN_CATEGORY_DEFAULTS = [
-  { emoji: "🏠", category: "Housing" },
-  { emoji: "🛒", category: "Groceries" },
-  { emoji: "🍽️", category: "Eating Out" },
-  { emoji: "⛽", category: "Gas" },
-  { emoji: "💊", category: "Health" },
-  { emoji: "🎉", category: "Fun" },
-  { emoji: "💇", category: "Self-Care" },
-  { emoji: "📦", category: "Subscriptions" },
-  { emoji: "💰", category: "Savings" },
+  { emoji: "", category: "Housing" },
+  { emoji: "", category: "Groceries" },
+  { emoji: "", category: "Eating Out" },
+  { emoji: "", category: "Gas" },
+  { emoji: "", category: "Health" },
+  { emoji: "", category: "Fun" },
+  { emoji: "", category: "Self-Care" },
+  { emoji: "", category: "Subscriptions" },
+  { emoji: "", category: "Savings" },
 ];
 
 function BudgetPlannerCard({ budgetPlans, onUpdate, showToast }: {
@@ -1964,7 +1964,7 @@ function BudgetPlannerCard({ budgetPlans, onUpdate, showToast }: {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [editItemVal, setEditItemVal] = useState("");
-  const [addItemEmoji, setAddItemEmoji] = useState("📌");
+  const [addItemEmoji, setAddItemEmoji] = useState("");
   const [addItemCat, setAddItemCat] = useState("");
   const [addItemAmt, setAddItemAmt] = useState("");
   const [showAddItem, setShowAddItem] = useState(false);
@@ -1998,7 +1998,7 @@ function BudgetPlannerCard({ budgetPlans, onUpdate, showToast }: {
     if (!addItemCat || !addItemAmt) return;
     const newItem: BudgetPlanItem = { id: id(), category: addItemCat, emoji: addItemEmoji, plannedMonthly: parseFloat(addItemAmt) };
     onUpdate(budgetPlans.map(p => p.id !== planId ? p : { ...p, items: [...p.items, newItem] }));
-    setAddItemCat(""); setAddItemAmt(""); setAddItemEmoji("📌"); setShowAddItem(false);
+    setAddItemCat(""); setAddItemAmt(""); setAddItemEmoji(""); setShowAddItem(false);
     showToast("Added!");
   }
 
@@ -2223,7 +2223,7 @@ function DebtTab({ liabilities, liabilitiesLoading, effectiveTakeHome, freeCash 
 
   if (!liabilities?.hasData) return (
     <div className="rounded-2xl p-6 text-center" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
-      <p className="text-3xl mb-2">💳</p>
+      <p className="text-3xl mb-2"></p>
       <p className="text-sm" style={{ color: "var(--text)" }}>No debt accounts detected</p>
       <p className="text-xs" style={{ color: MUTED }}>Plaid pulls in credit cards and loans automatically from your connected accounts.</p>
     </div>
@@ -2258,7 +2258,7 @@ function DebtTab({ liabilities, liabilitiesLoading, effectiveTakeHome, freeCash 
                 <div key={cc.accountId} className="px-4 py-4" style={{ borderBottom: i < liabilities.creditCards.length - 1 ? `1px solid ${BORDER}` : undefined }}>
                   <div className="flex items-start justify-between mb-2">
                     <div>
-                      <p className="text-sm font-semibold text-dark flex items-center gap-2">💳 {cc.name}
+                      <p className="text-sm font-semibold text-dark flex items-center gap-2">{cc.name}
                         {cc.isOverdue && <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ background: "rgba(218,102,123,0.15)", color: RED }}>Overdue</span>}
                       </p>
                       <p className="text-xs mt-0.5" style={{ color: MUTED }}>{cc.purchaseApr ? `${cc.purchaseApr}% APR · ` : ""}{cc.nextDueDate ? `Due ${format(parseISO(cc.nextDueDate), "MMM d")}` : ""}</p>
@@ -2295,7 +2295,7 @@ function DebtTab({ liabilities, liabilitiesLoading, effectiveTakeHome, freeCash 
               <div key={loan.accountId} className="px-4 py-4" style={{ borderBottom: i < liabilities.studentLoans.length - 1 ? `1px solid ${BORDER}` : undefined }}>
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-sm font-semibold text-dark flex items-center gap-2">🎓 {loan.name}
+                    <p className="text-sm font-semibold text-dark flex items-center gap-2">{loan.name}
                       {loan.isOverdue && <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ background: "rgba(218,102,123,0.15)", color: RED }}>Overdue</span>}
                     </p>
                     <p className="text-xs mt-0.5" style={{ color: MUTED }}>{loan.interestRate ? `${loan.interestRate}% rate · ` : ""}{loan.nextDueDate ? `Due ${format(parseISO(loan.nextDueDate), "MMM d")}` : ""}{loan.expectedPayoffDate ? ` · Payoff ${format(parseISO(loan.expectedPayoffDate), "MMM yyyy")}` : ""}</p>
@@ -2681,7 +2681,7 @@ function SavingsCalibrationCard({ yearPlan, paycheckPlans, onUpdatePaycheckPlans
       <div className="rounded-2xl overflow-hidden" style={{ background: CARD, border: `1px solid rgba(245,158,11,0.3)` }}>
         <div className="px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}`, background: "rgba(245,158,11,0.04)" }}>
           <p className="text-sm font-semibold" style={{ color: AMBER }}>
-            {negCount > 0 ? "⚠️" : "🔔"} {warnings.length} check{warnings.length !== 1 ? "s" : ""} need a savings adjustment
+            {negCount > 0 ? "" : ""} {warnings.length} check{warnings.length !== 1 ? "s" : ""} need a savings adjustment
           </p>
           <p className="text-xs mt-0.5" style={{ color: MUTED }}>
             At your current savings rate, these dates get tight. Tap Fix to reduce savings just for that check.
@@ -3224,7 +3224,7 @@ function CreditTab({ liabilities, liabilitiesLoading, creditScores, effectiveTak
           </div>
         ) : (
           <div className="text-center py-4">
-            <p className="text-4xl mb-2">📊</p>
+            <p className="text-4xl mb-2"></p>
             <p className="text-sm" style={{ color: "var(--text)" }}>No score logged yet</p>
             <p className="text-xs" style={{ color: MUTED }}>Check yours on Credit Karma, Chase, or your bank app — it&apos;s free.</p>
           </div>

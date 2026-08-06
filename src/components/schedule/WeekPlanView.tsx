@@ -84,7 +84,7 @@ const WEEK: Record<number, { name: string; blocks: Block[] }> = {
     { start: "07:00", end: "14:30", label: "Work — no classes on Fridays", cat: "work", note: "Heights doses 10:00 & 1:30 · clean work day" },
     { start: "15:00", end: "15:30", label: "Budget check (paydays)", cat: "life", note: "Bills tab is already sorted" },
     { start: "15:30", end: "17:00", label: "Weakest subject of the week", cat: "study", note: "No classes Friday — the pressure valve · 2nd shadowing slot fits here" },
-    { start: "18:00", end: "21:00", label: "Geandra time 💜", cat: "people", note: "The week's one late night — bed by 10:30" },
+    { start: "18:00", end: "21:00", label: "Geandra time", cat: "people", note: "The week's one late night — bed by 10:30" },
   ]},
   6: { name: "Saturday", blocks: [
     { start: "06:30", end: "07:15", label: "Up + breakfast", cat: "rest" },

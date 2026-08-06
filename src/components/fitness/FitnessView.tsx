@@ -15,9 +15,9 @@ interface Props {
 }
 
 const SESSION_TYPES = [
-  { value: "gym",    label: "Gym 🏋🏾‍♀️",          color: "#71816D" },
-  { value: "tennis", label: "Tennis 🎾",           color: "#DA667B" },
-  { value: "walk",   label: "Morning Walk 🚶🏾‍♀️",   color: "#8A9E87" },
+  { value: "gym",    label: "Gym",          color: "#71816D" },
+  { value: "tennis", label: "Tennis",           color: "#DA667B" },
+  { value: "walk",   label: "Morning Walk",   color: "#8A9E87" },
   { value: "other",  label: "Other",               color: "rgba(180,85,47,0.3)" },
 ];
 
@@ -137,7 +137,7 @@ function AppleHealthTab({ data }: { data: DashboardData }) {
         className="rounded-2xl p-8 text-center space-y-4"
         style={{ background: "var(--surface)", border: "1.5px dashed rgba(180,85,47,0.2)" }}
       >
-        <div className="text-4xl">📱</div>
+        <div className="text-4xl"></div>
         <h3 className="font-serif text-xl" style={{ color: "var(--text)" }}>Connect Apple Health</h3>
         <p className="text-sm max-w-md mx-auto" style={{ color: "var(--text-muted)" }}>
           Use the <strong>Health Auto Export</strong> app to sync your Apple Health data here automatically.
@@ -264,7 +264,7 @@ function AppleHealthTab({ data }: { data: DashboardData }) {
           style={{ background: "var(--surface)" }}
         >
           <p className="font-serif text-5xl" style={{ color: "var(--text)" }}>{streak}</p>
-          <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>day streak 🔥</p>
+          <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>day streak</p>
           {streak > 0 && (
             <p className="text-xs mt-2" style={{ color: "var(--text-muted)" }}>keep it going!</p>
           )}
@@ -568,7 +568,7 @@ export function FitnessView({ data, update }: Props) {
 
           <Card title="Sleep Log">
             {data.sleepLogs.length === 0 ? (
-              <p className="text-sand-dark text-sm">No sleep logs yet. Rest is productivity too 🌙</p>
+              <p className="text-sand-dark text-sm">No sleep logs yet. Rest is productivity too</p>
             ) : (
               <div className="space-y-2">
                 {[...data.sleepLogs]

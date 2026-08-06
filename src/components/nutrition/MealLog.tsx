@@ -161,7 +161,7 @@ function MealCard({ meal, onClick, onDelete }: { meal: MealEntry; onClick: () =>
         </div>
       ) : (
         <div className="w-full flex items-center justify-center relative" style={{ height: "100px", background: "rgba(124,92,252,0.05)" }}>
-          <span className="text-3xl">🍽️</span>
+          <span className="text-3xl"></span>
           <span className="absolute top-3 left-3 text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize"
             style={{ background: "rgba(250,243,232,0.9)", color: TYPE_COLORS[meal.mealType] }}>
             {meal.mealType}

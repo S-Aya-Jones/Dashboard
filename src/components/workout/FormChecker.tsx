@@ -132,7 +132,7 @@ export function FormChecker({ exercise, onClose, update }: Props) {
 
             {/* Tips */}
             <div className="rounded-2xl p-4 space-y-2" style={{ background: "rgba(180,85,47,0.05)" }}>
-              <p className="text-xs font-semibold text-purple-600">💡 Best photo tips:</p>
+              <p className="text-xs font-semibold text-purple-600">Best photo tips:</p>
               <ul className="text-xs space-y-1" style={{ color: "var(--text-muted)" }}>
                 <li>• Full body in frame, side angle if possible</li>
                 <li>• Good lighting, no shadows on joints</li>

@@ -43,10 +43,10 @@ function formatTime(hhmm: string): string {
 }
 
 const QUICK_SENDS = [
-  { label: "Workout Reminder", message: "Time to train! 💪 Reply DONE when you finish, or SKIP for a rest day." },
+  { label: "Workout Reminder", message: "Time to train! Reply DONE when you finish, or SKIP for a rest day." },
   { label: "Check-in Prompt", message: "Quick check-in! Reply with: weight in lbs (e.g. 130lbs) or steps (e.g. 8500 steps)." },
-  { label: "You're amazing", message: "You're doing amazing. Keep showing up — that's the whole game. 🌟" },
-  { label: "Eating today?", message: "What are you eating today? Fueling that body right! 🥗" },
+  { label: "You're amazing", message: "You're doing amazing. Keep showing up — that's the whole game." },
+  { label: "Eating today?", message: "What are you eating today? Fueling that body right!" },
 ];
 
 export function SmsView({ data, update }: SmsViewProps) {
@@ -163,7 +163,7 @@ export function SmsView({ data, update }: SmsViewProps) {
       const res = await fetch("/api/push/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: "Aya's Dashboard", message: "Push notifications are working! 🔔", url: "/messages" }),
+        body: JSON.stringify({ title: "Aya's Dashboard", message: "Push notifications are working!", url: "/messages" }),
       });
       const result = await res.json();
       if (!res.ok) showToast(result.error ?? "Failed to send test", "error");

@@ -205,7 +205,7 @@ export function DayScheduleView() {
 
         {timedEvs.length === 0 && allDayEvs.length === 0 && !loading && (
           <div style={{ padding: "3rem 1.5rem", textAlign: "center" }}>
-            <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>📅</div>
+            <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}></div>
             <div style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>No events found for this day</div>
             <div style={{ color: "var(--text-muted)", fontSize: "0.78rem", marginTop: "0.25rem" }}>Appointments from your email will appear here after scanning</div>
           </div>

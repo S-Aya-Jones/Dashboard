@@ -67,7 +67,7 @@ function SectionLabel({ children }: { children: ReactNode }) {
 function EmptyParking() {
   return (
     <div className="card" style={{ padding: "2.5rem", textAlign: "center" }}>
-      <p style={{ fontSize: "1.75rem", marginBottom: "0.6rem" }}>🌿</p>
+      <p style={{ fontSize: "1.75rem", marginBottom: "0.6rem" }}></p>
       <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", fontWeight: 500 }}>
         Nothing parked yet.
       </p>
@@ -92,7 +92,7 @@ function RestingCard({ entry }: { entry: ParkingLotEntry }) {
     }}>
       <div style={{ display: "flex", alignItems: "flex-start", gap: "0.6rem" }}>
         <span style={{ fontSize: "1rem", lineHeight: 1.4, flexShrink: 0, marginTop: "0.1rem" }}>
-          🔒
+
         </span>
         <p style={{
           fontSize: "0.88rem",

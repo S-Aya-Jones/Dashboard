@@ -150,19 +150,19 @@ function phrase(o: Obligation, days: number): string {
     `in ${days} days`;
 
   const lead: Record<string, (t: string, w: string, d: string) => string> = {
-    assignment: (t, w) => `📚 ${t} is due ${w}. Start it in tonight's Block 1 — don't let it land on an exam week.`,
-    exam: (t, w) => `📝 ${t} — ${w}.`,
-    bill: (t, w, d) => `💳 ${t} due ${w}${d ? ` · ${d}` : ""}.`,
-    payday: (t, w) => `💰 ${t} ${w === "today" ? "hit today" : w}. 30-min budget check before the weekend.`,
-    appointment: (t, w, d) => `🗓 ${t} ${w}${d ? ` · ${d}` : ""}.`,
-    "product-cycle": (t, w, d) => `🧴 ${t} — ${w}. ${d}`,
-    refill: (t, w) => `💊 ${t} runs out ${w} — reorder now.`,
-    haircut: (t, w) => `💇🏽‍♀️ ${t} — ${w}. Book it before the week fills up.`,
+    assignment: (t, w) => `${t} is due ${w}. Start it in tonight's Block 1 — don't let it land on an exam week.`,
+    exam: (t, w) => `${t} — ${w}.`,
+    bill: (t, w, d) => `${t} due ${w}${d ? ` · ${d}` : ""}.`,
+    payday: (t, w) => `${t} ${w === "today" ? "hit today" : w}. 30-min budget check before the weekend.`,
+    appointment: (t, w, d) => `${t} ${w}${d ? ` · ${d}` : ""}.`,
+    "product-cycle": (t, w, d) => `${t} — ${w}. ${d}`,
+    refill: (t, w) => `${t} runs out ${w} — reorder now.`,
+    haircut: (t, w) => `${t} — ${w}. Book it before the week fills up.`,
     birthday: (t, w, d) => w === "today"
-      ? `🎂 ${t} is TODAY. Call ${t.replace(/'s birthday$/, "")}${d ? ` — your ${d}` : ""}.`
-      : `🎂 ${t} — ${w}. ${w === "tomorrow" ? "Text tonight so you're not the late one." : "Enough time to actually get something."}`,
-    call: (t, w) => `📞 ${t}${w === "today" ? " today" : ` — ${w}`}. Ten minutes counts.`,
-    maintenance: (t, w, d) => `🔧 ${t} ${w}${d ? ` · ${d}` : ""}.`,
+      ? `${t} is TODAY. Call ${t.replace(/'s birthday$/, "")}${d ? ` — your ${d}` : ""}.`
+      : `${t} — ${w}. ${w === "tomorrow" ? "Text tonight so you're not the late one." : "Enough time to actually get something."}`,
+    call: (t, w) => `${t}${w === "today" ? " today" : ` — ${w}`}. Ten minutes counts.`,
+    maintenance: (t, w, d) => `${t} ${w}${d ? ` · ${d}` : ""}.`,
   };
 
   const f = lead[o.kind];

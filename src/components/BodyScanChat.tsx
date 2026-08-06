@@ -269,7 +269,7 @@ export function BodyScanChat({ analysis, onClose }: Props) {
                   className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-sm"
                   style={{ background: "rgba(180,85,47,0.2)", color: "#B4552F" }}
                 >
-                  🤖
+
                 </div>
               )}
               <div
@@ -290,7 +290,7 @@ export function BodyScanChat({ analysis, onClose }: Props) {
                 className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-sm animate-pulse"
                 style={{ background: "rgba(180,85,47,0.2)", color: "#B4552F" }}
               >
-                🤖
+
               </div>
               <div className="flex gap-1.5 items-center">
                 <div

@@ -5,17 +5,6 @@ import { Plus, Trash2, CheckSquare, Square } from "lucide-react";
 import { GroceryItem, NutritionData } from "@/types/dashboard";
 import { assignGrocerySection, GROCERY_SECTIONS } from "./groceryUtils";
 
-const SECTION_ICONS: Record<string, string> = {
-  Produce:   "🥦",
-  Dairy:     "🥛",
-  Meat:      "🍗",
-  Frozen:    "🧊",
-  Pantry:    "🫙",
-  Snacks:    "🍿",
-  Beverages: "🧃",
-  Other:     "🛒",
-};
-
 export function GroceryList({
   nutrition,
   onUpdate,
@@ -120,7 +109,6 @@ export function GroceryList({
             return (
               <div key={sec}>
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-base">{SECTION_ICONS[sec]}</span>
                   <h3 className="text-sm font-semibold uppercase tracking-wide" style={{ color: "#A8967E" }}>
                     {sec}
                   </h3>

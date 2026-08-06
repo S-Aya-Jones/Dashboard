@@ -1195,11 +1195,11 @@ export function getPhaseCoachingMessage(weekNum: number): string {
   return "Foundation week: Learn the movement. Build mind-muscle connection. Weight is irrelevant — feel matters most.";
 }
 
-export function getPhaseEmojiAndColor(weekNum: number): { emoji: string; color: string } {
-  if (weekNum === 7) return { emoji: "🌱", color: "#C99A5C" };  // Deload = rest/growth
-  if (weekNum >= 5) return { emoji: "⚡", color: "#DA667B" };    // Peak = fire
-  if (weekNum >= 3) return { emoji: "📈", color: "#7C5CFC" };    // Build = growth
-  return { emoji: "🏗️", color: "#9B7FFF" };                      // Foundation = building
+export function getPhaseEmojiAndColor(weekNum: number): { color: string } {
+  if (weekNum === 7) return { color: "#C99A5C" };  // Deload = rest/growth
+  if (weekNum >= 5) return { color: "#DA667B" };    // Peak = fire
+  if (weekNum >= 3) return { color: "#7C5CFC" };    // Build = growth
+  return { color: "#9B7FFF" };                      // Foundation = building
 }
 
 export function calculateWeeklyVolume(

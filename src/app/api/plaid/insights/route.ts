@@ -8,26 +8,26 @@ interface RawTxn { id: string; name: string; amount: number; date: string; categ
 
 // ── Keyword definitions ───────────────────────────────────────────────────────
 const CARE_DEFS = [
-  { key: "hair",    label: "Hair",          emoji: "💇🏾‍♀️", color: "#C8FF00",
+  { key: "hair",    label: "Hair",          color: "#C8FF00",
     kw: ["salon", "hair salon", "braids", "loc style", "hair studio", "stylist",
          "natural hair", "beauty supply", "tress", "locs", "relaxer",
          "press and curl", "blowout", "hair care", "naturals", "dominican"] },
-  { key: "nails",   label: "Nails",         emoji: "💅🏾",   color: "#DA667B",
+  { key: "nails",   label: "Nails",         color: "#DA667B",
     kw: ["nail ", "nails", "manicure", "pedicure", "nail bar", "nail spa",
          "gel nail", "nail lounge", "nail studio", "powder dip"] },
-  { key: "skin",    label: "Skin & Facials", emoji: "🧖🏾‍♀️", color: "#A8967E",
+  { key: "skin",    label: "Skin & Facials", color: "#A8967E",
     kw: ["facial", "esthetic", "medspa", "med spa", "esthetician",
          "skin treatment", "derma", "glow", "chemical peel", "microderm"] },
-  { key: "mcat",    label: "MCAT Prep",     emoji: "📚",     color: "#6B8CAE",
+  { key: "mcat",    label: "MCAT Prep",     color: "#6B8CAE",
     kw: ["aamc", "uworld", "mcat", "kaplan", "blueprint mcat", "exam prep", "test prep"] },
-  { key: "fitness", label: "Gym",           emoji: "💪",     color: "#71816D",
+  { key: "fitness", label: "Gym",           color: "#71816D",
     kw: ["ymca", "planet fitness", "crunch fitness", "anytime fitness",
          "equinox", "gold's gym", "la fitness", "fitness 19", "retro fitness"] },
-  { key: "massage", label: "Massage",       emoji: "💆🏾‍♀️", color: "#C9B79C",
+  { key: "massage", label: "Massage",       color: "#C9B79C",
     kw: ["massage", "massage therapy", "elements massage", "massage envy"] },
-  { key: "wax",     label: "Waxing",        emoji: "✨",     color: "#8A9E87",
+  { key: "wax",     label: "Waxing",        color: "#8A9E87",
     kw: ["wax ", "waxing", "european wax", "sugaring", "bare"] },
-  { key: "lashes",  label: "Lashes",        emoji: "👁️",    color: "#E8A87C",
+  { key: "lashes",  label: "Lashes",        color: "#E8A87C",
     kw: ["lash ", "lashes", "lash bar", "lash studio", "eyelash"] },
 ];
 
@@ -98,7 +98,7 @@ function detectSelfCare(txns: RawTxn[]) {
     }
 
     return {
-      key: def.key, label: def.label, emoji: def.emoji, color: def.color,
+      key: def.key, label: def.label, color: def.color,
       avgCost, minCost, maxCost,
       avgFreqDays: Math.max(7, avgFreqDays),
       lastDate: matches[0].date,

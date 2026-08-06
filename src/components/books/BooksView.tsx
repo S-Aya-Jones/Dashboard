@@ -114,7 +114,7 @@ export function BooksView({ data, update }: Props) {
     <div className="space-y-6 animate-fade-in">
       <div>
         <h1 className="font-serif text-4xl text-brown">Books &amp; Devotionals</h1>
-        <p className="text-sand-dark mt-1">What&apos;s nourishing your mind and spirit 📖</p>
+        <p className="text-sand-dark mt-1">What&apos;s nourishing your mind and spirit</p>
       </div>
 
       {/* Search */}
@@ -151,7 +151,7 @@ export function BooksView({ data, update }: Props) {
 
       <BookSection title="Currently Reading"                books={currentlyReading}    onMove={moveBook} onDelete={deleteBook} />
       <BookSection title="Want to Read"                     books={wantToRead}           onMove={moveBook} onDelete={deleteBook} />
-      <BookSection title="Devotional / Bible Study 🙏"     books={devotional}           onMove={moveBook} onDelete={deleteBook} />
+      <BookSection title="Devotional / Bible Study"     books={devotional}           onMove={moveBook} onDelete={deleteBook} />
       <BookSection
         title={`Finished This Quarter${finishedThisQuarter.length ? ` · ${finishedThisQuarter.length}` : ""}`}
         books={finishedThisQuarter}
@@ -161,7 +161,7 @@ export function BooksView({ data, update }: Props) {
       />
 
       {books.length === 0 && !query && (
-        <p className="text-sand-dark text-sm text-center py-8">No books yet — search above to add one 📚</p>
+        <p className="text-sand-dark text-sm text-center py-8">No books yet — search above to add one</p>
       )}
     </div>
   );

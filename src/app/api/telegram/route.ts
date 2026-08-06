@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
       const schedStr = r.scheduleType === "daily"
         ? "daily"
         : `every ${formatDaysOfWeek(r.daysOfWeek ?? [])}`;
-      await replyTelegram(chatId, `✅ Reminder set!\n<b>${r.title}</b>\n${schedStr} at ${timeStr}`);
+      await replyTelegram(chatId, `Reminder set!\n<b>${r.title}</b>\n${schedStr} at ${timeStr}`);
       await logInbound(raw, "remind_created", { id: r.id, title: r.title });
     }
     return NextResponse.json({ ok: true });
@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
         const schedStr = r.scheduleType === "daily" ? "daily" : formatDaysOfWeek(r.daysOfWeek ?? []);
         return `${i + 1}. <b>${r.title}</b> — ${schedStr} at ${timeStr}`;
       });
-      await replyTelegram(chatId, `📋 Active reminders:\n${lines.join("\n")}\n\nTurn off: /off &lt;number&gt;`);
+      await replyTelegram(chatId, `Active reminders:\n${lines.join("\n")}\n\nTurn off: /off &lt;number&gt;`);
     }
     await logInbound(raw, "list", {});
     return NextResponse.json({ ok: true });
@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
         await replyTelegram(chatId, `No reminder #${idx + 1}. Use /list to see options.`);
       } else {
         await toggleReminder(active[idx].id, false);
-        await replyTelegram(chatId, `⏸ Turned off: <b>${active[idx].title}</b>`);
+        await replyTelegram(chatId, `Turned off: <b>${active[idx].title}</b>`);
         await logInbound(raw, "reminder_off", { id: active[idx].id });
       }
     }
@@ -146,7 +146,7 @@ export async function POST(req: NextRequest) {
         await replyTelegram(chatId, `No paused reminder #${idx + 1}.`);
       } else {
         await toggleReminder(inactive[idx].id, true);
-        await replyTelegram(chatId, `▶️ Turned on: <b>${inactive[idx].title}</b>`);
+        await replyTelegram(chatId, `▶ Turned on: <b>${inactive[idx].title}</b>`);
         await logInbound(raw, "reminder_on", { id: inactive[idx].id });
       }
     }
@@ -157,8 +157,8 @@ export async function POST(req: NextRequest) {
   if (/^\/start(@|\s|$)/i.test(raw) || /^\/help(@|\s|$)/i.test(raw)) {
     await replyTelegram(
       chatId,
-      "👋 Aya's Dashboard bot\n\n" +
-      "📋 Commands:\n" +
+      "Aya's Dashboard bot\n\n" +
+      "Commands:\n" +
       "/remind &lt;title&gt; daily at 7:00pm — set daily reminder\n" +
       "/remind &lt;title&gt; mon,wed,fri at 6:00am — set weekly\n" +
       "/list — show active reminders\n" +
@@ -175,7 +175,7 @@ export async function POST(req: NextRequest) {
   const noteText      = raw.startsWith("/log ") ? raw.slice(5).trim() : raw;
   const isExplicitLog = raw.startsWith("/log ");
   await logInbound(raw, isExplicitLog ? "explicit_log" : "free_text", { note: noteText });
-  await replyTelegram(chatId, "📝 Logged.");
+  await replyTelegram(chatId, "Logged.");
 
   return NextResponse.json({ ok: true });
   } catch (err) {

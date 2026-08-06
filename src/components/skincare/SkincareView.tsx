@@ -267,7 +267,7 @@ function AnalysisCard({ analysis, photo, onReset }: { analysis: Analysis; photo:
       </Section>
 
       {analysis.hairstyleAnalysis && (
-        <Section title="Hairstyle Analysis" icon="✂">
+        <Section title="Hairstyle Analysis" icon="◇">
           <div className="p-3 rounded-xl mb-3" style={{ background: "rgba(180,85,47,0.05)" }}>
             <p className="text-xs font-medium mb-1" style={{ color: "var(--text-muted)" }}>Current style</p>
             <p className="text-xs" style={{ color: "var(--text)" }}>{analysis.hairstyleAnalysis.currentStyle}</p>
@@ -277,7 +277,7 @@ function AnalysisCard({ analysis, photo, onReset }: { analysis: Analysis; photo:
               style={analysis.hairstyleAnalysis.suitsFaceShape
                 ? { background: GOLD_PILL_BG, color: GOLD }
                 : { background: "rgba(232,168,124,0.1)", color: "#E8A87C" }}>
-              {analysis.hairstyleAnalysis.suitsFaceShape ? "✓ Suits your face shape" : "⚠ Could be optimized"}
+              {analysis.hairstyleAnalysis.suitsFaceShape ? "✓ Suits your face shape" : "Could be optimized"}
             </span>
           </div>
           <p className="text-xs mb-3" style={{ color: "var(--text)" }}>{analysis.hairstyleAnalysis.suitabilityNote}</p>
@@ -334,7 +334,7 @@ function AnalysisCard({ analysis, photo, onReset }: { analysis: Analysis; photo:
       )}
 
       {hasSurgical && (
-        <Section title="Surgical Considerations" icon="⚕">
+        <Section title="Surgical Considerations" icon="◈">
           <p className="text-xs mb-3" style={{ color: "var(--text-muted)" }}>
             Procedures ranked by impact relative to your specific features. Consult a board-certified surgeon before any decisions.
           </p>
@@ -500,7 +500,7 @@ function AnalysisCard({ analysis, photo, onReset }: { analysis: Analysis; photo:
         )}
       </Section>
 
-      <Section title="Ask the Analyst" icon="💬">
+      <Section title="Ask the Analyst" icon="▸">
         <p className="text-xs mb-3" style={{ color: "var(--text-muted)" }}>
           Ask anything about your results — specific concerns, whether a treatment makes sense, what to prioritize first.
         </p>
@@ -950,7 +950,7 @@ export function SkincareView({ data, update }: Props) {
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-brown font-medium">{p.name}</p>
                 {p.brand && <p className="text-xs text-sand-dark">{p.brand}</p>}
-                {p.isTesting && <p className="text-xs text-rose">🧪 Testing{p.startDate ? ` since ${format(parseISO(p.startDate), "MMM d")}` : ""}</p>}
+                {p.isTesting && <p className="text-xs text-rose">Testing{p.startDate ? ` since ${format(parseISO(p.startDate), "MMM d")}` : ""}</p>}
                 {p.notes && <p className="text-xs text-sand-dark italic">{p.notes}</p>}
               </div>
               <button onClick={() => deleteProduct(p.id)} className="opacity-0 group-hover:opacity-100 text-sand hover:text-rose flex-shrink-0">
@@ -1043,7 +1043,6 @@ export function SkincareView({ data, update }: Props) {
           <div className="space-y-2 mt-2">
             {testingProducts.map((p) => (
               <div key={p.id} className="flex items-center gap-3 p-3 rounded-xl bg-rose/10 border border-rose/20">
-                <span className="text-base">🧪</span>
                 <div className="flex-1">
                   <p className="text-sm font-medium text-brown">{p.name}</p>
                   {p.startDate && <p className="text-xs text-sand-dark">Started {format(parseISO(p.startDate), "MMMM d, yyyy")}</p>}

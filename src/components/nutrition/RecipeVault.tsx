@@ -158,7 +158,7 @@ function RecipeDetail({
               className="w-full rounded-3xl flex flex-col items-center justify-center gap-4"
               style={{ minHeight: "300px", background: "rgba(124,92,252,0.05)", border: "2px dashed var(--border)" }}
             >
-              <span className="text-5xl">🍳</span>
+              <span className="text-5xl"></span>
               <p className="text-sm font-medium" style={{ color: "#A8967E" }}>Add a photo</p>
               <div className="flex flex-col gap-2 w-full px-6">
                 <button
@@ -458,7 +458,7 @@ function RecipeCard({
           className="w-full flex items-center justify-center"
           style={{ height: "120px", background: "rgba(124,92,252,0.05)" }}
         >
-          <span className="text-4xl">🍳</span>
+          <span className="text-4xl"></span>
         </div>
       )}
 

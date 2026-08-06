@@ -486,9 +486,9 @@ export function AnkiView({ data, update }: Props) {
           <div style={{ padding: "16px 18px", borderRadius: 14, background: "rgba(124,92,252,0.07)", border: "1.5px solid rgba(124,92,252,0.15)" }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--purple)", marginBottom: 8 }}>How the Anki algorithm works</div>
             <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.8 }}>
-              <b>🔵 Learning</b> — new cards work through steps: 1 min → 10 min → graduate<br/>
-              <b>🔴 Review</b> — graduated cards come back based on their interval<br/>
-              <b>🟢 New</b> — unseen cards, limited to your daily cap<br/>
+              <b>Learning</b> — new cards work through steps: 1 min → 10 min → graduate<br/>
+              <b>Review</b> — graduated cards come back based on their interval<br/>
+              <b>New</b> — unseen cards, limited to your daily cap<br/>
               <br/>
               <b>Again</b> → card comes back in 1 min; lapses reset ease<br/>
               <b>Hard</b> → shorter interval, ease drops 15%<br/>

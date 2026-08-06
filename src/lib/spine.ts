@@ -245,7 +245,7 @@ function buildFallbackMorning(assessments: Assessment[], dow: number): string {
 const SKINCARE_MSG =
   "7:55 — study blocks are done. Skincare hour starts now: " +
   "phone on the charger, call your boo while you do your routine, " +
-  "gym bag + clothes laid out for the morning. Lights out at 9. 🧴✨";
+  "gym bag + clothes laid out for the morning. Lights out at 9.";
 
 // ─── Slot table ──────────────────────────────────────────────────────────────
 
@@ -453,7 +453,7 @@ export async function runDispatch(origin: string): Promise<DispatchResult> {
         const [h, m] = hhmm.split(":").map(Number);
         return `${h % 12 || 12}:${m.toString().padStart(2, "0")}${h >= 12 ? "pm" : "am"}`;
       })();
-      await notify(`⏱ 30 minutes — ${label} at ${t12}.`);
+      await notify(`30 minutes — ${label} at ${t12}.`);
       fired.push(key);
     }
   }
@@ -496,8 +496,8 @@ export async function runDispatch(origin: string): Promise<DispatchResult> {
     for (const r of due) {
       const timeStr = formatTimeOfDay(r.timeOfDay);
       const text = r.body
-        ? `⏰ <b>${r.title}</b>\n${r.body}\n\n<i>${timeStr} reminder</i>`
-        : `⏰ <b>${r.title}</b>\n\n<i>${timeStr} reminder</i>`;
+        ? `<b>${r.title}</b>\n${r.body}\n\n<i>${timeStr} reminder</i>`
+        : `<b>${r.title}</b>\n\n<i>${timeStr} reminder</i>`;
       await sendTelegram(text);
       await advanceReminder(r);
       remindersSent++;

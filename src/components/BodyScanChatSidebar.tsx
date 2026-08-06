@@ -144,7 +144,7 @@ export function BodyScanChatSidebar({ analysis }: { analysis: Analysis }) {
         {messages.map((msg, i) => (
           <div key={i} className={`flex gap-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
             {msg.role === "assistant" && (
-              <div className="text-lg flex-shrink-0">🤖</div>
+              <div className="text-lg flex-shrink-0"></div>
             )}
             <div
               className="max-w-xs rounded-lg px-3 py-2 text-xs leading-relaxed"
@@ -160,7 +160,7 @@ export function BodyScanChatSidebar({ analysis }: { analysis: Analysis }) {
 
         {isLoading && (
           <div className="flex gap-2">
-            <div className="text-lg">🤖</div>
+            <div className="text-lg"></div>
             <div className="flex gap-1 items-center">
               <div
                 className="w-1.5 h-1.5 rounded-full animate-bounce"

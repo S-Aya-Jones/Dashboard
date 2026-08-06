@@ -76,7 +76,7 @@ export function MCATView({ data, update }: Props) {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="font-serif text-4xl text-brown">MCAT Prep</h1>
-          <p className="text-sand-dark mt-1">You&apos;re building your future, one session at a time 📚</p>
+          <p className="text-sand-dark mt-1">You&apos;re building your future, one session at a time</p>
         </div>
         <div className="flex gap-2">
           <Button variant="secondary" onClick={() => setTestOpen(true)}>Log Practice Test</Button>

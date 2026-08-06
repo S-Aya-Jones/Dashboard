@@ -64,7 +64,7 @@ export function AvatarCoach({ exercise, setIndex, totalSets, isPlaying, videoUrl
               onClick={() => setShowVideo(true)}>
               {/* Aya avatar placeholder */}
               <div className="w-28 h-28 rounded-full bg-gradient-to-br from-purple-600 via-pink-500 to-amber-500 flex items-center justify-center text-5xl shadow-lg">
-                👩🏾
+
               </div>
               <div className="text-center space-y-1">
                 <p className="text-xs font-bold text-white">Aya is ready to coach you</p>
@@ -82,7 +82,7 @@ export function AvatarCoach({ exercise, setIndex, totalSets, isPlaying, videoUrl
               <div className="relative">
                 <div className="absolute inset-0 rounded-full animate-ping opacity-20" style={{ background: "#B4552F" }} />
                 <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-600 via-pink-500 to-amber-500 flex items-center justify-center text-5xl shadow-lg relative">
-                  👩🏾
+
                 </div>
               </div>
               <div className="text-center space-y-1">

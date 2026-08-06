@@ -192,7 +192,7 @@ function inline(s: string) {
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
     .replace(/\*(.+?)\*/g, "<em>$1</em>")
     .replace(/`(.+?)`/g, '<code class="md-code">$1</code>')
-    .replace(/\[EMPHASIZED\]/g, '<span class="md-flag">⚡ emphasized</span>');
+    .replace(/\[EMPHASIZED\]/g, '<span class="md-flag">emphasized</span>');
 }
 
 function renderMarkdown(src: string): { html: string; sections: string[] } {

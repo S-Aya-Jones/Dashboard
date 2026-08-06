@@ -488,7 +488,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
         )
       : 0;
 
-    const { emoji: phaseEmoji, color: phaseColor } = getPhaseEmojiAndColor(weekNum);
+    const { color: phaseColor } = getPhaseEmojiAndColor(weekNum);
 
     return (
       <div className="flex flex-col h-full items-center justify-center gap-5 p-8 text-center overflow-y-auto"
@@ -525,7 +525,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
         {streak > 0 && (
           <div className="flex items-center justify-center gap-2 px-4 py-3 rounded-full w-full max-w-sm"
             style={{ background: "rgba(218,102,123,0.1)", border: "1px solid rgba(218,102,123,0.25)" }}>
-            <span style={{ fontSize: "1.5rem" }}>🔥</span>
+            <span style={{ fontSize: "1.5rem" }}></span>
             <div>
               <p className="font-semibold text-ink">{streak + 1} day streak</p>
               <p className="text-xs" style={{ color: "rgba(30,19,64,0.45)" }}>Keep showing up</p>
@@ -537,7 +537,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
         {weekNum > 0 && (
           <div className="w-full max-w-sm px-4 py-3 rounded-2xl text-sm"
             style={{ background: `${phaseColor}15`, border: `1px solid ${phaseColor}33`, color: phaseColor }}>
-            <p className="font-semibold mb-1.5">{phaseEmoji} Week {weekNum}</p>
+            <p className="font-semibold mb-1.5">Week {weekNum}</p>
             <p className="text-xs leading-relaxed">{getPhaseCoachingMessage(weekNum)}</p>
           </div>
         )}
@@ -546,7 +546,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
         {isSunday && (
           <div className="w-full max-w-sm px-4 py-3 rounded-2xl text-sm text-center"
             style={{ background: "rgba(201,154,92,0.1)", border: "1px solid rgba(201,154,92,0.25)", color: "#C99A5C" }}>
-            📏 Measure your waist + hips. Same time, same day. Track your hourglass progress.
+Measure your waist + hips. Same time, same day. Track your hourglass progress.
           </div>
         )}
 
@@ -770,7 +770,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
           <button onClick={() => setShowFormChecker(true)}
             className="w-full py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 active:scale-95 transition-transform"
             style={{ background: "rgba(180,85,47,0.08)", color: "#B4552F", border: "1px solid rgba(180,85,47,0.2)" }}>
-            📹 Check My Form
+Check My Form
           </button>
         </div>
 
