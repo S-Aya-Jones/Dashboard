@@ -1198,8 +1198,8 @@ export function getPhaseCoachingMessage(weekNum: number): string {
 export function getPhaseEmojiAndColor(weekNum: number): { color: string } {
   if (weekNum === 7) return { color: "#C99A5C" };  // Deload = rest/growth
   if (weekNum >= 5) return { color: "#DA667B" };    // Peak = fire
-  if (weekNum >= 3) return { color: "#7C5CFC" };    // Build = growth
-  return { color: "#9B7FFF" };                      // Foundation = building
+  if (weekNum >= 3) return { color: "#B4552F" };    // Build = growth
+  return { color: "#C97A52" };                      // Foundation = building
 }
 
 export function calculateWeeklyVolume(

@@ -7,7 +7,7 @@ const OFFICE_DAYS = [1, 2, 4, 5]; // commute days
 const WFH_DAY = [3]; // Wednesday — no commute, no treadmill
 
 export const TYPE_META: Record<ScheduleBlock["type"], { color: string; label: string }> = {
-  work:     { color: "#7C5CFC", label: "Work" },
+  work:     { color: "#B4552F", label: "Work" },
   walk:     { color: "#10B981", label: "Walk" },
   mcat:     { color: "#A78BFA", label: "MCAT" },
   exposure: { color: "#F59E0B", label: "Exposure" },

@@ -65,7 +65,7 @@ export function NutritionView({
       {/* Tabs */}
       <div
         className="flex gap-1 p-1 rounded-2xl mb-8 overflow-x-auto"
-        style={{ background: "rgba(124,92,252,0.05)" }}
+        style={{ background: "rgba(180,85,47,0.05)" }}
       >
         {TABS.map(({ id, label }) => {
           const active = tab === id;
@@ -82,7 +82,7 @@ export function NutritionView({
               style={{
                 background: active ? "var(--surface)" : "transparent",
                 color:      active ? "var(--text)" : "var(--text-light)",
-                boxShadow:  active ? "0 2px 8px rgba(124,92,252,0.06)" : "none",
+                boxShadow:  active ? "0 2px 8px rgba(180,85,47,0.06)" : "none",
               }}
             >
               {label}

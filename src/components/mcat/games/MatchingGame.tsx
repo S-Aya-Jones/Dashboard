@@ -126,7 +126,7 @@ export function MatchingGame({ cards, onDone }: Props) {
                 padding: "14px 10px",
                 borderRadius: 12,
                 border: `2px solid ${isMatched ? "var(--green)" : isWrong ? "var(--red)" : isSelected ? "var(--purple)" : "var(--border)"}`,
-                background: isMatched ? "rgba(16,185,129,0.08)" : isWrong ? "rgba(239,68,68,0.08)" : isSelected ? "rgba(124,92,252,0.1)" : "var(--surface)",
+                background: isMatched ? "rgba(16,185,129,0.08)" : isWrong ? "rgba(239,68,68,0.08)" : isSelected ? "rgba(180,85,47,0.1)" : "var(--surface)",
                 color: isMatched ? "var(--green)" : "var(--text)",
                 cursor: isMatched ? "default" : "pointer",
                 fontSize: 12,

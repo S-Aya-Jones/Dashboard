@@ -94,7 +94,7 @@ export function AddressInput({
                 onMouseEnter={() => setActive(i)}
                 onClick={() => pick(r.value)}
                 className="w-full text-left px-3 py-2.5 flex items-start gap-2.5"
-                style={{ background: active === i ? "rgba(124,92,252,.10)" : "transparent" }}>
+                style={{ background: active === i ? "rgba(180,85,47,.10)" : "transparent" }}>
                 <MapPin size={13} className="flex-shrink-0 mt-0.5"
                   style={{ color: r.kind === "saved" ? "#2bb3a3" : "var(--purple)" }} />
                 <span className="min-w-0">

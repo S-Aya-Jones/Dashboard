@@ -31,7 +31,7 @@ export function NextSteps({ onLog }: { onLog: (t: { phobia: string; label: strin
   return (
     <div className="space-y-4">
       <div className="rounded-2xl p-5 relative overflow-hidden"
-        style={{ background: "linear-gradient(135deg,rgba(124,92,252,.12),rgba(43,179,163,.10))", border: "1.5px solid var(--border)" }}>
+        style={{ background: "linear-gradient(135deg,rgba(180,85,47,.12),rgba(43,179,163,.10))", border: "1.5px solid var(--border)" }}>
         <div className="flex items-center gap-2 mb-1">
           <Wand2 size={17} style={{ color: "var(--purple)" }} />
           <h3 className="font-bold" style={{ color: "var(--text)" }}>What should I actually do next?</h3>
@@ -62,7 +62,7 @@ export function NextSteps({ onLog }: { onLog: (t: { phobia: string; label: strin
                 className="rounded-2xl p-5" style={{ background: "var(--surface)", border: "1.5px solid var(--border)" }}>
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ background: "rgba(124,92,252,.12)", color: "var(--purple)" }}>
+                    style={{ background: "rgba(180,85,47,.12)", color: "var(--purple)" }}>
                     {s.phobia === "heights" ? <Mountain size={16} /> : <Car size={16} />}
                   </div>
                   <div className="flex-1 min-w-0">

@@ -269,7 +269,7 @@ function BookCard({
         // eslint-disable-next-line @next/next/no-img-element
         <img src={book.coverUrl} alt="" className="w-10 h-14 object-cover rounded shadow-soft flex-shrink-0" />
       ) : (
-        <div className="w-10 h-14 rounded flex-shrink-0 flex items-center justify-center" style={{ background: "rgba(124,92,252,0.3)" }}>
+        <div className="w-10 h-14 rounded flex-shrink-0 flex items-center justify-center" style={{ background: "rgba(180,85,47,0.3)" }}>
           <BookMarked size={16} className="text-brown" />
         </div>
       )}

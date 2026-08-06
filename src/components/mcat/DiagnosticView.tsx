@@ -64,7 +64,7 @@ function subjectColor(name: string): string {
     "Critical Analysis & Reasoning Skills": "#FB923C",
     "General Chemistry":   "#F59E0B",
     "Organic Chemistry":   "#EF4444",
-    "Physics":             "#6366F1",
+    "Physics":             "#8A7A66",
   };
   return MAP[name] ?? "#B4552F";
 }
@@ -791,7 +791,7 @@ export function DiagnosticView({ data, update }: Props) {
           <div
             style={{
               position: "fixed", inset: 0,
-              background: "rgba(30,19,64,0.5)",
+              background: "rgba(28,22,19,0.5)",
               display: "flex", alignItems: "center", justifyContent: "center",
               zIndex: 100,
             }}

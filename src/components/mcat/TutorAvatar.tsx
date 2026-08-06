@@ -31,10 +31,10 @@ function ProfessorFace({ outerMouthRef, innerMouthRef, size }: FaceProps) {
       </defs>
       <circle cx="50" cy="50" r="50" fill="url(#profGrad)" />
       <circle cx="34" cy="40" r="7" fill="white" />
-      <circle cx="35" cy="41" r="3.5" fill="#1E1340" />
+      <circle cx="35" cy="41" r="3.5" fill="#1C1613" />
       <circle cx="37" cy="39" r="1.5" fill="white" />
       <circle cx="66" cy="40" r="7" fill="white" />
-      <circle cx="67" cy="41" r="3.5" fill="#1E1340" />
+      <circle cx="67" cy="41" r="3.5" fill="#1C1613" />
       <circle cx="69" cy="39" r="1.5" fill="white" />
       <rect x="24" y="32" width="20" height="16" rx="5" fill="none" stroke="white" strokeWidth="1.8" opacity="0.65" />
       <rect x="56" y="32" width="20" height="16" rx="5" fill="none" stroke="white" strokeWidth="1.8" opacity="0.65" />
@@ -42,7 +42,7 @@ function ProfessorFace({ outerMouthRef, innerMouthRef, size }: FaceProps) {
       <line x1="14" y1="39" x2="24" y2="39" stroke="white" strokeWidth="1.5" opacity="0.5" />
       <line x1="76" y1="39" x2="86" y2="39" stroke="white" strokeWidth="1.5" opacity="0.5" />
       <ellipse ref={outerMouthRef} cx="50" cy="67" rx="11" ry="2" fill="white" />
-      <ellipse ref={innerMouthRef} cx="50" cy="67" rx="9" ry="0" fill="rgba(30,19,64,0.65)" style={{ opacity: 0 }} />
+      <ellipse ref={innerMouthRef} cx="50" cy="67" rx="9" ry="0" fill="rgba(28,22,19,0.65)" style={{ opacity: 0 }} />
     </svg>
   );
 }
@@ -69,8 +69,8 @@ function MonsterFace({ outerMouthRef, innerMouthRef, size }: FaceProps) {
       <circle cx="35" cy="42" r="10" fill="white" />
       <circle cx="65" cy="42" r="10" fill="white" />
       {/* Pupils */}
-      <circle cx="37" cy="44" r="5" fill="#1E1340" />
-      <circle cx="67" cy="44" r="5" fill="#1E1340" />
+      <circle cx="37" cy="44" r="5" fill="#1C1613" />
+      <circle cx="67" cy="44" r="5" fill="#1C1613" />
       {/* Highlights */}
       <circle cx="39" cy="41" r="2" fill="white" />
       <circle cx="69" cy="41" r="2" fill="white" />

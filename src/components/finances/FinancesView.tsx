@@ -10,14 +10,14 @@ import { id } from "@/lib/utils";
 import { parseISO, format, addDays, differenceInDays } from "date-fns";
 import { TodaySpendCard } from "@/components/finances/TodaySpendCard";
 
-const LIME   = "#B4552F";   // purple primary (was lime)
-const BG     = "#F4F0FE";   // light lavender bg
-const CARD   = "#FFFFFF";   // white card
+const LIME   = "#B4552F";   // clay — the accent everything hangs off
+const BG     = "#FAF6F1";   // warm cream, same as the rest of the app
+const CARD   = "#FFFDFB";   // barely-warm white
 const BORDER = "rgba(180,85,47,0.12)";
-const MUTED  = "rgba(30,19,64,0.45)";
-const RED    = "#EF4444";
-const AMBER  = "#F59E0B";
-const COLORS = ["#B4552F","#EF4444","#E0A44A","#FB923C","#10B981","#F59E0B","#6366F1","#EC4899"];
+const MUTED  = "rgba(28,22,19,0.48)";
+const RED    = "#C0503C";
+const AMBER  = "#C99A5C";
+const COLORS = ["#B4552F","#C0503C","#E0A44A","#C97A52","#3F6F5E","#C99A5C","#8A7A66","#C9748A"];
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface DetectedCare {
@@ -103,11 +103,11 @@ function fmtDate(d: Date) { return format(d, "MMM d"); }
 function ordinal(n: number) { const s = ["th","st","nd","rd"]; const v = n % 100; return s[(v-20)%10] || s[v] || s[0]; }
 function getCategoryColor(cat: BudgetLine["category"] | string): string {
   const map: Record<string, string> = {
-    transfer: "#6366F1", housing: "#B4552F", food: "#10B981", transport: "#F59E0B",
+    transfer: "#8A7A66", housing: "#B4552F", food: "#10B981", transport: "#F59E0B",
     savings: "#8B5CF6", utilities: "#06B6D4", other: "#94A3B8",
     groceries: "#10B981", "eating out": "#FB923C", gas: "#F59E0B",
-    health: "#EF4444", fun: "#E0A44A", "self-care": "#EC4899",
-    subscriptions: "#6366F1", travel: "#0EA5E9", shopping: "#F472B6",
+    health: "#EF4444", fun: "#E0A44A", "self-care": "#C9748A",
+    subscriptions: "#8A7A66", travel: "#0EA5E9", shopping: "#F472B6",
   };
   return map[cat.toLowerCase()] ?? "#94A3B8";
 }
@@ -2728,7 +2728,7 @@ function SavingsCalibrationCard({ yearPlan, paycheckPlans, onUpdatePaycheckPlans
 
 // ── Paycheck Plan Card ────────────────────────────────────────────────────────
 const CAT_COLORS: Record<BudgetLine["category"], string> = {
-  housing: "#B4552F", transfer: "#6366F1", food: "#10B981",
+  housing: "#B4552F", transfer: "#8A7A66", food: "#10B981",
   transport: "#FB923C", utilities: "#F59E0B", savings: "#10B981", other: "#7C6FAE",
 };
 function CatChip({ cat }: { cat: BudgetLine["category"] }) {

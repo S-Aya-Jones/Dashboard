@@ -166,7 +166,7 @@ h1 { letter-spacing: -0.032em; }
 }
 
 .card-floating:hover {
-  box-shadow: 0 20px 60px rgba(124,92,252,0.3);
+  box-shadow: 0 20px 60px rgba(180,85,47,0.22);
   transform: translateY(-4px);
 }
 
@@ -179,11 +179,11 @@ h1 { letter-spacing: -0.032em; }
 }
 
 /* ── Inputs ──────────────────────────────────────────────── */
-input[type="text"],
+:where(input[type="text"],
 input[type="number"],
 input[type="date"],
 textarea,
-select {
+select) {
   background: var(--surface2);
   border: 1.5px solid var(--border);
   border-radius: 0.625rem;
@@ -196,13 +196,13 @@ select {
   width: 100%;
 }
 
-input[type="text"]:focus,
-input[type="number"]:focus,
-input[type="date"]:focus,
-textarea:focus,
-select:focus {
+:where(input[type="text"],
+input[type="number"],
+input[type="date"],
+textarea,
+select):focus {
   border-color: var(--purple);
-  box-shadow: 0 0 0 3px rgba(124,92,252,0.15);
+  box-shadow: 0 0 0 3px rgba(180,85,47,0.15);
 }
 
 input::placeholder, textarea::placeholder {
@@ -237,7 +237,7 @@ input::placeholder, textarea::placeholder {
 }
 
 .pill-purple {
-  background: rgba(124,92,252,0.12);
+  background: rgba(180,85,47,0.12);
   color: var(--purple);
 }
 
@@ -355,7 +355,7 @@ input::placeholder, textarea::placeholder {
   border-radius: 50%;
   filter: blur(56px);
   opacity: .5;
-  background: radial-gradient(closest-side, rgba(124,92,252,.55), transparent 72%);
+  background: radial-gradient(closest-side, rgba(180,85,47,.42), transparent 72%);
 }
 
 /* Section headers that don't shout in all-caps */

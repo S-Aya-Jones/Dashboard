@@ -97,7 +97,7 @@ function BoxBreathing() {
         animate={{ scale: p.scale }}
         transition={{ duration: p.secs, ease: "easeInOut" }}
         className="w-40 h-40 rounded-full flex items-center justify-center"
-        style={{ background: "linear-gradient(135deg,rgba(124,92,252,.25),rgba(43,179,163,.25))",
+        style={{ background: "linear-gradient(135deg,rgba(180,85,47,.25),rgba(43,179,163,.25))",
                  border: "2px solid var(--purple)" }}>
         <div className="text-center">
           <div className="font-serif text-2xl" style={{ color: "var(--text)" }}>{p.label}</div>

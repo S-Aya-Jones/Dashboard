@@ -13,7 +13,7 @@ const SUBJECTS = [
   { name: "CARS",                color: "#FB923C" },
   { name: "General Chemistry",   color: "#F59E0B" },
   { name: "Organic Chemistry",   color: "#EF4444" },
-  { name: "Physics",             color: "#6366F1" },
+  { name: "Physics",             color: "#8A7A66" },
 ];
 
 interface Props {

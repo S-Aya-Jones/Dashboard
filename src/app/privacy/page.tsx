@@ -9,10 +9,10 @@ export default function PrivacyPage() {
   return (
     <div
       style={{
-        background: "#F4F0FE",
+        background: "#FAF6F1",
         minHeight: "100vh",
         fontFamily: "'Inter', system-ui, sans-serif",
-        color: "#1E1340",
+        color: "#1C1613",
       }}
     >
       <div style={{ maxWidth: "720px", margin: "0 auto", padding: "3rem 1.5rem 5rem" }}>
@@ -40,7 +40,7 @@ export default function PrivacyPage() {
               fontFamily: "'Cormorant Garamond', Georgia, serif",
               fontSize: "clamp(2rem, 5vw, 3rem)",
               fontWeight: 500,
-              color: "#1E1340",
+              color: "#1C1613",
               margin: "0 0 0.5rem",
               lineHeight: 1.15,
             }}
@@ -230,7 +230,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
           fontFamily: "'Cormorant Garamond', Georgia, serif",
           fontSize: "1.35rem",
           fontWeight: 500,
-          color: "#1E1340",
+          color: "#1C1613",
           margin: "0 0 0.75rem",
           paddingBottom: "0.35rem",
           borderBottom: "1px solid rgba(180,85,47,0.10)",
@@ -239,7 +239,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
         {title}
       </h2>
       <div
-        style={{ color: "#1E1340" }}
+        style={{ color: "#1C1613" }}
       >
         {children}
       </div>

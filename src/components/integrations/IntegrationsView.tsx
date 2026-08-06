@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 
 const LIME = "#B4552F";
 const BORDER = "rgba(180,85,47,0.12)";
-const MUTED = "rgba(30,19,64,0.45)";
+const MUTED = "rgba(28,22,19,0.48)";
 const RED = "#EF4444";
 const GREEN = "#10B981";
 const AMBER = "#F59E0B";
@@ -28,7 +28,7 @@ const CAT_CONFIG: Record<TriageCategory, { label: string; color: string; bg: str
   bill:          { label: "Bills",         color: AMBER,  bg: "rgba(245,158,11,0.08)" },
   school:        { label: "School/MCAT",   color: GREEN,  bg: "rgba(16,185,129,0.08)" },
   spam:          { label: "Spam/Junk",     color: "#9CA3AF", bg: "rgba(156,163,175,0.08)" },
-  fyi:           { label: "FYI",           color: "#6366F1", bg: "rgba(99,102,241,0.08)" },
+  fyi:           { label: "FYI",           color: "#8A7A66", bg: "rgba(99,102,241,0.08)" },
   uncategorized: { label: "All",           color: MUTED,  bg: "transparent" },
 };
 

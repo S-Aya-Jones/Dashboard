@@ -78,8 +78,8 @@ Requirements for the mermaid diagram:
 - LABEL THE EDGES with the relationship: A -->|activates| B, A -->|inhibits| B, A -->|leads to| B, A -->|requires| B. Unlabeled arrows are much less useful — label most of them.
 - Show causal/mechanistic chains, not just categories. The map should let her trace a process start to finish.
 - End with class definitions to color-code node roles, exactly in this style:
-  classDef core fill:#7C5CFC,stroke:#5b3fd4,color:#fff
-  classDef process fill:#e8ecff,stroke:#7C5CFC,color:#1a1a2e
+  classDef core fill:#B4552F,stroke:#5b3fd4,color:#fff
+  classDef process fill:#e8ecff,stroke:#B4552F,color:#1a1a2e
   classDef outcome fill:#2bb3a3,stroke:#1e8a7e,color:#fff
   classDef warn fill:#ffe3d0,stroke:#e8842c,color:#1a1a2e
   and assign them: class A,B core   class C,D process   etc.

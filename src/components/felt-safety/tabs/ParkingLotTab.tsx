@@ -518,10 +518,10 @@ export function ParkingLotTab() {
               borderRadius: "12px",
               border: "none",
               background: !newContent.trim() || submitting
-                ? "rgba(124,92,252,0.15)"
+                ? "rgba(180,85,47,0.15)"
                 : "linear-gradient(135deg, #8B7355, #D4B896)",
               color: !newContent.trim() || submitting
-                ? "rgba(124,92,252,0.4)"
+                ? "rgba(180,85,47,0.4)"
                 : "#fff",
               fontSize: "0.88rem",
               fontWeight: 700,

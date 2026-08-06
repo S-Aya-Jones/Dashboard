@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function SmsOptInPage() {
   return (
-    <div style={{ background: "#F4F0FE", minHeight: "100vh", overflowY: "auto", fontFamily: "'Inter', system-ui, sans-serif", color: "#1E1340" }}>
+    <div style={{ background: "#FAF6F1", minHeight: "100vh", overflowY: "auto", fontFamily: "'Inter', system-ui, sans-serif", color: "#1C1613" }}>
       <div style={{ maxWidth: "560px", margin: "0 auto", padding: "3rem 1.5rem 5rem" }}>
 
         {/* Brand header */}
@@ -18,7 +18,7 @@ export default function SmsOptInPage() {
           <p style={{ fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.1em", color: "#B4552F", textTransform: "uppercase", margin: "0 0 0.5rem" }}>
             Aya&apos;s Personal Dashboard
           </p>
-          <h1 style={{ fontFamily: "Georgia, serif", fontSize: "1.9rem", fontWeight: 500, margin: "0 0 0.4rem", color: "#1E1340", lineHeight: 1.2 }}>
+          <h1 style={{ fontFamily: "Georgia, serif", fontSize: "1.9rem", fontWeight: 500, margin: "0 0 0.4rem", color: "#1C1613", lineHeight: 1.2 }}>
             SMS Notifications
           </h1>
           <p style={{ fontSize: "0.85rem", color: "#7C6FAE", margin: 0 }}>
@@ -39,7 +39,7 @@ export default function SmsOptInPage() {
               ].map(([label, val]) => (
                 <tr key={label}>
                   <td style={{ paddingBottom: "0.5rem", paddingRight: "1rem", color: "#7C6FAE", whiteSpace: "nowrap", verticalAlign: "top", fontWeight: 500 }}>{label}</td>
-                  <td style={{ paddingBottom: "0.5rem", color: "#1E1340" }}>{val}</td>
+                  <td style={{ paddingBottom: "0.5rem", color: "#1C1613" }}>{val}</td>
                 </tr>
               ))}
             </tbody>
@@ -49,7 +49,7 @@ export default function SmsOptInPage() {
         {/* Program description */}
         <div style={{ background: "#fff", borderRadius: "14px", padding: "1.5rem", marginBottom: "1.25rem", border: "1px solid rgba(180,85,47,0.15)", boxShadow: "0 4px 24px rgba(180,85,47,0.08)" }}>
           <p style={{ fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.08em", color: "#A89ECC", textTransform: "uppercase", margin: "0 0 0.75rem" }}>Program Description</p>
-          <p style={{ fontSize: "0.9rem", lineHeight: 1.7, color: "#1E1340", margin: "0 0 1rem" }}>
+          <p style={{ fontSize: "0.9rem", lineHeight: 1.7, color: "#1C1613", margin: "0 0 1rem" }}>
             This is a private, single-user personal wellness dashboard owned and operated by
             Shaniqua Jones. The SMS program sends automated daily reminders and briefings
             to the account holder&apos;s own registered mobile number only. No marketing messages,
@@ -59,8 +59,8 @@ export default function SmsOptInPage() {
           {/* Message examples */}
           <div style={{ background: "#FAF8FF", borderRadius: "10px", padding: "1rem", marginBottom: "1.25rem", border: "1px solid rgba(180,85,47,0.1)" }}>
             <p style={{ fontSize: "0.75rem", fontWeight: 600, color: "#B4552F", margin: "0 0 0.5rem" }}>Example messages:</p>
-            <p style={{ fontSize: "0.8rem", color: "#1E1340", fontStyle: "italic", margin: "0 0 0.35rem" }}>&ldquo;Aya&apos;s Dashboard: Good morning! Today&apos;s workout: Upper Body Push. Yesterday: 4/5 habits done, 7.5 hrs sleep. Reply STOP to opt out.&rdquo;</p>
-            <p style={{ fontSize: "0.8rem", color: "#1E1340", fontStyle: "italic", margin: 0 }}>&ldquo;Aya&apos;s Dashboard: Habit check-in time! How are your goals going today? Reply STOP to unsubscribe or HELP for commands.&rdquo;</p>
+            <p style={{ fontSize: "0.8rem", color: "#1C1613", fontStyle: "italic", margin: "0 0 0.35rem" }}>&ldquo;Aya&apos;s Dashboard: Good morning! Today&apos;s workout: Upper Body Push. Yesterday: 4/5 habits done, 7.5 hrs sleep. Reply STOP to opt out.&rdquo;</p>
+            <p style={{ fontSize: "0.8rem", color: "#1C1613", fontStyle: "italic", margin: 0 }}>&ldquo;Aya&apos;s Dashboard: Habit check-in time! How are your goals going today? Reply STOP to unsubscribe or HELP for commands.&rdquo;</p>
           </div>
 
           {/* Interactive opt-in form */}
@@ -68,11 +68,11 @@ export default function SmsOptInPage() {
 
           {/* Required CTIA disclosures */}
           <div style={{ fontSize: "0.78rem", lineHeight: 1.8, color: "#7C6FAE", borderTop: "1px solid rgba(180,85,47,0.12)", paddingTop: "1rem", display: "grid", gap: "0.35rem" }}>
-            <p style={{ margin: 0 }}><strong style={{ color: "#1E1340" }}>Program Name:</strong> Aya&apos;s Dashboard — Personal Wellness Reminders</p>
-            <p style={{ margin: 0 }}><strong style={{ color: "#1E1340" }}>Message Frequency:</strong> Up to 2 messages per day.</p>
-            <p style={{ margin: 0 }}><strong style={{ color: "#1E1340" }}>Msg &amp; Data Rates May Apply.</strong> Rates depend on your mobile carrier plan.</p>
-            <p style={{ margin: 0 }}><strong style={{ color: "#1E1340" }}>To Stop:</strong> Reply <strong>STOP</strong> to cancel all messages at any time.</p>
-            <p style={{ margin: 0 }}><strong style={{ color: "#1E1340" }}>For Help:</strong> Reply <strong>HELP</strong> or email <a href="mailto:shaniquaayajones@gmail.com" style={{ color: "#B4552F", textDecoration: "none" }}>shaniquaayajones@gmail.com</a>.</p>
+            <p style={{ margin: 0 }}><strong style={{ color: "#1C1613" }}>Program Name:</strong> Aya&apos;s Dashboard — Personal Wellness Reminders</p>
+            <p style={{ margin: 0 }}><strong style={{ color: "#1C1613" }}>Message Frequency:</strong> Up to 2 messages per day.</p>
+            <p style={{ margin: 0 }}><strong style={{ color: "#1C1613" }}>Msg &amp; Data Rates May Apply.</strong> Rates depend on your mobile carrier plan.</p>
+            <p style={{ margin: 0 }}><strong style={{ color: "#1C1613" }}>To Stop:</strong> Reply <strong>STOP</strong> to cancel all messages at any time.</p>
+            <p style={{ margin: 0 }}><strong style={{ color: "#1C1613" }}>For Help:</strong> Reply <strong>HELP</strong> or email <a href="mailto:shaniquaayajones@gmail.com" style={{ color: "#B4552F", textDecoration: "none" }}>shaniquaayajones@gmail.com</a>.</p>
             <p style={{ margin: 0 }}>Phone numbers are <strong>never shared with third parties</strong> or used for any purpose other than delivering these personal wellness messages.</p>
           </div>
         </div>
