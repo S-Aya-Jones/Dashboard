@@ -10,7 +10,7 @@ export default function Page() {
     return (
       <div className="flex h-screen items-center justify-center" style={{ background: "var(--bg)" }}>
         <div className="text-center space-y-3">
-          <div className="w-8 h-8 border-2 rounded-full animate-spin mx-auto" style={{ borderColor: "rgba(124,92,252,0.2)", borderTopColor: "#7C5CFC", borderWidth: 2 }} />
+          <div className="w-8 h-8 border-2 rounded-full animate-spin mx-auto" style={{ borderColor: "rgba(180,85,47,0.2)", borderTopColor: "#B4552F", borderWidth: 2 }} />
           <p className="font-serif text-xl" style={{ color: "var(--text)" }}>Loading…</p>
         </div>
       </div>

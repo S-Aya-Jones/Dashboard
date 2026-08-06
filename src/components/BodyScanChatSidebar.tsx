@@ -114,12 +114,12 @@ export function BodyScanChatSidebar({ analysis }: { analysis: Analysis }) {
   return (
     <div
       className="rounded-2xl overflow-hidden flex flex-col h-[600px] border"
-      style={{ background: "var(--surface)", borderColor: "rgba(124,92,252,0.15)" }}
+      style={{ background: "var(--surface)", borderColor: "rgba(180,85,47,0.15)" }}
     >
       {/* Header */}
-      <div className="p-4 border-b" style={{ borderColor: "rgba(124,92,252,0.1)" }}>
+      <div className="p-4 border-b" style={{ borderColor: "rgba(180,85,47,0.1)" }}>
         <div className="flex items-center gap-2">
-          <MessageCircle size={20} style={{ color: "#7C5CFC" }} />
+          <MessageCircle size={20} style={{ color: "#B4552F" }} />
           <div>
             <h3 className="font-semibold text-sm" style={{ color: "var(--text)" }}>
               AI Coach
@@ -149,7 +149,7 @@ export function BodyScanChatSidebar({ analysis }: { analysis: Analysis }) {
             <div
               className="max-w-xs rounded-lg px-3 py-2 text-xs leading-relaxed"
               style={{
-                background: msg.role === "user" ? "#7C5CFC" : "rgba(124,92,252,0.1)",
+                background: msg.role === "user" ? "#B4552F" : "rgba(180,85,47,0.1)",
                 color: msg.role === "user" ? "#fff" : "var(--text)",
               }}
             >
@@ -164,15 +164,15 @@ export function BodyScanChatSidebar({ analysis }: { analysis: Analysis }) {
             <div className="flex gap-1 items-center">
               <div
                 className="w-1.5 h-1.5 rounded-full animate-bounce"
-                style={{ background: "#7C5CFC", animationDelay: "0ms" }}
+                style={{ background: "#B4552F", animationDelay: "0ms" }}
               />
               <div
                 className="w-1.5 h-1.5 rounded-full animate-bounce"
-                style={{ background: "#7C5CFC", animationDelay: "150ms" }}
+                style={{ background: "#B4552F", animationDelay: "150ms" }}
               />
               <div
                 className="w-1.5 h-1.5 rounded-full animate-bounce"
-                style={{ background: "#7C5CFC", animationDelay: "300ms" }}
+                style={{ background: "#B4552F", animationDelay: "300ms" }}
               />
             </div>
           </div>
@@ -182,7 +182,7 @@ export function BodyScanChatSidebar({ analysis }: { analysis: Analysis }) {
       </div>
 
       {/* Input */}
-      <div className="p-3 border-t flex gap-2" style={{ borderColor: "rgba(124,92,252,0.1)" }}>
+      <div className="p-3 border-t flex gap-2" style={{ borderColor: "rgba(180,85,47,0.1)" }}>
         <input
           type="text"
           placeholder="Ask..."
@@ -192,8 +192,8 @@ export function BodyScanChatSidebar({ analysis }: { analysis: Analysis }) {
           disabled={isLoading}
           className="flex-1 px-2 py-1.5 rounded-lg text-xs"
           style={{
-            background: "rgba(124,92,252,0.05)",
-            border: "1px solid rgba(124,92,252,0.15)",
+            background: "rgba(180,85,47,0.05)",
+            border: "1px solid rgba(180,85,47,0.15)",
             color: "var(--text)",
             outline: "none",
           }}
@@ -203,7 +203,7 @@ export function BodyScanChatSidebar({ analysis }: { analysis: Analysis }) {
           disabled={isLoading || !input.trim()}
           className="p-1.5 rounded-lg active:scale-90"
           style={{
-            background: isLoading || !input.trim() ? "rgba(124,92,252,0.3)" : "#7C5CFC",
+            background: isLoading || !input.trim() ? "rgba(180,85,47,0.3)" : "#B4552F",
             color: "#fff",
           }}
         >

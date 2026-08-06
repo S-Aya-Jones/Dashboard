@@ -34,7 +34,7 @@ export default function TermsPage() {
         </Link>
 
         {/* Header */}
-        <div style={{ marginBottom: "2.5rem", borderBottom: "1px solid rgba(124,92,252,0.12)", paddingBottom: "1.5rem" }}>
+        <div style={{ marginBottom: "2.5rem", borderBottom: "1px solid rgba(180,85,47,0.12)", paddingBottom: "1.5rem" }}>
           <h1
             style={{
               fontFamily: "'Cormorant Garamond', Georgia, serif",
@@ -186,7 +186,7 @@ export default function TermsPage() {
             <p>
               Questions about these Terms of Service may be directed to the account holder,
               Shaniqua Jones, at{" "}
-              <a href="mailto:shaniquaayajones@gmail.com" style={{ color: "#7C5CFC", textDecoration: "none" }}>
+              <a href="mailto:shaniquaayajones@gmail.com" style={{ color: "#B4552F", textDecoration: "none" }}>
                 shaniquaayajones@gmail.com
               </a>.
               As this is a personal single-user application, no formal legal or support
@@ -201,7 +201,7 @@ export default function TermsPage() {
           style={{
             marginTop: "3rem",
             paddingTop: "1.5rem",
-            borderTop: "1px solid rgba(124,92,252,0.12)",
+            borderTop: "1px solid rgba(180,85,47,0.12)",
             fontSize: "0.8rem",
             color: "#A8967E",
             textAlign: "center",
@@ -225,7 +225,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
           color: "#1E1340",
           margin: "0 0 0.75rem",
           paddingBottom: "0.35rem",
-          borderBottom: "1px solid rgba(124,92,252,0.10)",
+          borderBottom: "1px solid rgba(180,85,47,0.10)",
         }}
       >
         {title}

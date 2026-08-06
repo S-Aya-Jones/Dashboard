@@ -57,7 +57,7 @@ export function LectureDetail({ id, onBack }: { id: string; onBack: () => void }
       <motion.div
         initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }}
         className="rounded-2xl p-6 relative overflow-hidden"
-        style={{ background: "linear-gradient(135deg,#7C5CFC 0%,#a855f7 55%,#ec4899 100%)", color: "white" }}>
+        style={{ background: "linear-gradient(135deg,#B4552F 0%,#a855f7 55%,#ec4899 100%)", color: "white" }}>
         <motion.div
           aria-hidden
           className="absolute -right-16 -top-16 rounded-full"
@@ -288,7 +288,7 @@ function NotesView({ text }: { text: string }) {
         .md-ul { margin:.4rem 0 .8rem 1.15rem; }
         .md-ul li { list-style:disc; color:var(--text); line-height:1.78; margin:.3rem 0; }
         .md-ol li { list-style:decimal; }
-        .md-quote { border-left:3px solid var(--purple); background:rgba(124,92,252,.07);
+        .md-quote { border-left:3px solid var(--purple); background:rgba(180,85,47,.07);
                     padding:.7rem .9rem; margin:.8rem 0; border-radius:0 8px 8px 0;
                     color:var(--text); line-height:1.7; }
         .md-code { background:var(--bg); padding:.12rem .4rem; border-radius:4px; font-size:.9em; }
@@ -298,7 +298,7 @@ function NotesView({ text }: { text: string }) {
         .md-mark { background:#fde68a; color:#1a1a2e; border-radius:3px; padding:0 .15rem; }
         .md-table-wrap { overflow-x:auto; margin:.9rem 0; }
         .md-table { border-collapse:collapse; width:100%; font-size:.9rem; }
-        .md-table th { background:rgba(124,92,252,.10); color:var(--text); font-weight:700;
+        .md-table th { background:rgba(180,85,47,.10); color:var(--text); font-weight:700;
                        text-align:left; padding:.6rem .7rem; border:1px solid var(--border); }
         .md-table td { padding:.55rem .7rem; border:1px solid var(--border); color:var(--text); line-height:1.6; }
         ${MATH_CSS}
@@ -315,7 +315,7 @@ function NotesView({ text }: { text: string }) {
 
       <div className="h-1.5 rounded-full mb-4 overflow-hidden" style={{ background: "var(--bg)" }}>
         <motion.div className="h-full rounded-full"
-          style={{ background: "linear-gradient(90deg,#7C5CFC,#ec4899)" }}
+          style={{ background: "linear-gradient(90deg,#B4552F,#ec4899)" }}
           animate={{ width: `${progress}%` }} transition={{ duration: 0.15 }} />
       </div>
 
@@ -363,7 +363,7 @@ function ExamFocusView({ json }: { json: string | null }) {
             </div>
             <div className="flex items-center gap-2">
               <div className="h-2 w-28 rounded-full overflow-hidden" style={{ background: "var(--bg)" }}>
-                <motion.div className="h-full" style={{ background: "linear-gradient(90deg,#7C5CFC,#2bb3a3)" }}
+                <motion.div className="h-full" style={{ background: "linear-gradient(90deg,#B4552F,#2bb3a3)" }}
                   animate={{ width: `${pct}%` }} transition={{ type: "spring", stiffness: 120, damping: 20 }} />
               </div>
               <span className="text-xs font-bold" style={{ color: "var(--text-muted)" }}>{readyCount}/{objectives.length} ready</span>
@@ -401,7 +401,7 @@ function ExamFocusView({ json }: { json: string | null }) {
           <div className="grid gap-3 md:grid-cols-2">
             {highYield.map((h, i) => (
               <motion.div key={i} initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: i * 0.05 }} whileHover={{ y: -3, boxShadow: "0 8px 24px rgba(124,92,252,.16)" }}
+                transition={{ delay: i * 0.05 }} whileHover={{ y: -3, boxShadow: "0 8px 24px rgba(180,85,47,.16)" }}
                 className="rounded-xl p-4" style={{ background: "var(--bg)", border: "1.5px solid var(--border)" }}>
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <span className="font-semibold text-sm" style={{ color: "var(--text)" }}>{h.topic}</span>
@@ -496,7 +496,7 @@ function MermaidView({ chart }: { chart: string }) {
           flowchart: { curve: "basis", nodeSpacing: 45, rankSpacing: 62, padding: 12, useMaxWidth: false },
           themeVariables: {
             fontFamily: "inherit", fontSize: "14px",
-            primaryColor: "#efeafd", primaryTextColor: "#1a1a2e", primaryBorderColor: "#7C5CFC",
+            primaryColor: "#efeafd", primaryTextColor: "#1a1a2e", primaryBorderColor: "#B4552F",
             lineColor: "#9b8fd6", secondaryColor: "#e8ecff", tertiaryColor: "#f7f5ff",
             clusterBkg: "#faf9ff", clusterBorder: "#d9d2f5",
           },
@@ -510,7 +510,7 @@ function MermaidView({ chart }: { chart: string }) {
           node.style.transition = "transform .15s, filter .15s";
           node.addEventListener("mouseenter", () => {
             node.style.transform = "scale(1.06)";
-            node.style.filter = "drop-shadow(0 4px 12px rgba(124,92,252,.45))";
+            node.style.filter = "drop-shadow(0 4px 12px rgba(180,85,47,.45))";
           });
           node.addEventListener("mouseleave", () => {
             node.style.transform = ""; node.style.filter = "";
@@ -666,7 +666,7 @@ function Quiz({ lectureId, quizJson }: { lectureId: string; quizJson: string }) 
       </div>
 
       <div className="h-1.5 rounded-full mb-6 overflow-hidden" style={{ background: "var(--bg)" }}>
-        <motion.div className="h-full rounded-full" style={{ background: "linear-gradient(90deg,#7C5CFC,#ec4899)" }}
+        <motion.div className="h-full rounded-full" style={{ background: "linear-gradient(90deg,#B4552F,#ec4899)" }}
           animate={{ width: `${((i + (picked !== null ? 1 : 0)) / questions.length) * 100}%` }} />
       </div>
 
@@ -778,7 +778,7 @@ function Flashcards({ json }: { json: string }) {
           <span>{progress}%</span>
         </div>
         <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--bg)" }}>
-          <motion.div className="h-full rounded-full" style={{ background: "linear-gradient(90deg,#7C5CFC,#2bb3a3)" }}
+          <motion.div className="h-full rounded-full" style={{ background: "linear-gradient(90deg,#B4552F,#2bb3a3)" }}
             animate={{ width: `${progress}%` }} transition={{ type: "spring", stiffness: 120, damping: 20 }} />
         </div>
       </div>
@@ -797,7 +797,7 @@ function Flashcards({ json }: { json: string }) {
             alignItems: "center", justifyContent: "center",
             gap: ".75rem", padding: "2rem", textAlign: "center",
             background: flipped
-              ? "linear-gradient(135deg,rgba(124,92,252,.13),rgba(236,72,153,.10))"
+              ? "linear-gradient(135deg,rgba(180,85,47,.13),rgba(236,72,153,.10))"
               : "var(--bg)",
             border: "2px solid var(--purple)",
           }}>

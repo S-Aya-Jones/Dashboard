@@ -26,7 +26,7 @@ import { format } from "date-fns";
 const SUBJECTS = [
   {
     name: "Behavioral Sciences",
-    color: "#7C5CFC",
+    color: "#B4552F",
     abbr: "Psych/Soc",
     topics: [
       "Sensation, Perception, & Consciousness",
@@ -38,7 +38,7 @@ const SUBJECTS = [
   },
   {
     name: "Biochemistry",
-    color: "#E879F9",
+    color: "#E0A44A",
     abbr: "Biochem",
     topics: [
       "Amino Acids & Proteins",
@@ -135,7 +135,7 @@ function difficultyColor(d: string) {
 }
 
 function subjectColor(subject: string) {
-  return SUBJECTS.find((s) => s.name === subject)?.color ?? "#7C5CFC";
+  return SUBJECTS.find((s) => s.name === subject)?.color ?? "#B4552F";
 }
 
 function formatTime(secs: number) {
@@ -146,7 +146,7 @@ function formatTime(secs: number) {
 
 function gradeLabel(pct: number) {
   if (pct >= 90) return { label: "Excellent", color: "#10B981" };
-  if (pct >= 75) return { label: "Good", color: "#7C5CFC" };
+  if (pct >= 75) return { label: "Good", color: "#B4552F" };
   if (pct >= 60) return { label: "Fair", color: "#F59E0B" };
   return { label: "Needs Work", color: "#EF4444" };
 }
@@ -473,7 +473,7 @@ export function QBankView({ data, update }: Props) {
     if (state === "correct") return "#10B981";
     if (state === "wrong") return "#EF4444";
     if (state === "flagged") return "#F59E0B";
-    if (state === "answered") return "#7C5CFC";
+    if (state === "answered") return "#B4552F";
     return "#E2D9FF";
   }
 
@@ -626,7 +626,7 @@ export function QBankView({ data, update }: Props) {
             className="card"
             style={{ padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 }}
           >
-            <BarChart2 size={18} color="#7C5CFC" />
+            <BarChart2 size={18} color="#B4552F" />
             <span style={{ color: "var(--text)", fontSize: 14, fontWeight: 600 }}>
               {pastSessions.length} session{pastSessions.length !== 1 ? "s" : ""} completed
             </span>
@@ -666,7 +666,7 @@ export function QBankView({ data, update }: Props) {
                 style={{
                   padding: "6px 14px", borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: "pointer",
                   border: "1.5px solid", borderColor: !folderFilter ? "var(--purple)" : "var(--border)",
-                  background: !folderFilter ? "rgba(124,92,252,0.1)" : "var(--surface)",
+                  background: !folderFilter ? "rgba(180,85,47,0.1)" : "var(--surface)",
                   color: !folderFilter ? "var(--purple)" : "var(--text-muted)",
                 }}
               >
@@ -681,7 +681,7 @@ export function QBankView({ data, update }: Props) {
                     style={{
                       padding: "6px 14px", borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: "pointer",
                       border: "1.5px solid", borderColor: active ? "var(--purple)" : "var(--border)",
-                      background: active ? "rgba(124,92,252,0.1)" : "var(--surface)",
+                      background: active ? "rgba(180,85,47,0.1)" : "var(--surface)",
                       color: active ? "var(--purple)" : "var(--text-muted)",
                     }}
                   >
@@ -813,7 +813,7 @@ export function QBankView({ data, update }: Props) {
         </div>
 
         {/* File import section */}
-        <div className="rounded-2xl p-4" style={{ background: "rgba(124,92,252,0.04)", border: "1.5px dashed rgba(124,92,252,0.25)", borderRadius: 16, padding: 16 }}>
+        <div className="rounded-2xl p-4" style={{ background: "rgba(180,85,47,0.04)", border: "1.5px dashed rgba(180,85,47,0.25)", borderRadius: 16, padding: 16 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
             <div>
               <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "var(--text)" }}>Import from file</p>
@@ -830,7 +830,7 @@ export function QBankView({ data, update }: Props) {
                 borderRadius: 12,
                 fontSize: 14,
                 fontWeight: 600,
-                background: "var(--purple, #7C5CFC)",
+                background: "var(--purple, #B4552F)",
                 color: "#fff",
                 border: "none",
                 cursor: importing ? "not-allowed" : "pointer",
@@ -884,9 +884,9 @@ export function QBankView({ data, update }: Props) {
                     padding: "8px 20px",
                     borderRadius: 10,
                     border: "2px solid",
-                    borderColor: mode === m ? "#7C5CFC" : "var(--border)",
-                    background: mode === m ? "rgba(124,92,252,0.08)" : "white",
-                    color: mode === m ? "#7C5CFC" : "var(--text-muted)",
+                    borderColor: mode === m ? "#B4552F" : "var(--border)",
+                    background: mode === m ? "rgba(180,85,47,0.08)" : "white",
+                    color: mode === m ? "#B4552F" : "var(--text-muted)",
                     fontWeight: 600,
                     fontSize: 13,
                     cursor: "pointer",
@@ -911,9 +911,9 @@ export function QBankView({ data, update }: Props) {
                       padding: "4px 12px",
                       borderRadius: 8,
                       border: "2px solid",
-                      borderColor: timeLimitPerQ === t ? "#7C5CFC" : "var(--border)",
-                      background: timeLimitPerQ === t ? "rgba(124,92,252,0.08)" : "white",
-                      color: timeLimitPerQ === t ? "#7C5CFC" : "var(--text-muted)",
+                      borderColor: timeLimitPerQ === t ? "#B4552F" : "var(--border)",
+                      background: timeLimitPerQ === t ? "rgba(180,85,47,0.08)" : "white",
+                      color: timeLimitPerQ === t ? "#B4552F" : "var(--text-muted)",
                       fontWeight: 600,
                       fontSize: 13,
                       cursor: "pointer",
@@ -938,9 +938,9 @@ export function QBankView({ data, update }: Props) {
                     padding: "6px 16px",
                     borderRadius: 10,
                     border: "2px solid",
-                    borderColor: qCount === n ? "#7C5CFC" : "var(--border)",
-                    background: qCount === n ? "rgba(124,92,252,0.08)" : "white",
-                    color: qCount === n ? "#7C5CFC" : "var(--text-muted)",
+                    borderColor: qCount === n ? "#B4552F" : "var(--border)",
+                    background: qCount === n ? "rgba(180,85,47,0.08)" : "white",
+                    color: qCount === n ? "#B4552F" : "var(--text-muted)",
                     fontWeight: 700,
                     fontSize: 14,
                     cursor: "pointer",
@@ -961,7 +961,7 @@ export function QBankView({ data, update }: Props) {
                   easy: "#10B981",
                   medium: "#F59E0B",
                   hard: "#EF4444",
-                  mixed: "#7C5CFC",
+                  mixed: "#B4552F",
                 };
                 const active = difficulty === d;
                 return (
@@ -1011,10 +1011,10 @@ export function QBankView({ data, update }: Props) {
                     padding: "10px 20px",
                     borderRadius: 12,
                     background: "white",
-                    color: "#7C5CFC",
+                    color: "#B4552F",
                     fontWeight: 700,
                     fontSize: 14,
-                    border: "2px solid #7C5CFC",
+                    border: "2px solid #B4552F",
                     cursor: "pointer",
                     display: "flex",
                     alignItems: "center",
@@ -1052,7 +1052,7 @@ export function QBankView({ data, update }: Props) {
                 display: "flex",
                 alignItems: "center",
                 gap: 8,
-                boxShadow: selectedTopics.size === 0 ? "none" : "0 4px 16px rgba(124,92,252,0.3)",
+                boxShadow: selectedTopics.size === 0 ? "none" : "0 4px 16px rgba(180,85,47,0.3)",
               }}
             >
               <Plus size={16} />
@@ -1150,7 +1150,7 @@ export function QBankView({ data, update }: Props) {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            boxShadow: "0 8px 32px rgba(124,92,252,0.25)",
+            boxShadow: "0 8px 32px rgba(180,85,47,0.25)",
           }}
         >
           <Loader2 size={30} color="#fff" style={{ animation: "spin 1s linear infinite" }} />
@@ -1211,7 +1211,7 @@ export function QBankView({ data, update }: Props) {
                 gap: 6,
                 fontSize: 14,
                 fontWeight: 700,
-                color: timeLeft < 60 ? "#EF4444" : "#7C5CFC",
+                color: timeLeft < 60 ? "#EF4444" : "#B4552F",
                 marginLeft: "auto",
               }}
             >
@@ -1309,10 +1309,10 @@ export function QBankView({ data, update }: Props) {
                   letterColor = "var(--text-muted)";
                 }
               } else if (selected) {
-                bg = "rgba(124,92,252,0.07)";
-                border = "#7C5CFC";
-                textColor = "#7C5CFC";
-                letterBg = "#7C5CFC";
+                bg = "rgba(180,85,47,0.07)";
+                border = "#B4552F";
+                textColor = "#B4552F";
+                letterBg = "#B4552F";
                 letterColor = "white";
               }
 
@@ -1372,13 +1372,13 @@ export function QBankView({ data, update }: Props) {
                 marginTop: 20,
                 padding: 16,
                 borderRadius: 12,
-                background: "rgba(124,92,252,0.05)",
+                background: "rgba(180,85,47,0.05)",
                 border: "1.5px solid var(--border)",
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                <BookOpen size={16} color="#7C5CFC" />
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#7C5CFC" }}>Explanation</span>
+                <BookOpen size={16} color="#B4552F" />
+                <span style={{ fontSize: 13, fontWeight: 700, color: "#B4552F" }}>Explanation</span>
               </div>
               <p style={{ fontSize: 14, lineHeight: 1.7, color: "var(--text)", margin: 0 }}>
                 {q.explanation}
@@ -1501,7 +1501,7 @@ export function QBankView({ data, update }: Props) {
               fontWeight: 700,
               fontSize: 13,
               cursor: "pointer",
-              boxShadow: "0 2px 10px rgba(124,92,252,0.25)",
+              boxShadow: "0 2px 10px rgba(180,85,47,0.25)",
             }}
           >
             {currentIdx < questions.length - 1 ? "Next →" : "Finish"}
@@ -1636,7 +1636,7 @@ export function QBankView({ data, update }: Props) {
               total: stats.total,
               pct: Math.round((stats.correct / stats.total) * 100),
               abbr: SUBJECTS.find(s => s.name === stats.subject)?.abbr ?? stats.subject,
-              color: SUBJECTS.find(s => s.name === stats.subject)?.color ?? "#7C5CFC",
+              color: SUBJECTS.find(s => s.name === stats.subject)?.color ?? "#B4552F",
             }))
             .sort((a, b) => a.pct - b.pct);
 
@@ -1718,7 +1718,7 @@ export function QBankView({ data, update }: Props) {
               total: stats.total,
               pct: Math.round((stats.correct / stats.total) * 100),
               abbr: SUBJECTS.find(s => s.name === stats.subject)?.abbr ?? stats.subject,
-              color: SUBJECTS.find(s => s.name === stats.subject)?.color ?? "#7C5CFC",
+              color: SUBJECTS.find(s => s.name === stats.subject)?.color ?? "#B4552F",
             }))
             .sort((a, b) => a.pct - b.pct)
             .slice(0, 6);
@@ -1922,7 +1922,7 @@ export function QBankView({ data, update }: Props) {
               alignItems: "center",
               justifyContent: "center",
               gap: 8,
-              boxShadow: "0 4px 16px rgba(124,92,252,0.3)",
+              boxShadow: "0 4px 16px rgba(180,85,47,0.3)",
             }}
           >
             <BookOpen size={15} />

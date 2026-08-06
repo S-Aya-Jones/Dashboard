@@ -196,7 +196,7 @@ export function BodyScanView({ data, update }: Props) {
       <div className="h-full overflow-y-auto no-scrollbar">
         <div className="max-w-lg mx-auto px-4 pt-5 pb-24 space-y-5">
           {/* Capture section */}
-          <div className="rounded-2xl p-5 space-y-4" style={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.15)" }}>
+          <div className="rounded-2xl p-5 space-y-4" style={{ background: "var(--surface)", border: "1px solid rgba(180,85,47,0.15)" }}>
             <div>
               <p className="font-semibold text-sm" style={{ color: "var(--text)" }}>📸 Body Scan Analysis</p>
               <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>Height-based AI feedback on your body composition</p>
@@ -261,7 +261,7 @@ export function BodyScanView({ data, update }: Props) {
                     onClick={() => setSelectedAngle(angle)}
                     className="py-2.5 rounded-lg text-xs font-semibold transition-all"
                     style={{
-                      background: selectedAngle === angle ? "#7C5CFC" : "var(--bg2)",
+                      background: selectedAngle === angle ? "#B4552F" : "var(--bg2)",
                       color: selectedAngle === angle ? "#fff" : "var(--text-muted)",
                       border: selectedAngle === angle ? "none" : "1px solid var(--border)",
                     }}>
@@ -276,7 +276,7 @@ export function BodyScanView({ data, update }: Props) {
               {isAnalyzing && (
                 <div className="absolute inset-0 flex items-center justify-center rounded-2xl z-10" style={{ background: "rgba(0,0,0,0.5)" }}>
                   <div className="flex flex-col items-center gap-2">
-                    <Loader size={32} className="animate-spin" style={{ color: "#7C5CFC" }} />
+                    <Loader size={32} className="animate-spin" style={{ color: "#B4552F" }} />
                     <p className="text-sm font-semibold text-white">Analyzing your body composition...</p>
                   </div>
                 </div>
@@ -289,7 +289,7 @@ export function BodyScanView({ data, update }: Props) {
             </div>
 
             {/* Info box */}
-            <div className="rounded-xl p-3 text-xs" style={{ background: "rgba(124,92,252,0.05)" }}>
+            <div className="rounded-xl p-3 text-xs" style={{ background: "rgba(180,85,47,0.05)" }}>
               <p style={{ color: "var(--text-muted)" }}>
                 📊 AI Coach will analyze your body composition, provide honest feedback, and give you a personalized roadmap for 30, 90, and 180 days.
               </p>

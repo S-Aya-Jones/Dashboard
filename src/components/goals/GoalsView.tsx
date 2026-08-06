@@ -28,8 +28,8 @@ const CATEGORIES = [
   { key: "health-mental" as const, label: "Health & Mental Health", icon: "🧠", color: "#8A9E87" },
   { key: "career" as const, label: "Career", icon: "💼", color: "#71816D" },
   { key: "personal" as const, label: "Personal", icon: "🌸", color: "#C99A5C" },
-  { key: "financial" as const, label: "Financial", icon: "💚", color: "#7C5CFC" },
-  { key: "spiritual" as const, label: "Spiritual", icon: "🙏", color: "#E879F9" },
+  { key: "financial" as const, label: "Financial", icon: "💚", color: "#B4552F" },
+  { key: "spiritual" as const, label: "Spiritual", icon: "🙏", color: "#E0A44A" },
 ];
 
 const CURRENT_QUARTER = "Q2-2026";

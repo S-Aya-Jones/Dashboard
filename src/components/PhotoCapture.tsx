@@ -97,14 +97,14 @@ export function PhotoCapture({ onPhotoCapture, label = "Capture Photo", maxSizeM
           <button
             onClick={startCamera}
             className="flex-1 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 active:scale-95 transition-transform"
-            style={{ background: "#7C5CFC", color: "#fff" }}>
+            style={{ background: "#B4552F", color: "#fff" }}>
             <Camera size={16} />
             Camera
           </button>
           <button
             onClick={() => fileInputRef.current?.click()}
             className="flex-1 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 active:scale-95 transition-transform"
-            style={{ background: "rgba(124,92,252,0.08)", color: "#7C5CFC", border: "1px solid rgba(124,92,252,0.2)" }}>
+            style={{ background: "rgba(180,85,47,0.08)", color: "#B4552F", border: "1px solid rgba(180,85,47,0.2)" }}>
             <Upload size={16} />
             Upload
           </button>
@@ -133,7 +133,7 @@ export function PhotoCapture({ onPhotoCapture, label = "Capture Photo", maxSizeM
             <button
               onClick={captureFromCamera}
               className="flex-1 py-3 rounded-xl font-semibold text-sm active:scale-95 transition-transform"
-              style={{ background: "#7C5CFC", color: "#fff" }}>
+              style={{ background: "#B4552F", color: "#fff" }}>
               Capture
             </button>
             <button
@@ -158,7 +158,7 @@ export function PhotoCapture({ onPhotoCapture, label = "Capture Photo", maxSizeM
               onClick={submitPhoto}
               disabled={isProcessing}
               className="flex-1 py-3 rounded-xl font-semibold text-sm active:scale-95 transition-transform"
-              style={{ background: "#7C5CFC", color: "#fff", opacity: isProcessing ? 0.7 : 1 }}>
+              style={{ background: "#B4552F", color: "#fff", opacity: isProcessing ? 0.7 : 1 }}>
               {isProcessing ? "Processing..." : "Use This Photo"}
             </button>
             <button

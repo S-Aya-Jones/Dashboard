@@ -126,11 +126,11 @@ export function VoiceButton({ onResult }: VoiceButtonProps) {
         className="fixed bottom-24 right-5 z-40 w-14 h-14 rounded-full flex items-center justify-center shadow-xl transition-all duration-200 md:bottom-8"
         style={{
           background: isListening
-            ? "linear-gradient(135deg, #EF4444, #E879F9)"
-            : "linear-gradient(135deg, #7C5CFC, #E879F9)",
+            ? "linear-gradient(135deg, #EF4444, #E0A44A)"
+            : "linear-gradient(135deg, #B4552F, #E0A44A)",
           boxShadow: isListening
-            ? "0 0 0 8px rgba(239,68,68,0.2), 0 8px 32px rgba(232,121,249,0.4)"
-            : "0 8px 32px rgba(124,92,252,0.4)",
+            ? "0 0 0 8px rgba(239,68,68,0.2), 0 8px 32px rgba(224,164,74,0.4)"
+            : "0 8px 32px rgba(180,85,47,0.4)",
           transform: isListening ? "scale(1.1)" : "scale(1)",
         }}
       >
@@ -156,7 +156,7 @@ export function VoiceButton({ onResult }: VoiceButtonProps) {
           style={{
             background: "var(--surface)",
             border: "1.5px solid var(--border)",
-            boxShadow: "0 20px 60px rgba(124,92,252,0.2)",
+            boxShadow: "0 20px 60px rgba(180,85,47,0.2)",
           }}>
           <div className="flex items-start justify-between mb-3">
             <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
@@ -188,9 +188,9 @@ export function VoiceButton({ onResult }: VoiceButtonProps) {
 
           {reply && (
             <div className="p-3 rounded-2xl text-sm font-medium" style={{
-              background: "linear-gradient(135deg, rgba(124,92,252,0.1), rgba(232,121,249,0.08))",
+              background: "linear-gradient(135deg, rgba(180,85,47,0.1), rgba(224,164,74,0.08))",
               color: "var(--purple)",
-              border: "1px solid rgba(124,92,252,0.2)",
+              border: "1px solid rgba(180,85,47,0.2)",
             }}>
               {reply}
             </div>

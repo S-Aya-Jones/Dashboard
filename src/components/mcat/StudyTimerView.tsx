@@ -7,8 +7,8 @@ import { id } from "@/lib/utils";
 import { format, isToday, parseISO } from "date-fns";
 
 const SUBJECTS = [
-  { name: "Behavioral Sciences", color: "#7C5CFC" },
-  { name: "Biochemistry",        color: "#E879F9" },
+  { name: "Behavioral Sciences", color: "#B4552F" },
+  { name: "Biochemistry",        color: "#E0A44A" },
   { name: "Biology",             color: "#10B981" },
   { name: "CARS",                color: "#FB923C" },
   { name: "General Chemistry",   color: "#F59E0B" },
@@ -40,7 +40,7 @@ function formatHours(secs: number): string {
 }
 
 function subjectColor(name: string): string {
-  return SUBJECTS.find((s) => s.name === name)?.color ?? "#7C5CFC";
+  return SUBJECTS.find((s) => s.name === name)?.color ?? "#B4552F";
 }
 
 function calcStreak(logs: StudyTimerLog[]): number {
@@ -283,7 +283,7 @@ export function StudyTimerView({ data, update, autoStart, autoSubject }: Props) 
                 fontWeight: 700,
                 fontSize: 15,
                 cursor: activeSubject ? "pointer" : "not-allowed",
-                boxShadow: activeSubject ? "0 4px 16px rgba(124,92,252,0.3)" : "none",
+                boxShadow: activeSubject ? "0 4px 16px rgba(180,85,47,0.3)" : "none",
               }}
             >
               <Play size={18} fill="#fff" />
@@ -352,7 +352,7 @@ export function StudyTimerView({ data, update, autoStart, autoSubject }: Props) 
       {/* Today's Study Log */}
       <div className="card" style={{ padding: 20 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-          <Clock size={16} color="#7C5CFC" />
+          <Clock size={16} color="#B4552F" />
           <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: 0 }}>Today&apos;s Study Log</h3>
           {todayTotal > 0 && (
             <div
@@ -426,7 +426,7 @@ export function StudyTimerView({ data, update, autoStart, autoSubject }: Props) 
             borderBottom: showAllTime ? "1px solid var(--border)" : "none",
           }}
         >
-          <BarChart2 size={18} color="#7C5CFC" />
+          <BarChart2 size={18} color="#B4552F" />
           <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", flex: 1, textAlign: "left" }}>
             All-Time Stats
           </span>
@@ -445,12 +445,12 @@ export function StudyTimerView({ data, update, autoStart, autoSubject }: Props) 
               <div
                 style={{
                   flex: 1, padding: "14px 16px", borderRadius: 12,
-                  background: "linear-gradient(135deg, rgba(124,92,252,0.08), rgba(232,121,249,0.08))",
+                  background: "linear-gradient(135deg, rgba(180,85,47,0.08), rgba(224,164,74,0.08))",
                   border: "1.5px solid var(--border)",
                   textAlign: "center",
                 }}
               >
-                <div style={{ fontSize: 28, fontWeight: 800, color: "#7C5CFC", lineHeight: 1 }}>{streak}</div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: "#B4552F", lineHeight: 1 }}>{streak}</div>
                 <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>Day Streak</div>
               </div>
               <div

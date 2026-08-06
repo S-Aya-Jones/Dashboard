@@ -25,8 +25,8 @@ function ProfessorFace({ outerMouthRef, innerMouthRef, size }: FaceProps) {
     <svg viewBox="0 0 100 100" width={size} height={size}>
       <defs>
         <linearGradient id="profGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#7C5CFC" />
-          <stop offset="100%" stopColor="#E879F9" />
+          <stop offset="0%" stopColor="#B4552F" />
+          <stop offset="100%" stopColor="#E0A44A" />
         </linearGradient>
       </defs>
       <circle cx="50" cy="50" r="50" fill="url(#profGrad)" />

@@ -19,7 +19,7 @@ const GAMES = [
     name: "Flashcard Flip",
     desc: "Flip cards and mark what you know. Tracks your score.",
     icon: <Layers size={28} />,
-    color: "#7C5CFC",
+    color: "#B4552F",
   },
   {
     id: "match" as const,

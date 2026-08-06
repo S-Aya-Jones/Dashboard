@@ -26,7 +26,7 @@ export default function Page() {
         <div className="text-center space-y-4">
           <div
             className="w-10 h-10 rounded-full border-2 animate-spin mx-auto"
-            style={{ borderColor: "rgba(124,92,252,0.2)", borderTopColor: "#7C5CFC" }}
+            style={{ borderColor: "rgba(180,85,47,0.2)", borderTopColor: "#B4552F" }}
           />
           <p className="font-serif text-xl" style={{ color: "var(--text)" }}>Loading…</p>
         </div>

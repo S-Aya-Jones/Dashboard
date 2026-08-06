@@ -85,7 +85,7 @@ function Pipeline({ phase }: { phase: Phase }) {
 
       <div className="h-1.5 rounded-full overflow-hidden mb-3" style={{ background: "var(--surface)" }}>
         <motion.div className="h-full rounded-full"
-          style={{ background: "linear-gradient(90deg,#7C5CFC,#ec4899)" }}
+          style={{ background: "linear-gradient(90deg,#B4552F,#ec4899)" }}
           animate={{ width: `${((activeIdx + 1) / PIPELINE_STEPS.length) * 100}%` }}
           transition={{ type: "spring", stiffness: 90, damping: 20 }} />
       </div>
@@ -405,7 +405,7 @@ export function LectureStudio() {
             key={l.id}
             layout
             initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-            whileHover={{ y: -2, boxShadow: "0 6px 20px rgba(124,92,252,.13)" }}
+            whileHover={{ y: -2, boxShadow: "0 6px 20px rgba(180,85,47,.13)" }}
             className="rounded-xl p-4 flex items-center gap-4 cursor-pointer"
             style={{ background: "var(--surface)", border: "1.5px solid var(--border)" }}
             onClick={() => l.status === "ready" && setSelected(l.id)}

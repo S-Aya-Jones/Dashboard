@@ -68,7 +68,7 @@ export function Composer({ onLog }: { onLog: (t: { phobia: string; label: string
           <button key={k} onClick={() => setMode(k)}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold"
             style={mode === k
-              ? { background: "rgba(124,92,252,.13)", border: "1.5px solid var(--purple)", color: "var(--purple)" }
+              ? { background: "rgba(180,85,47,.13)", border: "1.5px solid var(--purple)", color: "var(--purple)" }
               : { background: "var(--surface)", border: "1.5px solid var(--border)", color: "var(--text-muted)" }}>
             <Icon size={16} /> {label}
           </button>
@@ -260,7 +260,7 @@ function HeightComposer({ onLog }: { onLog: (t: { phobia: string; label: string 
           </div>
           <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: "var(--bg)" }}>
             <motion.div className="h-full" animate={{ width: `${pct}%` }}
-              style={{ background: pct >= 100 ? "#2bb3a3" : "linear-gradient(90deg,#7C5CFC,#ec4899)" }} />
+              style={{ background: pct >= 100 ? "#2bb3a3" : "linear-gradient(90deg,#B4552F,#ec4899)" }} />
           </div>
           <span className="text-xs font-bold" style={{ color: pct >= 100 ? "#2bb3a3" : "var(--text-muted)" }}>
             {pct >= 100 ? "target hit" : `${minutes}m`}

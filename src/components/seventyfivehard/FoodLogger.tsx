@@ -78,8 +78,8 @@ export function FoodLogger({ date, onMealAdded }: FoodLoggerProps) {
               <span className="text-xs" style={{ color: "var(--text-muted)" }}>cal</span>
             </div>
             <div className="flex items-center gap-1">
-              <Dumbbell size={13} color="#A78BFA" />
-              <span className="text-sm font-bold" style={{ color: "#A78BFA" }}>{totalProtein}g</span>
+              <Dumbbell size={13} color="#D07A4F" />
+              <span className="text-sm font-bold" style={{ color: "#D07A4F" }}>{totalProtein}g</span>
               <span className="text-xs" style={{ color: "var(--text-muted)" }}>protein</span>
             </div>
           </div>
@@ -99,7 +99,7 @@ export function FoodLogger({ date, onMealAdded }: FoodLoggerProps) {
                 </div>
                 {(meal.calories || meal.protein) && (
                   <div className="absolute -bottom-1 -right-1 px-1 py-0.5 rounded-md text-[9px] font-bold text-white"
-                    style={{ background: "linear-gradient(135deg, #7C5CFC, #E879F9)" }}>
+                    style={{ background: "linear-gradient(135deg, #B4552F, #E0A44A)" }}>
                     {meal.calories ? `${meal.calories}` : ""}{meal.protein ? `·${meal.protein}g` : ""}
                   </div>
                 )}
@@ -137,7 +137,7 @@ export function FoodLogger({ date, onMealAdded }: FoodLoggerProps) {
             disabled={uploading}
             className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-semibold transition-all"
             style={{
-              background: "linear-gradient(135deg, #7C5CFC, #E879F9)",
+              background: "linear-gradient(135deg, #B4552F, #E0A44A)",
               color: "#fff",
               opacity: uploading ? 0.7 : 1,
             }}>

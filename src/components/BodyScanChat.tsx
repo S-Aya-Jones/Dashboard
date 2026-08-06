@@ -151,13 +151,13 @@ export function BodyScanChat({ analysis, onClose }: Props) {
                   <div className="flex items-end justify-between">
                     <div>
                       <p className="text-xs font-semibold text-purple-600">Current State</p>
-                      <p className="font-serif text-3xl mt-1" style={{ color: "#7C5CFC" }}>
+                      <p className="font-serif text-3xl mt-1" style={{ color: "#B4552F" }}>
                         {analysis.compositionScore}/10
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="text-xs font-semibold text-purple-600">Potential</p>
-                      <p className="font-serif text-3xl mt-1" style={{ color: "#9B7FFF" }}>
+                      <p className="font-serif text-3xl mt-1" style={{ color: "#D07A4F" }}>
                         {analysis.potentialScore}/10
                       </p>
                     </div>
@@ -168,11 +168,11 @@ export function BodyScanChat({ analysis, onClose }: Props) {
                 </div>
 
                 {/* Body fat estimate */}
-                <div className="rounded-2xl p-4 space-y-2" style={{ background: "rgba(124,92,252,0.05)" }}>
+                <div className="rounded-2xl p-4 space-y-2" style={{ background: "rgba(180,85,47,0.05)" }}>
                   <p className="text-xs font-semibold" style={{ color: "var(--text)" }}>
                     Estimated Body Fat
                   </p>
-                  <p className="font-serif text-2xl" style={{ color: "#7C5CFC" }}>
+                  <p className="font-serif text-2xl" style={{ color: "#B4552F" }}>
                     {analysis.bodyFatEstimate.low}–{analysis.bodyFatEstimate.high}%
                   </p>
                   <p className="text-xs" style={{ color: "var(--text-muted)" }}>
@@ -192,7 +192,7 @@ export function BodyScanChat({ analysis, onClose }: Props) {
 
                 {/* Strengths & areas */}
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-xl p-3 space-y-1.5" style={{ background: "rgba(124,92,252,0.08)" }}>
+                  <div className="rounded-xl p-3 space-y-1.5" style={{ background: "rgba(180,85,47,0.08)" }}>
                     <p className="text-[10px] font-semibold text-purple-600">Strengths</p>
                     <ul className="text-xs space-y-0.5" style={{ color: "var(--text)" }}>
                       {analysis.strengths.map((s, i) => (
@@ -267,7 +267,7 @@ export function BodyScanChat({ analysis, onClose }: Props) {
               {msg.role === "assistant" && (
                 <div
                   className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-sm"
-                  style={{ background: "rgba(124,92,252,0.2)", color: "#7C5CFC" }}
+                  style={{ background: "rgba(180,85,47,0.2)", color: "#B4552F" }}
                 >
                   🤖
                 </div>
@@ -275,7 +275,7 @@ export function BodyScanChat({ analysis, onClose }: Props) {
               <div
                 className="max-w-xs rounded-2xl px-4 py-3 text-sm leading-relaxed"
                 style={{
-                  background: msg.role === "user" ? "#7C5CFC" : "var(--surface)",
+                  background: msg.role === "user" ? "#B4552F" : "var(--surface)",
                   color: msg.role === "user" ? "#fff" : "var(--text)",
                 }}
               >
@@ -288,22 +288,22 @@ export function BodyScanChat({ analysis, onClose }: Props) {
             <div className="flex gap-3">
               <div
                 className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-sm animate-pulse"
-                style={{ background: "rgba(124,92,252,0.2)", color: "#7C5CFC" }}
+                style={{ background: "rgba(180,85,47,0.2)", color: "#B4552F" }}
               >
                 🤖
               </div>
               <div className="flex gap-1.5 items-center">
                 <div
                   className="w-2 h-2 rounded-full animate-bounce"
-                  style={{ background: "#7C5CFC", animationDelay: "0ms" }}
+                  style={{ background: "#B4552F", animationDelay: "0ms" }}
                 />
                 <div
                   className="w-2 h-2 rounded-full animate-bounce"
-                  style={{ background: "#7C5CFC", animationDelay: "150ms" }}
+                  style={{ background: "#B4552F", animationDelay: "150ms" }}
                 />
                 <div
                   className="w-2 h-2 rounded-full animate-bounce"
-                  style={{ background: "#7C5CFC", animationDelay: "300ms" }}
+                  style={{ background: "#B4552F", animationDelay: "300ms" }}
                 />
               </div>
             </div>
@@ -337,7 +337,7 @@ export function BodyScanChat({ analysis, onClose }: Props) {
             disabled={isLoading || !input.trim()}
             className="p-2 rounded-lg active:scale-90 transition-transform"
             style={{
-              background: isLoading || !input.trim() ? "rgba(124,92,252,0.3)" : "#7C5CFC",
+              background: isLoading || !input.trim() ? "rgba(180,85,47,0.3)" : "#B4552F",
               color: "#fff",
               opacity: isLoading ? 0.7 : 1,
             }}

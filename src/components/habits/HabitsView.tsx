@@ -15,7 +15,7 @@ interface Props {
 }
 
 const ICON_OPTIONS = ["🙏", "📖", "🚶🏾‍♀️", "✨", "🌙", "📚", "💧", "📵", "🍎", "🏃🏾‍♀️", "🧘🏾‍♀️", "💊", "✍️", "🎾", "🌿", "🌸", "⭐", "🌅", "💤", "🫀"];
-const COLOR_OPTIONS = ["#71816D", "#DA667B", "#7C5CFC", "#E879F9", "#8A9E87", "#5A6E58", "#A8967E", "#C99A5C"];
+const COLOR_OPTIONS = ["#71816D", "#DA667B", "#B4552F", "#E0A44A", "#8A9E87", "#5A6E58", "#A8967E", "#C99A5C"];
 
 function getLast14Days(): string[] {
   const days: string[] = [];

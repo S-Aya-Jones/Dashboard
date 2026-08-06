@@ -10,10 +10,10 @@ interface SmsViewProps {
   update: (fn: (d: DashboardData) => DashboardData) => void;
 }
 
-const LIME = "#7C5CFC";
-const BUBBLE_OUT = "#7C5CFC";
+const LIME = "#B4552F";
+const BUBBLE_OUT = "#B4552F";
 const BUBBLE_IN = "var(--bg2)";
-const BORDER = "rgba(124,92,252,0.12)";
+const BORDER = "rgba(180,85,47,0.12)";
 
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -185,7 +185,7 @@ export function SmsView({ data, update }: SmsViewProps) {
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: `1px solid ${BORDER}`, background: "var(--surface)" }}>
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center rounded-full w-9 h-9" style={{ background: "rgba(124,92,252,0.12)" }}>
+          <div className="flex items-center justify-center rounded-full w-9 h-9" style={{ background: "rgba(180,85,47,0.12)" }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
               <path d="M8 2H16C17.1 2 18 2.9 18 4V20C18 21.1 17.1 22 16 22H8C6.9 22 6 21.1 6 20V4C6 2.9 6.9 2 8 2Z" stroke={LIME} strokeWidth="1.8" fill="none" />
               <circle cx="12" cy="18.5" r="1" fill={LIME} />
@@ -200,7 +200,7 @@ export function SmsView({ data, update }: SmsViewProps) {
           </div>
         </div>
 
-        <div className="flex items-center gap-1 rounded-xl p-1" style={{ background: "rgba(124,92,252,0.08)" }}>
+        <div className="flex items-center gap-1 rounded-xl p-1" style={{ background: "rgba(180,85,47,0.08)" }}>
           {(["thread", "reminders", "settings"] as const).map(t => (
             <button key={t} onClick={() => setTab(t)}
               className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
@@ -214,7 +214,7 @@ export function SmsView({ data, update }: SmsViewProps) {
       {/* Setup Banner */}
       {!phoneConfigured && tab === "thread" && (
         <div className="flex items-center gap-3 px-5 py-3 text-sm font-medium"
-          style={{ background: "rgba(124,92,252,0.08)", borderBottom: `1px solid rgba(124,92,252,0.18)`, color: LIME }}>
+          style={{ background: "rgba(180,85,47,0.08)", borderBottom: `1px solid rgba(180,85,47,0.18)`, color: LIME }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
             <circle cx="12" cy="12" r="10" stroke={LIME} strokeWidth="1.8" />
             <path d="M12 8v4M12 16h.01" stroke={LIME} strokeWidth="2" strokeLinecap="round" />
@@ -255,7 +255,7 @@ export function SmsView({ data, update }: SmsViewProps) {
                           {msg.body}
                         </div>
                         {!isOut && msg.parsedAction && (
-                          <p className="text-xs mt-1 ml-1" style={{ color: "rgba(124,92,252,0.8)" }}>✓ {msg.parsedAction}</p>
+                          <p className="text-xs mt-1 ml-1" style={{ color: "rgba(180,85,47,0.8)" }}>✓ {msg.parsedAction}</p>
                         )}
                       </div>
                     </div>
@@ -272,7 +272,7 @@ export function SmsView({ data, update }: SmsViewProps) {
               <button key={q.label} onClick={() => sendMessage(q.message)}
                 disabled={sending}
                 className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all disabled:opacity-40"
-                style={{ background: "rgba(124,92,252,0.1)", color: LIME, border: `1px solid rgba(124,92,252,0.2)` }}>
+                style={{ background: "rgba(180,85,47,0.1)", color: LIME, border: `1px solid rgba(180,85,47,0.2)` }}>
                 {q.label}
               </button>
             ))}
@@ -287,7 +287,7 @@ export function SmsView({ data, update }: SmsViewProps) {
               onInput={e => { const el = e.currentTarget; el.style.height = "auto"; el.style.height = Math.min(el.scrollHeight, 120) + "px"; }} />
             <button onClick={handleSend} disabled={sending || !input.trim()}
               className="flex items-center justify-center rounded-full w-10 h-10 flex-shrink-0 disabled:opacity-30"
-              style={{ background: input.trim() ? LIME : "rgba(124,92,252,0.2)" }}>
+              style={{ background: input.trim() ? LIME : "rgba(180,85,47,0.2)" }}>
               {sending
                 ? <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: "#000", borderTopColor: "transparent" }} />
                 : <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2L15 22L11 13M11 13L2 9L22 2" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
@@ -329,15 +329,15 @@ export function SmsView({ data, update }: SmsViewProps) {
               </div>
               <button onClick={handleTogglePush} disabled={pushBusy}
                 className="relative flex-shrink-0 w-12 h-7 rounded-full transition-all duration-200 disabled:opacity-40"
-                style={{ background: pushEnabled ? LIME : "rgba(124,92,252,0.15)" }}>
+                style={{ background: pushEnabled ? LIME : "rgba(180,85,47,0.15)" }}>
                 <span className="absolute top-1.5 w-4 h-4 rounded-full transition-all duration-200"
-                  style={{ background: pushEnabled ? "#fff" : "rgba(124,92,252,0.5)", left: pushEnabled ? "calc(100% - 20px)" : 4 }} />
+                  style={{ background: pushEnabled ? "#fff" : "rgba(180,85,47,0.5)", left: pushEnabled ? "calc(100% - 20px)" : 4 }} />
               </button>
             </div>
             {pushEnabled && (
               <button onClick={testPush} disabled={pushBusy}
                 className="w-full py-2 rounded-xl text-xs font-medium disabled:opacity-40"
-                style={{ background: "rgba(124,92,252,0.1)", color: LIME, border: `1px solid rgba(124,92,252,0.2)` }}>
+                style={{ background: "rgba(180,85,47,0.1)", color: LIME, border: `1px solid rgba(180,85,47,0.2)` }}>
                 Send Test Notification
               </button>
             )}
@@ -380,12 +380,12 @@ export function SmsView({ data, update }: SmsViewProps) {
               <li>3. Under <span style={{ color: LIME }}>Messaging Configuration</span> → &ldquo;A message comes in&rdquo; → set to <span style={{ color: LIME }}>Webhook</span></li>
               <li>4. Paste this URL:</li>
             </ol>
-            <div className="rounded-xl px-3 py-2.5 font-mono text-xs break-all" style={{ background: "var(--bg)", border: `1px solid rgba(124,92,252,0.2)`, color: "rgba(124,92,252,0.9)" }}>
+            <div className="rounded-xl px-3 py-2.5 font-mono text-xs break-all" style={{ background: "var(--bg)", border: `1px solid rgba(180,85,47,0.2)`, color: "rgba(180,85,47,0.9)" }}>
               {webhookUrl}
             </div>
             <button onClick={() => { navigator.clipboard.writeText(webhookUrl); showToast("Copied!", "success"); }}
               className="w-full py-2 rounded-xl text-xs font-medium"
-              style={{ background: "rgba(124,92,252,0.1)", color: LIME, border: `1px solid rgba(124,92,252,0.2)` }}>
+              style={{ background: "rgba(180,85,47,0.1)", color: LIME, border: `1px solid rgba(180,85,47,0.2)` }}>
               Copy Webhook URL
             </button>
           </div>
@@ -402,7 +402,7 @@ export function SmsView({ data, update }: SmsViewProps) {
             ].map(([cmd, desc]) => (
               <div key={cmd} className="flex items-center gap-3 text-xs">
                 <code className="px-2 py-0.5 rounded-md font-mono flex-shrink-0"
-                  style={{ background: "rgba(124,92,252,0.1)", color: LIME, minWidth: 90, display: "inline-block" }}>
+                  style={{ background: "rgba(180,85,47,0.1)", color: LIME, minWidth: 90, display: "inline-block" }}>
                   {cmd}
                 </code>
                 <span style={{ color: "var(--text-muted)" }}>{desc}</span>
@@ -416,9 +416,9 @@ export function SmsView({ data, update }: SmsViewProps) {
       {toast && (
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-4 py-2.5 rounded-xl text-sm font-medium shadow-lg pointer-events-none"
           style={{
-            background: toast.type === "error" ? "#FFF0F0" : "rgba(124,92,252,0.1)",
+            background: toast.type === "error" ? "#FFF0F0" : "rgba(180,85,47,0.1)",
             color: toast.type === "error" ? "#c0392b" : LIME,
-            border: `1px solid ${toast.type === "error" ? "rgba(192,57,43,0.3)" : "rgba(124,92,252,0.3)"}`,
+            border: `1px solid ${toast.type === "error" ? "rgba(192,57,43,0.3)" : "rgba(180,85,47,0.3)"}`,
             zIndex: 50,
           }}>
           {toast.text}
@@ -433,12 +433,12 @@ function ReminderCard({ reminder, onToggle, onSendNow, sending, phoneConfigured 
 }) {
   return (
     <div className="rounded-2xl p-4 flex flex-col gap-3"
-      style={{ background: reminder.enabled ? "rgba(124,92,252,0.06)" : "var(--surface)", border: `1px solid ${reminder.enabled ? "rgba(124,92,252,0.25)" : BORDER}` }}>
+      style={{ background: reminder.enabled ? "rgba(180,85,47,0.06)" : "var(--surface)", border: `1px solid ${reminder.enabled ? "rgba(180,85,47,0.25)" : BORDER}` }}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <h4 className="text-sm font-semibold truncate" style={{ color: "var(--text)" }}>{reminder.label}</h4>
-            <span className="text-xs px-2 py-0.5 rounded-full font-mono" style={{ background: "rgba(124,92,252,0.08)", color: "var(--text-muted)" }}>
+            <span className="text-xs px-2 py-0.5 rounded-full font-mono" style={{ background: "rgba(180,85,47,0.08)", color: "var(--text-muted)" }}>
               {formatTime(reminder.time)}
             </span>
           </div>
@@ -446,16 +446,16 @@ function ReminderCard({ reminder, onToggle, onSendNow, sending, phoneConfigured 
         </div>
         <button onClick={onToggle}
           className="flex-shrink-0 relative w-10 h-6 rounded-full transition-all duration-200"
-          style={{ background: reminder.enabled ? LIME : "rgba(124,92,252,0.15)" }}>
+          style={{ background: reminder.enabled ? LIME : "rgba(180,85,47,0.15)" }}>
           <span className="absolute top-1 w-4 h-4 rounded-full transition-all duration-200"
-            style={{ background: reminder.enabled ? "#fff" : "rgba(124,92,252,0.5)", left: reminder.enabled ? "calc(100% - 20px)" : 4 }} />
+            style={{ background: reminder.enabled ? "#fff" : "rgba(180,85,47,0.5)", left: reminder.enabled ? "calc(100% - 20px)" : 4 }} />
         </button>
       </div>
       <div className="flex items-center justify-between">
         <span className="text-xs" style={{ color: "var(--text-muted)" }}>{formatReminderDays(reminder.days)}</span>
         <button onClick={onSendNow} disabled={sending || !phoneConfigured}
           className="text-xs px-3 py-1.5 rounded-lg font-medium disabled:opacity-30"
-          style={{ background: "rgba(124,92,252,0.1)", color: LIME, border: `1px solid rgba(124,92,252,0.2)` }}>
+          style={{ background: "rgba(180,85,47,0.1)", color: LIME, border: `1px solid rgba(180,85,47,0.2)` }}>
           Send Now
         </button>
       </div>

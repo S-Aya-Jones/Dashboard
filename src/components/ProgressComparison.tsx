@@ -55,8 +55,8 @@ export function ProgressComparison({ before, after, onClose }: Props) {
         <div className="space-y-2">
           <p className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>Timeline</p>
           <div className="flex items-center justify-between gap-3">
-            <div className="flex-1 rounded-lg p-3" style={{ background: "rgba(124,92,252,0.1)" }}>
-              <p className="text-xs font-semibold" style={{ color: "#7C5CFC" }}>Before</p>
+            <div className="flex-1 rounded-lg p-3" style={{ background: "rgba(180,85,47,0.1)" }}>
+              <p className="text-xs font-semibold" style={{ color: "#B4552F" }}>Before</p>
               <p className="text-xs mt-1" style={{ color: "var(--text)" }}>
                 {format(parseISO(before.timestamp), "MMM d, yyyy")}
               </p>
@@ -68,8 +68,8 @@ export function ProgressComparison({ before, after, onClose }: Props) {
               <p className="font-semibold">{daysBetween}</p>
               <p>days</p>
             </div>
-            <div className="flex-1 rounded-lg p-3" style={{ background: improved ? "rgba(124,92,252,0.15)" : "rgba(218,102,123,0.1)" }}>
-              <p className="text-xs font-semibold" style={{ color: improved ? "#7C5CFC" : "#DA667B" }}>After</p>
+            <div className="flex-1 rounded-lg p-3" style={{ background: improved ? "rgba(180,85,47,0.15)" : "rgba(218,102,123,0.1)" }}>
+              <p className="text-xs font-semibold" style={{ color: improved ? "#B4552F" : "#DA667B" }}>After</p>
               <p className="text-xs mt-1" style={{ color: "var(--text)" }}>
                 {format(parseISO(after.timestamp), "MMM d, yyyy")}
               </p>
@@ -87,40 +87,40 @@ export function ProgressComparison({ before, after, onClose }: Props) {
               Body Fat Progress
             </p>
             <div className="grid grid-cols-3 gap-3">
-              <div className="rounded-lg p-2 text-center" style={{ background: "rgba(124,92,252,0.1)" }}>
+              <div className="rounded-lg p-2 text-center" style={{ background: "rgba(180,85,47,0.1)" }}>
                 <p className="text-xs" style={{ color: "var(--text-muted)" }}>Before</p>
-                <p className="font-bold mt-1" style={{ color: "#7C5CFC" }}>
+                <p className="font-bold mt-1" style={{ color: "#B4552F" }}>
                   {((beforeFat.low + beforeFat.high) / 2).toFixed(1)}%
                 </p>
               </div>
-              <div className="rounded-lg p-2 text-center" style={{ background: fatChangeNum < 0 ? "rgba(124,92,252,0.1)" : "rgba(218,102,123,0.1)" }}>
+              <div className="rounded-lg p-2 text-center" style={{ background: fatChangeNum < 0 ? "rgba(180,85,47,0.1)" : "rgba(218,102,123,0.1)" }}>
                 <p className="text-xs" style={{ color: "var(--text-muted)" }}>Change</p>
-                <p className="font-bold mt-1" style={{ color: fatChangeNum < 0 ? "#7C5CFC" : "#DA667B" }}>
+                <p className="font-bold mt-1" style={{ color: fatChangeNum < 0 ? "#B4552F" : "#DA667B" }}>
                   {fatChangeNum < 0 ? "-" : "+"}{Math.abs(fatChangeNum).toFixed(1)}%
                 </p>
                 <p className="text-[10px]" style={{ color: "var(--text-light)" }}>
                   ({fatPercent}%)
                 </p>
               </div>
-              <div className="rounded-lg p-2 text-center" style={{ background: "rgba(124,92,252,0.1)" }}>
+              <div className="rounded-lg p-2 text-center" style={{ background: "rgba(180,85,47,0.1)" }}>
                 <p className="text-xs" style={{ color: "var(--text-muted)" }}>After</p>
-                <p className="font-bold mt-1" style={{ color: "#7C5CFC" }}>
+                <p className="font-bold mt-1" style={{ color: "#B4552F" }}>
                   {((afterFat.low + afterFat.high) / 2).toFixed(1)}%
                 </p>
               </div>
             </div>
 
             {/* Progress bar */}
-            <div className="h-8 rounded-full overflow-hidden" style={{ background: "rgba(124,92,252,0.07)" }}>
+            <div className="h-8 rounded-full overflow-hidden" style={{ background: "rgba(180,85,47,0.07)" }}>
               <div
                 className="h-full rounded-full transition-all"
                 style={{
                   width: `${Math.max(10, Math.min(100, ((afterFat.low + afterFat.high) / 2) * 1.5))}%`,
-                  background: fatChangeNum < 0 ? "linear-gradient(90deg, #7C5CFC, #9B7FFF)" : "linear-gradient(90deg, #DA667B, #C99A5C)",
+                  background: fatChangeNum < 0 ? "linear-gradient(90deg, #B4552F, #D07A4F)" : "linear-gradient(90deg, #DA667B, #C99A5C)",
                 }}
               />
             </div>
-            <p className="text-xs text-center" style={{ color: fatChangeNum < 0 ? "#7C5CFC" : "#DA667B" }}>
+            <p className="text-xs text-center" style={{ color: fatChangeNum < 0 ? "#B4552F" : "#DA667B" }}>
               {fatChangeNum < 0 ? "✓ Decreasing" : "⚠ Increasing"}
             </p>
           </div>
@@ -132,43 +132,43 @@ export function ProgressComparison({ before, after, onClose }: Props) {
             Composition Score
           </p>
           <div className="grid grid-cols-3 gap-3">
-            <div className="rounded-lg p-2 text-center" style={{ background: "rgba(124,92,252,0.1)" }}>
+            <div className="rounded-lg p-2 text-center" style={{ background: "rgba(180,85,47,0.1)" }}>
               <p className="text-xs" style={{ color: "var(--text-muted)" }}>Before</p>
-              <p className="font-serif text-xl mt-1" style={{ color: "#7C5CFC" }}>
+              <p className="font-serif text-xl mt-1" style={{ color: "#B4552F" }}>
                 {beforeScore}/10
               </p>
             </div>
-            <div className="rounded-lg p-2 text-center" style={{ background: improved ? "rgba(124,92,252,0.1)" : "rgba(218,102,123,0.1)" }}>
+            <div className="rounded-lg p-2 text-center" style={{ background: improved ? "rgba(180,85,47,0.1)" : "rgba(218,102,123,0.1)" }}>
               <p className="text-xs" style={{ color: "var(--text-muted)" }}>Change</p>
-              <p className="font-bold mt-1" style={{ color: improved ? "#7C5CFC" : "#DA667B" }}>
+              <p className="font-bold mt-1" style={{ color: improved ? "#B4552F" : "#DA667B" }}>
                 {improved ? "+" : ""}{scoreChange}
               </p>
             </div>
-            <div className="rounded-lg p-2 text-center" style={{ background: "rgba(124,92,252,0.1)" }}>
+            <div className="rounded-lg p-2 text-center" style={{ background: "rgba(180,85,47,0.1)" }}>
               <p className="text-xs" style={{ color: "var(--text-muted)" }}>After</p>
-              <p className="font-serif text-xl mt-1" style={{ color: "#7C5CFC" }}>
+              <p className="font-serif text-xl mt-1" style={{ color: "#B4552F" }}>
                 {afterScore}/10
               </p>
             </div>
           </div>
 
           {/* Progress bar */}
-          <div className="h-8 rounded-full overflow-hidden" style={{ background: "rgba(124,92,252,0.07)" }}>
+          <div className="h-8 rounded-full overflow-hidden" style={{ background: "rgba(180,85,47,0.07)" }}>
             <div
               className="h-full rounded-full transition-all"
               style={{
                 width: `${Math.max(10, (afterScore / 10) * 100)}%`,
-                background: improved ? "linear-gradient(90deg, #7C5CFC, #9B7FFF)" : "linear-gradient(90deg, #DA667B, #C99A5C)",
+                background: improved ? "linear-gradient(90deg, #B4552F, #D07A4F)" : "linear-gradient(90deg, #DA667B, #C99A5C)",
               }}
             />
           </div>
-          <p className="text-xs text-center" style={{ color: improved ? "#7C5CFC" : "#DA667B" }}>
+          <p className="text-xs text-center" style={{ color: improved ? "#B4552F" : "#DA667B" }}>
             {improved ? "✓ Improving" : "→ Steady"}
           </p>
         </div>
 
         {/* Measurements */}
-        <div className="rounded-2xl p-4 space-y-2" style={{ background: "rgba(124,92,252,0.05)" }}>
+        <div className="rounded-2xl p-4 space-y-2" style={{ background: "rgba(180,85,47,0.05)" }}>
           <p className="text-xs font-semibold" style={{ color: "var(--text)" }}>Measurements</p>
           <div className="grid grid-cols-2 gap-2 text-xs">
             {before.height && (
@@ -187,7 +187,7 @@ export function ProgressComparison({ before, after, onClose }: Props) {
                   <p style={{ color: "var(--text-muted)" }}>Weight (After)</p>
                   <p style={{ color: "var(--text)" }}>{after.weight.toFixed(1)} lbs</p>
                   {before.weight && (
-                    <p className="text-[10px]" style={{ color: after.weight < before.weight ? "#7C5CFC" : "#DA667B" }}>
+                    <p className="text-[10px]" style={{ color: after.weight < before.weight ? "#B4552F" : "#DA667B" }}>
                       {after.weight < before.weight ? "-" : "+"}{Math.abs(after.weight - before.weight).toFixed(1)} lbs
                     </p>
                   )}
@@ -201,7 +201,7 @@ export function ProgressComparison({ before, after, onClose }: Props) {
         <button
           onClick={onClose}
           className="w-full py-3 rounded-2xl font-semibold"
-          style={{ background: "#7C5CFC", color: "#fff" }}
+          style={{ background: "#B4552F", color: "#fff" }}
         >
           Close
         </button>

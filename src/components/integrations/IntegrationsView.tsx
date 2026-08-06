@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 
-const LIME = "#7C5CFC";
-const BORDER = "rgba(124,92,252,0.12)";
+const LIME = "#B4552F";
+const BORDER = "rgba(180,85,47,0.12)";
 const MUTED = "rgba(30,19,64,0.45)";
 const RED = "#EF4444";
 const GREEN = "#10B981";
@@ -24,7 +24,7 @@ interface CalEvent {
 
 const CAT_CONFIG: Record<TriageCategory, { label: string; color: string; bg: string }> = {
   reply:         { label: "Reply Needed",  color: RED,    bg: "rgba(239,68,68,0.08)" },
-  appointment:   { label: "Appointments",  color: LIME,   bg: "rgba(124,92,252,0.08)" },
+  appointment:   { label: "Appointments",  color: LIME,   bg: "rgba(180,85,47,0.08)" },
   bill:          { label: "Bills",         color: AMBER,  bg: "rgba(245,158,11,0.08)" },
   school:        { label: "School/MCAT",   color: GREEN,  bg: "rgba(16,185,129,0.08)" },
   spam:          { label: "Spam/Junk",     color: "#9CA3AF", bg: "rgba(156,163,175,0.08)" },
@@ -321,7 +321,7 @@ function GmailTab() {
             style={{ background: "var(--bg)", border: `1px solid ${BORDER}`, color: "var(--text)" }} />
           <button onClick={runTriage} disabled={triaging || threads.length === 0}
             className="px-3 py-2 rounded-xl text-xs font-semibold disabled:opacity-40 flex items-center gap-1.5"
-            style={{ background: "rgba(124,92,252,0.12)", color: LIME }}>
+            style={{ background: "rgba(180,85,47,0.12)", color: LIME }}>
             {triaging ? "Analyzing…" : "AI Triage"}
           </button>
           {spamCount > 0 && (
@@ -354,7 +354,7 @@ function GmailTab() {
         <div className="flex gap-1.5 overflow-x-auto scrollbar-none">
           {tabs.map(t => {
             const count = t === "all" ? threads.length : threads.filter(x => x.category === t).length;
-            const cfg = t === "all" ? { label: "All", color: LIME, bg: "rgba(124,92,252,0.08)" } : CAT_CONFIG[t];
+            const cfg = t === "all" ? { label: "All", color: LIME, bg: "rgba(180,85,47,0.08)" } : CAT_CONFIG[t];
             return (
               <button key={t} onClick={() => setActiveTab(t)}
                 className="flex-shrink-0 px-2.5 py-1 rounded-full text-xs font-medium transition-all flex items-center gap-1"
@@ -406,7 +406,7 @@ function GmailTab() {
                 </div>
                 <div className="flex flex-col gap-1 flex-shrink-0">
                   <button onClick={() => setReplyThread(thread)} className="text-xs px-2 py-1 rounded-lg font-medium"
-                    style={{ background: "rgba(124,92,252,0.1)", color: LIME }}>Reply</button>
+                    style={{ background: "rgba(180,85,47,0.1)", color: LIME }}>Reply</button>
                   <button onClick={() => { setCreateEvent(thread.subject); setShowCreateEvent(true); }}
                     className="text-xs px-2 py-1 rounded-lg font-medium"
                     style={{ background: "rgba(16,185,129,0.1)", color: GREEN }}>+ Cal</button>
@@ -416,7 +416,7 @@ function GmailTab() {
                 </div>
               </div>
               {expanded === thread.id && (
-                <div className="px-6 py-4" style={{ background: "rgba(124,92,252,0.03)", borderBottom: `1px solid ${BORDER}` }}>
+                <div className="px-6 py-4" style={{ background: "rgba(180,85,47,0.03)", borderBottom: `1px solid ${BORDER}` }}>
                   {expandedBody === null
                     ? <div className="flex items-center gap-2 text-sm" style={{ color: MUTED }}><div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: LIME, borderTopColor: "transparent" }} />Loading…</div>
                     : <pre className="text-xs whitespace-pre-wrap leading-relaxed" style={{ color: "var(--text)", fontFamily: "inherit", maxHeight: 280, overflow: "auto" }}>{expandedBody}</pre>
@@ -430,7 +430,7 @@ function GmailTab() {
 
       {replyThread && <ReplyModal thread={replyThread} onClose={() => setReplyThread(null)} onSent={() => { setReplyThread(null); showToast("Reply sent!"); }} />}
       {showCreateEvent && <CreateEventModal prefill={createEvent} onClose={() => setShowCreateEvent(false)} onCreated={() => { setShowCreateEvent(false); showToast("Event created! Check Google Calendar."); }} />}
-      {toast && <div className="fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2.5 rounded-xl text-sm font-medium shadow-lg pointer-events-none z-50" style={{ background: "rgba(124,92,252,0.12)", color: LIME, border: `1px solid rgba(124,92,252,0.3)` }}>{toast}</div>}
+      {toast && <div className="fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2.5 rounded-xl text-sm font-medium shadow-lg pointer-events-none z-50" style={{ background: "rgba(180,85,47,0.12)", color: LIME, border: `1px solid rgba(180,85,47,0.3)` }}>{toast}</div>}
     </div>
   );
 }
@@ -475,7 +475,7 @@ function CalendarTab() {
           {[7, 14, 30, 60].map(d => (
             <button key={d} onClick={() => setDays(d)}
               className="px-2.5 py-1 rounded-full text-xs font-medium transition-all"
-              style={days === d ? { background: LIME, color: "#fff" } : { background: "rgba(124,92,252,0.08)", color: MUTED, border: `1px solid ${BORDER}` }}>
+              style={days === d ? { background: LIME, color: "#fff" } : { background: "rgba(180,85,47,0.08)", color: MUTED, border: `1px solid ${BORDER}` }}>
               {d}d
             </button>
           ))}
@@ -513,7 +513,7 @@ function CalendarTab() {
       </div>
 
       {showCreate && <CreateEventModal onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); load(); showToast("Event created! Check Google Calendar."); }} />}
-      {toast && <div className="fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2.5 rounded-xl text-sm font-medium shadow-lg pointer-events-none z-50" style={{ background: "rgba(124,92,252,0.12)", color: LIME, border: `1px solid rgba(124,92,252,0.3)` }}>{toast}</div>}
+      {toast && <div className="fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2.5 rounded-xl text-sm font-medium shadow-lg pointer-events-none z-50" style={{ background: "rgba(180,85,47,0.12)", color: LIME, border: `1px solid rgba(180,85,47,0.3)` }}>{toast}</div>}
     </div>
   );
 }
@@ -544,7 +544,7 @@ export function IntegrationsView() {
     <div className="flex flex-col overflow-hidden" style={{ background: "var(--bg)", height: "100%", minHeight: 0 }}>
       <div className="flex items-center justify-between px-3 md:px-5 py-3 md:py-4" style={{ borderBottom: `1px solid ${BORDER}`, background: "var(--surface)" }}>
         <div className="flex items-center gap-2 md:gap-3">
-          <div className="flex items-center justify-center rounded-full w-8 h-8 md:w-9 md:h-9 flex-shrink-0" style={{ background: "rgba(124,92,252,0.12)" }}>
+          <div className="flex items-center justify-center rounded-full w-8 h-8 md:w-9 md:h-9 flex-shrink-0" style={{ background: "rgba(180,85,47,0.12)" }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <rect x="3" y="3" width="8" height="8" rx="1.5" stroke={LIME} strokeWidth="1.8" fill="none" />
               <rect x="13" y="3" width="8" height="8" rx="1.5" stroke={LIME} strokeWidth="1.8" fill="none" />
@@ -558,7 +558,7 @@ export function IntegrationsView() {
           </div>
         </div>
         {status === "connected" && (
-          <div className="flex items-center gap-1 rounded-xl p-1" style={{ background: "rgba(124,92,252,0.08)" }}>
+          <div className="flex items-center gap-1 rounded-xl p-1" style={{ background: "rgba(180,85,47,0.08)" }}>
             {(["gmail", "calendar"] as const).map(t => (
               <button key={t} onClick={() => setTab(t)}
                 className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"

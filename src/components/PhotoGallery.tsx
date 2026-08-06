@@ -29,12 +29,12 @@ export function PhotoGallery({ photos, type, onDelete, onViewAnalysis, onCompare
   const selected = sorted.find((p) => p.id === selectedId);
 
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.15)" }}>
+    <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid rgba(180,85,47,0.15)" }}>
       {/* Header */}
       <button
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center justify-between px-4 py-3.5 text-left border-b"
-        style={{ borderColor: "rgba(124,92,252,0.1)" }}>
+        style={{ borderColor: "rgba(180,85,47,0.1)" }}>
         <div className="flex-1">
           <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>
             {type === "bodyscan" ? "📸 Body Scan History" : "📹 Form Check History"}
@@ -57,8 +57,8 @@ export function PhotoGallery({ photos, type, onDelete, onViewAnalysis, onCompare
             }}
             className="px-3 py-1.5 rounded-lg text-xs font-semibold mr-2 active:scale-90 transition-transform"
             style={{
-              background: compareMode ? "#7C5CFC" : "rgba(124,92,252,0.1)",
-              color: compareMode ? "#fff" : "#7C5CFC",
+              background: compareMode ? "#B4552F" : "rgba(180,85,47,0.1)",
+              color: compareMode ? "#fff" : "#B4552F",
             }}>
             📊 Compare
           </button>
@@ -96,7 +96,7 @@ export function PhotoGallery({ photos, type, onDelete, onViewAnalysis, onCompare
                   className="rounded-lg overflow-hidden relative group active:scale-95 transition-transform"
                   style={{
                     aspectRatio: "1",
-                    border: compareMode && isCompareSelected ? "3px solid #7C5CFC" : isSelected ? "2px solid #7C5CFC" : "1px solid rgba(124,92,252,0.2)",
+                    border: compareMode && isCompareSelected ? "3px solid #B4552F" : isSelected ? "2px solid #B4552F" : "1px solid rgba(180,85,47,0.2)",
                     opacity: compareMode && selectedForComparison && !isCompareSelected && selectedForComparison !== photo.id ? 0.5 : 1,
                   }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -110,7 +110,7 @@ export function PhotoGallery({ photos, type, onDelete, onViewAnalysis, onCompare
                     <p className="text-xs text-white font-semibold">{format(parseISO(photo.timestamp), "MMM d")}</p>
                   </div>
                   {compareMode && isCompareSelected && (
-                    <div className="absolute inset-0 flex items-center justify-center" style={{ background: "rgba(124,92,252,0.2)" }}>
+                    <div className="absolute inset-0 flex items-center justify-center" style={{ background: "rgba(180,85,47,0.2)" }}>
                       <p className="text-xl font-bold text-white">✓</p>
                     </div>
                   )}
@@ -121,7 +121,7 @@ export function PhotoGallery({ photos, type, onDelete, onViewAnalysis, onCompare
 
           {/* Selected photo details */}
           {selected && (
-            <div className="rounded-xl p-3 space-y-2" style={{ background: "rgba(124,92,252,0.05)" }}>
+            <div className="rounded-xl p-3 space-y-2" style={{ background: "rgba(180,85,47,0.05)" }}>
               <div className="flex items-center justify-between">
                 <p className="text-xs font-semibold" style={{ color: "var(--text)" }}>
                   {format(parseISO(selected.timestamp), "EEEE, MMMM dd, yyyy · h:mm a")}
@@ -142,15 +142,15 @@ export function PhotoGallery({ photos, type, onDelete, onViewAnalysis, onCompare
                   {selected.analysis ? (
                     <div className="space-y-2">
                       <div className="grid grid-cols-2 gap-2">
-                        <div className="rounded-lg p-2" style={{ background: "rgba(124,92,252,0.1)" }}>
+                        <div className="rounded-lg p-2" style={{ background: "rgba(180,85,47,0.1)" }}>
                           <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Body Fat</p>
-                          <p className="text-xs font-bold" style={{ color: "#7C5CFC" }}>
+                          <p className="text-xs font-bold" style={{ color: "#B4552F" }}>
                             {selected.analysis.bodyFat.low}–{selected.analysis.bodyFat.high}%
                           </p>
                         </div>
-                        <div className="rounded-lg p-2" style={{ background: "rgba(124,92,252,0.1)" }}>
+                        <div className="rounded-lg p-2" style={{ background: "rgba(180,85,47,0.1)" }}>
                           <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Score</p>
-                          <p className="text-xs font-bold" style={{ color: "#7C5CFC" }}>
+                          <p className="text-xs font-bold" style={{ color: "#B4552F" }}>
                             {selected.analysis.compositionScore}/10
                           </p>
                           {selected.analysis.potentialScore && (
@@ -172,7 +172,7 @@ export function PhotoGallery({ photos, type, onDelete, onViewAnalysis, onCompare
                         <button
                           onClick={() => onViewAnalysis(selected as BodyScanPhoto)}
                           className="w-full py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
-                          style={{ background: "rgba(124,92,252,0.15)", color: "#7C5CFC" }}>
+                          style={{ background: "rgba(180,85,47,0.15)", color: "#B4552F" }}>
                           <MessageSquare size={12} />
                           View Full Analysis & Chat
                         </button>
@@ -192,9 +192,9 @@ export function PhotoGallery({ photos, type, onDelete, onViewAnalysis, onCompare
                     Exercise: <span className="font-semibold" style={{ color: "var(--text)" }}>{selected.exerciseName}</span>
                   </p>
                   {selected.formScore !== undefined && (
-                    <div className="rounded-lg p-2" style={{ background: "rgba(124,92,252,0.1)" }}>
+                    <div className="rounded-lg p-2" style={{ background: "rgba(180,85,47,0.1)" }}>
                       <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Form Score</p>
-                      <p className="text-xs font-bold" style={{ color: "#7C5CFC" }}>
+                      <p className="text-xs font-bold" style={{ color: "#B4552F" }}>
                         {selected.formScore}/100
                       </p>
                     </div>
@@ -211,7 +211,7 @@ export function PhotoGallery({ photos, type, onDelete, onViewAnalysis, onCompare
                   link.click();
                 }}
                 className="w-full py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
-                style={{ background: "rgba(124,92,252,0.08)", color: "#7C5CFC" }}>
+                style={{ background: "rgba(180,85,47,0.08)", color: "#B4552F" }}>
                 <Download size={12} />
                 Download
               </button>

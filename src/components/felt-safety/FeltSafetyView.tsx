@@ -286,11 +286,11 @@ function TwitchLogModal({ open, onClose, onSave }: {
           width: "100%", padding: "0.85rem",
           borderRadius: "12px", border: "none",
           background: !trigger || saving
-            ? "rgba(124,92,252,0.2)"
+            ? "rgba(180,85,47,0.2)"
             : acted
-              ? "linear-gradient(135deg, #DA667B, #E879F9)"
+              ? "linear-gradient(135deg, #DA667B, #E0A44A)"
               : "linear-gradient(135deg, #71816D, #4A6741)",
-          color: !trigger || saving ? "rgba(124,92,252,0.4)" : "#fff",
+          color: !trigger || saving ? "rgba(180,85,47,0.4)" : "#fff",
           fontSize: "0.95rem", fontWeight: 700,
           cursor: !trigger || saving ? "not-allowed" : "pointer",
           transition: "all 0.15s ease",
@@ -330,7 +330,7 @@ function HeatmapView({ logs }: { logs: TwitchLog[] }) {
                 return (
                   <div key={dayIdx} title={count > 0 ? `${count} twitch${count !== 1 ? "es" : ""}` : undefined} style={{
                     height: "26px", borderRadius: "5px",
-                    background: `rgba(124,92,252,${opacity})`,
+                    background: `rgba(180,85,47,${opacity})`,
                     transition: "background 0.2s",
                   }} />
                 );
@@ -370,7 +370,7 @@ function TwitchContent({ logs, loading }: { logs: TwitchLog[]; loading: boolean 
     background: active ? "var(--surface)" : "transparent",
     color: active ? "var(--purple)" : "var(--text-muted)",
     fontWeight: active ? 600 : 400, fontSize: "0.85rem", cursor: "pointer" as const,
-    boxShadow: active ? "0 1px 4px rgba(124,92,252,0.12)" : "none",
+    boxShadow: active ? "0 1px 4px rgba(180,85,47,0.12)" : "none",
     transition: "all 0.15s ease",
   });
 
@@ -496,7 +496,7 @@ function TwitchContent({ logs, loading }: { logs: TwitchLog[]; loading: boolean 
             </div>
             <ResponsiveContainer width="100%" height={160}>
               <LineChart data={buildRatioTrend(logs)} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(124,92,252,0.08)" />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(180,85,47,0.08)" />
                 <XAxis dataKey="date" tick={{ fontSize: 10, fill: "var(--text-light)" }} interval={6} />
                 <YAxis tick={{ fontSize: 10, fill: "var(--text-light)" }} domain={[0, 100]} tickFormatter={v => `${v}%`} />
                 <Tooltip contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }} formatter={(v: number) => [`${v}%`, "Sat with it"]} />
@@ -537,7 +537,7 @@ function TwitchContent({ logs, loading }: { logs: TwitchLog[]; loading: boolean 
             </div>
             <ResponsiveContainer width="100%" height={140}>
               <LineChart data={intensityTrend} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(124,92,252,0.08)" />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(180,85,47,0.08)" />
                 <XAxis dataKey="date" tick={{ fontSize: 10, fill: "var(--text-light)" }} interval={6} />
                 <YAxis tick={{ fontSize: 10, fill: "var(--text-light)" }} domain={[0, 10]} />
                 <Tooltip contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", fontSize: "12px" }} formatter={(v: number) => [v, "avg intensity"]} />
@@ -597,7 +597,7 @@ export function FeltSafetyView() {
           background: "linear-gradient(135deg, var(--purple) 0%, var(--pink) 100%)",
           color: "#fff", fontSize: "0.9rem", fontWeight: 700,
           cursor: "pointer",
-          boxShadow: "0 4px 16px rgba(124,92,252,0.35)",
+          boxShadow: "0 4px 16px rgba(180,85,47,0.35)",
           flexShrink: 0,
         }}>
           <Plus size={18} /> Log a Twitch
@@ -617,7 +617,7 @@ export function FeltSafetyView() {
               fontWeight: tab === t.key ? 600 : 400,
               fontSize: "0.82rem",
               cursor: "pointer",
-              boxShadow: tab === t.key ? "0 1px 4px rgba(124,92,252,0.12)" : "none",
+              boxShadow: tab === t.key ? "0 1px 4px rgba(180,85,47,0.12)" : "none",
               transition: "all 0.15s ease",
               whiteSpace: "nowrap",
             }}>

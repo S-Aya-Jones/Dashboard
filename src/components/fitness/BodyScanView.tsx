@@ -55,7 +55,7 @@ const SLOTS: { key: SlotKey; label: string; hint: string; icon: string }[] = [
   { key: "right", label: "Right Side", hint: "Turn 90° right", icon: "▷" },
 ];
 
-const PURPLE = "#9B7FFF";
+const PURPLE = "#D07A4F";
 const GOLD = "#E8C547";
 const PEACH = "#E8A87C";
 const ROSE = "#DA667B";
@@ -67,7 +67,7 @@ function Bar({ label, value, max = 10, color }: { label: string; value: number; 
         <p className="text-xs" style={{ color: "var(--text-muted)" }}>{label}</p>
         <p className="text-xs font-bold" style={{ color }}>{value}{max === 10 ? "/10" : "%"}</p>
       </div>
-      <div className="h-1.5 rounded-full" style={{ background: "rgba(124,92,252,0.1)" }}>
+      <div className="h-1.5 rounded-full" style={{ background: "rgba(180,85,47,0.1)" }}>
         <div className="h-full rounded-full" style={{ width: `${(value / max) * 100}%`, background: color }} />
       </div>
     </div>
@@ -77,7 +77,7 @@ function Bar({ label, value, max = 10, color }: { label: string; value: number; 
 function Section({ title, icon, children, defaultOpen = false }: { title: string; icon: string; children: React.ReactNode; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="border-b border-[rgba(124,92,252,0.1)] last:border-0">
+    <div className="border-b border-[rgba(180,85,47,0.1)] last:border-0">
       <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between px-4 py-3.5 text-left">
         <div className="flex items-center gap-2.5">
           <span className="text-base">{icon}</span>
@@ -98,9 +98,9 @@ function ResultCard({ analysis, thumbs, onReset, onChat }: { analysis: BodyAnaly
   const bfMid = ((analysis.bodyFatEstimate.low + analysis.bodyFatEstimate.high) / 2).toFixed(1);
 
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.15)" }}>
+    <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid rgba(180,85,47,0.15)" }}>
       {/* Header */}
-      <div className="p-4" style={{ borderBottom: "1px solid rgba(124,92,252,0.1)" }}>
+      <div className="p-4" style={{ borderBottom: "1px solid rgba(180,85,47,0.1)" }}>
         {/* Photo strip */}
         <div className="flex gap-2 mb-4 overflow-x-auto">
           {thumbs.map((t, i) => (
@@ -109,19 +109,19 @@ function ResultCard({ analysis, thumbs, onReset, onChat }: { analysis: BodyAnaly
         </div>
         <div className="flex items-center gap-2 mb-3">
           <p className="text-xs font-semibold" style={{ color: "var(--text-muted)", letterSpacing: "0.08em" }}>BODY COMPOSITION SCAN</p>
-          <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(124,92,252,0.1)", color: PURPLE }}>{analysis.bodyType}</span>
+          <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(180,85,47,0.1)", color: PURPLE }}>{analysis.bodyType}</span>
         </div>
         <div className="grid grid-cols-3 gap-3">
-          <div className="rounded-xl p-3 text-center" style={{ background: "rgba(124,92,252,0.06)" }}>
+          <div className="rounded-xl p-3 text-center" style={{ background: "rgba(180,85,47,0.06)" }}>
             <p className="text-xs mb-1" style={{ color: "var(--text-muted)" }}>Body Fat</p>
             <p className="text-lg font-bold" style={{ color: PEACH }}>{bfMid}<span className="text-xs font-normal">%</span></p>
             <p className="text-xs" style={{ color: "var(--text-muted)" }}>{analysis.bodyFatEstimate.low}–{analysis.bodyFatEstimate.high}%</p>
           </div>
-          <div className="rounded-xl p-3 text-center" style={{ background: "rgba(124,92,252,0.06)" }}>
+          <div className="rounded-xl p-3 text-center" style={{ background: "rgba(180,85,47,0.06)" }}>
             <p className="text-xs mb-1" style={{ color: "var(--text-muted)" }}>Score</p>
             <p className="text-lg font-bold" style={{ color: scoreColor }}>{analysis.compositionScore}<span className="text-xs font-normal">/10</span></p>
           </div>
-          <div className="rounded-xl p-3 text-center" style={{ background: "rgba(124,92,252,0.06)" }}>
+          <div className="rounded-xl p-3 text-center" style={{ background: "rgba(180,85,47,0.06)" }}>
             <p className="text-xs mb-1" style={{ color: "var(--text-muted)" }}>Muscle</p>
             <p className="text-lg font-bold" style={{ color: PURPLE }}>{analysis.muscleDefinition}<span className="text-xs font-normal">/10</span></p>
           </div>
@@ -130,7 +130,7 @@ function ResultCard({ analysis, thumbs, onReset, onChat }: { analysis: BodyAnaly
       </div>
 
       {/* Bars */}
-      <div className="px-4 py-3 space-y-2.5" style={{ borderBottom: "1px solid rgba(124,92,252,0.1)" }}>
+      <div className="px-4 py-3 space-y-2.5" style={{ borderBottom: "1px solid rgba(180,85,47,0.1)" }}>
         <Bar label="Composition Score" value={analysis.compositionScore} color={scoreColor} />
         <Bar label="Muscle Definition" value={analysis.muscleDefinition} color={PURPLE} />
         <div>
@@ -138,7 +138,7 @@ function ResultCard({ analysis, thumbs, onReset, onChat }: { analysis: BodyAnaly
             <p className="text-xs" style={{ color: "var(--text-muted)" }}>Potential</p>
             <p className="text-xs font-bold" style={{ color: GOLD }}>→ {analysis.potentialScore}/10</p>
           </div>
-          <div className="h-1.5 rounded-full" style={{ background: "rgba(124,92,252,0.1)" }}>
+          <div className="h-1.5 rounded-full" style={{ background: "rgba(180,85,47,0.1)" }}>
             <div className="h-full rounded-full" style={{ width: `${(analysis.potentialScore / 10) * 100}%`, background: `linear-gradient(90deg, ${scoreColor}, ${GOLD})` }} />
           </div>
         </div>
@@ -151,7 +151,7 @@ function ResultCard({ analysis, thumbs, onReset, onChat }: { analysis: BodyAnaly
         </div>
         <p className="text-xs leading-relaxed" style={{ color: "var(--text)" }}>{analysis.visualAssessment}</p>
         {analysis.posture && (
-          <div className="p-2.5 rounded-xl" style={{ background: "rgba(124,92,252,0.04)" }}>
+          <div className="p-2.5 rounded-xl" style={{ background: "rgba(180,85,47,0.04)" }}>
             <p className="text-xs font-medium mb-0.5" style={{ color: "var(--text-muted)" }}>Posture</p>
             <p className="text-xs" style={{ color: "var(--text)" }}>{analysis.posture}</p>
           </div>
@@ -162,7 +162,7 @@ function ResultCard({ analysis, thumbs, onReset, onChat }: { analysis: BodyAnaly
         <Section title="Muscle Groups" icon="◈">
           <div className="space-y-2">
             {analysis.visibleMuscle.map((m, i) => (
-              <div key={i} className="flex items-start justify-between gap-3 p-2.5 rounded-xl" style={{ background: "rgba(124,92,252,0.04)" }}>
+              <div key={i} className="flex items-start justify-between gap-3 p-2.5 rounded-xl" style={{ background: "rgba(180,85,47,0.04)" }}>
                 <div className="flex-1">
                   <p className="text-xs font-semibold" style={{ color: "var(--text)" }}>{m.group}</p>
                   {m.note && <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>{m.note}</p>}
@@ -235,7 +235,7 @@ function ResultCard({ analysis, thumbs, onReset, onChat }: { analysis: BodyAnaly
 
       <Section title="Roadmap" icon="◉">
         {[
-          { label: "30 Days",  color: PURPLE, bg: "rgba(124,92,252,0.06)", border: "rgba(124,92,252,0.15)", data: analysis.roadmap.thirtyDay },
+          { label: "30 Days",  color: PURPLE, bg: "rgba(180,85,47,0.06)", border: "rgba(180,85,47,0.15)", data: analysis.roadmap.thirtyDay },
           { label: "90 Days",  color: PEACH,  bg: "rgba(232,168,124,0.06)", border: "rgba(232,168,124,0.15)", data: analysis.roadmap.ninetyDay },
           { label: "6 Months", color: GOLD,   bg: "rgba(232,197,71,0.06)", border: "rgba(232,197,71,0.15)", data: analysis.roadmap.sixMonth },
         ].map(({ label, color, bg, border, data }) => (
@@ -263,7 +263,7 @@ function ResultCard({ analysis, thumbs, onReset, onChat }: { analysis: BodyAnaly
         const g = analysis.goalBodyAssessment!;
         const feasColor = g.feasibility >= 75 ? GOLD : g.feasibility >= 50 ? PURPLE : g.feasibility >= 30 ? PEACH : ROSE;
         return (
-          <div style={{ borderTop: "1px solid rgba(124,92,252,0.1)" }}>
+          <div style={{ borderTop: "1px solid rgba(180,85,47,0.1)" }}>
             <Section title="Goal Body Assessment" icon="🎯" defaultOpen>
               {/* Feasibility */}
               <div className="rounded-xl p-3 space-y-2" style={{ background: `${feasColor}10`, border: `1px solid ${feasColor}30` }}>
@@ -286,7 +286,7 @@ function ResultCard({ analysis, thumbs, onReset, onChat }: { analysis: BodyAnaly
               <div>
                 <p className="text-xs font-bold mb-2" style={{ color: "var(--text-muted)" }}>📊 Your Calorie Plan</p>
                 <div className="grid grid-cols-2 gap-2 mb-2">
-                  <div className="rounded-xl p-3 text-center" style={{ background: "rgba(124,92,252,0.08)" }}>
+                  <div className="rounded-xl p-3 text-center" style={{ background: "rgba(180,85,47,0.08)" }}>
                     <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Daily Calories</p>
                     <p className="text-xl font-bold" style={{ color: PURPLE }}>{g.calorieplan.dailyCalories}</p>
                     <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>kcal/day</p>
@@ -315,7 +315,7 @@ function ResultCard({ analysis, thumbs, onReset, onChat }: { analysis: BodyAnaly
               {/* Workout plan */}
               <div>
                 <p className="text-xs font-bold mb-2" style={{ color: "var(--text-muted)" }}>🏋️ Your Workout Plan</p>
-                <div className="rounded-xl p-3 mb-2" style={{ background: "rgba(124,92,252,0.06)", border: "1px solid rgba(124,92,252,0.12)" }}>
+                <div className="rounded-xl p-3 mb-2" style={{ background: "rgba(180,85,47,0.06)", border: "1px solid rgba(180,85,47,0.12)" }}>
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-xs font-semibold" style={{ color: PURPLE }}>{g.workoutPlan.daysPerWeek}x per week</p>
                     <p className="text-xs" style={{ color: "var(--text-muted)" }}>{g.workoutPlan.focus}</p>
@@ -355,7 +355,7 @@ function ResultCard({ analysis, thumbs, onReset, onChat }: { analysis: BodyAnaly
         </p>
         <div className="flex justify-center">
           <button onClick={onReset} className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl"
-            style={{ background: "rgba(124,92,252,0.08)", color: "var(--text-muted)" }}>
+            style={{ background: "rgba(180,85,47,0.08)", color: "var(--text-muted)" }}>
             <RefreshCw size={14} /> New Scan
           </button>
         </div>
@@ -496,14 +496,14 @@ export function BodyScanView() {
             </div>
             <div className="flex-1 overflow-y-auto space-y-3 min-h-0">
               {chatMessages.length === 0 && (
-                <div className="rounded-xl p-3 text-xs" style={{ background: "rgba(124,92,252,0.06)", color: "var(--text-muted)" }}>
+                <div className="rounded-xl p-3 text-xs" style={{ background: "rgba(180,85,47,0.06)", color: "var(--text-muted)" }}>
                   Hi! I&apos;ve reviewed your body scan. Ask me anything — about your score, roadmap, diet, training, or what to focus on first.
                 </div>
               )}
               {chatMessages.map((m, i) => (
                 <div key={i} className={`rounded-xl p-3 text-sm leading-relaxed ${m.role === "user" ? "ml-8" : "mr-8"}`}
                   style={{
-                    background: m.role === "user" ? PURPLE : "rgba(124,92,252,0.06)",
+                    background: m.role === "user" ? PURPLE : "rgba(180,85,47,0.06)",
                     color: m.role === "user" ? "#fff" : "var(--text)",
                   }}>
                   {m.content}
@@ -524,7 +524,7 @@ export function BodyScanView() {
                 onKeyDown={e => e.key === "Enter" && sendChat()}
                 placeholder="Ask about your results..."
                 className="flex-1 px-4 py-3 rounded-xl text-sm outline-none"
-                style={{ background: "var(--surface)", color: "var(--text)", border: "1px solid rgba(124,92,252,0.2)" }}
+                style={{ background: "var(--surface)", color: "var(--text)", border: "1px solid rgba(180,85,47,0.2)" }}
               />
               <button onClick={sendChat} disabled={!chatInput.trim() || chatLoading}
                 className="px-4 py-3 rounded-xl font-semibold text-sm disabled:opacity-40"
@@ -555,14 +555,14 @@ export function BodyScanView() {
             </div>
             <div className="flex-1 overflow-y-auto space-y-3 min-h-0">
               {chatMessages.length === 0 && (
-                <div className="rounded-xl p-3 text-xs" style={{ background: "rgba(124,92,252,0.06)", color: "var(--text-muted)" }}>
+                <div className="rounded-xl p-3 text-xs" style={{ background: "rgba(180,85,47,0.06)", color: "var(--text-muted)" }}>
                   Hi! I&apos;ve reviewed your body scan. Ask me anything — about your score, roadmap, diet, training, or what to focus on first.
                 </div>
               )}
               {chatMessages.map((m, i) => (
                 <div key={i} className={`rounded-xl p-3 text-sm leading-relaxed ${m.role === "user" ? "ml-8" : "mr-8"}`}
                   style={{
-                    background: m.role === "user" ? PURPLE : "rgba(124,92,252,0.06)",
+                    background: m.role === "user" ? PURPLE : "rgba(180,85,47,0.06)",
                     color: m.role === "user" ? "#fff" : "var(--text)",
                   }}>
                   {m.content}
@@ -583,7 +583,7 @@ export function BodyScanView() {
                 onKeyDown={e => e.key === "Enter" && sendChat()}
                 placeholder="Ask about your results..."
                 className="flex-1 px-4 py-3 rounded-xl text-sm outline-none"
-                style={{ background: "var(--surface)", color: "var(--text)", border: "1px solid rgba(124,92,252,0.2)" }}
+                style={{ background: "var(--surface)", color: "var(--text)", border: "1px solid rgba(180,85,47,0.2)" }}
               />
               <button onClick={sendChat} disabled={!chatInput.trim() || chatLoading}
                 className="px-4 py-3 rounded-xl font-semibold text-sm disabled:opacity-40"
@@ -595,8 +595,8 @@ export function BodyScanView() {
         </div>
       )}
 
-      <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.15)" }}>
-        <div className="p-4" style={{ borderBottom: "1px solid rgba(124,92,252,0.1)" }}>
+      <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid rgba(180,85,47,0.15)" }}>
+        <div className="p-4" style={{ borderBottom: "1px solid rgba(180,85,47,0.1)" }}>
           <p className="text-xs font-semibold mb-0.5" style={{ color: "var(--text-muted)", letterSpacing: "0.08em" }}>BODY COMPOSITION SCAN</p>
           <p className="text-xs" style={{ color: "var(--text-muted)" }}>Add photos from multiple angles for the most accurate read. More angles = better analysis.</p>
         </div>
@@ -607,13 +607,13 @@ export function BodyScanView() {
             <p className="text-xs mb-1" style={{ color: "var(--text-muted)" }}>Height (optional)</p>
             <input type="text" value={height} onChange={e => setHeight(e.target.value)} placeholder="e.g. 5'6&quot;"
               className="w-full text-xs px-3 py-2 rounded-xl outline-none"
-              style={{ background: "rgba(124,92,252,0.06)", border: "1px solid rgba(124,92,252,0.12)", color: "var(--text)" }} />
+              style={{ background: "rgba(180,85,47,0.06)", border: "1px solid rgba(180,85,47,0.12)", color: "var(--text)" }} />
           </div>
           <div>
             <p className="text-xs mb-1" style={{ color: "var(--text-muted)" }}>Weight (optional)</p>
             <input type="text" value={weight} onChange={e => setWeight(e.target.value)} placeholder="e.g. 145 lbs"
               className="w-full text-xs px-3 py-2 rounded-xl outline-none"
-              style={{ background: "rgba(124,92,252,0.06)", border: "1px solid rgba(124,92,252,0.12)", color: "var(--text)" }} />
+              style={{ background: "rgba(180,85,47,0.06)", border: "1px solid rgba(180,85,47,0.12)", color: "var(--text)" }} />
           </div>
         </div>
 
@@ -642,8 +642,8 @@ export function BodyScanView() {
                     <button
                       onClick={() => fileRefs.current[slot.key]?.click()}
                       className="w-full flex flex-col items-center justify-center gap-2 rounded-2xl transition-colors"
-                      style={{ aspectRatio: "3/4", background: "rgba(124,92,252,0.06)", border: "1.5px dashed rgba(124,92,252,0.25)" }}>
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "rgba(124,92,252,0.1)" }}>
+                      style={{ aspectRatio: "3/4", background: "rgba(180,85,47,0.06)", border: "1.5px dashed rgba(180,85,47,0.25)" }}>
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "rgba(180,85,47,0.1)" }}>
                         <Camera size={18} style={{ color: PURPLE }} />
                       </div>
                       <div className="text-center px-2">
@@ -665,7 +665,7 @@ export function BodyScanView() {
         </div>
 
         {/* Goal inspiration photo upload */}
-        <div className="px-4 pb-3 space-y-2" style={{ borderTop: "1px solid rgba(124,92,252,0.08)" }}>
+        <div className="px-4 pb-3 space-y-2" style={{ borderTop: "1px solid rgba(180,85,47,0.08)" }}>
           <div className="pt-3">
             <p className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>Goal body inspiration <span style={{ fontWeight: 400, color: "var(--text-light)" }}>(optional)</span></p>
             <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>Upload a photo of a body you want to achieve — Aya will tell you how realistic it is for your genetics and build a plan.</p>
@@ -689,8 +689,8 @@ export function BodyScanView() {
             <button
               onClick={() => goalPhotoRef.current?.click()}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all"
-              style={{ background: "rgba(124,92,252,0.05)", border: "1.5px dashed rgba(124,92,252,0.2)" }}>
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(124,92,252,0.1)" }}>
+              style={{ background: "rgba(180,85,47,0.05)", border: "1.5px dashed rgba(180,85,47,0.2)" }}>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(180,85,47,0.1)" }}>
                 <Camera size={17} style={{ color: PURPLE }} />
               </div>
               <div>
@@ -739,7 +739,7 @@ export function BodyScanView() {
               disabled={photoCount === 0}
               className="w-full py-3 rounded-xl text-sm font-semibold disabled:opacity-30 transition-all"
               style={{
-                background: photoCount >= 3 ? PURPLE : photoCount >= 2 ? "rgba(124,92,252,0.5)" : "rgba(124,92,252,0.25)",
+                background: photoCount >= 3 ? PURPLE : photoCount >= 2 ? "rgba(180,85,47,0.5)" : "rgba(180,85,47,0.25)",
                 color: photoCount > 0 ? "white" : "var(--text-muted)",
               }}>
               {photoCount === 0 ? "Add photos to begin" :

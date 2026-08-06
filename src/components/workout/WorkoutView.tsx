@@ -68,8 +68,8 @@ function ProgramOverview({ onClose }: { onClose: () => void }) {
         <div className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-widest px-1" style={{ color: "var(--text-muted)" }}>Week Phases</p>
           {[
-            { weeks: "Weeks 1–2", label: "Foundation", color: "#7C5CFC", desc: "Learn every movement. Build mind-muscle connection. Zero ego on weight." },
-            { weeks: "Weeks 3–4", label: "Build", color: "#9B7FFF", desc: "Add load progressively. Volume rises. Visible shape change typically starts here." },
+            { weeks: "Weeks 1–2", label: "Foundation", color: "#B4552F", desc: "Learn every movement. Build mind-muscle connection. Zero ego on weight." },
+            { weeks: "Weeks 3–4", label: "Build", color: "#D07A4F", desc: "Add load progressively. Volume rises. Visible shape change typically starts here." },
             { weeks: "Weeks 5–6", label: "Peak Intensity", color: "#C99A5C", desc: "Heaviest weights yet. Maximum stimulus with perfect form. Push every set." },
             { weeks: "Week 7", label: "Deload — Let It Grow", color: "#DA667B", desc: "50% of week 6 weight, same reps. Growth consolidates during recovery." },
           ].map(({ weeks, label, color, desc }) => (
@@ -95,11 +95,11 @@ function ProgramOverview({ onClose }: { onClose: () => void }) {
                   onClick={() => setExpandedDay(isExpanded ? null : day.id)}>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: day.isGluteDay ? "#7C5CFC" : "var(--text-muted)" }}>
+                      <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: day.isGluteDay ? "#B4552F" : "var(--text-muted)" }}>
                         {WEEK_DAYS[day.weekday]}
                       </span>
                       {day.isGluteDay && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold" style={{ background: "rgba(124,92,252,0.1)", color: "#7C5CFC" }}>Glute Day</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold" style={{ background: "rgba(180,85,47,0.1)", color: "#B4552F" }}>Glute Day</span>
                       )}
                     </div>
                     <p className="font-serif text-base mt-0.5" style={{ color: "var(--text)" }}>{day.label}</p>
@@ -133,7 +133,7 @@ function ProgramOverview({ onClose }: { onClose: () => void }) {
                       <p className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: "var(--text-muted)" }}>Main Work</p>
                       <div className="space-y-2">
                         {day.mainExercises.map((ex) => {
-                          const dotColor = ex.category === "compound" ? "#7C5CFC" : ex.category === "isolation" ? "#9B7FFF" : ex.category === "core" ? "#DA667B" : "#C99A5C";
+                          const dotColor = ex.category === "compound" ? "#B4552F" : ex.category === "isolation" ? "#D07A4F" : ex.category === "core" ? "#DA667B" : "#C99A5C";
                           return (
                             <div key={ex.id}>
                               <div className="flex items-center gap-2.5">
@@ -174,10 +174,10 @@ function ProgramOverview({ onClose }: { onClose: () => void }) {
         <div className="rounded-2xl p-4 space-y-3" style={{ background: "#FAF8FF", border: "1px solid var(--border)" }}>
           <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Program Rules</p>
           {[
-            { color: "#7C5CFC", rule: "Hip thrust: ribs down, 1-second squeeze, vertical shins at top. No exceptions." },
-            { color: "#7C5CFC", rule: "Activation block before every session — 10 rushed sets beats 6 on sleepy glutes." },
-            { color: "#9B7FFF", rule: "Dead Bug every session: lower back pressed flat the entire rep." },
-            { color: "#9B7FFF", rule: "Core work never gets weight added. Progress through time and reps only." },
+            { color: "#B4552F", rule: "Hip thrust: ribs down, 1-second squeeze, vertical shins at top. No exceptions." },
+            { color: "#B4552F", rule: "Activation block before every session — 10 rushed sets beats 6 on sleepy glutes." },
+            { color: "#D07A4F", rule: "Dead Bug every session: lower back pressed flat the entire rep." },
+            { color: "#D07A4F", rule: "Core work never gets weight added. Progress through time and reps only." },
             { color: "#DA667B", rule: "Week 7 deload is mandatory — 50% weight, same reps. Growth consolidates here." },
             { color: "#C99A5C", rule: "Incline walk daily: 8–12% incline, 3.0–3.5 mph. Your fat-loss engine." },
             { color: "#C99A5C", rule: "Measure waist + hips every 2 weeks. Same time, same day." },
@@ -220,10 +220,10 @@ function MeasurementsCard({ data, update }: Props) {
   };
 
   return (
-    <div className="rounded-2xl p-5 space-y-4" style={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.15)" }}>
+    <div className="rounded-2xl p-5 space-y-4" style={{ background: "var(--surface)", border: "1px solid rgba(180,85,47,0.15)" }}>
       <div className="flex items-center justify-between">
         <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>Measurements</p>
-        <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: "rgba(124,92,252,0.1)", color: "#7C5CFC" }}>Most important</span>
+        <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: "rgba(180,85,47,0.1)", color: "#B4552F" }}>Most important</span>
       </div>
       {latest && (
         <div className="grid grid-cols-4 gap-2 text-center">
@@ -235,7 +235,7 @@ function MeasurementsCard({ data, update }: Props) {
           ].map(({ label, value, highlight }) => (
             <div key={label} className="rounded-xl py-2.5" style={{ background: "var(--bg2)" }}>
               <p className="font-serif text-lg" style={{ color: "var(--text)" }}>{value}</p>
-              <p className="text-[10px] mt-0.5" style={{ color: highlight ? "#7C5CFC" : "var(--text-muted)" }}>{label}</p>
+              <p className="text-[10px] mt-0.5" style={{ color: highlight ? "#B4552F" : "var(--text-muted)" }}>{label}</p>
             </div>
           ))}
         </div>
@@ -249,11 +249,11 @@ function MeasurementsCard({ data, update }: Props) {
           ].map(({ placeholder, value, set }) => (
             <input key={placeholder} type="number" step="0.5" placeholder={placeholder} value={value}
               onChange={(e) => set(e.target.value)}
-              style={{ background: "rgba(124,92,252,0.06)", border: "1px solid var(--border)", borderRadius: "0.75rem", padding: "0.5rem 0.75rem", color: "var(--text)", fontSize: "0.875rem", width: "100%", outline: "none" }} />
+              style={{ background: "rgba(180,85,47,0.06)", border: "1px solid var(--border)", borderRadius: "0.75rem", padding: "0.5rem 0.75rem", color: "var(--text)", fontSize: "0.875rem", width: "100%", outline: "none" }} />
           ))}
         </div>
         <button onClick={save} className="w-full py-2.5 rounded-xl text-sm font-semibold"
-          style={{ background: saved ? "#9B7FFF" : "#7C5CFC", color: "#fff" }}>
+          style={{ background: saved ? "#D07A4F" : "#B4552F", color: "#fff" }}>
           {saved ? "Saved" : "Log Measurements"}
         </button>
       </div>
@@ -340,7 +340,7 @@ function WeightCard({ data, update }: Props) {
         </div>
         <div className="text-right">
           {current > 0 && <p className="font-serif text-2xl" style={{ color: "var(--text)" }}>{current}<span className="text-sm font-sans ml-1" style={{ color: "var(--text-muted)" }}>lbs</span></p>}
-          {goalW > 0 && <p className="text-xs" style={{ color: "#9B7FFF" }}>Goal: {goalW} lbs</p>}
+          {goalW > 0 && <p className="text-xs" style={{ color: "#D07A4F" }}>Goal: {goalW} lbs</p>}
         </div>
       </div>
 
@@ -349,11 +349,11 @@ function WeightCard({ data, update }: Props) {
         <div className="px-5 pb-3 space-y-1.5">
           <div className="flex justify-between text-xs" style={{ color: "var(--text-muted)" }}>
             <span>{lbsLeft > 0 ? `${lbsLeft.toFixed(1)} lbs to go` : "🎉 Goal reached!"}</span>
-            <span style={{ color: "#9B7FFF" }}>{pct}%</span>
+            <span style={{ color: "#D07A4F" }}>{pct}%</span>
           </div>
-          <div className="h-3 rounded-full overflow-hidden" style={{ background: "rgba(124,92,252,0.08)" }}>
+          <div className="h-3 rounded-full overflow-hidden" style={{ background: "rgba(180,85,47,0.08)" }}>
             <div className="h-full rounded-full transition-all"
-              style={{ width: `${Math.max(pct, 2)}%`, background: "linear-gradient(90deg, #7C5CFC, #9B7FFF)" }} />
+              style={{ width: `${Math.max(pct, 2)}%`, background: "linear-gradient(90deg, #B4552F, #D07A4F)" }} />
           </div>
           {/* Milestone markers */}
           {milestones.length > 0 && (
@@ -362,7 +362,7 @@ function WeightCard({ data, update }: Props) {
                 <div key={m.pct} className="flex flex-col items-center gap-0.5">
                   <div className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold"
                     style={{
-                      background: m.reached ? "#7C5CFC" : "rgba(124,92,252,0.1)",
+                      background: m.reached ? "#B4552F" : "rgba(180,85,47,0.1)",
                       color: m.reached ? "#fff" : "var(--text-muted)",
                     }}>
                     {m.reached ? "✓" : `${m.pct}%`}
@@ -377,8 +377,8 @@ function WeightCard({ data, update }: Props) {
 
       {/* Roadmap timeline */}
       {weeksToGoal > 0 && endDate && (
-        <div className="mx-5 mb-3 rounded-xl p-3 space-y-2" style={{ background: "rgba(124,92,252,0.05)", border: "1px solid rgba(124,92,252,0.12)" }}>
-          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#9B7FFF" }}>Your Roadmap</p>
+        <div className="mx-5 mb-3 rounded-xl p-3 space-y-2" style={{ background: "rgba(180,85,47,0.05)", border: "1px solid rgba(180,85,47,0.12)" }}>
+          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#D07A4F" }}>Your Roadmap</p>
           <div className="grid grid-cols-3 gap-2 text-center">
             <div>
               <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Start</p>
@@ -387,7 +387,7 @@ function WeightCard({ data, update }: Props) {
             </div>
             <div>
               <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Rate</p>
-              <p className="text-xs font-bold" style={{ color: "#9B7FFF" }}>~1.25/wk</p>
+              <p className="text-xs font-bold" style={{ color: "#D07A4F" }}>~1.25/wk</p>
               <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>{weeksToGoal} weeks</p>
             </div>
             <div>
@@ -398,7 +398,7 @@ function WeightCard({ data, update }: Props) {
           </div>
 
           {/* Weekly breakdown — 30/60/90 day checkpoints */}
-          <div className="space-y-1 pt-1" style={{ borderTop: "1px solid rgba(124,92,252,0.1)" }}>
+          <div className="space-y-1 pt-1" style={{ borderTop: "1px solid rgba(180,85,47,0.1)" }}>
             {[
               { label: "30 days", weeks: 4 },
               { label: "60 days", weeks: 9 },
@@ -410,10 +410,10 @@ function WeightCard({ data, update }: Props) {
               return (
                 <div key={checkpoint.label} className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full" style={{ background: alreadyPast ? "#7C5CFC" : "rgba(124,92,252,0.3)" }} />
+                    <div className="w-1.5 h-1.5 rounded-full" style={{ background: alreadyPast ? "#B4552F" : "rgba(180,85,47,0.3)" }} />
                     <span style={{ color: "var(--text-muted)" }}>{checkpoint.label} · {checkDate}</span>
                   </div>
-                  <span className="font-semibold" style={{ color: alreadyPast ? "#9B7FFF" : "var(--text)" }}>
+                  <span className="font-semibold" style={{ color: alreadyPast ? "#D07A4F" : "var(--text)" }}>
                     {alreadyPast ? "✓ " : ""}{Math.max(projectedWeight, goalW)} lbs
                   </span>
                 </div>
@@ -439,7 +439,7 @@ function WeightCard({ data, update }: Props) {
                 <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
                   <div className="w-full rounded-sm" style={{
                     height: barH,
-                    background: isLatest ? "#7C5CFC" : "rgba(124,92,252,0.25)",
+                    background: isLatest ? "#B4552F" : "rgba(180,85,47,0.25)",
                   }} />
                 </div>
               );
@@ -457,11 +457,11 @@ function WeightCard({ data, update }: Props) {
             </p>
             <div className="flex gap-2">
               <input type="number" step="0.5" placeholder="Current lbs" value={input} onChange={(e) => setInput(e.target.value)}
-                style={{ flex: 1, background: "rgba(124,92,252,0.06)", border: "1px solid var(--border)", borderRadius: "0.75rem", padding: "0.5rem 0.75rem", color: "var(--text)", fontSize: "0.875rem", outline: "none" }} />
+                style={{ flex: 1, background: "rgba(180,85,47,0.06)", border: "1px solid var(--border)", borderRadius: "0.75rem", padding: "0.5rem 0.75rem", color: "var(--text)", fontSize: "0.875rem", outline: "none" }} />
               <input type="number" step="0.5" placeholder="Goal lbs" value={goal} onChange={(e) => setGoalIn(e.target.value)}
-                style={{ width: 90, background: "rgba(124,92,252,0.06)", border: "1px solid var(--border)", borderRadius: "0.75rem", padding: "0.5rem 0.75rem", color: "var(--text)", fontSize: "0.875rem", outline: "none" }} />
+                style={{ width: 90, background: "rgba(180,85,47,0.06)", border: "1px solid var(--border)", borderRadius: "0.75rem", padding: "0.5rem 0.75rem", color: "var(--text)", fontSize: "0.875rem", outline: "none" }} />
               <button onClick={save} className="px-4 py-2 rounded-xl text-sm font-semibold"
-                style={{ background: saved ? "#9B7FFF" : "#7C5CFC", color: "#fff", flexShrink: 0 }}>
+                style={{ background: saved ? "#D07A4F" : "#B4552F", color: "#fff", flexShrink: 0 }}>
                 {saved ? "✓" : "Save"}
               </button>
             </div>
@@ -469,7 +469,7 @@ function WeightCard({ data, update }: Props) {
         ) : (
           <button onClick={() => setShowSetup(true)}
             className="w-full py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
-            style={{ background: "rgba(124,92,252,0.08)", color: "#9B7FFF" }}>
+            style={{ background: "rgba(180,85,47,0.08)", color: "#D07A4F" }}>
             + Log Today&apos;s Weight
           </button>
         )}
@@ -511,22 +511,22 @@ function WalkingCard({ data, update }: Props) {
         {todayLog?.steps && (
           <div className="text-right">
             <span className="font-serif text-xl" style={{ color: "var(--text)" }}>{todayLog.steps.toLocaleString()}</span>
-            <span className="text-xs ml-1" style={{ color: todayLog.steps >= 8000 ? "#7C5CFC" : "var(--text-muted)" }}>steps</span>
+            <span className="text-xs ml-1" style={{ color: todayLog.steps >= 8000 ? "#B4552F" : "var(--text-muted)" }}>steps</span>
           </div>
         )}
       </div>
       <div className="flex gap-1 items-end" style={{ height: 32 }}>
         {weekSteps.map((s, i) => (
           <div key={i} className="flex-1 rounded-t-sm"
-            style={{ height: Math.max((s / maxSteps) * 32, s > 0 ? 3 : 2), background: s >= 8000 ? "#7C5CFC" : s > 0 ? "#C99A5C" : "rgba(124,92,252,0.06)" }} />
+            style={{ height: Math.max((s / maxSteps) * 32, s > 0 ? 3 : 2), background: s >= 8000 ? "#B4552F" : s > 0 ? "#C99A5C" : "rgba(180,85,47,0.06)" }} />
         ))}
       </div>
       <div className="flex gap-2">
         <input type="number" placeholder="Steps" value={steps} onChange={(e) => setSteps(e.target.value)}
-          style={{ flex: 1, background: "rgba(124,92,252,0.06)", border: "1px solid var(--border)", borderRadius: "0.75rem", padding: "0.5rem 0.75rem", color: "var(--text)", fontSize: "0.875rem", outline: "none" }} />
+          style={{ flex: 1, background: "rgba(180,85,47,0.06)", border: "1px solid var(--border)", borderRadius: "0.75rem", padding: "0.5rem 0.75rem", color: "var(--text)", fontSize: "0.875rem", outline: "none" }} />
         <input type="number" step="0.1" placeholder="Miles" value={miles} onChange={(e) => setMiles(e.target.value)}
-          style={{ width: 80, background: "rgba(124,92,252,0.06)", border: "1px solid var(--border)", borderRadius: "0.75rem", padding: "0.5rem 0.75rem", color: "var(--text)", fontSize: "0.875rem", outline: "none" }} />
-        <button onClick={save} className="px-4 py-2 rounded-xl text-sm font-semibold" style={{ background: "#7C5CFC", color: "#fff", flexShrink: 0 }}>Log</button>
+          style={{ width: 80, background: "rgba(180,85,47,0.06)", border: "1px solid var(--border)", borderRadius: "0.75rem", padding: "0.5rem 0.75rem", color: "var(--text)", fontSize: "0.875rem", outline: "none" }} />
+        <button onClick={save} className="px-4 py-2 rounded-xl text-sm font-semibold" style={{ background: "#B4552F", color: "#fff", flexShrink: 0 }}>Log</button>
       </div>
     </div>
   );
@@ -536,18 +536,18 @@ function WalkingCard({ data, update }: Props) {
 
 // Day color theme
 const DAY_THEME: Record<string, { bg: string; accent: string; label: string }> = {
-  "mon-heavy-glutes":    { bg: "linear-gradient(135deg,#ede8ff 0%,#f4f0fe 100%)", accent: "#7C5CFC", label: "Glute Day" },
-  "tue-flexibility":     { bg: "linear-gradient(135deg,#ede8ff 0%,#f4f0fe 100%)", accent: "#9B7FFF", label: "Flexibility" },
-  "wed-stretch-glutes":  { bg: "linear-gradient(135deg,#ede8ff 0%,#f4f0fe 100%)", accent: "#7C5CFC", label: "Glute Day" },
+  "mon-heavy-glutes":    { bg: "linear-gradient(135deg,#ede8ff 0%,#f4f0fe 100%)", accent: "#B4552F", label: "Glute Day" },
+  "tue-flexibility":     { bg: "linear-gradient(135deg,#ede8ff 0%,#f4f0fe 100%)", accent: "#D07A4F", label: "Flexibility" },
+  "wed-stretch-glutes":  { bg: "linear-gradient(135deg,#ede8ff 0%,#f4f0fe 100%)", accent: "#B4552F", label: "Glute Day" },
   "thu-calisthenics":    { bg: "linear-gradient(135deg,#fdf4e8 0%,#f4f0fe 100%)", accent: "#C99A5C", label: "Skills" },
-  "fri-pump-glutes":     { bg: "linear-gradient(135deg,#ede8ff 0%,#f4f0fe 100%)", accent: "#7C5CFC", label: "Glute Day" },
-  "sat-flexibility-bridge": { bg: "linear-gradient(135deg,#ede8ff 0%,#f4f0fe 100%)", accent: "#9B7FFF", label: "Flexibility" },
+  "fri-pump-glutes":     { bg: "linear-gradient(135deg,#ede8ff 0%,#f4f0fe 100%)", accent: "#B4552F", label: "Glute Day" },
+  "sat-flexibility-bridge": { bg: "linear-gradient(135deg,#ede8ff 0%,#f4f0fe 100%)", accent: "#D07A4F", label: "Flexibility" },
   "sun-recovery":        { bg: "linear-gradient(135deg,#fde8ed 0%,#f4f0fe 100%)", accent: "#DA667B", label: "Recovery" },
 };
 
 const BROWSE_CATEGORIES = [
-  { label: "Glute Days",      accent: "#7C5CFC", ids: ["mon-heavy-glutes","wed-stretch-glutes","fri-pump-glutes"] },
-  { label: "Flexibility",     accent: "#9B7FFF", ids: ["tue-flexibility","sat-flexibility-bridge"] },
+  { label: "Glute Days",      accent: "#B4552F", ids: ["mon-heavy-glutes","wed-stretch-glutes","fri-pump-glutes"] },
+  { label: "Flexibility",     accent: "#D07A4F", ids: ["tue-flexibility","sat-flexibility-bridge"] },
   { label: "Skills & Core",   accent: "#C99A5C", ids: ["thu-calisthenics"] },
   { label: "Recovery",        accent: "#DA667B", ids: ["sun-recovery"] },
 ];
@@ -598,9 +598,9 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
           </div>
           {streak > 0 && (
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
-              style={{ background: "rgba(124,92,252,0.1)", border: "1px solid rgba(124,92,252,0.2)" }}>
-              <Flame size={13} style={{ color: "#7C5CFC" }} />
-              <span className="text-sm font-semibold" style={{ color: "#7C5CFC" }}>{streak} day streak</span>
+              style={{ background: "rgba(180,85,47,0.1)", border: "1px solid rgba(180,85,47,0.2)" }}>
+              <Flame size={13} style={{ color: "#B4552F" }} />
+              <span className="text-sm font-semibold" style={{ color: "#B4552F" }}>{streak} day streak</span>
             </div>
           )}
         </div>
@@ -608,8 +608,8 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
         {/* ── Stats tracker ── */}
         <div className="grid grid-cols-3 gap-2">
           {[
-            { value: totalCompleted, label: "Sessions", color: "#7C5CFC", sub: "all time" },
-            { value: weekDone,       label: "This Week", color: "#9B7FFF", sub: `of ${PROGRAM.length}` },
+            { value: totalCompleted, label: "Sessions", color: "#B4552F", sub: "all time" },
+            { value: weekDone,       label: "This Week", color: "#D07A4F", sub: `of ${PROGRAM.length}` },
             { value: streak,         label: "Streak",    color: "#DA667B", sub: streak === 1 ? "day" : "days" },
           ].map(({ value, label, color, sub }) => (
             <div key={label} className="rounded-2xl p-4 text-center flex flex-col items-center gap-0.5"
@@ -626,16 +626,16 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
           {PROGRAM.map((d) => {
             const isToday = d.weekday === weekday;
             const done = isDone(d);
-            const acc = DAY_THEME[d.id]?.accent ?? "#7C5CFC";
+            const acc = DAY_THEME[d.id]?.accent ?? "#B4552F";
             return (
               <button key={d.id} onClick={() => onStartSession(d.id)}
                 className="flex-1 flex flex-col items-center gap-1.5 py-2.5 rounded-2xl transition-all active:scale-95"
-                style={{ background: isToday ? "rgba(124,92,252,0.1)" : "rgba(124,92,252,0.04)", border: `1px solid ${isToday ? "rgba(124,92,252,0.25)" : "transparent"}` }}>
-                <p className="text-[10px] font-semibold" style={{ color: isToday ? "#7C5CFC" : "var(--text-light)" }}>
+                style={{ background: isToday ? "rgba(180,85,47,0.1)" : "rgba(180,85,47,0.04)", border: `1px solid ${isToday ? "rgba(180,85,47,0.25)" : "transparent"}` }}>
+                <p className="text-[10px] font-semibold" style={{ color: isToday ? "#B4552F" : "var(--text-light)" }}>
                   {WEEK_DAYS[d.weekday]}
                 </p>
                 <div className="w-6 h-6 rounded-full flex items-center justify-center"
-                  style={{ background: done ? acc : isToday ? "rgba(124,92,252,0.2)" : "rgba(124,92,252,0.07)", border: isToday && !done ? `2px solid ${acc}` : "none" }}>
+                  style={{ background: done ? acc : isToday ? "rgba(180,85,47,0.2)" : "rgba(180,85,47,0.07)", border: isToday && !done ? `2px solid ${acc}` : "none" }}>
                   {done && <span style={{ color: "#fff", fontSize: "0.6rem", fontWeight: 700 }}>✓</span>}
                 </div>
               </button>
@@ -647,15 +647,15 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
         {w.programStartDate && (
           <div className="space-y-1.5">
             <div className="flex justify-between items-center">
-              <p className="text-xs font-semibold" style={{ color: phase?.isDeload ? "#DA667B" : "#7C5CFC" }}>
+              <p className="text-xs font-semibold" style={{ color: phase?.isDeload ? "#DA667B" : "#B4552F" }}>
                 Week {weekNum} of 7{phase?.isDeload ? " — DELOAD" : ` · ${phase?.label}`}
               </p>
               <button onClick={onViewProgram} className="text-xs" style={{ color: "var(--text-light)" }}>
                 Full plan →
               </button>
             </div>
-            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(124,92,252,0.08)" }}>
-              <div className="h-full rounded-full transition-all" style={{ width: `${(weekNum / 7) * 100}%`, background: phase?.isDeload ? "#DA667B" : "#7C5CFC" }} />
+            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(180,85,47,0.08)" }}>
+              <div className="h-full rounded-full transition-all" style={{ width: `${(weekNum / 7) * 100}%`, background: phase?.isDeload ? "#DA667B" : "#B4552F" }} />
             </div>
             <p className="text-[11px]" style={{ color: "var(--text-light)" }}>
               {weekDone}/{PROGRAM.length} workouts this week · {phase?.guidance}
@@ -679,7 +679,7 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
                 Today
               </span>
               <span className="text-xs font-semibold px-2.5 py-1 rounded-full"
-                style={{ background: "rgba(124,92,252,0.06)", color: "var(--text-muted)" }}>
+                style={{ background: "rgba(180,85,47,0.06)", color: "var(--text-muted)" }}>
                 {theme.label}
               </span>
               {todayDone && (
@@ -704,16 +704,16 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
 
         {/* ── No program banner ── */}
         {!w.programStartDate && (
-          <div className="rounded-2xl p-5 text-center space-y-3" style={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.2)" }}>
+          <div className="rounded-2xl p-5 text-center space-y-3" style={{ background: "var(--surface)", border: "1px solid rgba(180,85,47,0.2)" }}>
             <p className="font-serif text-xl" style={{ color: "var(--text)" }}>Start the 7-Week Hourglass Program</p>
             <p className="text-sm" style={{ color: "var(--text-muted)" }}>Maximum glutes, flat stomach, zero bulk. Built for transformation.</p>
             <div className="flex gap-2 justify-center">
               <button onClick={startProgram}
                 className="px-6 py-3 rounded-2xl font-semibold active:scale-95 transition-transform"
-                style={{ background: "#7C5CFC", color: "#fff" }}>Start Program</button>
+                style={{ background: "#B4552F", color: "#fff" }}>Start Program</button>
               <button onClick={onViewProgram}
                 className="px-6 py-3 rounded-2xl font-semibold text-sm active:scale-95 transition-transform"
-                style={{ background: "rgba(124,92,252,0.07)", color: "var(--text-muted)" }}>Preview</button>
+                style={{ background: "rgba(180,85,47,0.07)", color: "var(--text-muted)" }}>Preview</button>
             </div>
           </div>
         )}
@@ -771,18 +771,18 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <p className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>Prep time per exercise</p>
-              <span className="text-sm font-semibold" style={{ color: prepTime > 0 ? "#7C5CFC" : "var(--text-light)" }}>
+              <span className="text-sm font-semibold" style={{ color: prepTime > 0 ? "#B4552F" : "var(--text-light)" }}>
                 {prepTime === 0 ? "Off" : `${prepTime}s`}
               </span>
             </div>
             <input type="range" min={0} max={15} step={1} value={prepTime}
               onChange={(e) => setPrepTime(parseInt(e.target.value))}
-              className="w-full" style={{ accentColor: "#7C5CFC", cursor: "pointer" }} />
+              className="w-full" style={{ accentColor: "#B4552F", cursor: "pointer" }} />
           </div>
           <div className="flex items-center justify-between pt-2 border-t" style={{ borderColor: "var(--border)" }}>
             <div>
               <p className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>Coaching Voice</p>
-              <p className="text-[11px] mt-0.5" style={{ color: "#7C5CFC" }}>Aya — Custom Voice</p>
+              <p className="text-[11px] mt-0.5" style={{ color: "#B4552F" }}>Aya — Custom Voice</p>
             </div>
             <button onClick={async () => {
               try {
@@ -791,7 +791,7 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
                 new Audio(URL.createObjectURL(await res.blob())).play();
               } catch { /* blocked */ }
             }} className="text-xs px-2.5 py-1 rounded-lg active:scale-95 transition-transform"
-              style={{ background: "rgba(124,92,252,0.1)", color: "#7C5CFC" }}>
+              style={{ background: "rgba(180,85,47,0.1)", color: "#B4552F" }}>
               Test voice
             </button>
           </div>
@@ -838,7 +838,7 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
             )}
 
             {/* APT Checkup Reminder */}
-            <div className="rounded-2xl p-5 space-y-3" style={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.2)" }}>
+            <div className="rounded-2xl p-5 space-y-3" style={{ background: "var(--surface)", border: "1px solid rgba(180,85,47,0.2)" }}>
               <div className="flex items-start gap-3">
                 <span className="text-2xl">🔍</span>
                 <div className="flex-1">
@@ -856,13 +856,13 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
                 <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>This Week&apos;s Volume</p>
                 <div className="space-y-2">
                   <div className="flex justify-between items-end">
-                    <span className="font-serif text-3xl" style={{ color: "#7C5CFC" }}>
+                    <span className="font-serif text-3xl" style={{ color: "#B4552F" }}>
                       {Math.round(calculateWeeklyVolume(w.sessionLogs, format(subDays(new Date(), 6), "yyyy-MM-dd")) / 1000)}k
                     </span>
                     <span className="text-xs" style={{ color: "var(--text-muted)" }}>lbs lifted</span>
                   </div>
-                  <div className="h-2 rounded-full overflow-hidden" style={{ background: "rgba(124,92,252,0.07)" }}>
-                    <div className="h-full rounded-full" style={{ width: "65%", background: "#7C5CFC" }} />
+                  <div className="h-2 rounded-full overflow-hidden" style={{ background: "rgba(180,85,47,0.07)" }}>
+                    <div className="h-full rounded-full" style={{ width: "65%", background: "#B4552F" }} />
                   </div>
                   <p className="text-xs" style={{ color: "var(--text-muted)" }}>
                     {weekDone}/{PROGRAM.length} workouts this week
@@ -1012,7 +1012,7 @@ export function WorkoutView({ data, update }: Props) {
                 }
               }}
               className="flex-1 flex flex-col items-center gap-1 py-3 transition-colors"
-              style={{ color: active ? "#7C5CFC" : "var(--text-light)" }}>
+              style={{ color: active ? "#B4552F" : "var(--text-light)" }}>
               <Icon size={18} />
               <span className="text-[10px] font-medium">{label}</span>
             </button>

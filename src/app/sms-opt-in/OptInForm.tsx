@@ -23,9 +23,9 @@ export function OptInForm() {
           </p>
         </div>
         <div style={{ fontSize: "0.78rem", color: "#A89ECC", textAlign: "center" }}>
-          <Link href="/terms" style={{ color: "#7C5CFC", textDecoration: "none" }}>Terms of Service</Link>
+          <Link href="/terms" style={{ color: "#B4552F", textDecoration: "none" }}>Terms of Service</Link>
           <span style={{ margin: "0 0.5rem" }}>·</span>
-          <Link href="/privacy" style={{ color: "#7C5CFC", textDecoration: "none" }}>Privacy Policy</Link>
+          <Link href="/privacy" style={{ color: "#B4552F", textDecoration: "none" }}>Privacy Policy</Link>
         </div>
       </div>
     );
@@ -33,7 +33,7 @@ export function OptInForm() {
 
   return (
     <div>
-      <div style={{ background: "#FFFFFF", borderRadius: "16px", padding: "1.5rem", marginBottom: "1.5rem", border: "1px solid rgba(124,92,252,0.15)", boxShadow: "0 4px 24px rgba(124,92,252,0.10)" }}>
+      <div style={{ background: "#FFFFFF", borderRadius: "16px", padding: "1.5rem", marginBottom: "1.5rem", border: "1px solid rgba(180,85,47,0.15)", boxShadow: "0 4px 24px rgba(180,85,47,0.10)" }}>
         <p style={{ fontSize: "0.9rem", lineHeight: 1.7, color: "#1E1340", margin: "0 0 1.25rem" }}>
           Aya&apos;s Dashboard sends automated SMS reminders including daily workout alerts,
           wellness check-ins, and fitness updates to users who register their phone number
@@ -43,7 +43,7 @@ export function OptInForm() {
         <label style={{ display: "block", fontSize: "0.8rem", color: "#7C6FAE", marginBottom: "0.4rem" }}>
           You will receive messages from
         </label>
-        <div style={{ background: "#FAF8FF", border: "1px solid rgba(124,92,252,0.2)", borderRadius: "10px", padding: "0.75rem 1rem", fontSize: "0.95rem", color: "#1E1340", fontWeight: 500, marginBottom: "1.25rem", letterSpacing: "0.02em" }}>
+        <div style={{ background: "#FAF8FF", border: "1px solid rgba(180,85,47,0.2)", borderRadius: "10px", padding: "0.75rem 1rem", fontSize: "0.95rem", color: "#1E1340", fontWeight: 500, marginBottom: "1.25rem", letterSpacing: "0.02em" }}>
           {PHONE}
         </div>
 
@@ -53,7 +53,7 @@ export function OptInForm() {
             id="consent"
             checked={checked}
             onChange={(e) => setChecked(e.target.checked)}
-            style={{ marginTop: "3px", flexShrink: 0, width: 16, height: 16, accentColor: "#7C5CFC", cursor: "pointer" }}
+            style={{ marginTop: "3px", flexShrink: 0, width: 16, height: 16, accentColor: "#B4552F", cursor: "pointer" }}
           />
           <label htmlFor="consent" style={{ fontSize: "0.85rem", lineHeight: 1.6, color: "#1E1340", cursor: "pointer" }}>
             By checking this box, I consent to receive recurring automated SMS messages from
@@ -71,8 +71,8 @@ export function OptInForm() {
             padding: "0.75rem",
             borderRadius: "10px",
             border: "none",
-            background: checked ? "#7C5CFC" : "rgba(124,92,252,0.25)",
-            color: checked ? "#FFFFFF" : "rgba(124,92,252,0.5)",
+            background: checked ? "#B4552F" : "rgba(180,85,47,0.25)",
+            color: checked ? "#FFFFFF" : "rgba(180,85,47,0.5)",
             fontSize: "0.9rem",
             fontWeight: 600,
             cursor: checked ? "pointer" : "not-allowed",
@@ -83,23 +83,23 @@ export function OptInForm() {
           Confirm Opt-In
         </button>
 
-        <div style={{ fontSize: "0.78rem", lineHeight: 1.7, color: "#7C6FAE", borderTop: "1px solid rgba(124,92,252,0.12)", paddingTop: "1rem" }}>
+        <div style={{ fontSize: "0.78rem", lineHeight: 1.7, color: "#7C6FAE", borderTop: "1px solid rgba(180,85,47,0.12)", paddingTop: "1rem" }}>
           <p style={{ margin: "0 0 0.4rem" }}><strong style={{ color: "#1E1340" }}>Message Frequency:</strong> Up to 2 messages per day.</p>
           <p style={{ margin: "0 0 0.4rem" }}><strong style={{ color: "#1E1340" }}>Rates:</strong> Msg &amp; data rates may apply.</p>
           <p style={{ margin: "0 0 0.4rem" }}><strong style={{ color: "#1E1340" }}>Stop:</strong> Reply STOP to cancel at any time. Reply HELP for help.</p>
           <p style={{ margin: 0 }}>
             Consent is not a condition of using this application.{" "}
-            <Link href="/privacy" style={{ color: "#7C5CFC", textDecoration: "none" }}>Privacy Policy</Link>
+            <Link href="/privacy" style={{ color: "#B4552F", textDecoration: "none" }}>Privacy Policy</Link>
             {" "}·{" "}
-            <Link href="/terms" style={{ color: "#7C5CFC", textDecoration: "none" }}>Terms of Service</Link>
+            <Link href="/terms" style={{ color: "#B4552F", textDecoration: "none" }}>Terms of Service</Link>
           </p>
         </div>
       </div>
 
       <div style={{ fontSize: "0.78rem", color: "#A89ECC", textAlign: "center" }}>
-        <Link href="/terms" style={{ color: "#7C5CFC", textDecoration: "none" }}>Terms of Service</Link>
+        <Link href="/terms" style={{ color: "#B4552F", textDecoration: "none" }}>Terms of Service</Link>
         <span style={{ margin: "0 0.5rem" }}>·</span>
-        <Link href="/privacy" style={{ color: "#7C5CFC", textDecoration: "none" }}>Privacy Policy</Link>
+        <Link href="/privacy" style={{ color: "#B4552F", textDecoration: "none" }}>Privacy Policy</Link>
       </div>
     </div>
   );

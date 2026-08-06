@@ -89,7 +89,7 @@ export function MantrasTab() {
               width: 44, height: 24,
               borderRadius: 12,
               border: "none",
-              background: faithMode ? "#7C5CFC" : "var(--border)",
+              background: faithMode ? "#B4552F" : "var(--border)",
               cursor: "pointer",
               transition: "background 0.2s",
               flexShrink: 0,
@@ -116,12 +116,12 @@ export function MantrasTab() {
       {!loading && currentMantra && (
         <div style={{
           background: faithMode
-            ? "linear-gradient(135deg, rgba(124,92,252,0.08) 0%, rgba(218,102,123,0.06) 100%)"
+            ? "linear-gradient(135deg, rgba(180,85,47,0.08) 0%, rgba(218,102,123,0.06) 100%)"
             : "linear-gradient(135deg, rgba(113,129,109,0.08) 0%, rgba(212,184,150,0.06) 100%)",
           borderRadius: "18px",
           padding: "2.5rem 2rem",
           textAlign: "center",
-          border: `1px solid ${faithMode ? "rgba(124,92,252,0.18)" : "rgba(113,129,109,0.18)"}`,
+          border: `1px solid ${faithMode ? "rgba(180,85,47,0.18)" : "rgba(113,129,109,0.18)"}`,
           position: "relative",
           overflow: "hidden",
         }}>
@@ -150,7 +150,7 @@ export function MantrasTab() {
                     height: 6,
                     borderRadius: 3,
                     border: "none",
-                    background: i === currentIdx ? (faithMode ? "#7C5CFC" : "#71816D") : "var(--border)",
+                    background: i === currentIdx ? (faithMode ? "#B4552F" : "#71816D") : "var(--border)",
                     cursor: "pointer",
                     padding: 0,
                     transition: "all 0.2s",
@@ -163,7 +163,7 @@ export function MantrasTab() {
       )}
 
       {/* Twilio webhook info */}
-      <div className="card" style={{ padding: "1.25rem", background: "rgba(124,92,252,0.04)" }}>
+      <div className="card" style={{ padding: "1.25rem", background: "rgba(180,85,47,0.04)" }}>
         <p style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: "0.5rem" }}>
           SMS / Twilio
         </p>
@@ -210,7 +210,7 @@ export function MantrasTab() {
         </div>
 
         {showForm && (
-          <div className="card" style={{ padding: "1.25rem", marginBottom: "0.75rem", border: "1.5px solid rgba(124,92,252,0.2)" }}>
+          <div className="card" style={{ padding: "1.25rem", marginBottom: "0.75rem", border: "1.5px solid rgba(180,85,47,0.2)" }}>
             <textarea
               placeholder="Write a mantra that grounds you…"
               value={newText}
@@ -247,8 +247,8 @@ export function MantrasTab() {
                   padding: "0.55rem 1.25rem",
                   borderRadius: "10px",
                   border: "none",
-                  background: !newText.trim() || adding ? "rgba(124,92,252,0.2)" : "var(--purple)",
-                  color: !newText.trim() || adding ? "rgba(124,92,252,0.4)" : "#fff",
+                  background: !newText.trim() || adding ? "rgba(180,85,47,0.2)" : "var(--purple)",
+                  color: !newText.trim() || adding ? "rgba(180,85,47,0.4)" : "#fff",
                   fontSize: "0.85rem",
                   fontWeight: 600,
                   cursor: !newText.trim() || adding ? "not-allowed" : "pointer",
@@ -274,7 +274,7 @@ export function MantrasTab() {
             {filtered.map((m, i) => (
               <div key={m.id} className="card" style={{
                 padding: "1rem 1.25rem",
-                borderLeft: `3px solid ${i === currentIdx ? (faithMode ? "#7C5CFC" : "#71816D") : "transparent"}`,
+                borderLeft: `3px solid ${i === currentIdx ? (faithMode ? "#B4552F" : "#71816D") : "transparent"}`,
                 cursor: "pointer",
                 transition: "border-color 0.2s",
               }}
@@ -295,7 +295,7 @@ export function MantrasTab() {
                     <span style={{
                       fontSize: "0.62rem", fontWeight: 700, padding: "0.15rem 0.45rem",
                       borderRadius: "20px",
-                      background: "rgba(124,92,252,0.1)",
+                      background: "rgba(180,85,47,0.1)",
                       color: "var(--purple)",
                     }}>custom</span>
                   )}
