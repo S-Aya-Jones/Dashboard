@@ -100,12 +100,15 @@ export async function getCourseAssessments(daysAhead = 45): Promise<Assessment[]
 }
 
 function fmtAssessment(a: Assessment): string {
+  const dateStr = a.date.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: TZ });
   const when =
     a.daysOut === 0 ? "TODAY" :
     a.daysOut === 1 ? "tomorrow" :
-    `in ${a.daysOut} days`;
-  const dateStr = a.date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: TZ });
-  return `${a.title} — ${when} (${dateStr})`;
+    a.daysOut <= 6  ? a.date.toLocaleDateString("en-US", { weekday: "long", timeZone: TZ }) :
+    dateStr;
+  return a.daysOut <= 1
+    ? `${a.title} — ${when} (${dateStr})`
+    : `${a.title} — ${when}`;
 }
 
 // Tonight's Block 1/2: the two distinct courses with the nearest assessments.

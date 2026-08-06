@@ -1,5 +1,7 @@
 import { neonClient } from "@/lib/neon";
 
+const TZ = "America/Chicago";
+
 function db() {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL is not set");
@@ -142,12 +144,17 @@ function daysUntil(dueAt: string): number {
   return Math.floor((due - Date.now()) / 86400000);
 }
 
+// A notification that says "in 93 days" makes her count forward from today.
+// Naming the day does the work for her.
 function phrase(o: Obligation, days: number): string {
+  const d = new Date(o.dueAt);
+  const dateStr = d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: TZ });
   const when =
-    days < 0 ? `${Math.abs(days)} day${Math.abs(days) === 1 ? "" : "s"} overdue` :
+    days < 0  ? `overdue since ${dateStr}` :
     days === 0 ? "today" :
     days === 1 ? "tomorrow" :
-    `in ${days} days`;
+    days <= 6  ? d.toLocaleDateString("en-US", { weekday: "long", timeZone: TZ }) :
+    `on ${dateStr}`;
 
   const lead: Record<string, (t: string, w: string, d: string) => string> = {
     assignment: (t, w) => `${t} is due ${w}. Start it in tonight's Block 1 — don't let it land on an exam week.`,

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { TrendingUp, CreditCard, PiggyBank, Wallet } from "lucide-react";
+import { whenChip, dateLabel, dateAfter } from "@/lib/whenText";
 
 interface Bill { title: string; amount: number; dueAt: string; days: number }
 interface Glance {
@@ -70,7 +71,7 @@ export function MoneyGlance() {
         <Tile icon={<CreditCard size={16} />} label="Cards owed" value={money(g.creditOwed)}
           sub={g.utilization !== null ? `${g.utilization}% used` : undefined}
           warn={(g.utilization ?? 0) > 30} />
-        <Tile icon={<TrendingUp size={16} />} label="Due in 14 days" value={money(g.billTotal)}
+        <Tile icon={<TrendingUp size={16} />} label={`Due by ${dateLabel(dateAfter(14))}`} value={money(g.billTotal)}
           sub={`${g.bills.length} bill${g.bills.length === 1 ? "" : "s"}`} />
       </div>
 
@@ -84,9 +85,9 @@ export function MoneyGlance() {
                 transition={{ delay: i * 0.05 }}
                 className="flex items-center gap-3 rounded-lg px-3 py-2.5"
                 style={{ background: "var(--bg)" }}>
-                <span className="text-xs font-bold w-16 flex-shrink-0"
+                <span className="text-xs font-bold w-20 flex-shrink-0"
                   style={{ color: b.days <= 2 ? "#c0392b" : "var(--text-muted)" }}>
-                  {b.days <= 0 ? "today" : b.days === 1 ? "tomorrow" : `${b.days} days`}
+                  {whenChip(b.dueAt)}
                 </span>
                 <span className="text-sm flex-1 min-w-0 truncate" style={{ color: "var(--text)" }}>{b.title}</span>
                 <span className="text-sm font-semibold tabular-nums" style={{ color: "var(--text)" }}>

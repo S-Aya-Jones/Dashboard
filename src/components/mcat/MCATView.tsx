@@ -103,8 +103,10 @@ export function MCATView({ data, update }: Props) {
         <Card className="text-center">
           {daysUntilMCAT !== null ? (
             <>
-              <p className="font-serif text-3xl" style={{ color: daysUntilMCAT < 30 ? "#DA667B" : "var(--text)" }}>{daysUntilMCAT}</p>
-              <p className="text-xs text-sand-dark mt-1">Days until MCAT</p>
+              <p className="font-serif text-3xl" style={{ color: daysUntilMCAT < 30 ? "#DA667B" : "var(--text)" }}>
+                {format(parseISO(data.mcatTestDate!), "MMM d")}
+              </p>
+              <p className="text-xs text-sand-dark mt-1">MCAT test day</p>
             </>
           ) : (
             <div className="space-y-1">

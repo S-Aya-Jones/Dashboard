@@ -11,6 +11,7 @@ import { celebrate } from "@/lib/confetti";
 import { WeatherWidget } from "./WeatherWidget";
 import { HourlyWeatherCard } from "./HourlyWeatherCard";
 import { TYPE_META, TYPE_ICON, defaultBlocks, blocksForDate, formatRange12 } from "@/lib/schedule";
+import { whenChip } from "@/lib/whenText";
 
 interface Props {
   data: DashboardData;
@@ -220,9 +221,11 @@ function SmartInsights({ data }: { data: DashboardData }) {
             <Brain size={15} style={{ color: "var(--purple)" }} />
             <span className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>MCAT PACE</span>
           </div>
-          <p className="text-2xl font-bold" style={{ color: "var(--text)" }}>{daysLeft > 0 ? `${daysLeft}d` : "Test day!"}</p>
+          <p className="text-2xl font-bold" style={{ color: "var(--text)" }}>
+            {daysLeft > 0 ? format(parseISO(data.mcatTestDate), "MMMM d") : "Test day"}
+          </p>
           <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-            until {format(parseISO(data.mcatTestDate), "MMM d, yyyy")}
+            {daysLeft > 0 ? format(parseISO(data.mcatTestDate), "EEEE, yyyy") : "Today is the day"}
           </p>
           {currentScore && <p className="text-xs mt-1" style={{ color: "var(--purple)" }}>Last score: {currentScore} · Target: {targetScore}</p>}
           {dailyGoal && dailyGoal > 0 ? (
@@ -331,7 +334,7 @@ function SmartInsights({ data }: { data: DashboardData }) {
             <p className="text-2xl">{upcoming.item.emoji}</p>
             <p className="text-sm font-semibold mt-1" style={{ color: "var(--text)" }}>{upcoming.item.name}</p>
             <p className="text-xs mt-0.5" style={{ color: upcoming.daysLeft <= 3 ? "var(--red)" : "var(--text-muted)" }}>
-              {upcoming.daysLeft <= 0 ? "Due now!" : upcoming.daysLeft === 1 ? "Tomorrow" : `In ${upcoming.daysLeft} days`}
+              {upcoming.daysLeft <= 0 ? "Due now" : whenChip(upcoming.next)}
             </p>
             <p className="text-xs" style={{ color: "var(--text-muted)" }}>${upcoming.item.cost} · {upcoming.item.frequencyLabel ?? `every ${upcoming.item.frequencyWeeks} wks`}</p>
           </div>
