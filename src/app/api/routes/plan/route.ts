@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { planRoutes } from "@/lib/directions";
+import { planRoutes, findBridgesOnRoute } from "@/lib/directions";
 import { setAppKey, appKeyStatus } from "@/lib/appkeys";
 
 export const dynamic = "force-dynamic";
@@ -43,7 +43,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "NO_MAPS_KEY" }, { status: 400 });
     }
     if (result.error) return NextResponse.json({ error: result.error }, { status: 502 });
-    return NextResponse.json({ routes: result.routes });
+
+    // Verify bridges against real map geometry, not Google's turn text
+    const routes = await Promise.all(result.routes.slice(0, 4).map(async r => {
+      const check = await findBridgesOnRoute(r.polyline ?? "");
+      const bridges = check.ok ? check.bridges : r.bridges;
+      return {
+        ...r,
+        bridges,
+        bridgeCheck: check.ok ? "verified" as const : "unavailable" as const,
+        clean: bridges.length === 0 && r.highways.length === 0,
+      };
+    }));
+    routes.sort((a, b) => (a.clean === b.clean ? a.durationMin - b.durationMin : a.clean ? -1 : 1));
+
+    return NextResponse.json({ routes });
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 });
   }

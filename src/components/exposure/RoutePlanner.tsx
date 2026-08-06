@@ -8,6 +8,7 @@ interface Step { instruction: string; distanceText: string }
 interface RouteOption {
   summary: string; distanceText: string; durationText: string; durationMin: number;
   bridges: string[]; highways: string[]; clean: boolean; steps: Step[]; mapsUrl: string;
+  bridgeCheck?: "verified" | "unavailable";
 }
 
 export function RoutePlanner({ onSaved }: { onSaved: () => void }) {
@@ -153,7 +154,7 @@ export function RoutePlanner({ onSaved }: { onSaved: () => void }) {
               {r.clean ? (
                 <span className="text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 flex-shrink-0"
                   style={{ background: "rgba(43,179,163,.15)", color: "#1e8a7e" }}>
-                  <Check size={11} /> no bridges · no interstate
+                  <Check size={11} /> {r.bridgeCheck === "verified" ? "no bridges · no interstate" : "no interstate"}
                 </span>
               ) : (
                 <span className="text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 flex-shrink-0"
@@ -165,8 +166,13 @@ export function RoutePlanner({ onSaved }: { onSaved: () => void }) {
 
             {(r.bridges.length > 0 || r.highways.length > 0) && (
               <div className="text-xs mb-3 space-y-1" style={{ color: "var(--text)" }}>
-                {r.bridges.length > 0 && <div>🌉 Crosses: <strong>{r.bridges.join(", ")}</strong></div>}
-                {r.highways.length > 0 && <div>🛣 Uses: <strong>{r.highways.join(", ")}</strong></div>}
+                {r.bridges.length > 0 && (
+                  <div>🌉 {r.bridges.length} bridge{r.bridges.length > 1 ? "s" : ""} on this route: <strong>{r.bridges.join(", ")}</strong></div>
+                )}
+                {r.highways.length > 0 && <div>🛣 Uses interstate: <strong>{r.highways.join(", ")}</strong></div>}
+                {r.bridgeCheck === "unavailable" && (
+                  <div style={{ color: "var(--text-muted)" }}>Map bridge check didn&apos;t respond — this only reflects road names.</div>
+                )}
               </div>
             )}
 
@@ -213,9 +219,9 @@ export function RoutePlanner({ onSaved }: { onSaved: () => void }) {
       <ShortcutSetup />
 
       <p className="text-[11px] leading-relaxed" style={{ color: "var(--text-muted)" }}>
-        Bridges and interstates are detected by reading the actual turn-by-turn directions Google returns.
-        It catches anything named — &ldquo;… Bridge&rdquo;, I-24, US-31 — but an unnamed overpass can slip through,
-        so treat a clean result as a strong start, not a guarantee.
+        Bridges are checked against OpenStreetMap&apos;s actual road data along the route&apos;s geometry, so
+        unnamed overpasses are caught too. Interstates mean I-24, I-40 and the like — US-41 and US-431 are
+        ordinary surface roads here (Dickerson Pike, Gallatin Pike), so they aren&apos;t flagged.
       </p>
     </div>
   );
