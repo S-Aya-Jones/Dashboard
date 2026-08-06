@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { Bell, Plus, Trash2, Check, X, MessageSquare, RefreshCw, BookOpen, Calendar } from "lucide-react";
+import { TextSettings } from "@/components/settings/TextSettings";
 
 interface Reminder {
   id: string;
@@ -516,6 +517,10 @@ export function RemindersView() {
           )}
         </div>
       )}
+
+      <div style={{ marginTop: "1.5rem" }}>
+        <TextSettings />
+      </div>
     </div>
   );
 }

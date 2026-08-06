@@ -6,7 +6,7 @@ import {
   formatTimeOfDay,
 } from "@/lib/telegram";
 import { getUpcomingEvents } from "@/lib/gmail";
-import { sendSms } from "@/lib/sms";
+import { sendSms, smsAlsoEnabled } from "@/lib/sms";
 import { dueNotifications, markNotified, upsertObligation } from "@/lib/obligations";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -18,10 +18,12 @@ import { dueNotifications, markNotified, upsertObligation } from "@/lib/obligati
 
 const TZ = "America/Chicago";
 
-// Telegram always; SMS too when SMS_ALSO=1 (carrier gateway, plain text).
+// Telegram always; a plain-text copy by SMS too when texting is switched on.
+// The switch now lives in the app rather than only in a Vercel env var, so it
+// can be flipped without a redeploy.
 async function notify(text: string): Promise<void> {
   await sendTelegram(text);
-  if (process.env.SMS_ALSO === "1") {
+  if (await smsAlsoEnabled().catch(() => false)) {
     await sendSms(text.replace(/<[^>]+>/g, "")).catch(() => false);
   }
 }
