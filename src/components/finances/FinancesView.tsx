@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import { MoneyGlance } from "./MoneyGlance";
 import { usePlaidLink } from "react-plaid-link";
 import { RefreshCw, Unlink, Plus, Trash2, Check, ChevronDown, ChevronUp, RotateCcw, Pencil } from "lucide-react";
 import { DashboardData, PaycheckConfig, SelfCareItem, RecurringBill, P2PTransfer, AccountTransfer, BudgetLine, CreditScoreEntry, BaseBudgetItem, BudgetPlan, BudgetPlanItem } from "@/types/dashboard";
@@ -718,6 +719,9 @@ export function FinancesView({ data, update }: Props) {
                   <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} style={{ color: MUTED }} />
                 </button>
               </div>
+
+      <MoneyGlance />
+
             </div>
           </div>
         </div>
