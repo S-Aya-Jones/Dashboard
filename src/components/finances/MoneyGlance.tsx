@@ -47,16 +47,16 @@ export function MoneyGlance() {
       {/* The answer */}
       <motion.div
         initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-        className="rounded-3xl p-7 relative overflow-hidden"
-        style={{ background: tone.bg, color: "white" }}>
+        className="hero-card p-7"
+        style={{ background: tone.bg }}>
         <motion.div aria-hidden className="absolute -right-20 -top-20 rounded-full"
           style={{ width: 260, height: 260, background: "rgba(255,255,255,.12)" }}
           animate={{ scale: [1, 1.12, 1] }} transition={{ repeat: Infinity, duration: 8 }} />
         <div className="relative">
-          <div className="text-[11px] font-bold uppercase tracking-[.12em] opacity-85">
+          <div className="section-kicker" style={{ color: "rgba(255,255,255,.85)" }}>
             Safe to spend
           </div>
-          <div className="font-serif leading-none mt-1" style={{ fontSize: "3.2rem" }}>
+          <div className="stat mt-1" style={{ fontSize: "3.4rem" }}>
             {money(g.safeToSpend)}
           </div>
           <p className="text-sm mt-3 max-w-lg leading-relaxed opacity-95">{g.line}</p>
@@ -114,7 +114,7 @@ function Tile({ icon, label, value, sub, warn }: {
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
       className="rounded-2xl p-4" style={{ background: "var(--surface)", border: "1.5px solid var(--border)" }}>
       <div style={{ color: warn ? "#e8842c" : "var(--purple)" }}>{icon}</div>
-      <div className="font-serif text-xl mt-1.5 tabular-nums" style={{ color: "var(--text)" }}>{value}</div>
+      <div className="stat text-xl mt-1.5" style={{ color: "var(--text)" }}>{value}</div>
       <div className="text-[11px]" style={{ color: warn ? "#e8842c" : "var(--text-muted)" }}>
         {label}{sub ? ` · ${sub}` : ""}
       </div>

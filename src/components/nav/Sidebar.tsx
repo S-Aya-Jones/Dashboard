@@ -63,22 +63,51 @@ export function Sidebar({ saving = false }: SidebarProps) {
         }}
       >
         <div className={`px-4 pt-6 pb-4 flex items-center ${collapsed ? "justify-center" : "justify-between"}`}>
+          {collapsed && (
+            <span
+              className="flex items-center justify-center font-serif"
+              style={{
+                width: 32, height: 32, borderRadius: 10,
+                background: "var(--grad)", color: "#fff",
+                fontSize: "1rem", lineHeight: 1, paddingBottom: 1,
+                boxShadow: "0 3px 10px rgba(124,92,252,.35)",
+              }}>
+              A
+            </span>
+          )}
           {!collapsed && (
-            <div>
-              <h1 className="font-serif text-2xl leading-tight"
-                style={{ background: "var(--grad)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-                Aya&apos;s
-              </h1>
-              <p className="text-xs font-semibold tracking-wider" style={{ color: "var(--text-muted)" }}>Dashboard</p>
+            <div className="flex items-center gap-2.5">
+              <span
+                className="flex items-center justify-center flex-shrink-0 font-serif"
+                style={{
+                  width: 34, height: 34, borderRadius: 11,
+                  background: "var(--grad)", color: "#fff",
+                  fontSize: "1.05rem", lineHeight: 1, paddingBottom: 1,
+                  boxShadow: "0 3px 10px rgba(124,92,252,.35)",
+                }}>
+                A
+              </span>
+              <span className="leading-tight">
+                <span className="block font-serif text-lg" style={{ color: "var(--text)" }}>Aya&apos;s</span>
+                <span className="block text-[10px] font-semibold tracking-[.14em] uppercase"
+                  style={{ color: "var(--text-light)" }}>Dashboard</span>
+              </span>
             </div>
           )}
-          <button onClick={() => setCollapsed(!collapsed)} className="p-1.5 rounded-lg transition-colors"
+          {!collapsed && <button onClick={() => setCollapsed(!collapsed)} className="p-1.5 rounded-lg transition-colors"
             style={{ color: "var(--text-muted)" }}
             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "var(--bg)"; (e.currentTarget as HTMLElement).style.color = "var(--purple)"; }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; (e.currentTarget as HTMLElement).style.color = "var(--text-muted)"; }}>
-            {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-          </button>
+            <ChevronLeft size={16} />
+          </button>}
         </div>
+        {collapsed && (
+          <button onClick={() => setCollapsed(false)}
+            className="mx-auto mb-2 p-1.5 rounded-lg" style={{ color: "var(--text-light)" }}
+            title="Expand">
+            <ChevronRight size={15} />
+          </button>
+        )}
 
         <nav className="flex-1 overflow-y-auto px-2 pb-4 space-y-0.5">
           {navItems.map(({ href, label, icon: Icon }) => {
