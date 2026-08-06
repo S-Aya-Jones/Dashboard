@@ -5,15 +5,16 @@
 @tailwind utilities;
 
 :root {
-  --bg:          #F4F0FE;
-  --bg2:         #EDE8FF;
-  --surface:     #FFFFFF;
+  --bg:          #F6F3FE;
+  --bg2:         #ECE6FF;
+  --surface:     rgba(255,255,255,0.86);
+  --surface-solid: #FFFFFF;
   --surface2:    #FAF8FF;
-  --border:      rgba(124,92,252,0.12);
-  --border2:     rgba(124,92,252,0.22);
-  --text:        #1E1340;
-  --text-muted:  #7C6FAE;
-  --text-light:  #A89ECC;
+  --border:      rgba(124,92,252,0.14);
+  --border2:     rgba(124,92,252,0.26);
+  --text:        #17102E;
+  --text-muted:  #6E63A0;
+  --text-light:  #A196C9;
   --purple:      #7C5CFC;
   --purple-lt:   #9B7FFF;
   --pink:        #E879F9;
@@ -21,9 +22,11 @@
   --green:       #10B981;
   --red:         #EF4444;
   --amber:       #F59E0B;
-  --shadow:      0 4px 24px rgba(124,92,252,0.12);
-  --shadow-md:   0 8px 32px rgba(124,92,252,0.18);
-  --shadow-lg:   0 16px 48px rgba(124,92,252,0.24);
+  /* Layered shadows read as real depth; a single blur reads as a smudge */
+  --shadow:      0 1px 2px rgba(23,16,46,.05), 0 4px 14px rgba(124,92,252,.10);
+  --shadow-md:   0 2px 4px rgba(23,16,46,.05), 0 10px 30px rgba(124,92,252,.14);
+  --shadow-lg:   0 4px 8px rgba(23,16,46,.06), 0 24px 60px rgba(124,92,252,.20);
+  --glass:       blur(18px) saturate(150%);
   --grad:        linear-gradient(135deg, #7C5CFC 0%, #E879F9 100%);
   --grad-peach:  linear-gradient(135deg, #E879F9 0%, #FB923C 100%);
   --grad-soft:   linear-gradient(135deg, #F4F0FE 0%, #EDE8FF 100%);
@@ -39,16 +42,46 @@ html {
 
 body {
   background-color: var(--bg);
+  /* Soft mesh gives the page depth without competing with content */
+  background-image:
+    radial-gradient(at 12% 4%,  rgba(124,92,252,.16) 0px, transparent 55%),
+    radial-gradient(at 88% 0%,  rgba(232,121,249,.13) 0px, transparent 50%),
+    radial-gradient(at 72% 92%, rgba(43,179,163,.10) 0px, transparent 48%);
+  background-attachment: fixed;
   color: var(--text);
   font-family: 'Inter', system-ui, sans-serif;
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
 }
 
 h1, h2, h3 {
   font-family: 'Space Grotesk', system-ui, sans-serif;
   font-weight: 600;
+  letter-spacing: -0.022em;
   color: var(--text);
 }
+h1 { letter-spacing: -0.032em; }
+
+/* Frosted card — the premium surface treatment used across the app */
+.glass {
+  background: var(--surface);
+  backdrop-filter: var(--glass);
+  -webkit-backdrop-filter: var(--glass);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+/* Gradient text for headline moments */
+.grad-text {
+  background: var(--grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Cards lift on hover — small, consistent, everywhere */
+.lift { transition: transform .18s ease, box-shadow .18s ease; }
+.lift:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
 
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg2); }
@@ -239,3 +272,37 @@ input::placeholder, textarea::placeholder {
 }
 
 .text-dark { color: var(--text); }
+
+
+/* ── Dark theme ─────────────────────────────────────────────────────────────
+   Deep plum rather than grey — keeps her identity instead of going generic. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:            #0F0B1E;
+    --bg2:           #171029;
+    --surface:       rgba(30, 22, 54, 0.78);
+    --surface-solid: #1E1636;
+    --surface2:      #241B42;
+    --border:        rgba(155,127,255,0.18);
+    --border2:       rgba(155,127,255,0.32);
+    --text:          #F1EDFF;
+    --text-muted:    #A79CD6;
+    --text-light:    #7D72A8;
+    --purple:        #9B7FFF;
+    --shadow:        0 1px 2px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.35);
+    --shadow-md:     0 2px 6px rgba(0,0,0,.45), 0 12px 34px rgba(0,0,0,.45);
+    --shadow-lg:     0 6px 14px rgba(0,0,0,.5),  0 28px 70px rgba(0,0,0,.55);
+    --grad-soft:     linear-gradient(135deg, #171029 0%, #0F0B1E 100%);
+  }
+  body {
+    background-image:
+      radial-gradient(at 10% 2%,  rgba(124,92,252,.22) 0px, transparent 55%),
+      radial-gradient(at 90% 0%,  rgba(232,121,249,.16) 0px, transparent 50%),
+      radial-gradient(at 70% 95%, rgba(43,179,163,.12) 0px, transparent 45%);
+  }
+  ::-webkit-scrollbar-track { background: var(--bg2); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
