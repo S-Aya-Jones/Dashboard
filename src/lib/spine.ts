@@ -139,6 +139,23 @@ const DAY_SUBJECTS: Record<number, string[]> = {
   4: ["Microbiology", "Cell & Molecular Bio"],
 };
 
+/**
+ * The assessment sitting at tomorrow morning, if there is one.
+ *
+ * Quizzes and exams open at 12:00am on their scheduled day and are due by 9
+ * (quiz) or 10 (exam). Aya works 7:00–2:30 and won't take one during work, so
+ * she takes it the moment it opens — which makes the night before a quiz a
+ * different night from every other one, and the app should already know that
+ * rather than her having to remember.
+ */
+export async function assessmentAtMidnight(): Promise<Assessment | null> {
+  const all = await getCourseAssessments(3).catch(() => []);
+  const tomorrow = all.filter(a => a.daysOut === 1 && !/review/i.test(a.title));
+  if (!tomorrow.length) return null;
+  // An exam outranks a quiz if both somehow land together.
+  return tomorrow.sort((a, b) => Number(/exam/i.test(b.title)) - Number(/exam/i.test(a.title)))[0];
+}
+
 function isUrgent(a: Assessment): boolean {
   const isExam = /exam/i.test(a.title);
   return a.daysOut >= 0 && a.daysOut <= (isExam ? 7 : 5);
@@ -155,7 +172,7 @@ function buildStudyBlocksMsg(assessments: Assessment[], dow: number): string {
       "4:55 \u2014 Wednesday is a light night (therapy day). No new material: " +
       "flashcards and a rewatch of this morning's Biochem and Physio.";
     if (tomorrow.length) {
-      msg += `\n\n\u26a0\ufe0f Tomorrow: ${tomorrow.map(a => a.title).join(", ")} \u2014 do the final review, then sleep.`;
+      msg += `\n\nTomorrow: ${tomorrow.map(a => a.title).join(", ")}. It opens at midnight and you take it then, so tonight is the light pass — no new material, and sleep between now and 11:30.`;
     }
     return msg;
   }
@@ -190,9 +207,9 @@ function buildStudyBlocksMsg(assessments: Assessment[], dow: number): string {
   }
 
   if (tomorrow.length) {
-    msg += `\n\n\u26a0\ufe0f TOMORROW: ${tomorrow.map(a => a.title).join(", ")}. Block 1 becomes final review. Early night.`;
+    msg += `\n\nTOMORROW: ${tomorrow.map(a => a.title).join(", ")}. Block 1 becomes the final review. It opens at midnight and you sit it then — so get horizontal by 9 and set an alarm for 11:30 rather than trying to stay up.`;
   }
-  msg += "\n\nSkincare at 8, lights out at 9.";
+  msg += "\n\nSkincare at 8.";
   return msg;
 }
 
@@ -223,7 +240,7 @@ function buildWeekPlanMsg(assessments: Assessment[]): string {
     "\n• Gym bag + clothes staged for 5am?" +
     "\n• Exposure homework from your therapist scheduled?" +
     "\n• Anything due that isn't on the board? Add it now." +
-    "\n\nThen skincare at 8, lights out at 9. The week is already won or lost right here.";
+    "\n\nThen skincare at 8. The week is already won or lost right here.";
   return msg;
 }
 
@@ -390,8 +407,40 @@ export const SLOTS: Slot[] = [
     time: "19:55",
     graceMin: 60,
     run: async () => {
+      // On a quiz eve the whole evening moves — say so here rather than
+      // sending the usual "lights out at 9" into a night that can't have one.
+      const a = await assessmentAtMidnight().catch(() => null);
+      if (a) {
+        await notify(
+          `8:00 — skincare now, because tonight runs long. ${a.title} opens at midnight.\n\n` +
+          "Plan: routine now, lie down 9 to 11:30, final flick through the error log, " +
+          "take it at 12, straight back to bed. Do not start the review at 11:55.\n\n" +
+          "Tomorrow's gym is optional. Sleep is worth more than the session."
+        );
+        return "quiz-eve";
+      }
       await notify(SKINCARE_MSG);
       return "sent";
+    },
+  },
+  {
+    // The whole point: she's asleep by 9 most nights, so the reminder has to
+    // reach her at the moment it opens, not before she went down.
+    key: "quiz-opens",
+    days: [0, 1, 2, 3, 4, 5, 6],
+    time: "23:50",
+    graceMin: 25,
+    run: async () => {
+      const a = await assessmentAtMidnight().catch(() => null);
+      if (!a) return "none";
+      const isExam = /exam/i.test(a.title);
+      await notify(
+        `${a.title} opens in 10 minutes.\n\n` +
+        `You have until ${isExam ? "10am" : "9am"}, but you're doing it now so it isn't hanging over the work day. ` +
+        `${isExam ? "Two hours" : "One hour"} is the window — that's plenty.\n\n` +
+        "No help is available until 8am if something breaks, so if the page won't load, stop and take it in the morning window instead."
+      );
+      return `quiz-opens:${a.title}`;
     },
   },
 ];
