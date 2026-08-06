@@ -150,13 +150,13 @@ export function BodyScanChat({ analysis, onClose }: Props) {
                 <div className="rounded-2xl p-4 space-y-3" style={{ background: "var(--surface)" }}>
                   <div className="flex items-end justify-between">
                     <div>
-                      <p className="text-xs font-semibold text-purple-600">Current State</p>
+                      <p className="text-xs font-semibold text-terracotta">Current State</p>
                       <p className="font-serif text-3xl mt-1" style={{ color: "#B4552F" }}>
                         {analysis.compositionScore}/10
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs font-semibold text-purple-600">Potential</p>
+                      <p className="text-xs font-semibold text-terracotta">Potential</p>
                       <p className="font-serif text-3xl mt-1" style={{ color: "#D07A4F" }}>
                         {analysis.potentialScore}/10
                       </p>
@@ -193,7 +193,7 @@ export function BodyScanChat({ analysis, onClose }: Props) {
                 {/* Strengths & areas */}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-xl p-3 space-y-1.5" style={{ background: "rgba(180,85,47,0.08)" }}>
-                    <p className="text-[10px] font-semibold text-purple-600">Strengths</p>
+                    <p className="text-[10px] font-semibold text-terracotta">Strengths</p>
                     <ul className="text-xs space-y-0.5" style={{ color: "var(--text)" }}>
                       {analysis.strengths.map((s, i) => (
                         <li key={i}>✓ {s}</li>
@@ -231,7 +231,7 @@ export function BodyScanChat({ analysis, onClose }: Props) {
                   <div className="space-y-1.5">
                     {analysis.protocol.training.length > 0 && (
                       <div>
-                        <p className="text-[10px] font-semibold text-purple-600">Training</p>
+                        <p className="text-[10px] font-semibold text-terracotta">Training</p>
                         <p className="text-xs" style={{ color: "var(--text-muted)" }}>
                           {analysis.protocol.training[0]}
                         </p>
@@ -239,7 +239,7 @@ export function BodyScanChat({ analysis, onClose }: Props) {
                     )}
                     {analysis.protocol.diet.length > 0 && (
                       <div>
-                        <p className="text-[10px] font-semibold text-purple-600">Nutrition</p>
+                        <p className="text-[10px] font-semibold text-terracotta">Nutrition</p>
                         <p className="text-xs" style={{ color: "var(--text-muted)" }}>
                           {analysis.protocol.diet[0]}
                         </p>
@@ -269,7 +269,7 @@ export function BodyScanChat({ analysis, onClose }: Props) {
                   className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-sm"
                   style={{ background: "rgba(180,85,47,0.2)", color: "#B4552F" }}
                 >
-                  🤖
+
                 </div>
               )}
               <div
@@ -290,7 +290,7 @@ export function BodyScanChat({ analysis, onClose }: Props) {
                 className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-sm animate-pulse"
                 style={{ background: "rgba(180,85,47,0.2)", color: "#B4552F" }}
               >
-                🤖
+
               </div>
               <div className="flex gap-1.5 items-center">
                 <div

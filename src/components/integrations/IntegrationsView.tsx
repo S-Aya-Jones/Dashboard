@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 
 const LIME = "#B4552F";
 const BORDER = "rgba(180,85,47,0.12)";
-const MUTED = "rgba(30,19,64,0.45)";
+const MUTED = "rgba(28,22,19,0.48)";
 const RED = "#EF4444";
 const GREEN = "#10B981";
 const AMBER = "#F59E0B";
@@ -28,7 +28,7 @@ const CAT_CONFIG: Record<TriageCategory, { label: string; color: string; bg: str
   bill:          { label: "Bills",         color: AMBER,  bg: "rgba(245,158,11,0.08)" },
   school:        { label: "School/MCAT",   color: GREEN,  bg: "rgba(16,185,129,0.08)" },
   spam:          { label: "Spam/Junk",     color: "#9CA3AF", bg: "rgba(156,163,175,0.08)" },
-  fyi:           { label: "FYI",           color: "#6366F1", bg: "rgba(99,102,241,0.08)" },
+  fyi:           { label: "FYI",           color: "#8A7A66", bg: "rgba(99,102,241,0.08)" },
   uncategorized: { label: "All",           color: MUTED,  bg: "transparent" },
 };
 
@@ -386,7 +386,7 @@ function GmailTab() {
           const cfg = cat !== "uncategorized" ? CAT_CONFIG[cat] : null;
           return (
             <div key={thread.id}>
-              <div className="flex items-start gap-2 px-3 py-3 cursor-pointer hover:bg-purple-50/30 transition-colors"
+              <div className="flex items-start gap-2 px-3 py-3 cursor-pointer hover:bg-terracotta/10 transition-colors"
                 style={{ borderBottom: `1px solid ${BORDER}` }}>
                 <input type="checkbox" checked={selected.has(thread.id)}
                   onChange={e => { const s = new Set(selected); if (e.target.checked) { s.add(thread.id); } else { s.delete(thread.id); } setSelected(s); }}
@@ -503,7 +503,7 @@ function CalendarTab() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate" style={{ color: "var(--text)" }}>{event.title}</p>
                     <p className="text-xs mt-0.5" style={{ color: MUTED }}>{formatEventTime(event)}</p>
-                    {event.location && <p className="text-xs mt-0.5 truncate" style={{ color: MUTED }}>📍 {event.location}</p>}
+                    {event.location && <p className="text-xs mt-0.5 truncate" style={{ color: MUTED }}>{event.location}</p>}
                   </div>
                 </div>
               ))}

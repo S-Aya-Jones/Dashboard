@@ -40,19 +40,19 @@ const SUBJECTS = [
   "Critical Analysis & Reasoning Skills",
 ];
 
-const QUICK_STARTS: { concept: string; subject: string; emoji: string }[] = [
-  { concept: "Enzyme Kinetics",         subject: "Biochemistry",         emoji: "⚗️" },
-  { concept: "Action Potential",        subject: "Biology",              emoji: "⚡" },
-  { concept: "Krebs Cycle",            subject: "Biochemistry",         emoji: "🔄" },
-  { concept: "Acid-Base Chemistry",    subject: "General Chemistry",    emoji: "🧪" },
-  { concept: "Renal Physiology",       subject: "Biology",              emoji: "🫘" },
-  { concept: "DNA Replication",        subject: "Biology",              emoji: "🧬" },
-  { concept: "Neurotransmitters",      subject: "Behavioral Sciences",  emoji: "🧠" },
-  { concept: "Classical Conditioning", subject: "Behavioral Sciences",  emoji: "🔔" },
-  { concept: "Thermodynamics",         subject: "Physics",              emoji: "🌡️" },
-  { concept: "Stereochemistry",        subject: "Organic Chemistry",    emoji: "🔮" },
-  { concept: "Immune System",          subject: "Biology",              emoji: "🛡️" },
-  { concept: "Electrochemistry",       subject: "General Chemistry",    emoji: "⚡" },
+const QUICK_STARTS: { concept: string; subject: string }[] = [
+  { concept: "Enzyme Kinetics",         subject: "Biochemistry" },
+  { concept: "Action Potential",        subject: "Biology" },
+  { concept: "Krebs Cycle",            subject: "Biochemistry" },
+  { concept: "Acid-Base Chemistry",    subject: "General Chemistry" },
+  { concept: "Renal Physiology",       subject: "Biology" },
+  { concept: "DNA Replication",        subject: "Biology" },
+  { concept: "Neurotransmitters",      subject: "Behavioral Sciences" },
+  { concept: "Classical Conditioning", subject: "Behavioral Sciences" },
+  { concept: "Thermodynamics",         subject: "Physics" },
+  { concept: "Stereochemistry",        subject: "Organic Chemistry" },
+  { concept: "Immune System",          subject: "Biology" },
+  { concept: "Electrochemistry",       subject: "General Chemistry" },
 ];
 
 // ── Markdown Renderer ─────────────────────────────────────────────────────────
@@ -573,7 +573,7 @@ export function LearnView({ data, update }: Props) {
               Quick Start Topics
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
-              {QUICK_STARTS.map(({ concept: c, subject: s, emoji }) => (
+              {QUICK_STARTS.map(({ concept: c, subject: s }) => (
                 <button
                   key={c}
                   onClick={() => startLesson(c, s)}
@@ -584,7 +584,6 @@ export function LearnView({ data, update }: Props) {
                     cursor: "pointer", textAlign: "left",
                   }}
                 >
-                  <div style={{ fontSize: 18, marginBottom: 4 }}>{emoji}</div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", lineHeight: 1.3 }}>{c}</div>
                   <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{s}</div>
                 </button>

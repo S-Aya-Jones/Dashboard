@@ -8,8 +8,10 @@ import { GroceryList } from "./GroceryList";
 import { PantryTracker } from "./PantryTracker";
 import { WeeklyFoodReview } from "./WeeklyFoodReview";
 import { MealScanView } from "./MealScanView";
+import { FindMeals } from "./FindMeals";
 
 const TABS = [
+  { id: "find",     label: "Find Meals" },
   { id: "scan",     label: "Meal Scan" },
   { id: "meals",    label: "Meal Log" },
   { id: "recipes",  label: "Recipe Vault" },
@@ -35,7 +37,7 @@ export function NutritionView({
   data: DashboardData;
   update: (fn: (d: DashboardData) => DashboardData) => void;
 }) {
-  const [tab, setTab] = useState<TabId>("meals");
+  const [tab, setTab] = useState<TabId>("find");
   const nutrition = data.nutrition ?? EMPTY_NUTRITION;
 
   function onUpdate(n: NutritionData) {
@@ -56,14 +58,14 @@ export function NutritionView({
           Food Journal
         </h1>
         <p className="text-sm" style={{ color: "var(--text-light)" }}>
-          Log meals, save recipes, and keep your kitchen in check.
+          Find something you actually want to eat, then let it fill the grocery list.
         </p>
       </div>
 
       {/* Tabs */}
       <div
         className="flex gap-1 p-1 rounded-2xl mb-8 overflow-x-auto"
-        style={{ background: "rgba(124,92,252,0.05)" }}
+        style={{ background: "rgba(180,85,47,0.05)" }}
       >
         {TABS.map(({ id, label }) => {
           const active = tab === id;
@@ -80,7 +82,7 @@ export function NutritionView({
               style={{
                 background: active ? "var(--surface)" : "transparent",
                 color:      active ? "var(--text)" : "var(--text-light)",
-                boxShadow:  active ? "0 2px 8px rgba(124,92,252,0.06)" : "none",
+                boxShadow:  active ? "0 2px 8px rgba(180,85,47,0.06)" : "none",
               }}
             >
               {label}
@@ -102,6 +104,7 @@ export function NutritionView({
 
       {/* Content */}
       <div>
+        {tab === "find"    && <FindMeals    nutrition={nutrition} onUpdate={onUpdate} />}
         {tab === "scan"    && <MealScanView />}
         {tab === "meals"   && <MealLog       nutrition={nutrition} onUpdate={onUpdate} />}
         {tab === "recipes" && <RecipeVault   nutrition={nutrition} onUpdate={onUpdate} />}

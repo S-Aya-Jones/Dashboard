@@ -160,7 +160,7 @@ export function VoiceButton({ onResult }: VoiceButtonProps) {
           }}>
           <div className="flex items-start justify-between mb-3">
             <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
-              {status === "listening" ? "🎙 Listening..." : status === "processing" ? "⚡ Processing..." : status === "done" ? "✓ Logged" : "Voice Update"}
+              {status === "listening" ? "Listening..." : status === "processing" ? "Processing..." : status === "done" ? "✓ Logged" : "Voice Update"}
             </span>
             <button onClick={dismiss} style={{ color: "var(--text-muted)" }}>
               <X size={14} />

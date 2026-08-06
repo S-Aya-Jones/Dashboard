@@ -93,8 +93,8 @@ export function PantryTracker({
         <input
           style={{
             flex: 1,
-            background: "rgba(124,92,252,0.06)",
-            border: "1px solid rgba(124,92,252,0.12)",
+            background: "rgba(180,85,47,0.06)",
+            border: "1px solid rgba(180,85,47,0.12)",
             borderRadius: "10px",
             color: "var(--text)",
             padding: "9px 14px",

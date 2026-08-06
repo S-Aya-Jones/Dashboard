@@ -36,6 +36,21 @@
   --grad-peach:  linear-gradient(135deg, #C9855F 0%, #E0A44A 100%);
   --grad-soft:   linear-gradient(135deg, #FAF6F1 0%, #F2EBE3 100%);
   --grad-deep:   linear-gradient(135deg, #2A211C 0%, #4A342A 55%, #B4552F 100%);
+
+  /* Raw channels for the Tailwind palette. Utilities resolve these through
+     rgb(var(--c-x) / <alpha-value>), so text-brown/60 still works AND the
+     colour flips with the theme — a static hex in tailwind.config could only
+     ever do one of those. */
+  --c-text:       28 22 19;
+  --c-text-muted: 107 93 83;
+  --c-text-light: 156 141 129;
+  --c-surface:    255 253 251;
+  --c-bg:         250 246 241;
+  --c-bg2:        242 235 227;
+  --c-clay:       180 85 47;
+  --c-gold:       224 164 74;
+  --c-sage:       63 111 94;
+  --c-red:        178 58 46;
 }
 
 * {
@@ -166,7 +181,7 @@ h1 { letter-spacing: -0.032em; }
 }
 
 .card-floating:hover {
-  box-shadow: 0 20px 60px rgba(124,92,252,0.3);
+  box-shadow: 0 20px 60px rgba(180,85,47,0.22);
   transform: translateY(-4px);
 }
 
@@ -179,11 +194,11 @@ h1 { letter-spacing: -0.032em; }
 }
 
 /* ── Inputs ──────────────────────────────────────────────── */
-input[type="text"],
+:where(input[type="text"],
 input[type="number"],
 input[type="date"],
 textarea,
-select {
+select) {
   background: var(--surface2);
   border: 1.5px solid var(--border);
   border-radius: 0.625rem;
@@ -196,13 +211,13 @@ select {
   width: 100%;
 }
 
-input[type="text"]:focus,
-input[type="number"]:focus,
-input[type="date"]:focus,
-textarea:focus,
-select:focus {
+:where(input[type="text"],
+input[type="number"],
+input[type="date"],
+textarea,
+select):focus {
   border-color: var(--purple);
-  box-shadow: 0 0 0 3px rgba(124,92,252,0.15);
+  box-shadow: 0 0 0 3px rgba(180,85,47,0.15);
 }
 
 input::placeholder, textarea::placeholder {
@@ -237,7 +252,7 @@ input::placeholder, textarea::placeholder {
 }
 
 .pill-purple {
-  background: rgba(124,92,252,0.12);
+  background: rgba(180,85,47,0.12);
   color: var(--purple);
 }
 
@@ -299,6 +314,17 @@ input::placeholder, textarea::placeholder {
     --shadow-md:     0 2px 6px rgba(0,0,0,.45), 0 12px 34px rgba(0,0,0,.45);
     --shadow-lg:     0 6px 14px rgba(0,0,0,.5),  0 28px 70px rgba(0,0,0,.55);
     --grad-soft:     linear-gradient(135deg, #1D1713 0%, #14100D 100%);
+
+    --c-text:       247 241 234;
+    --c-text-muted: 183 165 151;
+    --c-text-light: 138 122 108;
+    --c-surface:    38 30 25;
+    --c-bg:         20 16 13;
+    --c-bg2:        29 23 19;
+    --c-clay:       224 164 74;   /* the accent warms to gold on dark */
+    --c-gold:       224 164 74;
+    --c-sage:       143 179 162;
+    --c-red:        224 136 120;
   }
   body {
     background-image:
@@ -355,7 +381,7 @@ input::placeholder, textarea::placeholder {
   border-radius: 50%;
   filter: blur(56px);
   opacity: .5;
-  background: radial-gradient(closest-side, rgba(124,92,252,.55), transparent 72%);
+  background: radial-gradient(closest-side, rgba(180,85,47,.42), transparent 72%);
 }
 
 /* Section headers that don't shout in all-caps */

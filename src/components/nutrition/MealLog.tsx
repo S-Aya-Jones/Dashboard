@@ -95,7 +95,7 @@ function MealDetail({ meal, onBack, onDelete }: { meal: MealEntry; onBack: () =>
       {meal.tags.length > 0 && (
         <div className="flex flex-wrap gap-2 justify-center mb-6">
           {meal.tags.map((t) => (
-            <span key={t} className="text-sm px-3 py-1 rounded-full" style={{ background: "rgba(124,92,252,0.06)", color: "#71816D" }}>
+            <span key={t} className="text-sm px-3 py-1 rounded-full" style={{ background: "rgba(180,85,47,0.06)", color: "#71816D" }}>
               #{t}
             </span>
           ))}
@@ -104,7 +104,7 @@ function MealDetail({ meal, onBack, onDelete }: { meal: MealEntry; onBack: () =>
 
       {meal.notes && (
         <div className="max-w-lg mx-auto rounded-2xl p-5 text-center"
-          style={{ background: "rgba(124,92,252,0.04)", border: "1px solid var(--border)" }}>
+          style={{ background: "rgba(180,85,47,0.04)", border: "1px solid var(--border)" }}>
           <p className="text-sm italic leading-relaxed" style={{ color: "var(--text-muted)" }}>
             &ldquo;{meal.notes}&rdquo;
           </p>
@@ -126,7 +126,7 @@ function MealCard({ meal, onClick, onDelete }: { meal: MealEntry; onClick: () =>
       style={{
         background: "var(--surface)",
         border: "1px solid var(--border)",
-        boxShadow: "0 3px 14px rgba(124,92,252,0.08)",
+        boxShadow: "0 3px 14px rgba(180,85,47,0.08)",
       }}
       onClick={onClick}
     >
@@ -146,7 +146,7 @@ function MealCard({ meal, onClick, onDelete }: { meal: MealEntry; onClick: () =>
           </span>
           {meal.photos.length > 1 && (
             <span className="absolute top-3 right-3 text-[10px] font-medium px-1.5 py-0.5 rounded-full"
-              style={{ background: "rgba(124,92,252,0.5)", color: "var(--text)" }}>
+              style={{ background: "rgba(180,85,47,0.5)", color: "var(--text)" }}>
               +{meal.photos.length - 1}
             </span>
           )}
@@ -154,14 +154,14 @@ function MealCard({ meal, onClick, onDelete }: { meal: MealEntry; onClick: () =>
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(); }}
             className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 w-6 h-6 rounded-full flex items-center justify-center transition-all"
-            style={{ background: "rgba(124,92,252,0.6)" }}
+            style={{ background: "rgba(180,85,47,0.6)" }}
           >
             <X size={11} color="white" />
           </button>
         </div>
       ) : (
-        <div className="w-full flex items-center justify-center relative" style={{ height: "100px", background: "rgba(124,92,252,0.05)" }}>
-          <span className="text-3xl">🍽️</span>
+        <div className="w-full flex items-center justify-center relative" style={{ height: "100px", background: "rgba(180,85,47,0.05)" }}>
+          <span className="text-3xl"></span>
           <span className="absolute top-3 left-3 text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize"
             style={{ background: "rgba(250,243,232,0.9)", color: TYPE_COLORS[meal.mealType] }}>
             {meal.mealType}
@@ -191,7 +191,7 @@ function MealCard({ meal, onClick, onDelete }: { meal: MealEntry; onClick: () =>
           <div className="flex flex-wrap gap-1 mt-2">
             {meal.tags.slice(0, 3).map((t) => (
               <span key={t} className="text-[11px] px-1.5 py-0.5 rounded-full"
-                style={{ background: "rgba(124,92,252,0.07)", color: "#71816D" }}>
+                style={{ background: "rgba(180,85,47,0.07)", color: "#71816D" }}>
                 #{t}
               </span>
             ))}
@@ -266,7 +266,7 @@ function AddMealForm({
 
   return (
     <div className="rounded-2xl p-5 mb-6"
-      style={{ background: "var(--bg)", border: "1px solid var(--border)", boxShadow: "0 4px 20px rgba(124,92,252,0.08)" }}>
+      style={{ background: "var(--bg)", border: "1px solid var(--border)", boxShadow: "0 4px 20px rgba(180,85,47,0.08)" }}>
       <h3 className="font-serif text-2xl mb-4" style={{ color: "var(--text)", fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
         Log a Meal
       </h3>
@@ -297,7 +297,7 @@ function AddMealForm({
                 <button type="button"
                   onClick={() => setPhotos((arr) => arr.filter((_, j) => j !== i))}
                   className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full flex items-center justify-center"
-                  style={{ background: "rgba(124,92,252,0.65)" }}>
+                  style={{ background: "rgba(180,85,47,0.65)" }}>
                   <X size={9} color="white" />
                 </button>
               </div>

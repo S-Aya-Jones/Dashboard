@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     const text =
       "7:55 — study blocks are done. Skincare hour starts now: " +
       "phone on the charger, call your boo while you do your routine, " +
-      "gym bag + clothes laid out for the morning. Lights out at 9. 🧴✨";
+      "gym bag + clothes laid out for the morning. Lights out at 9.";
 
     await sendTelegram(text);
 

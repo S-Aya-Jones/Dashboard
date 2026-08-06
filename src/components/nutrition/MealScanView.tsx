@@ -400,7 +400,7 @@ export function MealScanView() {
 
         {!photo && !scanning && (
           <button onClick={() => fileRef.current?.click()}
-            className="w-full flex flex-col items-center justify-center gap-3 py-10 hover:bg-purple-50/5 transition-colors">
+            className="w-full flex flex-col items-center justify-center gap-3 py-10 hover:bg-terracotta/5 transition-colors">
             <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
               style={{ background: "rgba(180,85,47,0.1)", border: "1.5px dashed rgba(180,85,47,0.3)" }}>
               <Camera size={24} style={{ color: PURPLE }} />
@@ -489,7 +489,7 @@ export function MealScanView() {
             <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: "1px solid rgba(180,85,47,0.1)" }}>
               <div>
                 <p className="text-xs font-semibold" style={{ color: "var(--text-muted)", letterSpacing: "0.08em" }}>INGREDIENTS</p>
-                <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>Edit grams to recalculate. Tap ✏ to adjust.</p>
+                <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>Edit grams to recalculate. Tap to adjust.</p>
               </div>
               <button onClick={() => setShowAddForm(v => !v)}
                 className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-xl font-semibold"

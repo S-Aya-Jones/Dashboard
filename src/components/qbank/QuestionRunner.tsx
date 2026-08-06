@@ -96,7 +96,7 @@ export function QuestionRunner({
     <div>
       <div className="flex items-center gap-2 flex-wrap mb-3">
         <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-full"
-          style={{ background: "rgba(124,92,252,.12)", color: "var(--purple)" }}>
+          style={{ background: "rgba(180,85,47,.12)", color: "var(--purple)" }}>
           {FORMAT_LABEL[q.format] ?? q.format}
         </span>
         {q.topic && (
@@ -132,7 +132,7 @@ export function QuestionRunner({
                 animate={isWrongPick ? { x: [0, -8, 8, -5, 5, 0] } : {}}
                 className="w-full text-left px-4 py-3 rounded-xl text-sm flex items-start gap-2.5 leading-relaxed"
                 style={{
-                  background: isAns ? "rgba(43,179,163,.13)" : isWrongPick ? "rgba(220,60,60,.10)" : single === ci ? "rgba(124,92,252,.12)" : "var(--bg)",
+                  background: isAns ? "rgba(43,179,163,.13)" : isWrongPick ? "rgba(220,60,60,.10)" : single === ci ? "rgba(180,85,47,.12)" : "var(--bg)",
                   border: `1.5px solid ${isAns ? "rgba(43,179,163,.6)" : isWrongPick ? "rgba(220,60,60,.45)" : single === ci ? "var(--purple)" : "var(--border)"}`,
                   color: "var(--text)",
                 }}>
@@ -162,7 +162,7 @@ export function QuestionRunner({
                 onClick={() => setMulti(m => m.includes(ci) ? m.filter(x => x !== ci) : [...m, ci])}
                 className="w-full text-left px-4 py-3 rounded-xl text-sm flex items-start gap-2.5 leading-relaxed"
                 style={{
-                  background: shouldBe ? "rgba(43,179,163,.13)" : wrongPick ? "rgba(220,60,60,.10)" : picked ? "rgba(124,92,252,.12)" : "var(--bg)",
+                  background: shouldBe ? "rgba(43,179,163,.13)" : wrongPick ? "rgba(220,60,60,.10)" : picked ? "rgba(180,85,47,.12)" : "var(--bg)",
                   border: `1.5px solid ${shouldBe ? "rgba(43,179,163,.6)" : wrongPick ? "rgba(220,60,60,.45)" : picked ? "var(--purple)" : "var(--border)"}`,
                   color: "var(--text)",
                 }}>
@@ -271,7 +271,7 @@ export function QuestionRunner({
       {selfGraded && (
         <div className="space-y-3">
           {q.format === "trace" && (
-            <p className="text-xs rounded-lg px-3 py-2" style={{ background: "rgba(124,92,252,.07)", color: "var(--text-muted)" }}>
+            <p className="text-xs rounded-lg px-3 py-2" style={{ background: "rgba(180,85,47,.07)", color: "var(--text-muted)" }}>
               Sketch it on paper first, then write out what you drew — you&apos;ll compare against the model answer.
             </p>
           )}

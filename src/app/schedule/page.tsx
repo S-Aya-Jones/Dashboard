@@ -17,7 +17,7 @@ export default function Page() {
             <h1 className="font-serif text-3xl" style={{ color: "var(--text)" }}>Schedule</h1>
             <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginTop: "0.25rem" }}>
               {tab === "plan"
-                ? "The weekly system — every block, color-coded, live"
+                ? "Your week, one day at a time"
                 : "Google Calendar + email appointments, hour by hour"}
             </p>
           </div>
@@ -25,14 +25,14 @@ export default function Page() {
             <button onClick={() => setTab("plan")}
               className="px-4 py-2 rounded-full text-sm font-semibold"
               style={tab === "plan"
-                ? { background: "var(--purple)", color: "white" }
+                ? { background: "var(--text)", color: "var(--surface)", border: "1.5px solid var(--text)" }
                 : { background: "var(--surface)", border: "1.5px solid var(--border)", color: "var(--text-muted)" }}>
               Week Plan
             </button>
             <button onClick={() => setTab("day")}
               className="px-4 py-2 rounded-full text-sm font-semibold"
               style={tab === "day"
-                ? { background: "var(--purple)", color: "white" }
+                ? { background: "var(--text)", color: "var(--surface)", border: "1.5px solid var(--text)" }
                 : { background: "var(--surface)", border: "1.5px solid var(--border)", color: "var(--text-muted)" }}>
               Day View
             </button>

@@ -23,7 +23,7 @@ export function Modal({ open, onClose, title, children, width = "max-w-lg" }: Mo
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(30,19,64,0.5)", backdropFilter: "blur(8px)" }}
+      style={{ background: "rgba(28,22,19,0.5)", backdropFilter: "blur(8px)" }}
       onClick={onClose}
     >
       <div

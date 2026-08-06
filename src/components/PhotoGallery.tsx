@@ -37,7 +37,7 @@ export function PhotoGallery({ photos, type, onDelete, onViewAnalysis, onCompare
         style={{ borderColor: "rgba(180,85,47,0.1)" }}>
         <div className="flex-1">
           <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>
-            {type === "bodyscan" ? "📸 Body Scan History" : "📹 Form Check History"}
+            {type === "bodyscan" ? "Body Scan History" : "Form Check History"}
           </p>
           <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
             {photos.length} photo{photos.length > 1 ? "s" : ""} saved
@@ -60,7 +60,7 @@ export function PhotoGallery({ photos, type, onDelete, onViewAnalysis, onCompare
               background: compareMode ? "#B4552F" : "rgba(180,85,47,0.1)",
               color: compareMode ? "#fff" : "#B4552F",
             }}>
-            📊 Compare
+Compare
           </button>
         )}
         {expanded ? <ChevronUp size={18} style={{ color: "var(--text-muted)" }} /> : <ChevronDown size={18} style={{ color: "var(--text-muted)" }} />}
@@ -221,7 +221,7 @@ export function PhotoGallery({ photos, type, onDelete, onViewAnalysis, onCompare
           {/* Progress note */}
           {sorted.length > 1 && (
             <div className="rounded-lg p-3 text-xs text-center" style={{ background: "rgba(218,102,123,0.08)", color: "#DA667B" }}>
-              📊 {sorted.length} photos span {Math.round((parseISO(sorted[0].timestamp).getTime() - parseISO(sorted[sorted.length - 1].timestamp).getTime()) / (1000 * 60 * 60 * 24))} days
+{sorted.length} photos span {Math.round((parseISO(sorted[0].timestamp).getTime() - parseISO(sorted[sorted.length - 1].timestamp).getTime()) / (1000 * 60 * 60 * 24))} days
             </div>
           )}
         </div>

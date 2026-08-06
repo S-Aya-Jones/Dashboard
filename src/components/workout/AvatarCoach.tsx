@@ -53,22 +53,22 @@ export function AvatarCoach({ exercise, setIndex, totalSets, isPlaying, videoUrl
 
   return (
     <>
-      <div className="rounded-3xl overflow-hidden border-2" style={{ borderColor: "#B4552F", background: "linear-gradient(135deg, #2a1a3a 0%, #1a0f2e 100%)" }}>
+      <div className="rounded-3xl overflow-hidden border-2" style={{ borderColor: "#B4552F", background: "linear-gradient(135deg, #2A211C 0%, #1C1613 100%)" }}>
 
         {/* Avatar / video area */}
-        <div className="relative flex items-center justify-center" style={{ aspectRatio: "4/3", background: "linear-gradient(180deg, #1a0a2e 0%, #0d0618 100%)" }}>
+        <div className="relative flex items-center justify-center" style={{ aspectRatio: "4/3", background: "linear-gradient(180deg, #241C17 0%, #17110E 100%)" }}>
 
           {videoUrl ? (
             /* HeyGen video available — show thumbnail with play */
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 cursor-pointer group"
               onClick={() => setShowVideo(true)}>
               {/* Aya avatar placeholder */}
-              <div className="w-28 h-28 rounded-full bg-gradient-to-br from-purple-600 via-pink-500 to-amber-500 flex items-center justify-center text-5xl shadow-lg">
-                👩🏾
+              <div className="w-28 h-28 rounded-full bg-gradient-to-br from-terracotta via-peach to-sage flex items-center justify-center text-5xl shadow-lg">
+
               </div>
               <div className="text-center space-y-1">
                 <p className="text-xs font-bold text-white">Aya is ready to coach you</p>
-                <p className="text-[10px] text-purple-300">{exercise.name}</p>
+                <p className="text-[10px] text-peach">{exercise.name}</p>
               </div>
               <button
                 className="flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-sm transition-all active:scale-95"
@@ -81,13 +81,13 @@ export function AvatarCoach({ exercise, setIndex, totalSets, isPlaying, videoUrl
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
               <div className="relative">
                 <div className="absolute inset-0 rounded-full animate-ping opacity-20" style={{ background: "#B4552F" }} />
-                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-600 via-pink-500 to-amber-500 flex items-center justify-center text-5xl shadow-lg relative">
-                  👩🏾
+                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-terracotta via-peach to-sage flex items-center justify-center text-5xl shadow-lg relative">
+
                 </div>
               </div>
               <div className="text-center space-y-1">
                 <p className="text-xs font-bold text-white">Aya · AI Form Coach</p>
-                <p className="text-[10px] text-purple-400">Form cues active below</p>
+                <p className="text-[10px] text-peach">Form cues active below</p>
               </div>
             </div>
           )}
@@ -109,9 +109,9 @@ export function AvatarCoach({ exercise, setIndex, totalSets, isPlaying, videoUrl
         </div>
 
         {/* Form cue */}
-        <div className="p-4 space-y-3" style={{ background: "linear-gradient(180deg, #1a0a2e 0%, #0d0618 100%)" }}>
+        <div className="p-4 space-y-3" style={{ background: "linear-gradient(180deg, #241C17 0%, #17110E 100%)" }}>
           <div className="rounded-xl p-3 space-y-1" style={{ background: "rgba(180,85,47,0.12)", border: "1px solid rgba(180,85,47,0.2)" }}>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-purple-400">Aya says</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-peach">Aya says</p>
             <p className="text-sm leading-relaxed text-white">{currentCue}</p>
           </div>
 
@@ -137,9 +137,9 @@ export function AvatarCoach({ exercise, setIndex, totalSets, isPlaying, videoUrl
         </div>
 
         {/* Exercise name footer */}
-        <div className="px-4 py-3 border-t" style={{ background: "#0d0618", borderColor: "rgba(180,85,47,0.15)" }}>
-          <p className="text-xs font-bold text-purple-300">{exercise.name}</p>
-          <p className="text-[10px] text-purple-500 mt-0.5 leading-snug">{exercise.formCue}</p>
+        <div className="px-4 py-3 border-t" style={{ background: "#17110E", borderColor: "rgba(180,85,47,0.15)" }}>
+          <p className="text-xs font-bold text-peach">{exercise.name}</p>
+          <p className="text-[10px] text-terracotta mt-0.5 leading-snug">{exercise.formCue}</p>
         </div>
       </div>
 
@@ -151,7 +151,7 @@ export function AvatarCoach({ exercise, setIndex, totalSets, isPlaying, videoUrl
             <div className="flex items-center justify-between mb-3 px-1">
               <div>
                 <p className="text-white font-bold text-sm">Aya · {exercise.name}</p>
-                <p className="text-purple-400 text-xs mt-0.5">Form coaching video</p>
+                <p className="text-peach text-xs mt-0.5">Form coaching video</p>
               </div>
               <button onClick={() => setShowVideo(false)} className="w-8 h-8 rounded-full flex items-center justify-center"
                 style={{ background: "rgba(255,255,255,0.1)" }}>
@@ -167,7 +167,7 @@ export function AvatarCoach({ exercise, setIndex, totalSets, isPlaying, videoUrl
               style={{ maxHeight: "70vh" }}
               onEnded={() => setShowVideo(false)}
             />
-            <p className="text-center text-xs text-purple-400 mt-3">Tap outside to close</p>
+            <p className="text-center text-xs text-peach mt-3">Tap outside to close</p>
           </div>
         </div>
       )}

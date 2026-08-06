@@ -103,7 +103,7 @@ export function FlashcardFlip({ cards, onDone }: Props) {
             borderRadius: 18,
             display: "flex", alignItems: "center", justifyContent: "center",
             padding: 24, textAlign: "center" as const,
-            boxShadow: "0 4px 24px rgba(124,92,252,0.12)",
+            boxShadow: "0 4px 24px rgba(180,85,47,0.12)",
           }}>
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", marginBottom: 12, textTransform: "uppercase" as const, letterSpacing: 0.8 }}>
@@ -118,7 +118,7 @@ export function FlashcardFlip({ cards, onDone }: Props) {
             position: "absolute", inset: 0,
             backfaceVisibility: "hidden" as const,
             transform: "rotateY(180deg)",
-            background: "rgba(124,92,252,0.05)",
+            background: "rgba(180,85,47,0.05)",
             border: "2px solid var(--border)",
             borderRadius: 18,
             display: "flex", alignItems: "center", justifyContent: "center",

@@ -32,7 +32,7 @@ const SUBJECTS = [
   { name: "CARS",                color: "#FB923C" },
   { name: "General Chemistry",   color: "#F59E0B" },
   { name: "Organic Chemistry",   color: "#EF4444" },
-  { name: "Physics",             color: "#6366F1" },
+  { name: "Physics",             color: "#8A7A66" },
 ];
 
 export default function Page() {
@@ -132,7 +132,7 @@ export default function Page() {
                       boxShadow: "0 4px 16px rgba(180,85,47,0.4)",
                       opacity: selectedSubject ? 1 : 0.6,
                     }}>
-                    Start Timer ⚡
+                    Start Timer
                   </button>
                 </div>
 

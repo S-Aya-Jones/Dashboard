@@ -61,8 +61,8 @@ export function ShetritionBoard({
   }
 
   const inputStyle = {
-    background: "rgba(124,92,252,0.06)",
-    border: "1px solid rgba(124,92,252,0.12)",
+    background: "rgba(180,85,47,0.06)",
+    border: "1px solid rgba(180,85,47,0.12)",
     borderRadius: "10px",
     color: "var(--text)",
     padding: "8px 12px",
@@ -142,7 +142,7 @@ export function ShetritionBoard({
                 style={{
                   background: "var(--surface)",
                   border: "1px solid var(--border)",
-                  boxShadow: "0 3px 14px rgba(124,92,252,0.08)",
+                  boxShadow: "0 3px 14px rgba(180,85,47,0.08)",
                 }}
               >
                 <div className="relative">
@@ -151,7 +151,7 @@ export function ShetritionBoard({
                   <button
                     onClick={() => remove(img.id)}
                     className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
-                    style={{ background: "rgba(124,92,252,0.6)" }}
+                    style={{ background: "rgba(180,85,47,0.6)" }}
                   >
                     <X size={12} color="white" />
                   </button>

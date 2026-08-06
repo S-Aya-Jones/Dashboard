@@ -6,7 +6,7 @@ import {
   formatTimeOfDay,
 } from "@/lib/telegram";
 import { getUpcomingEvents } from "@/lib/gmail";
-import { sendSms } from "@/lib/sms";
+import { sendSms, smsAlsoEnabled } from "@/lib/sms";
 import { dueNotifications, markNotified, upsertObligation } from "@/lib/obligations";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -18,10 +18,12 @@ import { dueNotifications, markNotified, upsertObligation } from "@/lib/obligati
 
 const TZ = "America/Chicago";
 
-// Telegram always; SMS too when SMS_ALSO=1 (carrier gateway, plain text).
+// Telegram always; a plain-text copy by SMS too when texting is switched on.
+// The switch now lives in the app rather than only in a Vercel env var, so it
+// can be flipped without a redeploy.
 async function notify(text: string): Promise<void> {
   await sendTelegram(text);
-  if (process.env.SMS_ALSO === "1") {
+  if (await smsAlsoEnabled().catch(() => false)) {
     await sendSms(text.replace(/<[^>]+>/g, "")).catch(() => false);
   }
 }
@@ -100,12 +102,15 @@ export async function getCourseAssessments(daysAhead = 45): Promise<Assessment[]
 }
 
 function fmtAssessment(a: Assessment): string {
+  const dateStr = a.date.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: TZ });
   const when =
     a.daysOut === 0 ? "TODAY" :
     a.daysOut === 1 ? "tomorrow" :
-    `in ${a.daysOut} days`;
-  const dateStr = a.date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: TZ });
-  return `${a.title} — ${when} (${dateStr})`;
+    a.daysOut <= 6  ? a.date.toLocaleDateString("en-US", { weekday: "long", timeZone: TZ }) :
+    dateStr;
+  return a.daysOut <= 1
+    ? `${a.title} — ${when} (${dateStr})`
+    : `${a.title} — ${when}`;
 }
 
 // Tonight's Block 1/2: the two distinct courses with the nearest assessments.
@@ -245,7 +250,7 @@ function buildFallbackMorning(assessments: Assessment[], dow: number): string {
 const SKINCARE_MSG =
   "7:55 — study blocks are done. Skincare hour starts now: " +
   "phone on the charger, call your boo while you do your routine, " +
-  "gym bag + clothes laid out for the morning. Lights out at 9. 🧴✨";
+  "gym bag + clothes laid out for the morning. Lights out at 9.";
 
 // ─── Slot table ──────────────────────────────────────────────────────────────
 
@@ -453,7 +458,7 @@ export async function runDispatch(origin: string): Promise<DispatchResult> {
         const [h, m] = hhmm.split(":").map(Number);
         return `${h % 12 || 12}:${m.toString().padStart(2, "0")}${h >= 12 ? "pm" : "am"}`;
       })();
-      await notify(`⏱ 30 minutes — ${label} at ${t12}.`);
+      await notify(`30 minutes — ${label} at ${t12}.`);
       fired.push(key);
     }
   }
@@ -496,8 +501,8 @@ export async function runDispatch(origin: string): Promise<DispatchResult> {
     for (const r of due) {
       const timeStr = formatTimeOfDay(r.timeOfDay);
       const text = r.body
-        ? `⏰ <b>${r.title}</b>\n${r.body}\n\n<i>${timeStr} reminder</i>`
-        : `⏰ <b>${r.title}</b>\n\n<i>${timeStr} reminder</i>`;
+        ? `<b>${r.title}</b>\n${r.body}\n\n<i>${timeStr} reminder</i>`
+        : `<b>${r.title}</b>\n\n<i>${timeStr} reminder</i>`;
       await sendTelegram(text);
       await advanceReminder(r);
       remindersSent++;

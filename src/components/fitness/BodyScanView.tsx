@@ -264,7 +264,7 @@ function ResultCard({ analysis, thumbs, onReset, onChat }: { analysis: BodyAnaly
         const feasColor = g.feasibility >= 75 ? GOLD : g.feasibility >= 50 ? PURPLE : g.feasibility >= 30 ? PEACH : ROSE;
         return (
           <div style={{ borderTop: "1px solid rgba(180,85,47,0.1)" }}>
-            <Section title="Goal Body Assessment" icon="🎯" defaultOpen>
+            <Section title="Goal Body Assessment" icon="◉" defaultOpen>
               {/* Feasibility */}
               <div className="rounded-xl p-3 space-y-2" style={{ background: `${feasColor}10`, border: `1px solid ${feasColor}30` }}>
                 <div className="flex items-center justify-between">
@@ -277,14 +277,14 @@ function ResultCard({ analysis, thumbs, onReset, onChat }: { analysis: BodyAnaly
                 <p className="text-xs leading-relaxed" style={{ color: "var(--text)" }}>{g.geneticNotes}</p>
                 <div className="flex items-center gap-1.5 pt-1">
                   <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: `${feasColor}20`, color: feasColor }}>
-                    ⏱ {g.timelineEstimate}
+{g.timelineEstimate}
                   </span>
                 </div>
               </div>
 
               {/* Calorie plan */}
               <div>
-                <p className="text-xs font-bold mb-2" style={{ color: "var(--text-muted)" }}>📊 Your Calorie Plan</p>
+                <p className="text-xs font-bold mb-2" style={{ color: "var(--text-muted)" }}>Your Calorie Plan</p>
                 <div className="grid grid-cols-2 gap-2 mb-2">
                   <div className="rounded-xl p-3 text-center" style={{ background: "rgba(180,85,47,0.08)" }}>
                     <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Daily Calories</p>
@@ -314,7 +314,7 @@ function ResultCard({ analysis, thumbs, onReset, onChat }: { analysis: BodyAnaly
 
               {/* Workout plan */}
               <div>
-                <p className="text-xs font-bold mb-2" style={{ color: "var(--text-muted)" }}>🏋️ Your Workout Plan</p>
+                <p className="text-xs font-bold mb-2" style={{ color: "var(--text-muted)" }}>Your Workout Plan</p>
                 <div className="rounded-xl p-3 mb-2" style={{ background: "rgba(180,85,47,0.06)", border: "1px solid rgba(180,85,47,0.12)" }}>
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-xs font-semibold" style={{ color: PURPLE }}>{g.workoutPlan.daysPerWeek}x per week</p>

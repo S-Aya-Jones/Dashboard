@@ -27,7 +27,7 @@ Structure every lesson exactly like this:
 ### Memory Hook
 (a vivid mnemonic, analogy, or mental model — make it stick)
 
-### MCAT Traps ⚠️
+### MCAT Traps
 (1–2 common wrong-answer pitfalls on this exact topic)
 
 **Quick Check:** [one conceptual question] → [answer]

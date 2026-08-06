@@ -156,9 +156,9 @@ function RecipeDetail({
           ) : (
             <div
               className="w-full rounded-3xl flex flex-col items-center justify-center gap-4"
-              style={{ minHeight: "300px", background: "rgba(124,92,252,0.05)", border: "2px dashed var(--border)" }}
+              style={{ minHeight: "300px", background: "rgba(180,85,47,0.05)", border: "2px dashed var(--border)" }}
             >
-              <span className="text-5xl">🍳</span>
+              <span className="text-5xl"></span>
               <p className="text-sm font-medium" style={{ color: "#A8967E" }}>Add a photo</p>
               <div className="flex flex-col gap-2 w-full px-6">
                 <button
@@ -226,13 +226,13 @@ function RecipeDetail({
           {/* Serving controls + calorie bar */}
           <div
             className="flex items-center justify-between py-3 px-4 rounded-2xl mb-6"
-            style={{ background: "rgba(124,92,252,0.05)", border: "1px solid var(--border)" }}
+            style={{ background: "rgba(180,85,47,0.05)", border: "1px solid var(--border)" }}
           >
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setServings((s) => Math.max(1, s - 1))}
                 className="w-7 h-7 rounded-full flex items-center justify-center transition-colors"
-                style={{ background: "rgba(124,92,252,0.06)", color: "var(--text)" }}
+                style={{ background: "rgba(180,85,47,0.06)", color: "var(--text)" }}
               >
                 <Minus size={13} />
               </button>
@@ -244,7 +244,7 @@ function RecipeDetail({
               <button
                 onClick={() => setServings((s) => s + 1)}
                 className="w-7 h-7 rounded-full flex items-center justify-center transition-colors"
-                style={{ background: "rgba(124,92,252,0.06)", color: "var(--text)" }}
+                style={{ background: "rgba(180,85,47,0.06)", color: "var(--text)" }}
               >
                 <Plus size={13} />
               </button>
@@ -288,7 +288,7 @@ function RecipeDetail({
                       <div
                         key={i}
                         className="px-4 pt-3 pb-1.5"
-                        style={{ background: "rgba(124,92,252,0.04)" }}
+                        style={{ background: "rgba(180,85,47,0.04)" }}
                       >
                         <p
                           className="text-[10px] font-bold uppercase tracking-widest"
@@ -310,13 +310,13 @@ function RecipeDetail({
                       type="button"
                       onClick={() => toggleCheck(idx)}
                       className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors"
-                      style={{ background: done ? "rgba(124,92,252,0.04)" : "transparent" }}
+                      style={{ background: done ? "rgba(180,85,47,0.04)" : "transparent" }}
                     >
                       {/* Custom checkbox */}
                       <div
                         className="flex-shrink-0 w-4 h-4 rounded flex items-center justify-center transition-all"
                         style={{
-                          border: `1.5px solid ${done ? "#71816D" : "rgba(124,92,252,0.3)"}`,
+                          border: `1.5px solid ${done ? "#71816D" : "rgba(180,85,47,0.3)"}`,
                           background: done ? "#71816D" : "transparent",
                         }}
                       >
@@ -410,7 +410,7 @@ function RecipeDetail({
                 <span
                   key={t}
                   className="text-xs px-2.5 py-1 rounded-full"
-                  style={{ background: "rgba(124,92,252,0.06)", color: "#71816D" }}
+                  style={{ background: "rgba(180,85,47,0.06)", color: "#71816D" }}
                 >
                   #{t}
                 </span>
@@ -440,7 +440,7 @@ function RecipeCard({
       style={{
         background: "var(--surface)",
         border: "1px solid var(--border)",
-        boxShadow: "0 3px 14px rgba(124,92,252,0.08)",
+        boxShadow: "0 3px 14px rgba(180,85,47,0.08)",
       }}
       onClick={onClick}
     >
@@ -456,9 +456,9 @@ function RecipeCard({
       ) : (
         <div
           className="w-full flex items-center justify-center"
-          style={{ height: "120px", background: "rgba(124,92,252,0.05)" }}
+          style={{ height: "120px", background: "rgba(180,85,47,0.05)" }}
         >
-          <span className="text-4xl">🍳</span>
+          <span className="text-4xl"></span>
         </div>
       )}
 
@@ -637,7 +637,7 @@ function AddRecipeForm({
   return (
     <div
       className="rounded-2xl p-6 mb-6"
-      style={{ background: "var(--bg)", border: "1px solid var(--border)", boxShadow: "0 4px 20px rgba(124,92,252,0.08)" }}
+      style={{ background: "var(--bg)", border: "1px solid var(--border)", boxShadow: "0 4px 20px rgba(180,85,47,0.08)" }}
     >
       <h3
         className="font-serif text-2xl mb-5"
@@ -663,7 +663,7 @@ function AddRecipeForm({
                     type="button"
                     onClick={() => setPhotos((a) => a.filter((_, j) => j !== i))}
                     className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full flex items-center justify-center"
-                    style={{ background: "rgba(124,92,252,0.65)" }}
+                    style={{ background: "rgba(180,85,47,0.65)" }}
                   >
                     <X size={9} color="white" />
                   </button>
@@ -1003,7 +1003,7 @@ export function RecipeVault({
 
       {/* Progress bar for mass import */}
       {extracting && extractProgress && extractProgress.total > 1 && (
-        <div className="mb-4 rounded-xl overflow-hidden" style={{ background: "rgba(124,92,252,0.06)", height: "6px" }}>
+        <div className="mb-4 rounded-xl overflow-hidden" style={{ background: "rgba(180,85,47,0.06)", height: "6px" }}>
           <div
             className="h-full rounded-xl transition-all duration-300"
             style={{ background: "#71816D", width: `${(extractProgress.current / extractProgress.total) * 100}%` }}

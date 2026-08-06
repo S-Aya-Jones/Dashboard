@@ -5,17 +5,6 @@ import { Plus, Trash2, CheckSquare, Square } from "lucide-react";
 import { GroceryItem, NutritionData } from "@/types/dashboard";
 import { assignGrocerySection, GROCERY_SECTIONS } from "./groceryUtils";
 
-const SECTION_ICONS: Record<string, string> = {
-  Produce:   "🥦",
-  Dairy:     "🥛",
-  Meat:      "🍗",
-  Frozen:    "🧊",
-  Pantry:    "🫙",
-  Snacks:    "🍿",
-  Beverages: "🧃",
-  Other:     "🛒",
-};
-
 export function GroceryList({
   nutrition,
   onUpdate,
@@ -70,8 +59,8 @@ export function GroceryList({
         <input
           style={{
             flex: 1,
-            background: "rgba(124,92,252,0.06)",
-            border: "1px solid rgba(124,92,252,0.12)",
+            background: "rgba(180,85,47,0.06)",
+            border: "1px solid rgba(180,85,47,0.12)",
             borderRadius: "10px",
             color: "var(--text)",
             padding: "9px 14px",
@@ -120,7 +109,6 @@ export function GroceryList({
             return (
               <div key={sec}>
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-base">{SECTION_ICONS[sec]}</span>
                   <h3 className="text-sm font-semibold uppercase tracking-wide" style={{ color: "#A8967E" }}>
                     {sec}
                   </h3>
@@ -133,7 +121,7 @@ export function GroceryList({
                     <div
                       key={item.id}
                       className="flex items-center gap-3 px-3 py-2 rounded-xl group transition-colors"
-                      style={{ background: item.checked ? "rgba(124,92,252,0.04)" : "var(--surface)" }}
+                      style={{ background: item.checked ? "rgba(180,85,47,0.04)" : "var(--surface)" }}
                     >
                       <button
                         onClick={() => toggle(item.id)}

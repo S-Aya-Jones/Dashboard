@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { X, Volume2, SkipForward, Pause, Play, Plus, ChevronLeft, ChevronRight, ExternalLink, ChevronsRight } from "lucide-react";
+import { X, Volume2, SkipForward, Pause, Play, Plus, ChevronLeft, ChevronRight, ChevronsRight } from "lucide-react";
 import { ProgramDay, ProgramExercise, getWeekPhase, suggestWeight, CATEGORY_CUES, UNIVERSAL_CUES, getPhaseEmojiAndColor, getPhaseCoachingMessage } from "./program";
 import { DashboardData, ExerciseSessionLog, WorkoutSetLog } from "@/types/dashboard";
 import { AvatarCoach } from "./AvatarCoach";
 import { FormChecker } from "./FormChecker";
+import { ExerciseDemo, hasDemo } from "./ExerciseDemo";
 
 interface Props {
   day: ProgramDay;
@@ -110,37 +111,57 @@ const CAT_COLOR: Record<string, string> = {
 };
 
 function VideoBlock({ ex, animKey }: { ex: ProgramExercise; animKey: number }) {
-  if (ex.videoId) {
-    return (
-      <div className="rounded-2xl overflow-hidden" style={{ background: "#000", aspectRatio: "16/9" }}>
-        <iframe
-          key={`${ex.videoId}-${animKey}`}
-          src={`https://www.youtube.com/embed/${ex.videoId}?rel=0&modestbranding=1&controls=1&autoplay=1&mute=1&playsinline=1`}
-          title={`${ex.name} tutorial`}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          className="w-full h-full"
-          style={{ border: "none", display: "block" }}
-        />
-      </div>
-    );
-  }
+  // The bundled demo is the default: it loads instantly off our own origin and
+  // keeps her inside the app. A hand-picked video, where one exists, sits
+  // underneath as an inline player — still no trip to YouTube search, which is
+  // what this used to do for every move that had no videoId.
+  const [showVideo, setShowVideo] = useState(false);
+  const demo = hasDemo(ex.name);
+
+  if (!demo && !ex.videoId) return null;
+
   return (
-    <a href={`https://www.youtube.com/results?search_query=${encodeURIComponent(ex.name + " exercise form tutorial")}`}
-      target="_blank" rel="noopener noreferrer"
-      className="flex items-center justify-between px-4 py-3 rounded-2xl active:scale-95 transition-transform"
-      style={{ background: "var(--surface2)", border: "1px solid rgba(180,85,47,0.06)" }}>
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-7 rounded-lg flex items-center justify-center" style={{ background: "#FF0000" }}>
-          <div className="w-0 h-0 ml-0.5" style={{ borderTop: "6px solid transparent", borderBottom: "6px solid transparent", borderLeft: "11px solid white" }} />
+    <div className="space-y-2">
+      {demo && !showVideo && <ExerciseDemo name={ex.name} />}
+
+      {ex.videoId && showVideo && (
+        <div className="rounded-2xl overflow-hidden" style={{ background: "#000", aspectRatio: "16/9" }}>
+          <iframe
+            key={`${ex.videoId}-${animKey}`}
+            src={`https://www.youtube.com/embed/${ex.videoId}?rel=0&modestbranding=1&controls=1&autoplay=1&mute=1&playsinline=1`}
+            title={`${ex.name} tutorial`}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            className="w-full h-full"
+            style={{ border: "none", display: "block" }}
+          />
         </div>
-        <div>
-          <p className="text-sm font-medium text-ink">Watch Demo</p>
-          <p className="text-xs" style={{ color: "rgba(30,19,64,0.35)" }}>{ex.name} tutorial on YouTube</p>
-        </div>
-      </div>
-      <ExternalLink size={13} style={{ color: "rgba(30,19,64,0.25)" }} />
-    </a>
+      )}
+
+      {ex.videoId && demo && (
+        <button
+          onClick={() => setShowVideo(v => !v)}
+          className="text-xs font-semibold px-3 py-1.5 rounded-full"
+          style={{ background: "var(--surface2)", color: "var(--text-muted)", border: "1px solid var(--border)" }}
+        >
+          {showVideo ? "Back to the demo" : "Play the video instead"}
+        </button>
+      )}
+
+      {ex.videoId && !demo && !showVideo && (
+        <button
+          onClick={() => setShowVideo(true)}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl active:scale-95 transition-transform"
+          style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}
+        >
+          <span className="w-9 h-9 rounded-full grid place-items-center flex-shrink-0"
+            style={{ background: "var(--purple)", color: "var(--surface)" }}>
+            <Play size={14} />
+          </span>
+          <span className="text-sm font-medium" style={{ color: "var(--text)" }}>Watch the form video</span>
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -488,7 +509,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
         )
       : 0;
 
-    const { emoji: phaseEmoji, color: phaseColor } = getPhaseEmojiAndColor(weekNum);
+    const { color: phaseColor } = getPhaseEmojiAndColor(weekNum);
 
     return (
       <div className="flex flex-col h-full items-center justify-center gap-5 p-8 text-center overflow-y-auto"
@@ -498,7 +519,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
         <div style={{ fontSize: "4rem", animation: "bounce 0.6s ease-out" }}>✓</div>
         <div className="space-y-1.5">
           <h2 className="font-serif text-3xl text-ink">{day.label}</h2>
-          <p className="text-sm" style={{ color: "rgba(30,19,64,0.45)" }}>Complete.</p>
+          <p className="text-sm" style={{ color: "rgba(28,22,19,0.48)" }}>Complete.</p>
         </div>
 
         {/* Stats Grid */}
@@ -525,10 +546,10 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
         {streak > 0 && (
           <div className="flex items-center justify-center gap-2 px-4 py-3 rounded-full w-full max-w-sm"
             style={{ background: "rgba(218,102,123,0.1)", border: "1px solid rgba(218,102,123,0.25)" }}>
-            <span style={{ fontSize: "1.5rem" }}>🔥</span>
+            <span style={{ fontSize: "1.5rem" }}></span>
             <div>
               <p className="font-semibold text-ink">{streak + 1} day streak</p>
-              <p className="text-xs" style={{ color: "rgba(30,19,64,0.45)" }}>Keep showing up</p>
+              <p className="text-xs" style={{ color: "rgba(28,22,19,0.48)" }}>Keep showing up</p>
             </div>
           </div>
         )}
@@ -537,7 +558,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
         {weekNum > 0 && (
           <div className="w-full max-w-sm px-4 py-3 rounded-2xl text-sm"
             style={{ background: `${phaseColor}15`, border: `1px solid ${phaseColor}33`, color: phaseColor }}>
-            <p className="font-semibold mb-1.5">{phaseEmoji} Week {weekNum}</p>
+            <p className="font-semibold mb-1.5">Week {weekNum}</p>
             <p className="text-xs leading-relaxed">{getPhaseCoachingMessage(weekNum)}</p>
           </div>
         )}
@@ -546,7 +567,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
         {isSunday && (
           <div className="w-full max-w-sm px-4 py-3 rounded-2xl text-sm text-center"
             style={{ background: "rgba(201,154,92,0.1)", border: "1px solid rgba(201,154,92,0.25)", color: "#C99A5C" }}>
-            📏 Measure your waist + hips. Same time, same day. Track your hourglass progress.
+Measure your waist + hips. Same time, same day. Track your hourglass progress.
           </div>
         )}
 
@@ -577,16 +598,16 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
           <p className="text-xs font-semibold" style={{ color: "#B4552F" }}>{day.label}</p>
           <div className="flex items-center gap-0.5">
             <button onClick={() => setShowAddEx(true)}
-              className="p-2 rounded-xl active:scale-90 transition-transform" style={{ color: "rgba(30,19,64,0.35)" }}>
+              className="p-2 rounded-xl active:scale-90 transition-transform" style={{ color: "rgba(28,22,19,0.35)" }}>
               <Plus size={16} />
             </button>
             <button onClick={togglePause}
               className="p-2 rounded-xl active:scale-90 transition-transform"
-              style={{ color: paused ? "#B4552F" : "rgba(30,19,64,0.35)" }}>
+              style={{ color: paused ? "#B4552F" : "rgba(28,22,19,0.35)" }}>
               {paused ? <Play size={16} /> : <Pause size={16} />}
             </button>
             <button onClick={() => setShowExitConfirm(true)}
-              className="p-2 rounded-xl active:scale-90 transition-transform" style={{ color: "rgba(30,19,64,0.35)" }}>
+              className="p-2 rounded-xl active:scale-90 transition-transform" style={{ color: "rgba(28,22,19,0.35)" }}>
               <X size={16} />
             </button>
           </div>
@@ -619,7 +640,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
         <div className="flex items-center gap-2">
           <button onClick={() => goToExercise(exIdx - 1)} disabled={exIdx === 0}
             className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 active:scale-90 transition-transform"
-            style={{ background: "rgba(30,19,64,0.05)", color: exIdx === 0 ? "rgba(180,85,47,0.12)" : "rgba(30,19,64,0.55)" }}>
+            style={{ background: "rgba(28,22,19,0.05)", color: exIdx === 0 ? "rgba(180,85,47,0.12)" : "rgba(28,22,19,0.55)" }}>
             <ChevronLeft size={16} />
           </button>
           <div className="flex-1 flex gap-1 overflow-hidden">
@@ -632,13 +653,13 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
                     ? currentSection.color
                     : i < localExIdx
                     ? `${currentSection.color}55`
-                    : "rgba(30,19,64,0.1)",
+                    : "rgba(28,22,19,0.1)",
                 }} />
             ))}
           </div>
           <button onClick={() => goToExercise(exIdx + 1)} disabled={exIdx === exercises.length - 1}
             className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 active:scale-90 transition-transform"
-            style={{ background: "rgba(30,19,64,0.05)", color: exIdx === exercises.length - 1 ? "rgba(180,85,47,0.12)" : "rgba(30,19,64,0.55)" }}>
+            style={{ background: "rgba(28,22,19,0.05)", color: exIdx === exercises.length - 1 ? "rgba(180,85,47,0.12)" : "rgba(28,22,19,0.55)" }}>
             <ChevronRight size={16} />
           </button>
         </div>
@@ -650,7 +671,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
 
         {weekNum > 0 && (
           <div className="px-3 py-2 rounded-xl text-xs"
-            style={{ background: phase.isDeload ? "rgba(218,102,123,0.1)" : "rgba(180,85,47,0.06)", color: phase.isDeload ? "#DA667B" : "rgba(30,19,64,0.45)" }}>
+            style={{ background: phase.isDeload ? "rgba(218,102,123,0.1)" : "rgba(180,85,47,0.06)", color: phase.isDeload ? "#DA667B" : "rgba(28,22,19,0.48)" }}>
             {phase.isDeload ? "DELOAD WEEK — -40% weight" : `Week ${weekNum} · ${phase.label}`}
           </div>
         )}
@@ -668,7 +689,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
             </span>
           </div>
           <h2 className="font-serif text-3xl text-ink mt-3 leading-tight">{ex.name}</h2>
-          <p className="text-sm mt-1" style={{ color: "rgba(30,19,64,0.45)" }}>
+          <p className="text-sm mt-1" style={{ color: "rgba(28,22,19,0.48)" }}>
             Set {setIdx + 1} of {ex.sets} · {ex.reps}
           </p>
         </div>
@@ -705,7 +726,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
         {prevWeight > 0 && (
           <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl"
             style={{ background: "rgba(180,85,47,0.07)", border: "1px solid rgba(180,85,47,0.15)" }}>
-            <span className="text-xs flex-1" style={{ color: "rgba(30,19,64,0.45)" }}>
+            <span className="text-xs flex-1" style={{ color: "rgba(28,22,19,0.48)" }}>
               Last time: <span className="font-semibold text-ink">{prevWeight} lbs</span>
               {suggested !== prevWeight
                 ? <span style={{ color: "#B4552F" }}> → try {suggested}?</span>
@@ -760,17 +781,17 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
         {/* Form cue */}
         <div className="space-y-2.5">
           <div className="flex items-start gap-3 px-4 py-3 rounded-xl"
-            style={{ background: "rgba(30,19,64,0.04)", border: "1px solid rgba(180,85,47,0.06)" }}>
-            <p className="text-sm flex-1 leading-relaxed" style={{ color: "rgba(30,19,64,0.55)" }}>{ex.formCue}</p>
+            style={{ background: "rgba(28,22,19,0.04)", border: "1px solid rgba(180,85,47,0.06)" }}>
+            <p className="text-sm flex-1 leading-relaxed" style={{ color: "rgba(28,22,19,0.55)" }}>{ex.formCue}</p>
             <button onClick={() => speak(`${ex.name}. ${ex.formCue}`)}
-              className="flex-shrink-0 mt-0.5 active:scale-90 transition-transform" style={{ color: "rgba(30,19,64,0.3)" }}>
+              className="flex-shrink-0 mt-0.5 active:scale-90 transition-transform" style={{ color: "rgba(28,22,19,0.3)" }}>
               <Volume2 size={14} />
             </button>
           </div>
           <button onClick={() => setShowFormChecker(true)}
             className="w-full py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 active:scale-95 transition-transform"
             style={{ background: "rgba(180,85,47,0.08)", color: "#B4552F", border: "1px solid rgba(180,85,47,0.2)" }}>
-            📹 Check My Form
+Check My Form
           </button>
         </div>
 
@@ -780,7 +801,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
             <div key={i} className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold"
               style={{
                 background: i < setsLogged ? catColor : "rgba(180,85,47,0.07)",
-                color: i < setsLogged ? "#000" : "rgba(30,19,64,0.35)",
+                color: i < setsLogged ? "#000" : "rgba(28,22,19,0.35)",
                 animation: i === setsLogged - 1 ? "popIn 0.3s ease-out" : "none",
               }}>
               {i + 1}
@@ -794,7 +815,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
         {sectionIdx < sections.length - 1 && (
           <button onClick={skipSection}
             className="w-full py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
-            style={{ background: "rgba(30,19,64,0.05)", color: "rgba(30,19,64,0.35)" }}>
+            style={{ background: "rgba(28,22,19,0.05)", color: "rgba(28,22,19,0.35)" }}>
             <ChevronsRight size={14} />
             Skip to {sections[sectionIdx + 1].label}
           </button>
@@ -826,12 +847,12 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
             <RestRing remaining={rest.remaining} total={rest.total} />
             <div className="absolute flex flex-col items-center">
               <span className="font-serif text-5xl text-ink">{rest.remaining}</span>
-              <span className="text-xs" style={{ color: "rgba(30,19,64,0.35)" }}>sec</span>
+              <span className="text-xs" style={{ color: "rgba(28,22,19,0.35)" }}>sec</span>
             </div>
           </div>
           {exIdx + 1 < exercises.length && setIdx + 1 >= ex.sets && (
             <div className="space-y-0.5">
-              <p className="text-xs" style={{ color: "rgba(30,19,64,0.3)" }}>Up next</p>
+              <p className="text-xs" style={{ color: "rgba(28,22,19,0.3)" }}>Up next</p>
               <p className="font-serif text-xl text-ink">{exercises[exIdx + 1]?.name}</p>
             </div>
           )}
@@ -875,7 +896,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
           </p>
           <p className="font-serif text-2xl text-ink">{ex.name}</p>
           {ex.formCue && (
-            <p className="text-sm max-w-xs leading-relaxed" style={{ color: "rgba(30,19,64,0.45)" }}>{ex.formCue}</p>
+            <p className="text-sm max-w-xs leading-relaxed" style={{ color: "rgba(28,22,19,0.48)" }}>{ex.formCue}</p>
           )}
           <button onClick={() => setPrepCountdown(0)}
             className="mt-2 px-6 py-2.5 rounded-xl text-sm active:scale-95 transition-transform"
@@ -893,7 +914,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
             <p className="font-serif text-2xl text-ink leading-snug">
               Squeeze your glute now<br />— hold —<br />now load it
             </p>
-            <p className="text-xs" style={{ color: "rgba(30,19,64,0.35)" }}>Starting in 3 seconds…</p>
+            <p className="text-xs" style={{ color: "rgba(28,22,19,0.35)" }}>Starting in 3 seconds…</p>
           </div>
         </div>
       )}
@@ -905,7 +926,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
           <div className="rounded-2xl p-6 w-full max-w-xs space-y-4 text-center"
             style={{ background: "var(--surface2)", animation: "popIn 0.2s ease-out" }}>
             <p className="font-serif text-xl text-ink">End this workout?</p>
-            <p className="text-sm" style={{ color: "rgba(30,19,64,0.45)" }}>
+            <p className="text-sm" style={{ color: "rgba(28,22,19,0.48)" }}>
               {completedSets > 0
                 ? `You've completed ${completedSets} set${completedSets === 1 ? "" : "s"}. Save your progress?`
                 : "No sets logged yet."}
@@ -941,7 +962,7 @@ export function SessionView({ day, weekNum, lastWeights, streak, isSunday, prepT
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-semibold text-ink">Add Exercise</p>
-                <p className="text-xs mt-0.5" style={{ color: "rgba(30,19,64,0.35)" }}>Added to Main Work</p>
+                <p className="text-xs mt-0.5" style={{ color: "rgba(28,22,19,0.35)" }}>Added to Main Work</p>
               </div>
               <button onClick={() => setShowAddEx(false)} style={{ color: "var(--text-muted)" }}><X size={18} /></button>
             </div>

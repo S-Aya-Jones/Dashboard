@@ -16,9 +16,9 @@ export const CHARACTERS: Character[] = [
     name: "Prof. Nova",
     tagline: "Clear & Encouraging",
     personality: "You are Prof. Nova, a warm and knowledgeable professor. Explain with clear structure, correct scientific terminology, and genuine encouragement. Use academic language but stay approachable.",
-    primary: "#7C5CFC",
+    primary: "#B4552F",
     secondary: "#E879F9",
-    bgGrad: "linear-gradient(135deg, #7C5CFC 0%, #E879F9 100%)",
+    bgGrad: "linear-gradient(135deg, #B4552F 0%, #E879F9 100%)",
   },
   {
     id: "monster",

@@ -10,11 +10,24 @@ import { today as todayStr, greetingByTime, id } from "@/lib/utils";
 import { celebrate } from "@/lib/confetti";
 import { WeatherWidget } from "./WeatherWidget";
 import { HourlyWeatherCard } from "./HourlyWeatherCard";
-import { TYPE_META, TYPE_ICON, defaultBlocks, blocksForDate, formatRange12 } from "@/lib/schedule";
+import { TYPE_META, TYPE_ICON, resolveBlocks, blocksForDate, formatRange12 } from "@/lib/schedule";
+import { whenChip } from "@/lib/whenText";
 
 interface Props {
   data: DashboardData;
   update: (fn: (d: DashboardData) => DashboardData) => void;
+}
+
+// A duplicated calendar series would otherwise render the same row several
+// times over. Same title at the same minute is the same thing.
+function dedupeEvents<T extends { title: string; start?: string; allDay: boolean }>(events: T[]): T[] {
+  const seen = new Set<string>();
+  return events.filter(e => {
+    const key = `${e.title.trim().toLowerCase()}|${e.allDay ? "all-day" : e.start ?? ""}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 export function TodayView({ data, update }: Props) {
@@ -31,10 +44,10 @@ export function TodayView({ data, update }: Props) {
 
   const todayTasks = data.tasks.filter((task) => task.date === t);
 
-  const todayBlocks = blocksForDate(data.scheduleBlocks ?? defaultBlocks(), new Date());
+  const todayBlocks = blocksForDate(resolveBlocks(data.scheduleBlocks), new Date());
   const timelineRows: { sortKey: number; kind: "block" | "event"; label: string; time: string; color: string; type?: import("@/types/dashboard").ScheduleBlock["type"] }[] = [
     ...todayBlocks.map(b => ({ sortKey: parseInt(b.startTime.replace(":", "")), kind: "block" as const, label: b.label, time: formatRange12(b.startTime, b.endTime), color: TYPE_META[b.type].color, type: b.type })),
-    ...calEvents.map(e => ({
+    ...dedupeEvents(calEvents).map(e => ({
       sortKey: e.allDay || !e.start ? -1 : new Date(e.start).getHours() * 100 + new Date(e.start).getMinutes(),
       kind: "event" as const, label: e.title,
       time: e.allDay || !e.start ? "All day" : format(new Date(e.start), "h:mm a"),
@@ -95,17 +108,24 @@ export function TodayView({ data, update }: Props) {
               return (
                 <div
                   key={i}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl border-l-[3px] transition-shadow hover:shadow-sm"
+                  className="flex items-start gap-3 px-3 py-2.5 rounded-xl border-l-[3px] transition-shadow hover:shadow-sm"
                   style={{ background: `${row.color}0d`, borderColor: row.color }}
                 >
                   <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                    className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-px"
                     style={{ background: `${row.color}22` }}
                   >
                     <Icon size={15} style={{ color: row.color }} />
                   </div>
-                  <span className="font-medium flex-1 text-sm truncate" style={{ color: row.color }}>{row.label}</span>
-                  <span className="text-xs font-medium text-sand-dark whitespace-nowrap">{row.time}</span>
+                  <span
+                    className="font-medium flex-1 text-sm leading-snug min-w-0"
+                    style={{ color: "var(--text)" }}
+                  >
+                    {row.label}
+                  </span>
+                  <span className="text-xs font-medium text-sand-dark whitespace-nowrap self-start pt-0.5">
+                    {row.time}
+                  </span>
                 </div>
               );
             })}
@@ -115,14 +135,14 @@ export function TodayView({ data, update }: Props) {
 
       {/* Tasks */}
       <Card title="Today's Tasks" action={
-        <div className="flex gap-2">
+        <div className="flex gap-2 w-full sm:w-auto">
           <input
             type="text"
             placeholder="Add a task…"
             value={newTask}
             onChange={(e) => setNewTask(e.target.value)}
             onKeyDown={handleTaskKey}
-            className="w-44"
+            className="flex-1 sm:w-44 sm:flex-none"
           />
           <Button size="sm" onClick={addTask}><Plus size={14} /></Button>
         </div>
@@ -187,7 +207,7 @@ function SmartInsights({ data }: { data: DashboardData }) {
           </div>
           <p className="text-2xl font-bold" style={{ color: "var(--text)" }}>{shadowingHours.toFixed(1)} hrs</p>
           <p className="text-xs mt-0.5 mb-2" style={{ color: "var(--text-muted)" }}>
-            {shadowingLeft > 0 ? `${shadowingLeft.toFixed(1)} hrs to 200-hr goal` : "Goal reached! 🎉"}
+            {shadowingLeft > 0 ? `${shadowingLeft.toFixed(1)} hrs to 200-hr goal` : "Goal reached!"}
           </p>
           <div className="h-1.5 rounded-full" style={{ background: "rgba(180,85,47,0.1)" }}>
             <div className="h-1.5 rounded-full transition-all" style={{ width: `${shadowingPct}%`, background: "var(--grad)" }} />
@@ -220,9 +240,11 @@ function SmartInsights({ data }: { data: DashboardData }) {
             <Brain size={15} style={{ color: "var(--purple)" }} />
             <span className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>MCAT PACE</span>
           </div>
-          <p className="text-2xl font-bold" style={{ color: "var(--text)" }}>{daysLeft > 0 ? `${daysLeft}d` : "Test day!"}</p>
+          <p className="text-2xl font-bold" style={{ color: "var(--text)" }}>
+            {daysLeft > 0 ? format(parseISO(data.mcatTestDate), "MMMM d") : "Test day"}
+          </p>
           <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-            until {format(parseISO(data.mcatTestDate), "MMM d, yyyy")}
+            {daysLeft > 0 ? format(parseISO(data.mcatTestDate), "EEEE, yyyy") : "Today is the day"}
           </p>
           {currentScore && <p className="text-xs mt-1" style={{ color: "var(--purple)" }}>Last score: {currentScore} · Target: {targetScore}</p>}
           {dailyGoal && dailyGoal > 0 ? (
@@ -246,7 +268,7 @@ function SmartInsights({ data }: { data: DashboardData }) {
     const recent3 = checkIns.slice(0, 3).reduce((s, c) => s + c.level, 0) / 3;
     const older3  = checkIns.slice(-3).reduce((s, c) => s + c.level, 0) / 3;
     const trend = recent3 < older3 - 0.5 ? "improving" : recent3 > older3 + 0.5 ? "rising" : "steady";
-    const trendEmoji = trend === "improving" ? "📉" : trend === "rising" ? "📈" : "〰️";
+    const trendEmoji = trend === "improving" ? "↓" : trend === "rising" ? "↑" : "→";
     const trendColor = trend === "improving" ? "var(--green)" : trend === "rising" ? "var(--red)" : "var(--text-muted)";
     widgets.push({
       key: "mood",
@@ -300,40 +322,6 @@ function SmartInsights({ data }: { data: DashboardData }) {
             <p className="text-xs mt-2" style={{ color: "var(--text)" }}>
               You&apos;ve trained {streak} days in a row — a rest day today could actually help your gains.
             </p>
-          </div>
-        ),
-      });
-    }
-  }
-
-  // 5. Next self-care appointment
-  const selfCare = (data.selfCareItems ?? []).sort((a, b) => (a.priority ?? 999) - (b.priority ?? 999));
-  if (selfCare.length > 0) {
-    const now = new Date();
-    const upcoming = selfCare
-      .map(item => {
-        const last = item.lastDone ? parseISO(item.lastDone) : subDays(now, item.frequencyWeeks * 7 + 1);
-        const next = new Date(last);
-        next.setDate(next.getDate() + item.frequencyWeeks * 7);
-        return { item, next, daysLeft: differenceInDays(next, startOfDay(now)) };
-      })
-      .filter(x => x.daysLeft <= 14)
-      .sort((a, b) => a.daysLeft - b.daysLeft)[0];
-    if (upcoming) {
-      widgets.push({
-        key: "selfcare",
-        node: (
-          <div className="card p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Clock size={15} style={{ color: "var(--purple)" }} />
-              <span className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>COMING UP</span>
-            </div>
-            <p className="text-2xl">{upcoming.item.emoji}</p>
-            <p className="text-sm font-semibold mt-1" style={{ color: "var(--text)" }}>{upcoming.item.name}</p>
-            <p className="text-xs mt-0.5" style={{ color: upcoming.daysLeft <= 3 ? "var(--red)" : "var(--text-muted)" }}>
-              {upcoming.daysLeft <= 0 ? "Due now!" : upcoming.daysLeft === 1 ? "Tomorrow" : `In ${upcoming.daysLeft} days`}
-            </p>
-            <p className="text-xs" style={{ color: "var(--text-muted)" }}>${upcoming.item.cost} · {upcoming.item.frequencyLabel ?? `every ${upcoming.item.frequencyWeeks} wks`}</p>
           </div>
         ),
       });

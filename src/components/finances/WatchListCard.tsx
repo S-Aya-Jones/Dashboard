@@ -119,7 +119,7 @@ export function WatchListCard({ transactions, watchListMerchants, onUpdate }: Pr
               </span>
             ) : (
               <span className="text-[11px] text-sage">
-                🚫 {row.streak >= 90 ? "90d+" : `${row.streak}d`} clean
+{row.streak >= 90 ? "90d+" : `${row.streak}d`} clean
               </span>
             )}
             <button onClick={() => onUpdate(watchListMerchants.filter((m) => m !== row.merchant))}

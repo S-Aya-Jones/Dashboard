@@ -21,7 +21,7 @@ interface TodayData {
 }
 
 const LIME = "#B4552F";
-const MUTED = "rgba(30,19,64,0.45)";
+const MUTED = "rgba(28,22,19,0.48)";
 const RED = "#EF4444";
 const AMBER = "#F59E0B";
 const CARD = "#FFFFFF";
@@ -32,9 +32,9 @@ function fmt$(n: number) { return `$${Math.abs(n).toLocaleString("en-US", { maxi
 function getCategoryColor(cat: string): string {
   const map: Record<string, string> = {
     "Eating Out": "#FB923C", Groceries: "#10B981", Gas: "#F59E0B",
-    "Fun / Entertainment": "#E0A44A", "Self-Care": "#EC4899", Health: "#EF4444",
+    "Fun / Entertainment": "#E0A44A", "Self-Care": "#C9748A", Health: "#EF4444",
     Housing: "#B4552F", Shopping: "#F472B6", Travel: "#0EA5E9",
-    Subscriptions: "#6366F1", Other: "#94A3B8",
+    Subscriptions: "#8A7A66", Other: "#94A3B8",
   };
   return map[cat] ?? "#94A3B8";
 }

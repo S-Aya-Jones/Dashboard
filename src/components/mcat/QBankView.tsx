@@ -93,7 +93,7 @@ const SUBJECTS = [
   },
   {
     name: "Physics",
-    color: "#6366F1",
+    color: "#8A7A66",
     abbr: "Physics",
     topics: [
       "Mechanics & Energy",
@@ -508,7 +508,7 @@ export function QBankView({ data, update }: Props) {
       {showImportModal && (
         <div style={{
           position: "fixed", inset: 0, zIndex: 1000,
-          background: "rgba(30,19,64,0.45)", backdropFilter: "blur(4px)",
+          background: "rgba(28,22,19,0.48)", backdropFilter: "blur(4px)",
           display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
         }}>
           <div style={{
@@ -530,7 +530,7 @@ export function QBankView({ data, update }: Props) {
               </div>
               {pendingFiles.map((f, i) => (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", borderRadius: 10, background: "var(--bg)" }}>
-                  <span style={{ fontSize: 16 }}>📄</span>
+                  <span style={{ fontSize: 16 }}></span>
                   <span style={{ fontSize: 13, color: "var(--text)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</span>
                   <span style={{ fontSize: 11, color: "var(--text-muted)", flexShrink: 0 }}>{(f.size / 1024 / 1024).toFixed(1)} MB</span>
                   <button
@@ -1669,7 +1669,7 @@ export function QBankView({ data, update }: Props) {
                           color: "#F59E0B", background: "rgba(245,158,11,0.1)",
                           padding: "2px 7px", borderRadius: 10, whiteSpace: "nowrap",
                         }}>
-                          ⚠ Review this
+Review this
                         </span>
                       )}
                       <span style={{ fontSize: 11, color: "var(--text-muted)", minWidth: 32, textAlign: "right" }}>

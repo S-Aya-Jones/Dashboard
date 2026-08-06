@@ -34,17 +34,17 @@ function fmtDayHeader(dateStr: string): string {
 }
 
 const TYPE_COLORS: Record<string, string> = {
-  exam:        "#EF4444",
-  quiz:        "#F97316",
-  appointment: "#10B981",
-  bill:        "#6366F1",
-  deadline:    "#F59E0B",
-  gym:         "#22D3EE",
-  other:       "#8B5CF6",
+  exam:        "#C0503C",
+  quiz:        "#C97A52",
+  appointment: "#71816D",
+  bill:        "#8A7A66",
+  deadline:    "#E0A44A",
+  gym:         "#3F6F5E",
+  other:       "#A8967E",
 };
 
 function eventColor(ev: AnyEvent): string {
-  if (ev.source === "calendar") return "#0EA5E9";
+  if (ev.source === "calendar") return "#B4552F";
   return TYPE_COLORS[(ev as EmailEvt).eventType] ?? TYPE_COLORS.other;
 }
 
@@ -154,7 +154,7 @@ export function DayScheduleView() {
             <div key={h} style={{
               display: "grid", gridTemplateColumns: "52px 1fr",
               borderBottom: h < 22 ? "1px solid var(--border)" : "none",
-              background: isCurrentHour ? "rgba(124,92,252,0.04)" : undefined,
+              background: isCurrentHour ? "rgba(180,85,47,0.04)" : undefined,
               minHeight: eventsThisHour.length > 0 ? undefined : 44,
             }}>
               <div style={{ padding: "10px 8px 0 8px", fontSize: "0.7rem", fontWeight: 600, color: isCurrentHour ? "var(--purple)" : "var(--text-muted)", textAlign: "right", lineHeight: 1 }}>
@@ -205,7 +205,7 @@ export function DayScheduleView() {
 
         {timedEvs.length === 0 && allDayEvs.length === 0 && !loading && (
           <div style={{ padding: "3rem 1.5rem", textAlign: "center" }}>
-            <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>📅</div>
+            <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}></div>
             <div style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>No events found for this day</div>
             <div style={{ color: "var(--text-muted)", fontSize: "0.78rem", marginTop: "0.25rem" }}>Appointments from your email will appear here after scanning</div>
           </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { Bell, Plus, Trash2, Check, X, MessageSquare, RefreshCw, BookOpen, Calendar } from "lucide-react";
+import { TextSettings } from "@/components/settings/TextSettings";
 
 interface Reminder {
   id: string;
@@ -65,7 +66,7 @@ function fmtEventDate(iso: string) {
 
   if (diffDays === 0)      return `Today at ${timeStr}`;
   if (diffDays === 1)      return `Tomorrow at ${timeStr}`;
-  if (diffDays <= 6)       return `${dateStr} (${diffDays}d)`;
+  if (diffDays <= 6)       return `${dateStr} at ${timeStr}`;
   return dateStr;
 }
 
@@ -516,6 +517,10 @@ export function RemindersView() {
           )}
         </div>
       )}
+
+      <div style={{ marginTop: "1.5rem" }}>
+        <TextSettings />
+      </div>
     </div>
   );
 }

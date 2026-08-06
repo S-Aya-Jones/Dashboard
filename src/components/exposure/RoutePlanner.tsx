@@ -171,9 +171,9 @@ export function RoutePlanner({ onSaved }: { onSaved: () => void }) {
             {(r.bridges.length > 0 || r.highways.length > 0) && (
               <div className="text-xs mb-3 space-y-1" style={{ color: "var(--text)" }}>
                 {r.bridges.length > 0 && (
-                  <div>🌉 {r.bridges.length} bridge{r.bridges.length > 1 ? "s" : ""} on this route: <strong>{r.bridges.join(", ")}</strong></div>
+                  <div>{r.bridges.length} bridge{r.bridges.length > 1 ? "s" : ""} on this route: <strong>{r.bridges.join(", ")}</strong></div>
                 )}
-                {r.highways.length > 0 && <div>🛣 Uses interstate: <strong>{r.highways.join(", ")}</strong></div>}
+                {r.highways.length > 0 && <div>Uses interstate: <strong>{r.highways.join(", ")}</strong></div>}
                 {r.bridgeCheck === "unavailable" && (
                   <div style={{ color: "var(--text-muted)" }}>Map bridge check didn&apos;t respond — this only reflects road names.</div>
                 )}

@@ -121,7 +121,7 @@ export function ProgressComparison({ before, after, onClose }: Props) {
               />
             </div>
             <p className="text-xs text-center" style={{ color: fatChangeNum < 0 ? "#B4552F" : "#DA667B" }}>
-              {fatChangeNum < 0 ? "✓ Decreasing" : "⚠ Increasing"}
+              {fatChangeNum < 0 ? "✓ Decreasing" : "Increasing"}
             </p>
           </div>
         )}

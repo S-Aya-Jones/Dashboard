@@ -264,7 +264,7 @@ export function MantrasTab() {
           <div className="card" style={{ padding: "1.5rem", textAlign: "center", color: "var(--text-muted)" }}>Loading…</div>
         ) : filtered.length === 0 ? (
           <div className="card" style={{ padding: "2rem", textAlign: "center" }}>
-            <p style={{ fontSize: "1.5rem", marginBottom: "0.5rem" }}>✨</p>
+            <p style={{ fontSize: "1.5rem", marginBottom: "0.5rem" }}></p>
             <p style={{ color: "var(--text-muted)", fontSize: "0.88rem" }}>
               No {faithMode ? "faith" : "neutral"} mantras yet. Add one above.
             </p>

@@ -483,12 +483,12 @@ export function AnkiView({ data, update }: Props) {
           </div>
 
           {/* How it works */}
-          <div style={{ padding: "16px 18px", borderRadius: 14, background: "rgba(124,92,252,0.07)", border: "1.5px solid rgba(124,92,252,0.15)" }}>
+          <div style={{ padding: "16px 18px", borderRadius: 14, background: "rgba(180,85,47,0.07)", border: "1.5px solid rgba(180,85,47,0.15)" }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--purple)", marginBottom: 8 }}>How the Anki algorithm works</div>
             <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.8 }}>
-              <b>🔵 Learning</b> — new cards work through steps: 1 min → 10 min → graduate<br/>
-              <b>🔴 Review</b> — graduated cards come back based on their interval<br/>
-              <b>🟢 New</b> — unseen cards, limited to your daily cap<br/>
+              <b>Learning</b> — new cards work through steps: 1 min → 10 min → graduate<br/>
+              <b>Review</b> — graduated cards come back based on their interval<br/>
+              <b>New</b> — unseen cards, limited to your daily cap<br/>
               <br/>
               <b>Again</b> → card comes back in 1 min; lapses reset ease<br/>
               <b>Hard</b> → shorter interval, ease drops 15%<br/>
@@ -604,7 +604,7 @@ export function AnkiView({ data, update }: Props) {
                 {card.front}
               </div>
               {card.deck && (
-                <span style={{ fontSize: 11, padding: "2px 10px", borderRadius: 20, background: "rgba(124,92,252,0.08)", color: "var(--purple)", fontWeight: 600 }}>
+                <span style={{ fontSize: 11, padding: "2px 10px", borderRadius: 20, background: "rgba(180,85,47,0.08)", color: "var(--purple)", fontWeight: 600 }}>
                   {card.deck}
                 </span>
               )}
@@ -623,7 +623,7 @@ export function AnkiView({ data, update }: Props) {
               {(card.subject || card.topic) && (
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center", marginTop: 8 }}>
                   {card.subject && (
-                    <span style={{ padding: "3px 10px", borderRadius: 20, background: "rgba(124,92,252,0.08)", color: "var(--purple)", fontSize: 12, fontWeight: 600 }}>{card.subject}</span>
+                    <span style={{ padding: "3px 10px", borderRadius: 20, background: "rgba(180,85,47,0.08)", color: "var(--purple)", fontSize: 12, fontWeight: 600 }}>{card.subject}</span>
                   )}
                   {card.topic && (
                     <span style={{ padding: "3px 10px", borderRadius: 20, background: "rgba(232,121,249,0.08)", color: "var(--pink)", fontSize: 12, fontWeight: 600 }}>{card.topic}</span>
@@ -640,7 +640,7 @@ export function AnkiView({ data, update }: Props) {
             {([
               { rating: 0 as const, label: "Again", color: "var(--red)", bg: "rgba(239,68,68,0.08)" },
               { rating: 1 as const, label: "Hard",  color: "var(--amber)", bg: "rgba(245,158,11,0.08)" },
-              { rating: 2 as const, label: "Good",  color: "var(--purple)", bg: "rgba(124,92,252,0.08)" },
+              { rating: 2 as const, label: "Good",  color: "var(--purple)", bg: "rgba(180,85,47,0.08)" },
               { rating: 3 as const, label: "Easy",  color: "var(--green)", bg: "rgba(16,185,129,0.08)" },
             ] as const).map(({ rating, label, color, bg }) => (
               <button
@@ -734,7 +734,7 @@ export function AnkiView({ data, update }: Props) {
               />
             </div>
             <button onClick={generateWithAI} disabled={generating || !topic.trim()}
-              style={{ padding: "9px 20px", borderRadius: 10, border: "none", cursor: "pointer", background: "rgba(124,92,252,0.1)", color: "var(--purple)", fontWeight: 700, fontSize: 14, alignSelf: "flex-end", opacity: generating || !topic.trim() ? 0.5 : 1 }}
+              style={{ padding: "9px 20px", borderRadius: 10, border: "none", cursor: "pointer", background: "rgba(180,85,47,0.1)", color: "var(--purple)", fontWeight: 700, fontSize: 14, alignSelf: "flex-end", opacity: generating || !topic.trim() ? 0.5 : 1 }}
             >
               {generating ? "Generating..." : "Generate"}
             </button>
@@ -794,7 +794,7 @@ export function AnkiView({ data, update }: Props) {
                           <div style={{ fontSize: 14, color: "var(--text)", lineHeight: 1.6, marginBottom: 12 }}>{c.back}</div>
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                              {c.subject && <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 20, background: "rgba(124,92,252,0.08)", color: "var(--purple)" }}>{c.subject}</span>}
+                              {c.subject && <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 20, background: "rgba(180,85,47,0.08)", color: "var(--purple)" }}>{c.subject}</span>}
                               {c.topic && <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 20, background: "rgba(232,121,249,0.08)", color: "var(--pink)" }}>{c.topic}</span>}
                               {c.tags.map(tag => <span key={tag} style={{ fontSize: 11, padding: "2px 8px", borderRadius: 20, background: "var(--bg)", color: "var(--text-muted)" }}>{tag}</span>)}
                             </div>
@@ -849,7 +849,7 @@ export function AnkiView({ data, update }: Props) {
       {/* Stats row — 4 pillars */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 28 }}>
         {[
-          { label: "Total",    value: flashcards.length,          dot: "var(--purple)", bg: "rgba(124,92,252,0.08)" },
+          { label: "Total",    value: flashcards.length,          dot: "var(--purple)", bg: "rgba(180,85,47,0.08)" },
           { label: "Learning", value: sessionCounts.learnCount,   dot: "#3B82F6",       bg: "rgba(59,130,246,0.08)" },
           { label: "Reviews",  value: sessionCounts.reviewCount,  dot: "var(--red)",    bg: "rgba(239,68,68,0.08)" },
           { label: "New",      value: sessionCounts.newCount,     dot: "var(--green)",  bg: "rgba(16,185,129,0.08)" },
@@ -872,7 +872,7 @@ export function AnkiView({ data, update }: Props) {
             background: sessionCounts.total > 0 ? "var(--grad)" : "var(--bg)",
             color: sessionCounts.total > 0 ? "#fff" : "var(--text-muted)",
             fontWeight: 700, fontSize: 15,
-            boxShadow: sessionCounts.total > 0 ? "0 2px 12px rgba(124,92,252,0.3)" : "none",
+            boxShadow: sessionCounts.total > 0 ? "0 2px 12px rgba(180,85,47,0.3)" : "none",
           }}
         >
           {sessionCounts.total > 0 ? `Study Now (${sessionCounts.total})` : "All caught up — check back later!"}

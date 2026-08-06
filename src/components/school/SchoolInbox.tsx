@@ -76,7 +76,7 @@ function EmailRow({ email, onSelect, selected }: {
     <div onClick={() => onSelect(email)}
       style={{
         padding: "0.75rem 1rem", cursor: "pointer",
-        background: selected ? "rgba(124,92,252,0.08)" : email.isRead ? "var(--bg)" : "var(--surface)",
+        background: selected ? "rgba(180,85,47,0.08)" : email.isRead ? "var(--bg)" : "var(--surface)",
         borderBottom: "1px solid var(--border)",
         borderLeft: `3px solid ${selected ? "var(--purple)" : color !== "transparent" ? color : "transparent"}`,
         transition: "background 0.15s",
@@ -193,7 +193,7 @@ function EmailDetail({ email, onClose }: { email: Email; onClose: () => void }) 
                 Due {fmtDeadline(email.deadlineAt)}
               </span>
               <button onClick={handleAddReminder}
-                style={{ fontSize: "0.72rem", background: "rgba(124,92,252,0.12)", color: "var(--purple)", border: "none", borderRadius: 6, padding: "0.2rem 0.5rem", cursor: "pointer", fontWeight: 600 }}>
+                style={{ fontSize: "0.72rem", background: "rgba(180,85,47,0.12)", color: "var(--purple)", border: "none", borderRadius: 6, padding: "0.2rem 0.5rem", cursor: "pointer", fontWeight: 600 }}>
                 + Add to Reminders
               </button>
             </div>
@@ -432,7 +432,7 @@ export function SchoolInbox() {
         </div>
       )}
       <div style={{ background: "var(--surface)", borderRadius: 20, border: "1.5px solid var(--border)", padding: "2rem", textAlign: "center", maxWidth: 420 }}>
-        <div style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(124,92,252,0.1)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1rem" }}>
+        <div style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(180,85,47,0.1)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1rem" }}>
           <Mail size={26} style={{ color: "var(--purple)" }} />
         </div>
         <h2 style={{ margin: "0 0 0.5rem", fontSize: "1.1rem", color: "var(--text)" }}>Connect your Gmail</h2>
@@ -498,7 +498,7 @@ export function SchoolInbox() {
 
       {/* Scan result banner */}
       {scanResult && (
-        <div style={{ marginBottom: "0.75rem", padding: "0.5rem 1rem", background: "rgba(124,92,252,0.07)", border: "1px solid rgba(124,92,252,0.2)", borderRadius: 10, fontSize: "0.78rem", color: "var(--purple)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ marginBottom: "0.75rem", padding: "0.5rem 1rem", background: "rgba(180,85,47,0.07)", border: "1px solid rgba(180,85,47,0.2)", borderRadius: 10, fontSize: "0.78rem", color: "var(--purple)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span>{scanResult}</span>
           <button onClick={() => setScanResult(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 0 }}><X size={14} /></button>
         </div>

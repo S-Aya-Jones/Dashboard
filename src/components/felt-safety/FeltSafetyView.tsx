@@ -53,13 +53,13 @@ const LEVELS = [
 const TIME_LABELS = ["12–3a", "3–6a", "6–9a", "9a–12p", "12–3p", "3–6p", "6–9p", "9p–12a"];
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-const MAIN_TABS: { key: MainTab; emoji: string; label: string }[] = [
-  { key: "garden",   emoji: "🌿", label: "Garden"     },
-  { key: "twitches", emoji: "⚡", label: "Twitches"   },
-  { key: "reps",     emoji: "🃏", label: "Rep Cards"  },
-  { key: "parking",  emoji: "🅿️", label: "Parking Lot"},
-  { key: "checkin",  emoji: "🌙", label: "Check-in"   },
-  { key: "mantras",  emoji: "✨", label: "Mantras"    },
+const MAIN_TABS: { key: MainTab; label: string }[] = [
+  { key: "garden",   label: "Garden"     },
+  { key: "twitches", label: "Twitches"   },
+  { key: "reps",     label: "Rep Cards"  },
+  { key: "parking",  label: "Parking Lot"},
+  { key: "checkin",  label: "Check-in"   },
+  { key: "mantras",  label: "Mantras"    },
 ];
 
 // ─── Analytics helpers ────────────────────────────────────────────────────────
@@ -170,7 +170,6 @@ function TwitchLogModal({ open, onClose, onSave }: {
     return (
       <Modal open={open} onClose={onClose} width="max-w-sm">
         <div style={{ textAlign: "center", padding: "2rem 1rem" }}>
-          <div style={{ fontSize: "3rem", marginBottom: "0.5rem" }}>{acted ? "📝" : "🌿"}</div>
           <p style={{ fontWeight: 700, fontSize: "1.1rem", color: "var(--text)", marginBottom: "0.25rem" }}>
             {acted ? "Logged." : "Sat with it. That's the rep."}
           </p>
@@ -445,7 +444,6 @@ function TwitchContent({ logs, loading }: { logs: TwitchLog[]; loading: boolean 
             <div className="card" style={{ padding: "2rem", textAlign: "center", color: "var(--text-muted)" }}>Loading…</div>
           ) : todayLogs.length === 0 ? (
             <div className="card" style={{ padding: "2.5rem", textAlign: "center" }}>
-              <p style={{ fontSize: "1.75rem", marginBottom: "0.6rem" }}>🌿</p>
               <p style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>No twitches logged today.</p>
               <p style={{ color: "var(--text-light)", fontSize: "0.8rem", marginTop: "0.2rem" }}>Tap "Log a Twitch" when an urge appears.</p>
             </div>
@@ -621,7 +619,6 @@ export function FeltSafetyView() {
               transition: "all 0.15s ease",
               whiteSpace: "nowrap",
             }}>
-              <span>{t.emoji}</span>
               <span>{t.label}</span>
             </button>
           ))}

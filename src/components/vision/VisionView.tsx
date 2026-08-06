@@ -215,7 +215,7 @@ export function VisionView({ data, update }: Props) {
           >
             <button
               onClick={() => setLightboxItem(null)}
-              className="absolute -top-10 right-0 text-purple-200/70 transition-colors"
+              className="absolute -top-10 right-0 text-brown-light transition-colors"
             >
               <X size={24} />
             </button>
@@ -228,12 +228,12 @@ export function VisionView({ data, update }: Props) {
             />
             <div className="text-center space-y-1.5">
               {lightboxItem.caption && (
-                <p className="font-serif text-lg text-purple-100/90 italic">
+                <p className="font-serif text-lg text-brown italic">
                   {lightboxItem.caption}
                 </p>
               )}
               {lightboxItem.category && (
-                <span className="inline-block text-xs text-purple-100/70 bg-purple-500/20 px-3 py-1 rounded-full">
+                <span className="inline-block text-xs text-brown-light bg-terracotta/20 px-3 py-1 rounded-full">
                   {lightboxItem.category}
                 </span>
               )}

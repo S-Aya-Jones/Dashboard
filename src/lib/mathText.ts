@@ -76,7 +76,7 @@ export function renderMath(escaped: string): string {
 /** Shared CSS for the equation spans. */
 export const MATH_CSS = `
   .eq-block { display:block; margin:.85rem 0; padding:.7rem 1rem; border-radius:10px;
-              background:rgba(124,92,252,.07); border-left:3px solid var(--purple,#7C5CFC);
+              background:rgba(180,85,47,.07); border-left:3px solid var(--purple,#B4552F);
               font-size:1.05rem; letter-spacing:.01em; text-align:center; }
   .eq-inline { padding:0 .15rem; font-weight:600; }
   .eq-block sup, .eq-inline sup { font-size:.7em; vertical-align:super; line-height:0; }

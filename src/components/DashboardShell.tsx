@@ -49,7 +49,7 @@ export function DashboardShell({ children }: Props) {
   return (
     <div className="flex min-h-screen" style={{ background: "var(--bg)" }}>
       <Sidebar saving={saving} />
-      <main className="flex-1 overflow-x-hidden pb-20 md:pb-0">
+      <main className="flex-1 overflow-x-hidden pb-44 md:pb-8">
         <div className="max-w-5xl mx-auto px-4 md:px-6 py-4 md:py-8">
           <VisionBoardBanner items={data.visionBoard?.items ?? []} />
           {children({ data, update })}

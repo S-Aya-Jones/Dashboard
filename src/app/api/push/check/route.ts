@@ -59,7 +59,7 @@ export async function GET() {
       const minsAway = Math.round((startMs - now.getTime()) / 60000);
       if (minsAway >= 0 && minsAway <= 30) {
         const label = minsAway <= 1 ? "starting now" : `in ${minsAway} min`;
-        await sendPush(sub, `📅 ${event.summary ?? "Event"}`, `${label}${event.location ? ` · ${event.location}` : ""}`, "/integrations");
+        await sendPush(sub, `${event.summary ?? "Event"}`, `${label}${event.location ? ` · ${event.location}` : ""}`, "/integrations");
         results.push(`calendar: ${event.summary}`);
       }
     }
@@ -72,7 +72,7 @@ export async function GET() {
     const list = await gmail.users.threads.list({ userId: "me", q: "in:inbox is:unread", maxResults: 5, labelIds: ["INBOX"] });
     const count = list.data.resultSizeEstimate ?? 0;
     if (count > 0) {
-      await sendPush(sub, `📬 ${count} unread email${count > 1 ? "s" : ""}`, "Tap to open your inbox", "/integrations");
+      await sendPush(sub, `${count} unread email${count > 1 ? "s" : ""}`, "Tap to open your inbox", "/integrations");
       results.push(`gmail: ${count} unread`);
     }
   } catch { /* gmail not connected */ }

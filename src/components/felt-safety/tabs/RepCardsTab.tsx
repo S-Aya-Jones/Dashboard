@@ -342,7 +342,7 @@ export function RepCardsTab() {
     return (
       <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
         <div className="card" style={{ padding: "2.5rem", textAlign: "center" }}>
-          <p style={{ fontSize: "2rem", marginBottom: "0.6rem" }}>🃏</p>
+          <p style={{ fontSize: "2rem", marginBottom: "0.6rem" }}></p>
           <p style={{ fontWeight: 700, color: "var(--text)", marginBottom: "0.3rem" }}>No card available today</p>
           <p style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
             Log twitches to unlock higher tiers and more cards.
@@ -467,10 +467,10 @@ export function RepCardsTab() {
                 background: customSaved
                   ? "linear-gradient(135deg, #71816D, #4A6741)"
                   : !customTitle.trim() || !customInstruction.trim() || customSaving
-                    ? "rgba(124,92,252,0.12)"
+                    ? "rgba(180,85,47,0.12)"
                     : "linear-gradient(135deg, var(--purple), var(--pink))",
                 color: (!customTitle.trim() || !customInstruction.trim() || customSaving) && !customSaved
-                  ? "rgba(124,92,252,0.35)"
+                  ? "rgba(180,85,47,0.35)"
                   : "#fff",
                 fontSize: "0.9rem",
                 fontWeight: 700,
@@ -495,7 +495,7 @@ export function RepCardsTab() {
           position: "relative",
           background: "linear-gradient(160deg, var(--surface) 0%, var(--surface2) 100%)",
           border: "1px solid var(--border)",
-          boxShadow: "0 8px 32px rgba(124,92,252,0.07), 0 2px 8px rgba(0,0,0,0.04)",
+          boxShadow: "0 8px 32px rgba(180,85,47,0.07), 0 2px 8px rgba(0,0,0,0.04)",
         }}
       >
         {/* Tier badge — top right */}
@@ -812,7 +812,7 @@ export function RepCardsTab() {
               <div style={{ minWidth: "300px" }}>
                 <ResponsiveContainer width="100%" height={160}>
                   <LineChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(124,92,252,0.08)" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(180,85,47,0.08)" />
                     <XAxis
                       dataKey="date"
                       tick={{ fontSize: 10, fill: "var(--text-light)" }}

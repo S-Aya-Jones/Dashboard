@@ -348,7 +348,7 @@ function WeightCard({ data, update }: Props) {
       {goalW > 0 && current > 0 && (
         <div className="px-5 pb-3 space-y-1.5">
           <div className="flex justify-between text-xs" style={{ color: "var(--text-muted)" }}>
-            <span>{lbsLeft > 0 ? `${lbsLeft.toFixed(1)} lbs to go` : "🎉 Goal reached!"}</span>
+            <span>{lbsLeft > 0 ? `${lbsLeft.toFixed(1)} lbs to go` : "Goal reached!"}</span>
             <span style={{ color: "#D07A4F" }}>{pct}%</span>
           </div>
           <div className="h-3 rounded-full overflow-hidden" style={{ background: "rgba(180,85,47,0.08)" }}>
@@ -804,10 +804,10 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
             {phase.isDeload && (
               <div className="rounded-2xl p-5 space-y-3 relative overflow-hidden"
                 style={{ background: "linear-gradient(135deg,#f9e8eb 0%,#f4e8f0 100%)", border: "2px solid #DA667B" }}>
-                <div className="absolute top-2 right-3 text-4xl opacity-15">🌱</div>
+                <div className="absolute top-2 right-3 text-4xl opacity-15"></div>
                 <div className="relative">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-2xl">🌱</span>
+                    <span className="text-2xl"></span>
                     <span className="text-xs font-bold uppercase tracking-widest" style={{ color: "#DA667B" }}>Week {weekNum} — DELOAD</span>
                   </div>
                   <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>Growth happens during recovery</p>
@@ -827,7 +827,7 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>
-                      {getPhaseEmojiAndColor(weekNum).emoji} Week {weekNum} — {phase.label}
+                      Week {weekNum} — {phase.label}
                     </p>
                     <p className="text-xs mt-2 leading-relaxed" style={{ color: "var(--text-muted)" }}>
                       {phase.guidance}
@@ -840,7 +840,7 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
             {/* APT Checkup Reminder */}
             <div className="rounded-2xl p-5 space-y-3" style={{ background: "var(--surface)", border: "1px solid rgba(180,85,47,0.2)" }}>
               <div className="flex items-start gap-3">
-                <span className="text-2xl">🔍</span>
+                <span className="text-2xl"></span>
                 <div className="flex-1">
                   <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>APT Self-Check</p>
                   <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
@@ -874,7 +874,7 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
             {/* Incline Walk Reminder */}
             <div className="rounded-2xl p-5 space-y-3" style={{ background: "rgba(201,154,92,0.08)", border: "1px solid rgba(201,154,92,0.25)" }}>
               <div className="flex items-start gap-3">
-                <span className="text-2xl">🚶</span>
+                <span className="text-2xl"></span>
                 <div className="flex-1">
                   <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>Incline Walk Daily</p>
                   <p className="text-xs mt-1" style={{ color: "#C99A5C" }}>

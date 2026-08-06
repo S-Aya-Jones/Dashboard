@@ -64,7 +64,7 @@ export async function ensureTelegramTables() {
     const nextRun = calcNextRunAt("19:00", "daily", null);
     await sql`
       INSERT INTO reminders (title, schedule_type, time_of_day, next_run_at)
-      VALUES ('Orgo study block 📚', 'daily', '19:00', ${nextRun})
+      VALUES ('Orgo study block', 'daily', '19:00', ${nextRun})
     `;
   }
 }

@@ -9,7 +9,7 @@ export function SmsOptInForm() {
     return (
       <div style={{ textAlign: "center", padding: "2rem 1rem", background: "rgba(180,85,47,0.06)", borderRadius: "12px", border: "1px solid rgba(180,85,47,0.2)", marginBottom: "1.25rem" }}>
         <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem" }}>✓</div>
-        <p style={{ fontWeight: 600, color: "#1E1340", margin: "0 0 0.35rem", fontSize: "1.05rem" }}>Opt-in confirmed.</p>
+        <p style={{ fontWeight: 600, color: "#1C1613", margin: "0 0 0.35rem", fontSize: "1.05rem" }}>Opt-in confirmed.</p>
         <p style={{ fontSize: "0.85rem", color: "#7C6FAE", margin: 0 }}>
           You&apos;ll receive up to 2 messages per day. Reply <strong>STOP</strong> at any time to cancel.
         </p>
@@ -27,7 +27,7 @@ export function SmsOptInForm() {
           onChange={e => setChecked(e.target.checked)}
           style={{ marginTop: "3px", flexShrink: 0, width: 16, height: 16, accentColor: "#B4552F", cursor: "pointer" }}
         />
-        <label htmlFor="consent" style={{ fontSize: "0.85rem", lineHeight: 1.6, color: "#1E1340", cursor: "pointer" }}>
+        <label htmlFor="consent" style={{ fontSize: "0.85rem", lineHeight: 1.6, color: "#1C1613", cursor: "pointer" }}>
           Yes, I consent to receive automated text messages from Aya&apos;s Dashboard
           (operated by Shaniqua Jones) about my daily workout reminders, wellness
           check-ins, and fitness updates. I understand I will receive up to <strong>2 messages per day</strong>.

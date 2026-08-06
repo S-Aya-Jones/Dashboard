@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { id } from "@/lib/utils";
 import { celebrate } from "@/lib/confetti";
-import { TYPE_META, TYPE_ICON, defaultBlocks, toMinutes, blocksForDate, formatRange12 } from "@/lib/schedule";
+import { TYPE_META, TYPE_ICON, defaultBlocks, resolveBlocks, toMinutes, blocksForDate, formatRange12 } from "@/lib/schedule";
 
 interface Props {
   data: DashboardData;
@@ -28,7 +28,7 @@ export function WeekView({ data, update }: Props) {
   const [blockForm, setBlockForm] = useState({ label: "", startTime: "09:00", endTime: "10:00", type: "other" as ScheduleBlock["type"], days: [...WEEKDAYS] });
 
   const days = eachDayOfInterval({ start: weekStart, end: endOfWeek(weekStart, { weekStartsOn: 1 }) });
-  const blocks = data.scheduleBlocks ?? defaultBlocks();
+  const blocks = resolveBlocks(data.scheduleBlocks);
 
   useEffect(() => {
     fetch("/api/google/calendar?days=7")
@@ -66,7 +66,7 @@ export function WeekView({ data, update }: Props) {
     const meta = TYPE_META[blockForm.type];
     update(d => ({
       ...d,
-      scheduleBlocks: [...(d.scheduleBlocks ?? defaultBlocks()), {
+      scheduleBlocks: [...resolveBlocks(d.scheduleBlocks), {
         id: id(), label: blockForm.label, startTime: blockForm.startTime, endTime: blockForm.endTime,
         days: blockForm.days, type: blockForm.type, color: meta.color,
       }],
@@ -76,7 +76,7 @@ export function WeekView({ data, update }: Props) {
   };
 
   const deleteBlock = (blockId: string) => {
-    update(d => ({ ...d, scheduleBlocks: (d.scheduleBlocks ?? defaultBlocks()).filter(b => b.id !== blockId) }));
+    update(d => ({ ...d, scheduleBlocks: resolveBlocks(d.scheduleBlocks).filter(b => b.id !== blockId) }));
   };
 
   const eventsForDay = (day: Date) => calEvents.filter(e => {
