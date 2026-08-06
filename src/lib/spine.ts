@@ -6,6 +6,7 @@ import {
   formatTimeOfDay,
 } from "@/lib/telegram";
 import { getUpcomingEvents } from "@/lib/gmail";
+import { sendSms } from "@/lib/sms";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // The notification spine: every scheduled ping in Aya's day, fired by
@@ -15,6 +16,14 @@ import { getUpcomingEvents } from "@/lib/gmail";
 // ─────────────────────────────────────────────────────────────────────────────
 
 const TZ = "America/Chicago";
+
+// Telegram always; SMS too when SMS_ALSO=1 (carrier gateway, plain text).
+async function notify(text: string): Promise<void> {
+  await sendTelegram(text);
+  if (process.env.SMS_ALSO === "1") {
+    await sendSms(text.replace(/<[^>]+>/g, "")).catch(() => false);
+  }
+}
 
 function db() {
   const url = process.env.DATABASE_URL;
@@ -268,7 +277,7 @@ export const SLOTS: Slot[] = [
         throw new Error(`briefing ${res.status}`);
       } catch {
         const assessments = await getCourseAssessments();
-        await sendTelegram(buildFallbackMorning(assessments, dow));
+        await notify(buildFallbackMorning(assessments, dow));
         return "fallback-daymap";
       }
     },
@@ -280,7 +289,7 @@ export const SLOTS: Slot[] = [
     graceMin: 150,
     run: async ({ dow }) => {
       const assessments = await getCourseAssessments();
-      await sendTelegram(buildFallbackMorning(assessments, dow));
+      await notify(buildFallbackMorning(assessments, dow));
       return "weekend-daymap";
     },
   },
@@ -290,7 +299,7 @@ export const SLOTS: Slot[] = [
     time: "14:25",
     graceMin: 60,
     run: async ({ dow }) => {
-      await sendTelegram(buildLeaveWorkMsg(dow));
+      await notify(buildLeaveWorkMsg(dow));
       return "sent";
     },
   },
@@ -301,7 +310,7 @@ export const SLOTS: Slot[] = [
     graceMin: 90,
     run: async ({ dow }) => {
       const assessments = await getCourseAssessments();
-      await sendTelegram(buildStudyBlocksMsg(assessments, dow));
+      await notify(buildStudyBlocksMsg(assessments, dow));
       return "sent";
     },
   },
@@ -311,7 +320,7 @@ export const SLOTS: Slot[] = [
     time: "11:45",
     graceMin: 90,
     run: async () => {
-      await sendTelegram(
+      await notify(
         "11:45 \u2014 big driving exposure at 12:30, right off the back of therapy while it's fresh.\n\n" +
         "\u2022 Open your saved route in the app (Exposure \u2192 Routes) \u2014 highways and tolls already avoided\n" +
         "\u2022 Rate your fear before you turn the key, at the worst moment, and when you park\n" +
@@ -327,7 +336,7 @@ export const SLOTS: Slot[] = [
     time: "18:00",
     graceMin: 90,
     run: async () => {
-      await sendTelegram(
+      await notify(
         "6:00 \u2014 weekly exposure check-in (5 minutes, in the app under Exposure \u2192 Check-in).\n\n" +
         "What could you do this week that you couldn't a month ago? What did you avoid? " +
         "What's the one step for next week?\n\n" +
@@ -343,7 +352,7 @@ export const SLOTS: Slot[] = [
     graceMin: 90,
     run: async () => {
       const assessments = await getCourseAssessments();
-      await sendTelegram(buildWeekPlanMsg(assessments));
+      await notify(buildWeekPlanMsg(assessments));
       return "sent";
     },
   },
@@ -353,7 +362,7 @@ export const SLOTS: Slot[] = [
     time: "19:55",
     graceMin: 60,
     run: async () => {
-      await sendTelegram(SKINCARE_MSG);
+      await notify(SKINCARE_MSG);
       return "sent";
     },
   },
