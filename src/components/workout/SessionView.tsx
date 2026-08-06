@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { X, Volume2, SkipForward, Pause, Play, Plus, ChevronLeft, ChevronRight, ExternalLink, ChevronsRight } from "lucide-react";
+import { X, Volume2, SkipForward, Pause, Play, Plus, ChevronLeft, ChevronRight, ChevronsRight } from "lucide-react";
 import { ProgramDay, ProgramExercise, getWeekPhase, suggestWeight, CATEGORY_CUES, UNIVERSAL_CUES, getPhaseEmojiAndColor, getPhaseCoachingMessage } from "./program";
 import { DashboardData, ExerciseSessionLog, WorkoutSetLog } from "@/types/dashboard";
 import { AvatarCoach } from "./AvatarCoach";
 import { FormChecker } from "./FormChecker";
+import { ExerciseDemo, hasDemo } from "./ExerciseDemo";
 
 interface Props {
   day: ProgramDay;
@@ -110,37 +111,57 @@ const CAT_COLOR: Record<string, string> = {
 };
 
 function VideoBlock({ ex, animKey }: { ex: ProgramExercise; animKey: number }) {
-  if (ex.videoId) {
-    return (
-      <div className="rounded-2xl overflow-hidden" style={{ background: "#000", aspectRatio: "16/9" }}>
-        <iframe
-          key={`${ex.videoId}-${animKey}`}
-          src={`https://www.youtube.com/embed/${ex.videoId}?rel=0&modestbranding=1&controls=1&autoplay=1&mute=1&playsinline=1`}
-          title={`${ex.name} tutorial`}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          className="w-full h-full"
-          style={{ border: "none", display: "block" }}
-        />
-      </div>
-    );
-  }
+  // The bundled demo is the default: it loads instantly off our own origin and
+  // keeps her inside the app. A hand-picked video, where one exists, sits
+  // underneath as an inline player — still no trip to YouTube search, which is
+  // what this used to do for every move that had no videoId.
+  const [showVideo, setShowVideo] = useState(false);
+  const demo = hasDemo(ex.name);
+
+  if (!demo && !ex.videoId) return null;
+
   return (
-    <a href={`https://www.youtube.com/results?search_query=${encodeURIComponent(ex.name + " exercise form tutorial")}`}
-      target="_blank" rel="noopener noreferrer"
-      className="flex items-center justify-between px-4 py-3 rounded-2xl active:scale-95 transition-transform"
-      style={{ background: "var(--surface2)", border: "1px solid rgba(180,85,47,0.06)" }}>
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-7 rounded-lg flex items-center justify-center" style={{ background: "#FF0000" }}>
-          <div className="w-0 h-0 ml-0.5" style={{ borderTop: "6px solid transparent", borderBottom: "6px solid transparent", borderLeft: "11px solid white" }} />
+    <div className="space-y-2">
+      {demo && !showVideo && <ExerciseDemo name={ex.name} />}
+
+      {ex.videoId && showVideo && (
+        <div className="rounded-2xl overflow-hidden" style={{ background: "#000", aspectRatio: "16/9" }}>
+          <iframe
+            key={`${ex.videoId}-${animKey}`}
+            src={`https://www.youtube.com/embed/${ex.videoId}?rel=0&modestbranding=1&controls=1&autoplay=1&mute=1&playsinline=1`}
+            title={`${ex.name} tutorial`}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            className="w-full h-full"
+            style={{ border: "none", display: "block" }}
+          />
         </div>
-        <div>
-          <p className="text-sm font-medium text-ink">Watch Demo</p>
-          <p className="text-xs" style={{ color: "rgba(28,22,19,0.35)" }}>{ex.name} tutorial on YouTube</p>
-        </div>
-      </div>
-      <ExternalLink size={13} style={{ color: "rgba(28,22,19,0.25)" }} />
-    </a>
+      )}
+
+      {ex.videoId && demo && (
+        <button
+          onClick={() => setShowVideo(v => !v)}
+          className="text-xs font-semibold px-3 py-1.5 rounded-full"
+          style={{ background: "var(--surface2)", color: "var(--text-muted)", border: "1px solid var(--border)" }}
+        >
+          {showVideo ? "Back to the demo" : "Play the video instead"}
+        </button>
+      )}
+
+      {ex.videoId && !demo && !showVideo && (
+        <button
+          onClick={() => setShowVideo(true)}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl active:scale-95 transition-transform"
+          style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}
+        >
+          <span className="w-9 h-9 rounded-full grid place-items-center flex-shrink-0"
+            style={{ background: "var(--purple)", color: "var(--surface)" }}>
+            <Play size={14} />
+          </span>
+          <span className="text-sm font-medium" style={{ color: "var(--text)" }}>Watch the form video</span>
+        </button>
+      )}
+    </div>
   );
 }
 

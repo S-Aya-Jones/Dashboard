@@ -992,7 +992,7 @@ export function SkincareView({ data, update }: Props) {
 
           {!photo && !analyzing && (
             <button onClick={() => fileRef.current?.click()}
-              className="w-full flex flex-col items-center justify-center gap-3 py-10 transition-colors hover:bg-purple-50/10">
+              className="w-full flex flex-col items-center justify-center gap-3 py-10 transition-colors hover:bg-terracotta/10">
               <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
                 style={{ background: "rgba(180,85,47,0.1)", border: "1.5px dashed rgba(180,85,47,0.3)" }}>
                 <Camera size={24} style={{ color: "#D07A4F" }} />

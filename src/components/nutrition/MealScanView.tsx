@@ -400,7 +400,7 @@ export function MealScanView() {
 
         {!photo && !scanning && (
           <button onClick={() => fileRef.current?.click()}
-            className="w-full flex flex-col items-center justify-center gap-3 py-10 hover:bg-purple-50/5 transition-colors">
+            className="w-full flex flex-col items-center justify-center gap-3 py-10 hover:bg-terracotta/5 transition-colors">
             <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
               style={{ background: "rgba(180,85,47,0.1)", border: "1.5px dashed rgba(180,85,47,0.3)" }}>
               <Camera size={24} style={{ color: PURPLE }} />

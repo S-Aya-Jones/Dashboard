@@ -386,7 +386,7 @@ function GmailTab() {
           const cfg = cat !== "uncategorized" ? CAT_CONFIG[cat] : null;
           return (
             <div key={thread.id}>
-              <div className="flex items-start gap-2 px-3 py-3 cursor-pointer hover:bg-purple-50/30 transition-colors"
+              <div className="flex items-start gap-2 px-3 py-3 cursor-pointer hover:bg-terracotta/10 transition-colors"
                 style={{ borderBottom: `1px solid ${BORDER}` }}>
                 <input type="checkbox" checked={selected.has(thread.id)}
                   onChange={e => { const s = new Set(selected); if (e.target.checked) { s.add(thread.id); } else { s.delete(thread.id); } setSelected(s); }}
