@@ -9,86 +9,86 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        /* ── New semantic tokens ───────────────────── */
+        /* Every colour resolves through a CSS variable holding raw channels,
+           so the whole palette flips with the theme and Tailwind's /opacity
+           modifiers still work. The legacy names below are kept because they
+           are used across 20+ component files; they now point at semantic
+           tokens rather than the old violet system. */
         purple: {
-          DEFAULT: "#7C5CFC",
-          light:   "#9B7FFF",
-          dark:    "#5A3FD4",
-          soft:    "rgba(124,92,252,0.12)",
+          DEFAULT: "rgb(var(--c-clay) / <alpha-value>)",
+          light:   "rgb(var(--c-gold) / <alpha-value>)",
+          dark:    "rgb(var(--c-clay) / <alpha-value>)",
+          soft:    "rgb(var(--c-clay) / 0.12)",
         },
         pink: {
-          DEFAULT: "#E879F9",
-          light:   "#F0A5FF",
-          dark:    "#C855D8",
-          soft:    "rgba(232,121,249,0.12)",
+          DEFAULT: "rgb(var(--c-red) / <alpha-value>)",
+          light:   "rgb(var(--c-red) / 0.7)",
+          dark:    "rgb(var(--c-red) / <alpha-value>)",
+          soft:    "rgb(var(--c-red) / 0.12)",
         },
         peach: {
-          DEFAULT: "#FB923C",
-          light:   "#FDBA74",
-          dark:    "#EA7010",
-          soft:    "rgba(251,146,60,0.12)",
+          DEFAULT: "rgb(var(--c-gold) / <alpha-value>)",
+          light:   "rgb(var(--c-gold) / 0.7)",
+          dark:    "rgb(var(--c-clay) / <alpha-value>)",
+          soft:    "rgb(var(--c-gold) / 0.12)",
         },
         surface: {
-          DEFAULT: "#FFFFFF",
-          2:       "#FAF8FF",
-          3:       "#F4F0FE",
+          DEFAULT: "rgb(var(--c-surface) / <alpha-value>)",
+          2:       "rgb(var(--c-bg) / <alpha-value>)",
+          3:       "rgb(var(--c-bg2) / <alpha-value>)",
         },
         bg: {
-          DEFAULT: "#F4F0FE",
-          2:       "#EDE8FF",
+          DEFAULT: "rgb(var(--c-bg) / <alpha-value>)",
+          2:       "rgb(var(--c-bg2) / <alpha-value>)",
         },
         ink: {
-          DEFAULT: "#1E1340",
-          muted:   "#7C6FAE",
-          light:   "#A89ECC",
+          DEFAULT: "rgb(var(--c-text) / <alpha-value>)",
+          muted:   "rgb(var(--c-text-muted) / <alpha-value>)",
+          light:   "rgb(var(--c-text-light) / <alpha-value>)",
         },
 
-        /* ── Legacy aliases — remapped to light-mode ─
-           All the old dark-theme token names used across
-           20+ component files now resolve to light-mode
-           equivalents so no per-file text rewrites needed.
-        ─────────────────────────────────────────────── */
+        /* ── Legacy aliases ─────────────────────────── */
 
-        /* was #1A1A1A / #222 / #2A2A2A → light lavender bg */
+        /* page and card fills */
         cream: {
-          DEFAULT: "#F4F0FE",
-          dark:    "#EDE8FF",
-          darker:  "rgba(124,92,252,0.12)",
+          DEFAULT: "rgb(var(--c-bg) / <alpha-value>)",
+          dark:    "rgb(var(--c-bg2) / <alpha-value>)",
+          darker:  "rgb(var(--c-text) / 0.10)",
         },
 
-        /* was #FFFFFF / rgba(255,255,255,0.7) → dark ink text */
+        /* body text */
         brown: {
-          DEFAULT: "#1E1340",
-          light:   "#7C6FAE",
-          dark:    "#2A1F6E",
+          DEFAULT: "rgb(var(--c-text) / <alpha-value>)",
+          light:   "rgb(var(--c-text-muted) / <alpha-value>)",
+          dark:    "rgb(var(--c-text) / <alpha-value>)",
         },
 
-        /* was #C8FF00 (lime) → purple primary */
+        /* primary accent */
         terracotta: {
-          DEFAULT: "#7C5CFC",
-          light:   "#9B7FFF",
-          dark:    "#5A3FD4",
+          DEFAULT: "rgb(var(--c-clay) / <alpha-value>)",
+          light:   "rgb(var(--c-gold) / <alpha-value>)",
+          dark:    "rgb(var(--c-clay) / <alpha-value>)",
         },
 
-        /* was #9B7FFF (purple) → pink secondary */
+        /* success / calm */
         sage: {
-          DEFAULT: "#E879F9",
-          light:   "#F0A5FF",
-          dark:    "#C855D8",
+          DEFAULT: "rgb(var(--c-sage) / <alpha-value>)",
+          light:   "rgb(var(--c-sage) / 0.7)",
+          dark:    "rgb(var(--c-sage) / <alpha-value>)",
         },
 
-        /* was hot-pink → danger red */
+        /* danger */
         rose: {
-          DEFAULT: "#EF4444",
-          light:   "#FCA5A5",
-          muted:   "#DC2626",
+          DEFAULT: "rgb(var(--c-red) / <alpha-value>)",
+          light:   "rgb(var(--c-red) / 0.65)",
+          muted:   "rgb(var(--c-red) / 0.8)",
         },
 
-        /* was rgba(255,255,255,0.35) → purple-tinted muted */
+        /* hairlines and muted type */
         sand: {
-          DEFAULT: "rgba(124,92,252,0.18)",
-          light:   "rgba(124,92,252,0.28)",
-          dark:    "#7C6FAE",
+          DEFAULT: "rgb(var(--c-text-light) / 0.35)",
+          light:   "rgb(var(--c-text-light) / 0.22)",
+          dark:    "rgb(var(--c-text-light) / <alpha-value>)",
         },
       },
       fontFamily: {
@@ -96,11 +96,11 @@ const config: Config = {
         sans:  ["Inter",         "system-ui", "sans-serif"],
       },
       boxShadow: {
-        soft:        "0 2px 12px rgba(124,92,252,0.10)",
-        card:        "0 4px 24px rgba(124,92,252,0.12)",
-        "card-md":   "0 8px 32px rgba(124,92,252,0.18)",
-        "card-lg":   "0 16px 48px rgba(124,92,252,0.24)",
-        "card-hover":"0 20px 60px rgba(124,92,252,0.30)",
+        soft:        "0 2px 12px rgba(28,22,19,0.08)",
+        card:        "0 4px 24px rgba(28,22,19,0.10)",
+        "card-md":   "0 8px 32px rgba(28,22,19,0.14)",
+        "card-lg":   "0 16px 48px rgba(28,22,19,0.18)",
+        "card-hover":"0 20px 60px rgba(28,22,19,0.22)",
       },
       animation: {
         "fade-in":       "fadeIn 0.4s ease-out",

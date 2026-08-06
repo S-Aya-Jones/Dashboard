@@ -69,14 +69,24 @@ async function resolveCalendars(calendar: calendar_v3.Calendar) {
   return map;
 }
 
+// Titles used to carry emoji. Matching on the exact string would treat
+// "Skincare + wind-down" as a different series from the "🧴 Skincare +
+// wind-down" already on her calendar and seed a second copy of everything,
+// so both sides are normalised before comparison.
+const EMOJI = /[\uD83C-\uDBFF][\uDC00-\uDFFF]|[\u2600-\u27BF\u2B00-\u2BFF\uFE0F\u200D\u23E9-\u23FA]/g;
+
+function normalise(summary: string): string {
+  return summary.replace(EMOJI, "").replace(/\s+/g, " ").trim().toLowerCase();
+}
+
 // One listing per calendar: recurring-series masters intersecting the next
-// two weeks, keyed by exact summary. (The old q-search matcher couldn't
+// two weeks, keyed by normalised summary. (The old q-search matcher couldn't
 // handle em-dashes/slashes in titles and let duplicates through.)
 async function listSeriesBySummary(
   calendar: calendar_v3.Calendar,
   calId: string,
-): Promise<Map<string, Array<{ id: string; created: string }>>> {
-  const map = new Map<string, Array<{ id: string; created: string }>>();
+): Promise<Map<string, Array<{ id: string; created: string; summary: string }>>> {
+  const map = new Map<string, Array<{ id: string; created: string; summary: string }>>();
   try {
     const resp = await calendar.events.list({
       calendarId: calId,
@@ -87,9 +97,10 @@ async function listSeriesBySummary(
     });
     for (const e of resp.data.items ?? []) {
       if (!e.id || !e.summary) continue;
-      const list = map.get(e.summary) ?? [];
-      list.push({ id: e.id, created: e.created ?? "" });
-      map.set(e.summary, list);
+      const key = normalise(e.summary);
+      const list = map.get(key) ?? [];
+      list.push({ id: e.id, created: e.created ?? "", summary: e.summary });
+      map.set(key, list);
     }
   } catch { /* treat as empty */ }
   return map;
@@ -106,34 +117,56 @@ async function seed() {
   const created: string[] = [];
   const skipped: string[] = [];
   const deduped: string[] = [];
+  const renamed: string[] = [];
   const failed: Array<{ summary: string; error: string }> = [];
 
   // One listing per distinct calendar, then dedupe + exact-match skip
-  const templateSummaries = new Set(TEMPLATE.map(s => s.summary));
-  const byCal = new Map<string, Map<string, Array<{ id: string; created: string }>>>();
+  const templateSummaries = new Set(TEMPLATE.map(s => normalise(s.summary)));
+  const byCal = new Map<string, Map<string, Array<{ id: string; created: string; summary: string }>>>();
   for (const calId of Array.from(new Set(Object.values(cals)))) {
     byCal.set(calId, await listSeriesBySummary(calendar, calId));
   }
 
   // Remove duplicate series a previous buggy run created: keep the oldest
   for (const [calId, seriesMap] of Array.from(byCal.entries())) {
-    for (const [summary, entries] of Array.from(seriesMap.entries())) {
-      if (!templateSummaries.has(summary) || entries.length <= 1) continue;
+    for (const [key, entries] of Array.from(seriesMap.entries())) {
+      if (!templateSummaries.has(key) || entries.length <= 1) continue;
       entries.sort((a, b) => a.created.localeCompare(b.created));
       for (const dupe of entries.slice(1)) {
         try {
           await calendar.events.delete({ calendarId: calId, eventId: dupe.id });
-          deduped.push(summary);
+          deduped.push(dupe.summary);
         } catch { /* already gone */ }
       }
-      seriesMap.set(summary, entries.slice(0, 1));
+      seriesMap.set(key, entries.slice(0, 1));
+    }
+  }
+
+  // Retitle the survivors that still carry emoji, so the calendar reads the
+  // same way the app does.
+  const cleanTitle = new Map(TEMPLATE.map(s => [normalise(s.summary), s.summary]));
+  for (const [calId, seriesMap] of Array.from(byCal.entries())) {
+    for (const [key, entries] of Array.from(seriesMap.entries())) {
+      const want = cleanTitle.get(key);
+      if (!want) continue;
+      for (const e of entries) {
+        if (e.summary === want) continue;
+        try {
+          await calendar.events.patch({
+            calendarId: calId,
+            eventId: e.id,
+            requestBody: { summary: want },
+          });
+          renamed.push(want);
+        } catch { /* leave it as-is */ }
+      }
     }
   }
 
   for (const s of TEMPLATE) {
     const calId = cals[s.cal];
     try {
-      if ((byCal.get(calId)?.get(s.summary)?.length ?? 0) > 0) {
+      if ((byCal.get(calId)?.get(normalise(s.summary))?.length ?? 0) > 0) {
         skipped.push(s.summary);
         continue;
       }
@@ -163,10 +196,11 @@ async function seed() {
     created,
     skipped,
     deduped,
+    renamed,
     failed: tokenExpired ? failed.slice(0, 1) : failed,
     message: tokenExpired
       ? "Google connection expired (invalid_grant). Fix: visit /api/google/auth, approve access, then visit this endpoint again."
-      : `Created ${created.length}, skipped ${skipped.length}, removed ${deduped.length} duplicates, failed ${failed.length}`,
+      : `Created ${created.length}, skipped ${skipped.length}, removed ${deduped.length} duplicates, retitled ${renamed.length}, failed ${failed.length}`,
   });
 }
 

@@ -17,8 +17,8 @@ export function Card({ children, className = "", title, subtitle, action, floati
   return (
     <div className={`${cls} p-5 ${className}`}>
       {(title || action) && (
-        <div className="flex items-start justify-between mb-4">
-          <div>
+        <div className="flex flex-col gap-3 mb-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+          <div className="min-w-0">
             {title && (
               <h2 className="font-serif text-xl" style={{ color: gradient ? "#fff" : "var(--text)" }}>
                 {title}
@@ -30,7 +30,7 @@ export function Card({ children, className = "", title, subtitle, action, floati
               </p>
             )}
           </div>
-          {action && <div>{action}</div>}
+          {action && <div className="flex-shrink-0">{action}</div>}
         </div>
       )}
       {children}

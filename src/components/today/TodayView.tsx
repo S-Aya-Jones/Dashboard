@@ -10,12 +10,24 @@ import { today as todayStr, greetingByTime, id } from "@/lib/utils";
 import { celebrate } from "@/lib/confetti";
 import { WeatherWidget } from "./WeatherWidget";
 import { HourlyWeatherCard } from "./HourlyWeatherCard";
-import { TYPE_META, TYPE_ICON, defaultBlocks, blocksForDate, formatRange12 } from "@/lib/schedule";
+import { TYPE_META, TYPE_ICON, resolveBlocks, blocksForDate, formatRange12 } from "@/lib/schedule";
 import { whenChip } from "@/lib/whenText";
 
 interface Props {
   data: DashboardData;
   update: (fn: (d: DashboardData) => DashboardData) => void;
+}
+
+// A duplicated calendar series would otherwise render the same row several
+// times over. Same title at the same minute is the same thing.
+function dedupeEvents<T extends { title: string; start?: string; allDay: boolean }>(events: T[]): T[] {
+  const seen = new Set<string>();
+  return events.filter(e => {
+    const key = `${e.title.trim().toLowerCase()}|${e.allDay ? "all-day" : e.start ?? ""}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 export function TodayView({ data, update }: Props) {
@@ -32,10 +44,10 @@ export function TodayView({ data, update }: Props) {
 
   const todayTasks = data.tasks.filter((task) => task.date === t);
 
-  const todayBlocks = blocksForDate(data.scheduleBlocks ?? defaultBlocks(), new Date());
+  const todayBlocks = blocksForDate(resolveBlocks(data.scheduleBlocks), new Date());
   const timelineRows: { sortKey: number; kind: "block" | "event"; label: string; time: string; color: string; type?: import("@/types/dashboard").ScheduleBlock["type"] }[] = [
     ...todayBlocks.map(b => ({ sortKey: parseInt(b.startTime.replace(":", "")), kind: "block" as const, label: b.label, time: formatRange12(b.startTime, b.endTime), color: TYPE_META[b.type].color, type: b.type })),
-    ...calEvents.map(e => ({
+    ...dedupeEvents(calEvents).map(e => ({
       sortKey: e.allDay || !e.start ? -1 : new Date(e.start).getHours() * 100 + new Date(e.start).getMinutes(),
       kind: "event" as const, label: e.title,
       time: e.allDay || !e.start ? "All day" : format(new Date(e.start), "h:mm a"),
@@ -96,17 +108,24 @@ export function TodayView({ data, update }: Props) {
               return (
                 <div
                   key={i}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl border-l-[3px] transition-shadow hover:shadow-sm"
+                  className="flex items-start gap-3 px-3 py-2.5 rounded-xl border-l-[3px] transition-shadow hover:shadow-sm"
                   style={{ background: `${row.color}0d`, borderColor: row.color }}
                 >
                   <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                    className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-px"
                     style={{ background: `${row.color}22` }}
                   >
                     <Icon size={15} style={{ color: row.color }} />
                   </div>
-                  <span className="font-medium flex-1 text-sm truncate" style={{ color: row.color }}>{row.label}</span>
-                  <span className="text-xs font-medium text-sand-dark whitespace-nowrap">{row.time}</span>
+                  <span
+                    className="font-medium flex-1 text-sm leading-snug min-w-0"
+                    style={{ color: "var(--text)" }}
+                  >
+                    {row.label}
+                  </span>
+                  <span className="text-xs font-medium text-sand-dark whitespace-nowrap self-start pt-0.5">
+                    {row.time}
+                  </span>
                 </div>
               );
             })}
@@ -116,14 +135,14 @@ export function TodayView({ data, update }: Props) {
 
       {/* Tasks */}
       <Card title="Today's Tasks" action={
-        <div className="flex gap-2">
+        <div className="flex gap-2 w-full sm:w-auto">
           <input
             type="text"
             placeholder="Add a task…"
             value={newTask}
             onChange={(e) => setNewTask(e.target.value)}
             onKeyDown={handleTaskKey}
-            className="w-44"
+            className="flex-1 sm:w-44 sm:flex-none"
           />
           <Button size="sm" onClick={addTask}><Plus size={14} /></Button>
         </div>
