@@ -328,40 +328,6 @@ function SmartInsights({ data }: { data: DashboardData }) {
     }
   }
 
-  // 5. Next self-care appointment
-  const selfCare = (data.selfCareItems ?? []).sort((a, b) => (a.priority ?? 999) - (b.priority ?? 999));
-  if (selfCare.length > 0) {
-    const now = new Date();
-    const upcoming = selfCare
-      .map(item => {
-        const last = item.lastDone ? parseISO(item.lastDone) : subDays(now, item.frequencyWeeks * 7 + 1);
-        const next = new Date(last);
-        next.setDate(next.getDate() + item.frequencyWeeks * 7);
-        return { item, next, daysLeft: differenceInDays(next, startOfDay(now)) };
-      })
-      .filter(x => x.daysLeft <= 14)
-      .sort((a, b) => a.daysLeft - b.daysLeft)[0];
-    if (upcoming) {
-      widgets.push({
-        key: "selfcare",
-        node: (
-          <div className="card p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Clock size={15} style={{ color: "var(--purple)" }} />
-              <span className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>COMING UP</span>
-            </div>
-            <p className="text-2xl">{upcoming.item.emoji}</p>
-            <p className="text-sm font-semibold mt-1" style={{ color: "var(--text)" }}>{upcoming.item.name}</p>
-            <p className="text-xs mt-0.5" style={{ color: upcoming.daysLeft <= 3 ? "var(--red)" : "var(--text-muted)" }}>
-              {upcoming.daysLeft <= 0 ? "Due now" : whenChip(upcoming.next)}
-            </p>
-            <p className="text-xs" style={{ color: "var(--text-muted)" }}>${upcoming.item.cost} · {upcoming.item.frequencyLabel ?? `every ${upcoming.item.frequencyWeeks} wks`}</p>
-          </div>
-        ),
-      });
-    }
-  }
-
   if (widgets.length === 0) return null;
 
   return (

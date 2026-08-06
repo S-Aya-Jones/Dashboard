@@ -1,9 +1,22 @@
 import { getAppKey } from "@/lib/appkeys";
 
-// Recipe discovery. TheMealDB is the default because it needs no key and its
-// photography is good; if a Spoonacular key is ever pasted into Settings the
-// search widens to their catalogue instead. Both get normalised to the same
-// shape so the UI never has to care which one answered.
+// Recipe discovery.
+//
+// Spoonacular is the real source — hundreds of thousands of recipes with
+// photography, per-serving macros, a protein floor you can filter on, and the
+// cuisine tags that matter here (Southern, Cajun, Caribbean, African). It
+// needs a free key.
+//
+// TheMealDB is the no-key fallback so the page is never empty, but it only
+// holds a few hundred recipes and carries no nutrition at all, so anything
+// that depends on macros is unavailable until the key is in.
+
+export interface Macros {
+  calories: number;
+  protein: number;   // grams per serving
+  carbs: number;
+  fat: number;
+}
 
 export interface RecipeCard {
   id: string;
@@ -14,6 +27,7 @@ export interface RecipeCard {
   area?: string;
   minutes?: number;
   servings?: number;
+  macros?: Macros;
 }
 
 export interface RecipeDetail extends RecipeCard {
@@ -24,15 +38,36 @@ export interface RecipeDetail extends RecipeCard {
   video?: string;
 }
 
-const MEALDB = "https://www.themealdb.com/api/json/v1/1";
+export interface SearchOptions {
+  query?: string;
+  /** A Spoonacular cuisine, e.g. "Southern", "Cajun", "Caribbean". */
+  cuisine?: string;
+  /** A Spoonacular dish type, e.g. "main course", "breakfast". */
+  type?: string;
+  /** Grams of protein per serving, minimum. */
+  minProtein?: number;
+  /** Order results by protein instead of relevance. */
+  sortByProtein?: boolean;
+}
 
-async function json(url: string, init?: RequestInit) {
-  const res = await fetch(url, { ...init, cache: "no-store" });
+export interface SearchResult {
+  recipes: RecipeCard[];
+  /** False when we fell back to the small keyless source. */
+  full: boolean;
+  /** Set when a filter was requested that the fallback cannot honour. */
+  notice?: string;
+}
+
+const MEALDB = "https://www.themealdb.com/api/json/v1/1";
+const SPOON = "https://api.spoonacular.com";
+
+async function json(url: string) {
+  const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error(`${res.status} from ${new URL(url).host}`);
   return res.json();
 }
 
-// ─── TheMealDB ───────────────────────────────────────────────────────────────
+// ─── TheMealDB (fallback) ────────────────────────────────────────────────────
 
 interface MealDbMeal {
   idMeal: string;
@@ -83,8 +118,51 @@ function mealDbDetail(m: MealDbMeal): RecipeDetail {
   };
 }
 
-// ─── Spoonacular (only when a key is configured) ─────────────────────────────
+// The few Spoonacular cuisines that have a TheMealDB equivalent. Southern,
+// Cajun and African have none, which is exactly why the key matters.
+const MEALDB_AREA: Record<string, string> = {
+  American: "American", Caribbean: "Jamaican", Mexican: "Mexican",
+  Italian: "Italian", Indian: "Indian", Asian: "Chinese", Mediterranean: "Greek",
+};
 
+// TheMealDB categories that a Spoonacular dish type roughly lands on.
+const MEALDB_CATEGORY: Record<string, string> = {
+  Breakfast: "Breakfast", "Side dish": "Side", Dessert: "Dessert", Starter: "Starter",
+};
+
+async function mealDbSearch(opts: SearchOptions): Promise<RecipeCard[]> {
+  const q = (opts.query ?? "").trim();
+
+  if (!q && opts.cuisine) {
+    const area = MEALDB_AREA[opts.cuisine];
+    if (!area) return [];
+    const data = await json(`${MEALDB}/filter.php?a=${encodeURIComponent(area)}`);
+    return (data.meals ?? []).map(mealDbCard);
+  }
+
+  if (!q && opts.type) {
+    const cat = MEALDB_CATEGORY[opts.type];
+    if (!cat) return [];
+    const data = await json(`${MEALDB}/filter.php?c=${encodeURIComponent(cat)}`);
+    return (data.meals ?? []).map(mealDbCard);
+  }
+
+  const data = await json(`${MEALDB}/search.php?s=${encodeURIComponent(q)}`);
+  let meals: MealDbMeal[] = data.meals ?? [];
+
+  // A search that finds nothing by name often finds plenty by ingredient.
+  if (!meals.length && q) {
+    const byIngredient = await json(
+      `${MEALDB}/filter.php?i=${encodeURIComponent(q.replace(/\s+/g, "_"))}`
+    );
+    meals = byIngredient.meals ?? [];
+  }
+  return meals.map(mealDbCard);
+}
+
+// ─── Spoonacular (primary) ───────────────────────────────────────────────────
+
+interface SpoonNutrient { name: string; amount: number }
 interface SpoonResult {
   id: number;
   title: string;
@@ -93,10 +171,25 @@ interface SpoonResult {
   servings?: number;
   dishTypes?: string[];
   cuisines?: string[];
+  diets?: string[];
   extendedIngredients?: Array<{ original: string }>;
   analyzedInstructions?: Array<{ steps: Array<{ step: string }> }>;
   sourceUrl?: string;
-  diets?: string[];
+  nutrition?: { nutrients?: SpoonNutrient[] };
+}
+
+function macrosFrom(r: SpoonResult): Macros | undefined {
+  const n = r.nutrition?.nutrients;
+  if (!n?.length) return undefined;
+  const grab = (name: string) =>
+    Math.round(n.find((x) => x.name.toLowerCase() === name)?.amount ?? 0);
+  const macros = {
+    calories: grab("calories"),
+    protein:  grab("protein"),
+    carbs:    grab("carbohydrates"),
+    fat:      grab("fat"),
+  };
+  return macros.calories || macros.protein ? macros : undefined;
 }
 
 function spoonCard(r: SpoonResult): RecipeCard {
@@ -109,58 +202,77 @@ function spoonCard(r: SpoonResult): RecipeCard {
     area: r.cuisines?.[0],
     minutes: r.readyInMinutes,
     servings: r.servings,
+    macros: macrosFrom(r),
   };
 }
 
 // ─── Public surface ──────────────────────────────────────────────────────────
 
-/** Free-text search — "soup", "salmon", "something with chickpeas". */
-export async function searchRecipes(query: string, category?: string): Promise<RecipeCard[]> {
+export async function searchRecipes(opts: SearchOptions): Promise<SearchResult> {
   const key = await getAppKey("SPOONACULAR_API_KEY");
 
   if (key) {
-    const url = new URL("https://api.spoonacular.com/recipes/complexSearch");
+    const url = new URL(`${SPOON}/recipes/complexSearch`);
     url.searchParams.set("apiKey", key);
     url.searchParams.set("number", "24");
     url.searchParams.set("addRecipeInformation", "true");
-    if (query) url.searchParams.set("query", query);
-    if (category) url.searchParams.set("type", category.toLowerCase());
+    url.searchParams.set("addRecipeNutrition", "true");
+    url.searchParams.set("instructionsRequired", "true");
+    if (opts.query)      url.searchParams.set("query", opts.query);
+    if (opts.cuisine)    url.searchParams.set("cuisine", opts.cuisine);
+    if (opts.type)       url.searchParams.set("type", opts.type);
+    if (opts.minProtein) url.searchParams.set("minProtein", String(opts.minProtein));
+    if (opts.sortByProtein) {
+      url.searchParams.set("sort", "protein");
+      url.searchParams.set("sortDirection", "desc");
+    }
+    // Without a query or filter, ask for something rather than nothing.
+    if (!opts.query && !opts.cuisine && !opts.type && !opts.minProtein) {
+      url.searchParams.set("sort", "random");
+    }
+
     try {
       const data = await json(url.toString());
       const results: SpoonResult[] = data.results ?? [];
-      if (results.length) return results.map(spoonCard);
-    } catch {
-      // fall through to the free source rather than showing an empty page
+      return { recipes: results.map(spoonCard), full: true };
+    } catch (e) {
+      // A blown daily quota shouldn't leave her staring at an error.
+      const recipes = await mealDbSearch(opts).catch(() => []);
+      return {
+        recipes,
+        full: false,
+        notice: String(e).includes("402")
+          ? "Spoonacular's daily limit is used up — showing the smaller free set until tomorrow."
+          : "Couldn't reach Spoonacular just now — showing the smaller free set.",
+      };
     }
   }
 
-  // Category browse returns thumbnails only, which is exactly what a grid needs.
-  if (category && !query) {
-    const data = await json(`${MEALDB}/filter.php?c=${encodeURIComponent(category)}`);
-    const meals: MealDbMeal[] = data.meals ?? [];
-    return meals.map(mealDbCard);
-  }
+  const recipes = await mealDbSearch(opts).catch(() => []);
 
-  const data = await json(`${MEALDB}/search.php?s=${encodeURIComponent(query)}`);
-  let meals: MealDbMeal[] = data.meals ?? [];
+  // Be explicit about what the small set can't do rather than lighting up a
+  // filter chip and quietly returning something else.
+  const missing: string[] = [];
+  if (opts.minProtein || opts.sortByProtein) missing.push("protein filtering");
+  if (opts.cuisine && !MEALDB_AREA[opts.cuisine]) missing.push(`${opts.cuisine.toLowerCase()} recipes`);
+  if (opts.type && !MEALDB_CATEGORY[opts.type]) missing.push(`${opts.type.toLowerCase()} filtering`);
 
-  // A search that finds nothing by name often finds plenty by ingredient.
-  if (!meals.length && query) {
-    const byIngredient = await json(
-      `${MEALDB}/filter.php?i=${encodeURIComponent(query.replace(/\s+/g, "_"))}`
-    );
-    meals = byIngredient.meals ?? [];
-  }
-
-  const cards = meals.map(mealDbCard);
-  return category ? cards.filter((c) => c.category === category) : cards;
+  return {
+    recipes,
+    full: false,
+    notice: missing.length
+      ? `The free set has no ${missing.join(" or ")}. Add a Spoonacular key below to unlock it.`
+      : undefined,
+  };
 }
 
-/** A handful of random meals, for the empty state. */
+/** A handful of random meals for the very first paint, keyless. */
 export async function surpriseRecipes(count = 8): Promise<RecipeCard[]> {
   const picks = await Promise.all(
     Array.from({ length: count }, () =>
-      json(`${MEALDB}/random.php`).then((d) => d.meals?.[0] as MealDbMeal | undefined).catch(() => undefined)
+      json(`${MEALDB}/random.php`)
+        .then((d) => d.meals?.[0] as MealDbMeal | undefined)
+        .catch(() => undefined)
     )
   );
   const seen = new Set<string>();
@@ -175,7 +287,7 @@ export async function getRecipe(id: string, source: string): Promise<RecipeDetai
     const key = await getAppKey("SPOONACULAR_API_KEY");
     if (key) {
       const r: SpoonResult = await json(
-        `https://api.spoonacular.com/recipes/${id}/information?apiKey=${key}`
+        `${SPOON}/recipes/${id}/information?includeNutrition=true&apiKey=${key}`
       );
       return {
         ...spoonCard(r),
@@ -192,7 +304,21 @@ export async function getRecipe(id: string, source: string): Promise<RecipeDetai
   return meal ? mealDbDetail(meal) : null;
 }
 
-export const RECIPE_CATEGORIES = [
-  "Breakfast", "Chicken", "Seafood", "Beef", "Pasta",
-  "Vegetarian", "Vegan", "Side", "Starter", "Dessert",
-] as const;
+/** True once the full database is available. */
+export async function hasFullDatabase(): Promise<boolean> {
+  return Boolean(await getAppKey("SPOONACULAR_API_KEY"));
+}
+
+export async function verifySpoonacularKey(key: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${SPOON}/recipes/complexSearch?number=1&apiKey=${encodeURIComponent(key)}`, {
+      cache: "no-store",
+    });
+    if (res.status === 401 || res.status === 403) return { ok: false, error: "That key was rejected by Spoonacular." };
+    if (res.status === 402) return { ok: false, error: "That key has no quota left today. It should work tomorrow." };
+    if (!res.ok) return { ok: false, error: `Spoonacular replied ${res.status}.` };
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "Couldn't reach Spoonacular to check the key." };
+  }
+}

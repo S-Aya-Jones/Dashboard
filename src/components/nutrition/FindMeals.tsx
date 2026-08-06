@@ -1,12 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Search, X, Loader2, Check, ShoppingCart, BookmarkPlus, Shuffle, ExternalLink } from "lucide-react";
+import { Search, X, Loader2, Check, ShoppingCart, BookmarkPlus, Shuffle, ExternalLink, Zap, KeyRound } from "lucide-react";
 import { NutritionData, Recipe, GroceryItem } from "@/types/dashboard";
 import { assignGrocerySection } from "./groceryUtils";
 
 // Say "soup" and get soup, with pictures. No importing, no pasting URLs, no
 // deciding what to cook from a blank page — the grid is the whole interface.
+
+interface Macros { calories: number; protein: number; carbs: number; fat: number }
 
 interface Card {
   id: string;
@@ -17,6 +19,7 @@ interface Card {
   area?: string;
   minutes?: number;
   servings?: number;
+  macros?: Macros;
 }
 
 interface Detail extends Card {
@@ -27,12 +30,31 @@ interface Detail extends Card {
   video?: string;
 }
 
-const CATEGORIES = [
-  "Breakfast", "Chicken", "Seafood", "Beef", "Pasta",
-  "Vegetarian", "Vegan", "Side", "Starter", "Dessert",
+// Cuisines Spoonacular actually indexes. Southern and Cajun are where soul
+// food lives; Caribbean and African round out the rest.
+const CUISINES = [
+  { label: "Soul food",  cuisine: "Southern" },
+  { label: "Cajun",      cuisine: "Cajun" },
+  { label: "Caribbean",  cuisine: "Caribbean" },
+  { label: "African",    cuisine: "African" },
+  { label: "American",   cuisine: "American" },
+  { label: "Mexican",    cuisine: "Mexican" },
+  { label: "Italian",    cuisine: "Italian" },
+  { label: "Asian",      cuisine: "Asian" },
+  { label: "Mediterranean", cuisine: "Mediterranean" },
+  { label: "Indian",     cuisine: "Indian" },
 ];
 
-const CRAVINGS = ["soup", "salmon", "chickpea", "curry", "salad", "stew", "rice", "pasta"];
+// Dish types double as the keyless fallback's categories.
+const TYPES = ["Breakfast", "Main course", "Side dish", "Salad", "Soup", "Dessert"];
+
+const CRAVINGS = [
+  "chicken", "salmon", "shrimp", "ground turkey", "steak", "eggs",
+  "beans", "greens", "mac and cheese", "cornbread", "soup", "pasta",
+];
+
+// Enough protein that one serving is actually a meal.
+const PROTEIN_FLOOR = 30;
 
 function uid() {
   return Math.random().toString(36).slice(2, 10);
@@ -62,6 +84,117 @@ function Photo({ src, alt, className = "" }: { src: string; alt: string; classNa
   );
 }
 
+function UnlockPanel({ onDone }: { onDone: () => void }) {
+  const [key, setKey]   = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr]   = useState<string | null>(null);
+
+  async function save() {
+    setBusy(true);
+    setErr(null);
+    try {
+      const res  = await fetch("/api/recipes/key", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "That key didn't work");
+      onDone();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "That key didn't work");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div
+      className="rounded-2xl p-5"
+      style={{ background: "var(--surface)", border: "1.5px solid var(--border)" }}
+    >
+      <p className="font-serif text-lg flex items-center gap-2" style={{ color: "var(--text)" }}>
+        <KeyRound size={16} style={{ color: "var(--purple)" }} /> Open up the full library
+      </p>
+      <p className="text-sm mt-2 leading-relaxed" style={{ color: "var(--text-muted)" }}>
+        What you are browsing now is a free set of a few hundred recipes with no
+        nutrition data. A Spoonacular key — free, takes a minute — turns this into
+        hundreds of thousands of recipes with protein and calories on every one,
+        plus the soul food, Cajun and Caribbean filters above.
+      </p>
+      <a
+        href="https://spoonacular.com/food-api/console#Dashboard"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-sm font-semibold inline-flex items-center gap-1.5 mt-3"
+        style={{ color: "var(--purple)" }}
+      >
+        Get a free key <ExternalLink size={12} />
+      </a>
+      <div className="flex flex-col sm:flex-row gap-2 mt-4">
+        <input
+          type="text"
+          value={key}
+          onChange={(e) => setKey(e.target.value)}
+          placeholder="Paste the key here"
+          className="flex-1"
+          style={{ minWidth: 0 }}
+        />
+        <button
+          onClick={save}
+          disabled={busy || !key.trim()}
+          className="text-sm font-semibold px-5 py-2.5 rounded-xl disabled:opacity-40 flex-shrink-0"
+          style={{ background: "var(--text)", color: "var(--surface)" }}
+        >
+          {busy ? "Checking…" : "Save"}
+        </button>
+      </div>
+      {err && <p className="text-xs mt-2" style={{ color: "var(--red)" }}>{err}</p>}
+    </div>
+  );
+}
+
+function MacroLine({ macros, size = "sm" }: { macros: Macros; size?: "sm" | "lg" }) {
+  const cls = size === "lg" ? "text-sm" : "text-[11px]";
+  return (
+    <p className={`${cls} mt-1.5 flex flex-wrap gap-x-2 gap-y-0.5`}>
+      <span style={{ color: "var(--purple)", fontWeight: 700 }}>{macros.protein}g protein</span>
+      <span style={{ color: "var(--text-light)" }}>{macros.calories} cal</span>
+      <span style={{ color: "var(--text-light)" }}>{macros.carbs}c · {macros.fat}f</span>
+    </p>
+  );
+}
+
+function ChipRow({
+  items, value, onPick,
+}: {
+  items: { key: string; label: string }[];
+  value: string | null;
+  onPick: (v: string | null) => void;
+}) {
+  return (
+    <div className="flex gap-1.5 overflow-x-auto pb-0.5 -mx-1 px-1">
+      {items.map(({ key, label }) => {
+        const on = value === key;
+        return (
+          <button
+            key={key}
+            onClick={() => onPick(on ? null : key)}
+            className="text-xs font-medium px-3 py-1.5 rounded-full transition-all flex-shrink-0"
+            style={{
+              background: on ? "var(--text)" : "transparent",
+              color:      on ? "var(--surface)" : "var(--text-muted)",
+              border:     `1px solid ${on ? "var(--text)" : "var(--border)"}`,
+            }}
+          >
+            {label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function FindMeals({
   nutrition,
   onUpdate,
@@ -69,31 +202,44 @@ export function FindMeals({
   nutrition: NutritionData;
   onUpdate: (n: NutritionData) => void;
 }) {
-  const [query,   setQuery]   = useState("");
-  const [active,  setActive]  = useState<string | null>(null);
-  const [cards,   setCards]   = useState<Card[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState<string | null>(null);
-  const [open,    setOpen]    = useState<Detail | null>(null);
-  const [opening, setOpening] = useState<string | null>(null);
-  const [toast,   setToast]   = useState<string | null>(null);
+  const [query,    setQuery]    = useState("");
+  const [cuisine,  setCuisine]  = useState<string | null>(null);
+  const [type,     setType]     = useState<string | null>(null);
+  const [protein,  setProtein]  = useState(false);
+  const [cards,    setCards]    = useState<Card[]>([]);
+  const [loading,  setLoading]  = useState(true);
+  const [error,    setError]    = useState<string | null>(null);
+  const [notice,   setNotice]   = useState<string | null>(null);
+  const [full,     setFull]     = useState(true);
+  const [open,     setOpen]     = useState<Detail | null>(null);
+  const [opening,  setOpening]  = useState<string | null>(null);
+  const [toast,    setToast]    = useState<string | null>(null);
 
   // Only the newest request is allowed to write results.
   const reqId = useRef(0);
 
-  const load = useCallback(async (q: string, category: string | null) => {
+  const load = useCallback(async (f: {
+    query: string; cuisine: string | null; type: string | null; protein: boolean;
+  }) => {
     const mine = ++reqId.current;
     setLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams();
-      if (q) params.set("q", q);
-      if (category) params.set("category", category);
+      if (f.query)   params.set("q", f.query);
+      if (f.cuisine) params.set("cuisine", f.cuisine);
+      if (f.type)    params.set("type", f.type);
+      if (f.protein) {
+        params.set("minProtein", String(PROTEIN_FLOOR));
+        params.set("sortByProtein", "1");
+      }
       const res  = await fetch(`/api/recipes/search?${params}`, { cache: "no-store" });
       const data = await res.json();
       if (mine !== reqId.current) return;
       if (!res.ok) throw new Error(data.error ?? "Search failed");
       setCards(data.recipes ?? []);
+      setFull(Boolean(data.full));
+      setNotice(data.notice ?? null);
     } catch (e) {
       if (mine !== reqId.current) return;
       setError(e instanceof Error ? e.message : "Could not reach the recipe service");
@@ -103,20 +249,17 @@ export function FindMeals({
     }
   }, []);
 
-  // First paint shows a spread of real food rather than an empty box.
-  useEffect(() => { load("", null); }, [load]);
-
-  // Typing settles before it searches.
+  // Every filter change re-runs the search; typing settles first.
   useEffect(() => {
-    if (!query) return;
-    const t = setTimeout(() => load(query, active), 400);
+    const delay = query ? 400 : 0;
+    const t = setTimeout(() => load({ query, cuisine, type, protein }), delay);
     return () => clearTimeout(t);
-  }, [query, active, load]);
+  }, [query, cuisine, type, protein, load]);
 
-  function pickCategory(c: string) {
-    const next = active === c ? null : c;
-    setActive(next);
-    load(query, next);
+  const filtered = Boolean(query || cuisine || type || protein);
+
+  function clearAll() {
+    setQuery(""); setCuisine(null); setType(null); setProtein(false);
   }
 
   function flash(msg: string) {
@@ -188,7 +331,7 @@ export function FindMeals({
 
   return (
     <div className="space-y-6">
-      {/* Search */}
+      {/* Search + filters */}
       <div className="space-y-3">
         <div
           className="flex items-center gap-2 rounded-2xl px-4 py-3"
@@ -198,18 +341,62 @@ export function FindMeals({
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="What do you feel like? Soup, salmon, something with chickpeas…"
+            placeholder="What do you feel like? Chicken, greens, mac and cheese…"
             className="flex-1 bg-transparent border-0 outline-none text-sm p-0"
             style={{ color: "var(--text)" }}
           />
           {query && (
-            <button onClick={() => { setQuery(""); load("", active); }} aria-label="Clear search">
+            <button onClick={() => setQuery("")} aria-label="Clear search">
               <X size={15} style={{ color: "var(--text-light)" }} />
             </button>
           )}
         </div>
 
-        {!query && (
+        {/* The two filters worth making prominent */}
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            onClick={() => setProtein((v) => !v)}
+            className="text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-1.5 transition-all"
+            style={{
+              background: protein ? "var(--purple)" : "transparent",
+              color:      protein ? "var(--surface)" : "var(--text-muted)",
+              border:     `1px solid ${protein ? "var(--purple)" : "var(--border)"}`,
+            }}
+          >
+            <Zap size={11} /> High protein
+          </button>
+          {filtered && (
+            <button
+              onClick={clearAll}
+              className="text-xs px-3 py-1.5 rounded-full transition-colors"
+              style={{ background: "transparent", color: "var(--text-light)", border: "1px solid var(--border)" }}
+            >
+              Clear
+            </button>
+          )}
+          {!filtered && (
+            <button
+              onClick={() => load({ query: "", cuisine: null, type: null, protein: false })}
+              className="text-xs px-3 py-1.5 rounded-full flex items-center gap-1.5 transition-colors"
+              style={{ background: "transparent", color: "var(--text-muted)", border: "1px solid var(--border)" }}
+            >
+              <Shuffle size={11} /> Surprise me
+            </button>
+          )}
+        </div>
+
+        <ChipRow
+          items={CUISINES.map((c) => ({ key: c.cuisine, label: c.label }))}
+          value={cuisine}
+          onPick={(v) => setCuisine(v)}
+        />
+        <ChipRow
+          items={TYPES.map((t) => ({ key: t, label: t }))}
+          value={type}
+          onPick={(v) => setType(v)}
+        />
+
+        {!query && !filtered && (
           <div className="flex flex-wrap gap-1.5">
             {CRAVINGS.map((c) => (
               <button
@@ -221,35 +408,14 @@ export function FindMeals({
                 {c}
               </button>
             ))}
-            <button
-              onClick={() => { setActive(null); load("", null); }}
-              className="text-xs px-3 py-1.5 rounded-full flex items-center gap-1.5 transition-colors"
-              style={{ background: "var(--bg)", color: "var(--text-muted)", border: "1px solid var(--border)" }}
-            >
-              <Shuffle size={11} /> Surprise me
-            </button>
           </div>
         )}
 
-        <div className="flex flex-wrap gap-1.5">
-          {CATEGORIES.map((c) => {
-            const on = active === c;
-            return (
-              <button
-                key={c}
-                onClick={() => pickCategory(c)}
-                className="text-xs font-medium px-3 py-1.5 rounded-full transition-all"
-                style={{
-                  background: on ? "var(--text)" : "transparent",
-                  color:      on ? "var(--surface)" : "var(--text-muted)",
-                  border:     `1px solid ${on ? "var(--text)" : "var(--border)"}`,
-                }}
-              >
-                {c}
-              </button>
-            );
-          })}
-        </div>
+        {notice && (
+          <p className="text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>
+            {notice}
+          </p>
+        )}
       </div>
 
       {/* Grid */}
@@ -270,7 +436,7 @@ export function FindMeals({
         >
           <p>{error}</p>
           <button
-            onClick={() => load(query, active)}
+            onClick={() => load({ query, cuisine, type, protein })}
             className="mt-3 text-xs font-semibold underline"
             style={{ color: "var(--text)" }}
           >
@@ -338,11 +504,16 @@ export function FindMeals({
                       .filter(Boolean)
                       .join(" · ")}
                   </p>
+                  {c.macros && <MacroLine macros={c.macros} />}
                 </div>
               </button>
             );
           })}
         </div>
+      )}
+
+      {!full && !loading && (
+        <UnlockPanel onDone={() => load({ query, cuisine, type, protein })} />
       )}
 
       {/* Detail */}
@@ -379,6 +550,7 @@ export function FindMeals({
                     .filter(Boolean)
                     .join(" · ")}
                 </p>
+                {open.macros && <MacroLine macros={open.macros} size="lg" />}
               </div>
 
               <div className="flex flex-wrap gap-2">
