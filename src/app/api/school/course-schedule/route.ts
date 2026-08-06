@@ -106,13 +106,26 @@ export async function POST(req: NextRequest) {
 
     for (const a of unique) {
       const isExam = /exam|final/i.test(a.kind) || /exam|final/i.test(a.title);
+      const isReview = /review/i.test(a.kind) || /review/i.test(a.title);
+
+      // Per the 6 Aug schedule-update email: everything opens at 12:00 AM on
+      // the day and the time printed on the grid is the START of the window,
+      // not the deadline. Quizzes run 8–9, exams 8–10, and they are due at the
+      // END of that window. Storing 8:00 would have made every reminder an
+      // hour pessimistic and the "due now" ping fire while she still had the
+      // whole window left.
+      const dueTime = isReview ? "08:00" : isExam ? "10:00" : "09:00";
+
+      const window = isReview
+        ? a.course
+        : `${a.course} · opens 12:00am, ${isExam ? "8–10am" : "8–9am"} testing window, due ${isExam ? "10am" : "9am"}. Help is only available inside the window.`;
+
       await upsertObligation({
         source: "school",
         kind: isExam ? "exam" : "assignment",
         title: a.title,
-        detail: a.course,
-        // Assessments sit in the 8:00 slot.
-        dueAt: `${a.date}T08:00:00-05:00`,
+        detail: window,
+        dueAt: `${a.date}T${dueTime}:00-05:00`,
         // Exams get a longer runway than quizzes.
         leadDays: isExam ? [10, 7, 3, 1, 0] : [5, 3, 1, 0],
         // Stable id so re-uploading an amended schedule updates rather than
