@@ -25,6 +25,8 @@ interface Status {
   enabled: boolean;
   carrier: string;
   mailReady: boolean;
+  twilio: boolean;
+  provider: "twilio" | "carrier" | null;
   phoneHint: string | null;
   ready: boolean;
   carriers?: string[];
@@ -34,6 +36,10 @@ export function TextSettings() {
   const [status, setStatus] = useState<Status | null>(null);
   const [phone, setPhone]   = useState("");
   const [busy, setBusy]     = useState(false);
+  const [showTwilio, setShowTwilio] = useState(false);
+  const [sid, setSid]       = useState("");
+  const [token, setToken]   = useState("");
+  const [from, setFrom]     = useState("");
   const [msg, setMsg]       = useState<string | null>(null);
   const [err, setErr]       = useState<string | null>(null);
 
@@ -80,8 +86,15 @@ export function TextSettings() {
           <MessageSquare size={16} style={{ color: "var(--purple)" }} /> Send it as a text too
         </p>
         <p className="text-sm mt-1.5 leading-relaxed" style={{ color: "var(--text-muted)" }}>
-          Every notification still goes to Telegram. Switch this on and a plain-text
-          copy lands in Messages as well, through your carrier — no Twilio, no extra app.
+          Every notification goes to Telegram first — that copy is always kept. Switch
+          this on and it lands in Messages too.
+        </p>
+        <p className="text-xs mt-1.5" style={{ color: status.provider ? "var(--green)" : "var(--text-light)" }}>
+          {status.provider === "twilio"
+            ? "Sending through Twilio"
+            : status.provider === "carrier"
+            ? `Sending through the ${CARRIER_LABELS[status.carrier] ?? status.carrier} gateway`
+            : "No way to send yet"}
         </p>
       </div>
 
@@ -134,9 +147,43 @@ export function TextSettings() {
         )}
       </div>
 
-      {!status.mailReady && (
+      <div style={{ borderTop: "1px solid var(--border)", paddingTop: "1rem" }}>
+        {!showTwilio ? (
+          <button onClick={() => setShowTwilio(true)} className="text-sm font-semibold" style={{ color: "var(--purple)" }}>
+            {status.twilio ? "Change Twilio credentials" : "Use Twilio instead"}
+          </button>
+        ) : (
+          <div className="space-y-2">
+            <p className="text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>
+              Twilio is more reliable than the carrier gateway and actually reports
+              whether a message arrived. US carriers only accept it once your A2P
+              10DLC campaign is approved — that review is judged on the consent page
+              at <span style={{ color: "var(--text)" }}>/sms-opt-in</span>.
+            </p>
+            <input type="text" value={sid} onChange={(e) => setSid(e.target.value)}
+              placeholder={status.twilio ? "Account SID — already set" : "Account SID (AC…)"} />
+            <input type="text" value={token} onChange={(e) => setToken(e.target.value)}
+              placeholder={status.twilio ? "Auth token — already set" : "Auth token"} />
+            <input type="text" value={from} onChange={(e) => setFrom(e.target.value)}
+              placeholder="Your Twilio number, e.g. +16155551234" />
+            <button
+              onClick={() => post(
+                { twilioSid: sid, twilioToken: token, twilioFrom: from },
+                "Twilio saved"
+              ).then(() => { setSid(""); setToken(""); setFrom(""); })}
+              disabled={busy}
+              className="text-sm font-semibold px-5 py-2.5 rounded-xl disabled:opacity-40"
+              style={{ background: "var(--text)", color: "var(--surface)" }}
+            >
+              Save Twilio
+            </button>
+          </div>
+        )}
+      </div>
+
+      {!status.mailReady && !status.twilio && (
         <p className="text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>
-          The gateway sends through Gmail, so it needs GMAIL_USER and
+          Without Twilio, the fallback sends through Gmail and needs GMAIL_USER and
           GMAIL_APP_PASSWORD set in Vercel. That is the one part that can&apos;t be
           done from this screen.
         </p>
