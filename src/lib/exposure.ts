@@ -58,6 +58,16 @@ export async function ensureExposureTables() {
       done_at    TIMESTAMPTZ DEFAULT NOW()
     )
   `;
+  // The handful of places she actually drives to — no more typing addresses
+  await sql`
+    CREATE TABLE IF NOT EXISTS places (
+      id       TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      label    TEXT NOT NULL,
+      address  TEXT NOT NULL,
+      kind     TEXT DEFAULT 'other',
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
   // Weekly reflection
   await sql`
     CREATE TABLE IF NOT EXISTS exposure_checkins (
@@ -308,4 +318,76 @@ export async function exposureStats() {
     avgDrop: drop[0]?.d === null ? null : Math.round(Number(drop[0]?.d ?? 0)),
     streak,
   };
+}
+
+
+// ─── Places ──────────────────────────────────────────────────────────────────
+
+export async function getPlaces() {
+  await ensureExposureTables();
+  const sql = db();
+  const rows = await sql`SELECT * FROM places ORDER BY kind ASC, label ASC`;
+  return rows.map(r => ({
+    id: r.id as string, label: r.label as string,
+    address: r.address as string, kind: (r.kind as string) ?? "other",
+  }));
+}
+
+export async function addPlace(label: string, address: string, kind: string) {
+  await ensureExposureTables();
+  const sql = db();
+  await sql`INSERT INTO places (label, address, kind) VALUES (${label}, ${address}, ${kind})`;
+}
+
+export async function deletePlace(id: string) {
+  const sql = db();
+  await sql`DELETE FROM places WHERE id = ${id}`;
+}
+
+// ─── Difficulty model ────────────────────────────────────────────────────────
+// A fear ladder isn't a fixed list of tasks — the same drive is easy at 5am and
+// hard at 5pm. Difficulty is composed from the conditions that actually vary.
+
+export interface DriveConditions {
+  minutes: number;        // trip length
+  familiar: boolean;      // driven before
+  alone: boolean;
+  traffic: "empty" | "light" | "moderate" | "rush";
+  light: "day" | "dusk" | "dark";
+  weather: "clear" | "rain";
+  bridges: number;
+  interstate: boolean;
+  timePressure: boolean;  // has to arrive by a set time
+}
+
+export function scoreDrive(c: DriveConditions): number {
+  let n = 8;
+  n += Math.min(18, c.minutes * 0.5);
+  if (!c.familiar) n += 12;
+  if (c.alone) n += 10;
+  n += { empty: 0, light: 4, moderate: 10, rush: 18 }[c.traffic];
+  n += { day: 0, dusk: 5, dark: 11 }[c.light];
+  if (c.weather === "rain") n += 9;
+  n += Math.min(22, c.bridges * 14);
+  if (c.interstate) n += 20;
+  if (c.timePressure) n += 8;
+  return Math.max(5, Math.min(100, Math.round(n)));
+}
+
+export interface HeightConditions {
+  floor: number;          // storeys up
+  position: "back" | "near" | "at-glass" | "at-rail" | "looking-down";
+  open: boolean;          // open air rather than behind glass
+  minutes: number;
+  alone: boolean;
+}
+
+export function scoreHeight(c: HeightConditions): number {
+  let n = 6;
+  n += Math.min(26, Math.max(0, c.floor - 1) * 5);
+  n += { back: 0, near: 6, "at-glass": 12, "at-rail": 20, "looking-down": 26 }[c.position];
+  if (c.open) n += 14;
+  n += Math.min(10, c.minutes * 1.5);
+  if (c.alone) n += 6;
+  return Math.max(5, Math.min(100, Math.round(n)));
 }

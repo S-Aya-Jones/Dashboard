@@ -3,6 +3,7 @@ import {
   seedLadderIfEmpty, getLadder, addStep, updateStep, deleteStep,
   getRoutes, addRoute, deleteRoute, markRouteDriven,
   logSession, getSessions, saveCheckin, getCheckins, exposureStats,
+  getPlaces, addPlace, deletePlace,
 } from "@/lib/exposure";
 
 export const dynamic = "force-dynamic";
@@ -10,10 +11,10 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     await seedLadderIfEmpty();
-    const [ladder, routes, sessions, checkins, stats] = await Promise.all([
-      getLadder(), getRoutes(), getSessions(), getCheckins(), exposureStats(),
+    const [ladder, routes, sessions, checkins, stats, places] = await Promise.all([
+      getLadder(), getRoutes(), getSessions(), getCheckins(), exposureStats(), getPlaces(),
     ]);
-    return NextResponse.json({ ladder, routes, sessions, checkins, stats });
+    return NextResponse.json({ ladder, routes, sessions, checkins, stats, places });
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 });
   }
@@ -45,6 +46,12 @@ export async function POST(req: NextRequest) {
         break;
       case "logSession":
         await logSession(body);
+        break;
+      case "addPlace":
+        await addPlace(body.label, body.address, body.kind ?? "other");
+        break;
+      case "deletePlace":
+        await deletePlace(body.id);
         break;
       case "checkin":
         await saveCheckin(body);
