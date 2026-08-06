@@ -58,11 +58,25 @@ export async function smsAlsoEnabled(): Promise<boolean> {
   return (await getAppKey("SMS_ALSO")) === "1";
 }
 
+/** Where Twilio should report final delivery state, when we can know it. */
+function publicBase(): string | null {
+  if (process.env.PUBLIC_BASE_URL) return process.env.PUBLIC_BASE_URL;
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  return null;
+}
+
 async function sendViaTwilio(body: string, to: string): Promise<boolean> {
   const sid   = await setting("TWILIO_ACCOUNT_SID", process.env.TWILIO_ACCOUNT_SID ?? "");
   const token = await setting("TWILIO_AUTH_TOKEN", process.env.TWILIO_AUTH_TOKEN ?? "");
   const from  = await setting("TWILIO_PHONE_NUMBER", process.env.TWILIO_PHONE_NUMBER ?? "");
   if (!sid || !token || !from) return false;
+
+  const params = new URLSearchParams({ To: `+1${to}`, From: from, Body: body });
+  // Creating a message only queues it. A campaign-blocked send (error 30034)
+  // comes back later as a status callback, so without this we would report
+  // success on a message that never arrives.
+  const base = publicBase();
+  if (base) params.set("StatusCallback", `${base}/api/sms/status`);
 
   try {
     const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
@@ -72,12 +86,50 @@ async function sendViaTwilio(body: string, to: string): Promise<boolean> {
         "Content-Type": "application/x-www-form-urlencoded",
       },
       cache: "no-store",
-      body: new URLSearchParams({ To: `+1${to}`, From: from, Body: body }),
+      body: params,
     });
-    return res.ok;
+    if (!res.ok) return false;
+
+    // Some rejections are synchronous and land here rather than in the callback.
+    const data = await res.json().catch(() => null);
+    if (data?.error_code) return false;
+    if (data?.status === "failed" || data?.status === "undelivered") return false;
+    return true;
   } catch {
     return false;
   }
+}
+
+/** Send only through the carrier gateway. Used by the delivery-failure hook. */
+export async function sendViaCarrier(message: string): Promise<boolean> {
+  const user = process.env.GMAIL_USER;
+  const pass = process.env.GMAIL_APP_PASSWORD;
+  if (!user || !pass) return false;
+
+  const phone   = await setting("USER_PHONE_NUMBER", process.env.USER_PHONE_NUMBER ?? "");
+  const carrier = (await setting("SMS_CARRIER", process.env.SMS_CARRIER ?? "tmobile")).toLowerCase();
+  const domain  = CARRIERS[carrier] ?? CARRIERS.tmobile;
+  const digits  = phone.replace(/\D/g, "").replace(/^1/, "");
+  if (digits.length !== 10) return false;
+
+  try {
+    const transporter = nodemailer.createTransport({ service: "gmail", auth: { user, pass } });
+    await transporter.sendMail({
+      from: user,
+      to: `${digits}@${domain}`,
+      subject: " ",
+      text: stripEmojis(message).slice(0, 300),
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function twilioCredentials() {
+  const sid   = await setting("TWILIO_ACCOUNT_SID", process.env.TWILIO_ACCOUNT_SID ?? "");
+  const token = await setting("TWILIO_AUTH_TOKEN", process.env.TWILIO_AUTH_TOKEN ?? "");
+  return sid && token ? { sid, token } : null;
 }
 
 export async function twilioConfigured(): Promise<boolean> {
