@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { MoneyGlance } from "./MoneyGlance";
+import { CreditTracker } from "./CreditTracker";
 import { usePlaidLink } from "react-plaid-link";
 import { RefreshCw, Unlink, Plus, Trash2, Check, ChevronDown, ChevronUp, RotateCcw, Pencil } from "lucide-react";
 import { DashboardData, PaycheckConfig, SelfCareItem, RecurringBill, P2PTransfer, AccountTransfer, BudgetLine, CreditScoreEntry, BaseBudgetItem, BudgetPlan, BudgetPlanItem } from "@/types/dashboard";
@@ -721,6 +722,7 @@ export function FinancesView({ data, update }: Props) {
               </div>
 
       <MoneyGlance />
+      <CreditTracker />
 
             </div>
           </div>

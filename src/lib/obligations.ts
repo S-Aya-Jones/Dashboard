@@ -115,7 +115,12 @@ export async function completeObligation(id: string): Promise<void> {
   if (!rows.length) return;
   const o = fromRow(rows[0]);
 
-  if (o.repeatDays) {
+  if (o.kind === "birthday") {
+    // Same calendar date next year — arithmetic on 365 drifts
+    const d = new Date(o.dueAt);
+    d.setFullYear(d.getFullYear() + 1);
+    await sql`UPDATE obligations SET due_at = ${d.toISOString()}, notified = '{}' WHERE id = ${id}`;
+  } else if (o.repeatDays) {
     // Recurring things roll forward from today, not from the old due date —
     // getting your hair done late shouldn't compress the next cycle
     const next = new Date(Date.now() + o.repeatDays * 86400000).toISOString();
@@ -153,6 +158,10 @@ function phrase(o: Obligation, days: number): string {
     "product-cycle": (t, w, d) => `🧴 ${t} — ${w}. ${d}`,
     refill: (t, w) => `💊 ${t} runs out ${w} — reorder now.`,
     haircut: (t, w) => `💇🏽‍♀️ ${t} — ${w}. Book it before the week fills up.`,
+    birthday: (t, w, d) => w === "today"
+      ? `🎂 ${t} is TODAY. Call ${t.replace(/'s birthday$/, "")}${d ? ` — your ${d}` : ""}.`
+      : `🎂 ${t} — ${w}. ${w === "tomorrow" ? "Text tonight so you're not the late one." : "Enough time to actually get something."}`,
+    call: (t, w) => `📞 ${t}${w === "today" ? " today" : ` — ${w}`}. Ten minutes counts.`,
     maintenance: (t, w, d) => `🔧 ${t} ${w}${d ? ` · ${d}` : ""}.`,
   };
 
@@ -181,7 +190,14 @@ export async function dueNotifications(): Promise<Array<{ id: string; stage: str
 
     // Auto-roll a recurring item that has slipped more than a day past due
     if (days < -1 && o.repeatDays) {
-      const next = new Date(Date.now() + o.repeatDays * 86400000).toISOString();
+      let nextDate: Date;
+      if (o.kind === "birthday") {
+        nextDate = new Date(o.dueAt);
+        nextDate.setFullYear(nextDate.getFullYear() + 1);
+      } else {
+        nextDate = new Date(Date.now() + o.repeatDays * 86400000);
+      }
+      const next = nextDate.toISOString();
       await sql`UPDATE obligations SET due_at = ${next}, notified = '{}' WHERE id = ${o.id}`;
       continue;
     }
