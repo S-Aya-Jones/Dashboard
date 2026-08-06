@@ -13,6 +13,7 @@ import { SessionView } from "./SessionView";
 import { HistoryView } from "./HistoryView";
 import { BodyScanView } from "./BodyScanView";
 import { id } from "@/lib/utils";
+import { VoiceSettings } from "@/components/settings/VoiceSettings";
 
 interface Props {
   data: DashboardData;
@@ -779,22 +780,10 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
               onChange={(e) => setPrepTime(parseInt(e.target.value))}
               className="w-full" style={{ accentColor: "#B4552F", cursor: "pointer" }} />
           </div>
-          <div className="flex items-center justify-between pt-2 border-t" style={{ borderColor: "var(--border)" }}>
-            <div>
-              <p className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>Coaching Voice</p>
-              <p className="text-[11px] mt-0.5" style={{ color: "#B4552F" }}>Aya — Custom Voice</p>
-            </div>
-            <button onClick={async () => {
-              try {
-                const res = await fetch("/api/tts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: "Drive through your heels and squeeze hard at the top. This is where your glutes grow." }) });
-                if (!res.ok) return;
-                new Audio(URL.createObjectURL(await res.blob())).play();
-              } catch { /* blocked */ }
-            }} className="text-xs px-2.5 py-1 rounded-lg active:scale-95 transition-transform"
-              style={{ background: "rgba(180,85,47,0.1)", color: "#B4552F" }}>
-              Test voice
-            </button>
-          </div>
+        </div>
+
+        <div className="mt-4">
+          <VoiceSettings />
         </div>
 
         {/* ── PHASE COACHING ── */}

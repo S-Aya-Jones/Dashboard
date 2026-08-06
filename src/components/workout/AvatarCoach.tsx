@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Volume2, Play, X } from "lucide-react";
 import { ProgramExercise } from "./program";
 import { getFormCuesForExercise } from "@/lib/formCues";
+import { say } from "@/lib/coachVoice";
 
 interface Props {
   exercise: ProgramExercise;
@@ -34,18 +35,7 @@ export function AvatarCoach({ exercise, setIndex, totalSets, isPlaying, videoUrl
   const speakCue = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/tts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: currentCue }),
-      });
-      if (res.ok) {
-        new Audio(URL.createObjectURL(await res.blob())).play();
-      }
-    } catch {
-      const u = new SpeechSynthesisUtterance(currentCue);
-      u.rate = 0.9;
-      window.speechSynthesis.speak(u);
+      await say(currentCue);
     } finally {
       setIsLoading(false);
     }

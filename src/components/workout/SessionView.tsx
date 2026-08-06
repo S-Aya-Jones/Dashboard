@@ -7,6 +7,7 @@ import { DashboardData, ExerciseSessionLog, WorkoutSetLog } from "@/types/dashbo
 import { AvatarCoach } from "./AvatarCoach";
 import { FormChecker } from "./FormChecker";
 import { ExerciseDemo, hasDemo } from "./ExerciseDemo";
+import { say, prewarm, tone, setMuted, isMuted } from "@/lib/coachVoice";
 
 interface Props {
   day: ProgramDay;
@@ -35,61 +36,11 @@ function haptic(pattern: number | number[] = 15) {
   try { if (typeof navigator !== "undefined") navigator.vibrate(pattern); } catch { /* */ }
 }
 
-function playBeep(freq = 880, dur = 0.35) {
-  try {
-    const ctx = new AudioContext();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0.3, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
-    osc.start(); osc.stop(ctx.currentTime + dur);
-  } catch { /* blocked */ }
-}
-
-// Client-side TTS cache: text → blob URL
-const ttsCache = new Map<string, string>();
-
-async function speak(text: string) {
-  try {
-    if (typeof window === "undefined") return;
-    let url = ttsCache.get(text);
-    if (!url) {
-      const res = await fetch("/api/tts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
-      });
-      if (!res.ok) throw new Error("tts failed");
-      const blob = await res.blob();
-      url = URL.createObjectURL(blob);
-      ttsCache.set(text, url);
-    }
-    new Audio(url).play();
-  } catch {
-    try {
-      window.speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text);
-      u.rate = 0.88; u.pitch = 1.0;
-      window.speechSynthesis.speak(u);
-    } catch { /* blocked */ }
-  }
-}
-
-async function prewarmTTS(text: string) {
-  if (ttsCache.has(text)) return;
-  try {
-    const res = await fetch("/api/tts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
-    });
-    if (!res.ok) return;
-    const blob = await res.blob();
-    ttsCache.set(text, URL.createObjectURL(blob));
-  } catch { /* silently fail */ }
-}
+// Voice and tones live in lib/coachVoice — see there for why the old
+// SpeechSynthesis fallback was the robotic voice.
+const playBeep = (freq = 880, dur = 0.3) => tone(freq, dur);
+const speak = (text: string, style: "cue" | "rest" | "count" = "cue") => say(text, style);
+const prewarmTTS = (text: string) => prewarm(text);
 
 // ── Components ─────────────────────────────────────────────────────────────────
 
