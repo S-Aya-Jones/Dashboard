@@ -9,6 +9,7 @@ import {
 import { PanicToolkit } from "./PanicToolkit";
 import { RoutePlanner } from "./RoutePlanner";
 import { NextSteps } from "./NextSteps";
+import { Composer } from "./Composer";
 
 interface Step { id: string; phobia: string; title: string; detail: string; sud: number; position: number; reps: number; mastered: boolean }
 interface Route { id: string; name: string; origin: string; destination: string; noHighway: boolean; noBridge: boolean; minutes: number | null; notes: string; timesDriven: number; lastDriven: string | null }
@@ -16,8 +17,8 @@ interface Session { id: string; phobia: string; label: string; sudBefore: number
 interface Checkin { weekOf: string; wins: string; hardest: string; avoided: string; nextTarget: string; confidence: number | null }
 interface Stats { thisWeek: number; total: number; mastered: number; steps: number; avgDrop: number | null; streak: number }
 
-type Tab = "Next steps" | "Ladder" | "Routes" | "Progress" | "Check-in";
-const TABS: Tab[] = ["Next steps", "Ladder", "Routes", "Progress", "Check-in"];
+type Tab = "Plan one" | "Next steps" | "Routes" | "Progress" | "Check-in";
+const TABS: Tab[] = ["Plan one", "Next steps", "Routes", "Progress", "Check-in"];
 
 const post = (body: Record<string, unknown>) =>
   fetch("/api/exposure", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -29,7 +30,7 @@ function mapsUrl(origin: string, destination: string, noHighway: boolean) {
 }
 
 export function ExposureHub() {
-  const [tab, setTab] = useState<Tab>("Next steps");
+  const [tab, setTab] = useState<Tab>("Plan one");
   const [ladder, setLadder] = useState<Step[]>([]);
   const [routes, setRoutes] = useState<Route[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -70,8 +71,8 @@ export function ExposureHub() {
 
       <AnimatePresence mode="wait">
         <motion.div key={tab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
+          {tab === "Plan one" && <Composer onLog={setLogFor} />}
           {tab === "Next steps" && <NextSteps onLog={setLogFor} />}
-          {tab === "Ladder" && <Ladder ladder={ladder} onLog={setLogFor} reload={load} />}
           {tab === "Routes" && (
             <div className="space-y-5">
               <RoutePlanner onSaved={load} />
