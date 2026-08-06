@@ -261,7 +261,7 @@ export function BodyScanView({ data, update }: Props) {
                     onClick={() => setSelectedAngle(angle)}
                     className="py-2.5 rounded-lg text-xs font-semibold transition-all"
                     style={{
-                      background: selectedAngle === angle ? "#B4552F" : "var(--bg2)",
+                      background: selectedAngle === angle ? "var(--purple)" : "var(--bg2)",
                       color: selectedAngle === angle ? "#fff" : "var(--text-muted)",
                       border: selectedAngle === angle ? "none" : "1px solid var(--border)",
                     }}>
@@ -276,7 +276,7 @@ export function BodyScanView({ data, update }: Props) {
               {isAnalyzing && (
                 <div className="absolute inset-0 flex items-center justify-center rounded-2xl z-10" style={{ background: "rgba(0,0,0,0.5)" }}>
                   <div className="flex flex-col items-center gap-2">
-                    <Loader size={32} className="animate-spin" style={{ color: "#B4552F" }} />
+                    <Loader size={32} className="animate-spin" style={{ color: "var(--purple)" }} />
                     <p className="text-sm font-semibold text-white">Analyzing your body composition...</p>
                   </div>
                 </div>

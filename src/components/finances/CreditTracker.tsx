@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Upload, TrendingUp, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { CreditPlan } from "./CreditPlan";
 
 interface Snapshot {
   report_date: string;
@@ -113,6 +114,10 @@ export function CreditTracker() {
           </p>
         </>
       )}
+
+      <div className="mt-4">
+        <CreditPlan />
+      </div>
     </div>
   );
 }

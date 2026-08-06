@@ -99,7 +99,7 @@ export function FormChecker({ exercise, onClose, update }: Props) {
 
   const getScoreColor = (score: number) => {
     if (score >= 85) return "#D07A4F"; // excellent
-    if (score >= 70) return "#B4552F"; // good
+    if (score >= 70) return "var(--purple)"; // good
     if (score >= 50) return "#C99A5C"; // needs work
     return "#DA667B"; // major issues
   };
@@ -151,7 +151,7 @@ export function FormChecker({ exercise, onClose, update }: Props) {
                 onClick={analyzeForm}
                 disabled={isAnalyzing}
                 className="w-full py-4 rounded-2xl font-semibold active:scale-95 transition-transform"
-                style={{ background: "#B4552F", color: "#fff", opacity: isAnalyzing ? 0.7 : 1 }}>
+                style={{ background: "var(--purple)", color: "#fff", opacity: isAnalyzing ? 0.7 : 1 }}>
                 {isAnalyzing ? "Analyzing Form..." : "Analyze My Form"}
               </button>
               <button
@@ -175,7 +175,7 @@ export function FormChecker({ exercise, onClose, update }: Props) {
                   </span>
                   <span style={{ color: "var(--text-muted)" }}>/ 100</span>
                 </div>
-                <div className="h-2 rounded-full overflow-hidden mt-3" style={{ background: "rgba(180,85,47,0.07)" }}>
+                <div className="h-2 rounded-full overflow-hidden mt-3" style={{ background: "var(--surface2)" }}>
                   <div
                     className="h-full rounded-full transition-all"
                     style={{ width: `${analysis.score}%`, background: getScoreColor(analysis.score) }}
@@ -198,7 +198,7 @@ export function FormChecker({ exercise, onClose, update }: Props) {
                     const severityColor = {
                       critical: "#DA667B",
                       warning: "#C99A5C",
-                      tip: "#B4552F",
+                      tip: "var(--purple)",
                     }[correction.severity];
 
                     return (
@@ -239,7 +239,7 @@ export function FormChecker({ exercise, onClose, update }: Props) {
                   setAnalysis(null);
                 }}
                 className="w-full py-3 rounded-2xl font-semibold"
-                style={{ background: "#B4552F", color: "#fff" }}>
+                style={{ background: "var(--purple)", color: "#fff" }}>
                 Check Another Set
               </button>
             </div>

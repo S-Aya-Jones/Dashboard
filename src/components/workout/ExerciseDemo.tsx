@@ -57,7 +57,7 @@ export function ExerciseDemo({
             onClick={() => setPlaying((p) => !p)}
             aria-label={playing ? "Pause the demo" : "Play the demo"}
             className="absolute bottom-2 right-2 w-8 h-8 rounded-full grid place-items-center"
-            style={{ background: "rgba(28,22,19,0.55)", color: "#fff", backdropFilter: "blur(6px)" }}
+            style={{ background: "rgba(20,16,13,0.62)", color: "#fff", backdropFilter: "blur(6px)" }}
           >
             {playing ? <Pause size={13} /> : <Play size={13} />}
           </button>
@@ -65,7 +65,7 @@ export function ExerciseDemo({
 
         <span
           className="absolute bottom-2 left-2 text-[10px] font-semibold px-2 py-1 rounded-full"
-          style={{ background: "rgba(28,22,19,0.55)", color: "#fff", backdropFilter: "blur(6px)" }}
+          style={{ background: "rgba(20,16,13,0.62)", color: "#fff", backdropFilter: "blur(6px)" }}
         >
           {frame === 0 ? "Start" : "Finish"}
         </span>

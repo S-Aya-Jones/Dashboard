@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Volume2, Play, X } from "lucide-react";
 import { ProgramExercise } from "./program";
 import { getFormCuesForExercise } from "@/lib/formCues";
+import { say } from "@/lib/coachVoice";
 
 interface Props {
   exercise: ProgramExercise;
@@ -34,18 +35,7 @@ export function AvatarCoach({ exercise, setIndex, totalSets, isPlaying, videoUrl
   const speakCue = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/tts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: currentCue }),
-      });
-      if (res.ok) {
-        new Audio(URL.createObjectURL(await res.blob())).play();
-      }
-    } catch {
-      const u = new SpeechSynthesisUtterance(currentCue);
-      u.rate = 0.9;
-      window.speechSynthesis.speak(u);
+      await say(currentCue);
     } finally {
       setIsLoading(false);
     }
@@ -53,7 +43,7 @@ export function AvatarCoach({ exercise, setIndex, totalSets, isPlaying, videoUrl
 
   return (
     <>
-      <div className="rounded-3xl overflow-hidden border-2" style={{ borderColor: "#B4552F", background: "linear-gradient(135deg, #2A211C 0%, #1C1613 100%)" }}>
+      <div className="rounded-3xl overflow-hidden border-2" style={{ borderColor: "var(--purple)", background: "linear-gradient(135deg, #2A211C 0%, #1C1613 100%)" }}>
 
         {/* Avatar / video area */}
         <div className="relative flex items-center justify-center" style={{ aspectRatio: "4/3", background: "linear-gradient(180deg, #241C17 0%, #17110E 100%)" }}>
@@ -72,7 +62,7 @@ export function AvatarCoach({ exercise, setIndex, totalSets, isPlaying, videoUrl
               </div>
               <button
                 className="flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-sm transition-all active:scale-95"
-                style={{ background: "#B4552F", color: "#fff" }}>
+                style={{ background: "var(--purple)", color: "#fff" }}>
                 <Play size={14} fill="#fff" /> Watch Aya Coach This
               </button>
             </div>
@@ -80,7 +70,7 @@ export function AvatarCoach({ exercise, setIndex, totalSets, isPlaying, videoUrl
             /* No video yet — show avatar with animated pulse */
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
               <div className="relative">
-                <div className="absolute inset-0 rounded-full animate-ping opacity-20" style={{ background: "#B4552F" }} />
+                <div className="absolute inset-0 rounded-full animate-ping opacity-20" style={{ background: "var(--purple)" }} />
                 <div className="w-24 h-24 rounded-full bg-gradient-to-br from-terracotta via-peach to-sage flex items-center justify-center text-5xl shadow-lg relative">
 
                 </div>
@@ -121,7 +111,7 @@ export function AvatarCoach({ exercise, setIndex, totalSets, isPlaying, videoUrl
               <button key={i} onClick={() => setCurrentCueIndex(i)}
                 className="w-2 h-2 rounded-full transition-all"
                 style={{
-                  background: i === currentCueIndex ? "#B4552F" : "rgba(180,85,47,0.2)",
+                  background: i === currentCueIndex ? "var(--purple)" : "rgba(180,85,47,0.2)",
                   transform: i === currentCueIndex ? "scale(1.3)" : "scale(1)",
                 }} />
             ))}

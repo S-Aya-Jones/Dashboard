@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Bell, Plus, Trash2, Check, X, MessageSquare, RefreshCw, BookOpen, Calendar } from "lucide-react";
 import { TextSettings } from "@/components/settings/TextSettings";
+import { ScheduleImport } from "@/components/school/ScheduleImport";
 
 interface Reminder {
   id: string;
@@ -292,6 +293,10 @@ export function RemindersView() {
       {/* ── Deadlines tab ── */}
       {tab === "deadlines" && (
         <div>
+          <div style={{ marginBottom: "1.25rem" }}>
+            <ScheduleImport />
+          </div>
+
           {/* Seed button + status */}
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1rem" }}>
             <button onClick={handleSeedDeadlines} disabled={seeding}

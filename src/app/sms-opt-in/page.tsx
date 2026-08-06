@@ -21,14 +21,14 @@ export default function SmsOptInPage() {
           <h1 style={{ fontFamily: "Georgia, serif", fontSize: "1.9rem", fontWeight: 500, margin: "0 0 0.4rem", color: "#1C1613", lineHeight: 1.2 }}>
             SMS Notifications
           </h1>
-          <p style={{ fontSize: "0.85rem", color: "#7C6FAE", margin: 0 }}>
+          <p style={{ fontSize: "0.85rem", color: "#6B5D53", margin: 0 }}>
             Automated daily wellness &amp; fitness reminders
           </p>
         </div>
 
         {/* Business info card */}
         <div style={{ background: "#fff", borderRadius: "14px", padding: "1.25rem 1.5rem", marginBottom: "1.25rem", border: "1px solid rgba(180,85,47,0.15)" }}>
-          <p style={{ fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.08em", color: "#A89ECC", textTransform: "uppercase", margin: "0 0 0.75rem" }}>Business Information</p>
+          <p style={{ fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.08em", color: "#9C8D81", textTransform: "uppercase", margin: "0 0 0.75rem" }}>Business Information</p>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
             <tbody>
               {[
@@ -38,7 +38,7 @@ export default function SmsOptInPage() {
                 ["Contact Email",  "shaniquaayajones@gmail.com"],
               ].map(([label, val]) => (
                 <tr key={label}>
-                  <td style={{ paddingBottom: "0.5rem", paddingRight: "1rem", color: "#7C6FAE", whiteSpace: "nowrap", verticalAlign: "top", fontWeight: 500 }}>{label}</td>
+                  <td style={{ paddingBottom: "0.5rem", paddingRight: "1rem", color: "#6B5D53", whiteSpace: "nowrap", verticalAlign: "top", fontWeight: 500 }}>{label}</td>
                   <td style={{ paddingBottom: "0.5rem", color: "#1C1613" }}>{val}</td>
                 </tr>
               ))}
@@ -48,7 +48,7 @@ export default function SmsOptInPage() {
 
         {/* Program description */}
         <div style={{ background: "#fff", borderRadius: "14px", padding: "1.5rem", marginBottom: "1.25rem", border: "1px solid rgba(180,85,47,0.15)", boxShadow: "0 4px 24px rgba(180,85,47,0.08)" }}>
-          <p style={{ fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.08em", color: "#A89ECC", textTransform: "uppercase", margin: "0 0 0.75rem" }}>Program Description</p>
+          <p style={{ fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.08em", color: "#9C8D81", textTransform: "uppercase", margin: "0 0 0.75rem" }}>Program Description</p>
           <p style={{ fontSize: "0.9rem", lineHeight: 1.7, color: "#1C1613", margin: "0 0 1rem" }}>
             This is a private, single-user personal wellness dashboard owned and operated by
             Shaniqua Jones. The SMS program sends automated daily reminders and briefings
@@ -57,7 +57,7 @@ export default function SmsOptInPage() {
           </p>
 
           {/* Message examples */}
-          <div style={{ background: "#FAF8FF", borderRadius: "10px", padding: "1rem", marginBottom: "1.25rem", border: "1px solid rgba(180,85,47,0.1)" }}>
+          <div style={{ background: "#F7F2EC", borderRadius: "10px", padding: "1rem", marginBottom: "1.25rem", border: "1px solid rgba(180,85,47,0.1)" }}>
             <p style={{ fontSize: "0.75rem", fontWeight: 600, color: "#B4552F", margin: "0 0 0.5rem" }}>Example messages:</p>
             <p style={{ fontSize: "0.8rem", color: "#1C1613", fontStyle: "italic", margin: "0 0 0.35rem" }}>&ldquo;Aya&apos;s Dashboard: Good morning! Today&apos;s workout: Upper Body Push. Yesterday: 4/5 habits done, 7.5 hrs sleep. Reply STOP to opt out.&rdquo;</p>
             <p style={{ fontSize: "0.8rem", color: "#1C1613", fontStyle: "italic", margin: 0 }}>&ldquo;Aya&apos;s Dashboard: Habit check-in time! How are your goals going today? Reply STOP to unsubscribe or HELP for commands.&rdquo;</p>
@@ -67,7 +67,7 @@ export default function SmsOptInPage() {
           <SmsOptInForm />
 
           {/* Required CTIA disclosures */}
-          <div style={{ fontSize: "0.78rem", lineHeight: 1.8, color: "#7C6FAE", borderTop: "1px solid rgba(180,85,47,0.12)", paddingTop: "1rem", display: "grid", gap: "0.35rem" }}>
+          <div style={{ fontSize: "0.78rem", lineHeight: 1.8, color: "#6B5D53", borderTop: "1px solid rgba(180,85,47,0.12)", paddingTop: "1rem", display: "grid", gap: "0.35rem" }}>
             <p style={{ margin: 0 }}><strong style={{ color: "#1C1613" }}>Program Name:</strong> Aya&apos;s Dashboard — Personal Wellness Reminders</p>
             <p style={{ margin: 0 }}><strong style={{ color: "#1C1613" }}>Message Frequency:</strong> Up to 2 messages per day.</p>
             <p style={{ margin: 0 }}><strong style={{ color: "#1C1613" }}>Msg &amp; Data Rates May Apply.</strong> Rates depend on your mobile carrier plan.</p>
@@ -78,7 +78,7 @@ export default function SmsOptInPage() {
         </div>
 
         {/* Footer links */}
-        <div style={{ fontSize: "0.78rem", color: "#A89ECC", textAlign: "center" }}>
+        <div style={{ fontSize: "0.78rem", color: "#9C8D81", textAlign: "center" }}>
           <Link href="/terms" style={{ color: "#B4552F", textDecoration: "none" }}>Terms of Service</Link>
           <span style={{ margin: "0 0.5rem" }}>·</span>
           <Link href="/privacy" style={{ color: "#B4552F", textDecoration: "none" }}>Privacy Policy</Link>

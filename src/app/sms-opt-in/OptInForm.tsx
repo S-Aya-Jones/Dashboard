@@ -1,13 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 
-const PHONE = process.env.NEXT_PUBLIC_TWILIO_PHONE_NUMBER ?? "+1 (XXX) XXX-XXXX";
-
+// The number is read at runtime rather than baked in at build, so saving a
+// Twilio number in settings updates this page without a redeploy. A carrier
+// reviewing the A2P campaign has to see a real number here — a placeholder
+// reads as an unfinished page and is a documented rejection reason.
 export function OptInForm() {
   const [checked, setChecked] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+  const [phone, setPhone] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/sms/number", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => setPhone(d.display ?? null))
+      .catch(() => {});
+  }, []);
+
+  const PHONE = phone ?? "our messaging number";
 
   if (confirmed) {
     return (
@@ -17,12 +29,12 @@ export function OptInForm() {
           <p style={{ fontSize: "0.95rem", fontWeight: 600, color: "#1C1613", margin: "0 0 0.5rem" }}>
             You&apos;re opted in!
           </p>
-          <p style={{ fontSize: "0.85rem", color: "#7C6FAE", margin: 0, lineHeight: 1.6 }}>
+          <p style={{ fontSize: "0.85rem", color: "#6B5D53", margin: 0, lineHeight: 1.6 }}>
             You will receive daily wellness briefings from {PHONE}.<br />
             Reply <strong style={{ color: "#1C1613" }}>STOP</strong> at any time to unsubscribe.
           </p>
         </div>
-        <div style={{ fontSize: "0.78rem", color: "#A89ECC", textAlign: "center" }}>
+        <div style={{ fontSize: "0.78rem", color: "#9C8D81", textAlign: "center" }}>
           <Link href="/terms" style={{ color: "#B4552F", textDecoration: "none" }}>Terms of Service</Link>
           <span style={{ margin: "0 0.5rem" }}>·</span>
           <Link href="/privacy" style={{ color: "#B4552F", textDecoration: "none" }}>Privacy Policy</Link>
@@ -40,10 +52,10 @@ export function OptInForm() {
           and provide consent below.
         </p>
 
-        <label style={{ display: "block", fontSize: "0.8rem", color: "#7C6FAE", marginBottom: "0.4rem" }}>
+        <label style={{ display: "block", fontSize: "0.8rem", color: "#6B5D53", marginBottom: "0.4rem" }}>
           You will receive messages from
         </label>
-        <div style={{ background: "#FAF8FF", border: "1px solid rgba(180,85,47,0.2)", borderRadius: "10px", padding: "0.75rem 1rem", fontSize: "0.95rem", color: "#1C1613", fontWeight: 500, marginBottom: "1.25rem", letterSpacing: "0.02em" }}>
+        <div style={{ background: "#F7F2EC", border: "1px solid rgba(180,85,47,0.2)", borderRadius: "10px", padding: "0.75rem 1rem", fontSize: "0.95rem", color: "#1C1613", fontWeight: 500, marginBottom: "1.25rem", letterSpacing: "0.02em" }}>
           {PHONE}
         </div>
 
@@ -83,7 +95,7 @@ export function OptInForm() {
           Confirm Opt-In
         </button>
 
-        <div style={{ fontSize: "0.78rem", lineHeight: 1.7, color: "#7C6FAE", borderTop: "1px solid rgba(180,85,47,0.12)", paddingTop: "1rem" }}>
+        <div style={{ fontSize: "0.78rem", lineHeight: 1.7, color: "#6B5D53", borderTop: "1px solid rgba(180,85,47,0.12)", paddingTop: "1rem" }}>
           <p style={{ margin: "0 0 0.4rem" }}><strong style={{ color: "#1C1613" }}>Message Frequency:</strong> Up to 2 messages per day.</p>
           <p style={{ margin: "0 0 0.4rem" }}><strong style={{ color: "#1C1613" }}>Rates:</strong> Msg &amp; data rates may apply.</p>
           <p style={{ margin: "0 0 0.4rem" }}><strong style={{ color: "#1C1613" }}>Stop:</strong> Reply STOP to cancel at any time. Reply HELP for help.</p>
@@ -96,7 +108,7 @@ export function OptInForm() {
         </div>
       </div>
 
-      <div style={{ fontSize: "0.78rem", color: "#A89ECC", textAlign: "center" }}>
+      <div style={{ fontSize: "0.78rem", color: "#9C8D81", textAlign: "center" }}>
         <Link href="/terms" style={{ color: "#B4552F", textDecoration: "none" }}>Terms of Service</Link>
         <span style={{ margin: "0 0.5rem" }}>·</span>
         <Link href="/privacy" style={{ color: "#B4552F", textDecoration: "none" }}>Privacy Policy</Link>
