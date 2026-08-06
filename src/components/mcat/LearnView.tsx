@@ -70,7 +70,7 @@ function renderInline(text: string): React.ReactNode {
           return (
             <code key={i} style={{
               fontFamily: "monospace",
-              background: "rgba(124,92,252,0.1)",
+              background: "rgba(180,85,47,0.1)",
               padding: "1px 5px",
               borderRadius: 4,
               fontSize: "0.88em",
@@ -154,7 +154,7 @@ function renderMarkdown(text: string): React.ReactNode {
                 {rows.map((row, ri) => {
                   const cells = row.split("|").slice(1, -1).map(c => c.trim());
                   return (
-                    <tr key={ri} style={{ background: ri === 0 ? "rgba(124,92,252,0.08)" : ri % 2 === 0 ? "transparent" : "rgba(124,92,252,0.03)" }}>
+                    <tr key={ri} style={{ background: ri === 0 ? "rgba(180,85,47,0.08)" : ri % 2 === 0 ? "transparent" : "rgba(180,85,47,0.03)" }}>
                       {cells.map((cell, ci) =>
                         ri === 0
                           ? <th key={ci} style={{ padding: "8px 12px", textAlign: "left", fontWeight: 700, color: "var(--text)", borderBottom: "2px solid var(--border)", whiteSpace: "nowrap" }}>{renderInline(cell)}</th>
@@ -235,7 +235,7 @@ function renderMarkdown(text: string): React.ReactNode {
           <div key={k()} style={{
             fontFamily: "monospace",
             fontSize: 13,
-            background: "rgba(124,92,252,0.04)",
+            background: "rgba(180,85,47,0.04)",
             border: "1px solid var(--border)",
             borderRadius: 10,
             padding: "14px 18px",
@@ -326,8 +326,8 @@ export function LearnView({ data, update }: Props) {
   <title>${topicConcept} — ${topicSubject}</title>
   <style>
     body { font-family: Georgia, serif; max-width: 700px; margin: 40px auto; color: #1a1a2e; line-height: 1.7; }
-    h1 { font-size: 22px; color: #7C5CFC; margin-bottom: 4px; }
-    h2 { font-size: 18px; color: #7C5CFC; border-bottom: 1.5px solid #7C5CFC; padding-bottom: 4px; margin-top: 28px; }
+    h1 { font-size: 22px; color: #B4552F; margin-bottom: 4px; }
+    h2 { font-size: 18px; color: #B4552F; border-bottom: 1.5px solid #B4552F; padding-bottom: 4px; margin-top: 28px; }
     h3 { font-size: 15px; color: #5b40c0; margin-top: 20px; }
     p { font-size: 14px; margin: 8px 0; }
     ul { padding-left: 20px; }
@@ -476,7 +476,7 @@ export function LearnView({ data, update }: Props) {
               style={{
                 padding: "9px 18px", borderRadius: 10, border: "1.5px solid",
                 borderColor: learnTab === tab.id ? "var(--purple)" : "var(--border)",
-                background: learnTab === tab.id ? "rgba(124,92,252,0.1)" : "var(--surface)",
+                background: learnTab === tab.id ? "rgba(180,85,47,0.1)" : "var(--surface)",
                 color: learnTab === tab.id ? "var(--purple)" : "var(--text-muted)",
                 fontWeight: learnTab === tab.id ? 700 : 500,
                 fontSize: 13, cursor: "pointer",
@@ -496,7 +496,7 @@ export function LearnView({ data, update }: Props) {
                 background: "var(--grad)",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 margin: "0 auto 16px",
-                boxShadow: "0 4px 20px rgba(124,92,252,0.3)",
+                boxShadow: "0 4px 20px rgba(180,85,47,0.3)",
               }}>
                 <Brain size={32} color="#fff" />
               </div>
@@ -539,7 +539,7 @@ export function LearnView({ data, update }: Props) {
                       padding: "6px 14px", borderRadius: 20,
                       border: "1.5px solid",
                       borderColor: subject === s ? "var(--purple)" : "var(--border)",
-                      background: subject === s ? "rgba(124,92,252,0.1)" : "transparent",
+                      background: subject === s ? "rgba(180,85,47,0.1)" : "transparent",
                       color: subject === s ? "var(--purple)" : "var(--text-muted)",
                       fontWeight: subject === s ? 700 : 500,
                       fontSize: 13, cursor: "pointer",
@@ -559,7 +559,7 @@ export function LearnView({ data, update }: Props) {
                   color: inputConcept.trim() ? "#fff" : "var(--text-muted)",
                   fontWeight: 700, fontSize: 15,
                   cursor: inputConcept.trim() ? "pointer" : "not-allowed",
-                  boxShadow: inputConcept.trim() ? "0 2px 16px rgba(124,92,252,0.3)" : "none",
+                  boxShadow: inputConcept.trim() ? "0 2px 16px rgba(180,85,47,0.3)" : "none",
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                 }}
               >
@@ -621,7 +621,7 @@ export function LearnView({ data, update }: Props) {
           </div>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 16, fontWeight: 800, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{concept}</div>
-            <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 20, background: "rgba(124,92,252,0.1)", color: "var(--purple)", fontWeight: 600 }}>
+            <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 20, background: "rgba(180,85,47,0.1)", color: "var(--purple)", fontWeight: 600 }}>
               {subject}
             </span>
           </div>
@@ -763,7 +763,7 @@ export function LearnView({ data, update }: Props) {
                           })}
                         </div>
                         {msg.question.explanation && (
-                          <div style={{ marginTop: 12, padding: "10px 14px", borderRadius: 8, background: "rgba(124,92,252,0.04)", border: "1px solid var(--border)" }}>
+                          <div style={{ marginTop: 12, padding: "10px 14px", borderRadius: 8, background: "rgba(180,85,47,0.04)", border: "1px solid var(--border)" }}>
                             <div style={{ fontSize: 11, fontWeight: 700, color: "var(--purple)", marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.4 }}>Explanation</div>
                             <div style={{ fontSize: 13, color: "var(--text)", lineHeight: 1.65 }}>{msg.question.explanation}</div>
                           </div>
@@ -776,7 +776,7 @@ export function LearnView({ data, update }: Props) {
                           marginTop: 8, padding: "8px 18px", borderRadius: 10,
                           border: "none",
                           cursor: savedQIdx.has(idx) ? "default" : "pointer",
-                          background: savedQIdx.has(idx) ? "rgba(16,185,129,0.1)" : "rgba(124,92,252,0.1)",
+                          background: savedQIdx.has(idx) ? "rgba(16,185,129,0.1)" : "rgba(180,85,47,0.1)",
                           color: savedQIdx.has(idx) ? "var(--green)" : "var(--purple)",
                           fontWeight: 700, fontSize: 13,
                           display: "inline-flex", alignItems: "center", gap: 6,

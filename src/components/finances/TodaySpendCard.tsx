@@ -20,20 +20,20 @@ interface TodayData {
   date: string;
 }
 
-const LIME = "#7C5CFC";
+const LIME = "#B4552F";
 const MUTED = "rgba(30,19,64,0.45)";
 const RED = "#EF4444";
 const AMBER = "#F59E0B";
 const CARD = "#FFFFFF";
-const BORDER = "rgba(124,92,252,0.12)";
+const BORDER = "rgba(180,85,47,0.12)";
 
 function fmt$(n: number) { return `$${Math.abs(n).toLocaleString("en-US", { maximumFractionDigits: 0 })}`; }
 
 function getCategoryColor(cat: string): string {
   const map: Record<string, string> = {
     "Eating Out": "#FB923C", Groceries: "#10B981", Gas: "#F59E0B",
-    "Fun / Entertainment": "#E879F9", "Self-Care": "#EC4899", Health: "#EF4444",
-    Housing: "#7C5CFC", Shopping: "#F472B6", Travel: "#0EA5E9",
+    "Fun / Entertainment": "#E0A44A", "Self-Care": "#EC4899", Health: "#EF4444",
+    Housing: "#B4552F", Shopping: "#F472B6", Travel: "#0EA5E9",
     Subscriptions: "#6366F1", Other: "#94A3B8",
   };
   return map[cat] ?? "#94A3B8";
@@ -166,7 +166,7 @@ export function TodaySpendCard({ baseBudget }: { baseBudget: BaseBudgetItem[] })
                           </div>
                         </div>
                         {alert.limit > 0 && (
-                          <div className="h-1.5 rounded-full" style={{ background: "rgba(124,92,252,0.08)" }}>
+                          <div className="h-1.5 rounded-full" style={{ background: "rgba(180,85,47,0.08)" }}>
                             <div className="h-1.5 rounded-full transition-all" style={{ width: `${barPct}%`, background: color }} />
                           </div>
                         )}
@@ -204,7 +204,7 @@ export function TodaySpendCard({ baseBudget }: { baseBudget: BaseBudgetItem[] })
                           <span className="text-sm font-semibold" style={{ color: "var(--text)" }}>{fmt$(txn.amount)}</span>
                           <button onClick={() => flagTxn(txn)}
                             className="text-xs px-2 py-1 rounded-lg flex-shrink-0"
-                            style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>
+                            style={{ background: "rgba(180,85,47,0.07)", color: MUTED }}>
                             Ask
                           </button>
                         </div>
@@ -216,7 +216,7 @@ export function TodaySpendCard({ baseBudget }: { baseBudget: BaseBudgetItem[] })
 
               {/* Draft message panel */}
               {flaggedTxn && (
-                <div className="rounded-2xl p-4 mt-3" style={{ background: "rgba(124,92,252,0.04)", border: `1px solid rgba(124,92,252,0.15)` }}>
+                <div className="rounded-2xl p-4 mt-3" style={{ background: "rgba(180,85,47,0.04)", border: `1px solid rgba(180,85,47,0.15)` }}>
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-xs font-semibold" style={{ color: MUTED, letterSpacing: "0.06em" }}>
                       DRAFT MESSAGE · {flaggedTxn.name}

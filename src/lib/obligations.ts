@@ -87,7 +87,7 @@ export async function upsertObligation(o: {
       INSERT INTO obligations (source, kind, title, detail, due_at, lead_days, repeat_days, external_id)
       VALUES (${o.source}, ${o.kind}, ${o.title}, ${o.detail ?? ""}, ${o.dueAt},
               ${lead}, ${o.repeatDays ?? null}, ${o.externalId})
-      ON CONFLICT (external_id) DO UPDATE SET
+      ON CONFLICT (external_id) WHERE external_id IS NOT NULL DO UPDATE SET
         title = EXCLUDED.title, detail = EXCLUDED.detail, due_at = EXCLUDED.due_at
     `;
     return;

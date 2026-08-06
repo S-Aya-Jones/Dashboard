@@ -84,7 +84,7 @@ function isCourseDeadline(e: UpcomingEvent): boolean {
 
 const COURSE_COLORS: Record<string, string> = {
   "Microbiology":         "#22c55e",
-  "Cell & Molecular Bio": "#7C5CFC",
+  "Cell & Molecular Bio": "#B4552F",
   "Physiology":           "#06b6d4",
   "Biochemistry":         "#f97316",
 };
@@ -93,8 +93,8 @@ const TYPE_COLORS: Record<string, string> = {
   remind_created: "#22c55e",
   reminder_off:   "#f97316",
   reminder_on:    "#22c55e",
-  free_text:      "#7C5CFC",
-  explicit_log:   "#7C5CFC",
+  free_text:      "#B4552F",
+  explicit_log:   "#B4552F",
   list:           "#06b6d4",
   help:           "#06b6d4",
   start:          "#06b6d4",
@@ -294,7 +294,7 @@ export function RemindersView() {
           {/* Seed button + status */}
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1rem" }}>
             <button onClick={handleSeedDeadlines} disabled={seeding}
-              style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.45rem 0.9rem", background: "rgba(124,92,252,0.1)", border: "1.5px solid var(--purple)", borderRadius: 10, color: "var(--purple)", fontSize: "0.8rem", fontWeight: 600, cursor: seeding ? "wait" : "pointer", opacity: seeding ? 0.6 : 1 }}>
+              style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.45rem 0.9rem", background: "rgba(180,85,47,0.1)", border: "1.5px solid var(--purple)", borderRadius: 10, color: "var(--purple)", fontSize: "0.8rem", fontWeight: 600, cursor: seeding ? "wait" : "pointer", opacity: seeding ? 0.6 : 1 }}>
               <RefreshCw size={13} style={{ animation: seeding ? "spin 0.8s linear infinite" : "none" }} />
               {seeding ? "Seeding…" : "Sync Course Deadlines"}
             </button>
@@ -400,7 +400,7 @@ export function RemindersView() {
                 Open Telegram, message <strong>@AyaDashboardbot</strong>, and send anything.<br />
                 It will appear here once the webhook is connected.
               </p>
-              <div style={{ display: "inline-block", padding: "0.5rem 1rem", background: "rgba(124,92,252,0.08)", borderRadius: 8, fontSize: "0.78rem", color: "var(--purple)", fontFamily: "monospace" }}>
+              <div style={{ display: "inline-block", padding: "0.5rem 1rem", background: "rgba(180,85,47,0.08)", borderRadius: 8, fontSize: "0.78rem", color: "var(--purple)", fontFamily: "monospace" }}>
                 /start
               </div>
             </div>
@@ -432,7 +432,7 @@ export function RemindersView() {
           </div>
 
           {showForm && (
-            <div style={{ background: "var(--surface)", borderRadius: 16, border: "1.5px solid var(--border2)", padding: "1.25rem 1.5rem", marginBottom: "1.25rem", boxShadow: "0 4px 24px rgba(124,92,252,0.08)" }}>
+            <div style={{ background: "var(--surface)", borderRadius: 16, border: "1.5px solid var(--border2)", padding: "1.25rem 1.5rem", marginBottom: "1.25rem", boxShadow: "0 4px 24px rgba(180,85,47,0.08)" }}>
               <p style={{ margin: "0 0 1rem", fontWeight: 600, fontSize: "0.9rem", color: "var(--text)" }}>New Reminder</p>
               <div style={{ display: "grid", gap: "0.75rem" }}>
                 <input placeholder="Title" value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
@@ -442,7 +442,7 @@ export function RemindersView() {
                 <div style={{ display: "flex", gap: "0.5rem" }}>
                   {(["daily", "weekly", "once"] as const).map(t => (
                     <button key={t} onClick={() => setForm(p => ({ ...p, scheduleType: t }))}
-                      style={{ flex: 1, padding: "0.5rem", borderRadius: 8, border: `1.5px solid ${form.scheduleType === t ? "var(--purple)" : "var(--border)"}`, background: form.scheduleType === t ? "rgba(124,92,252,0.1)" : "var(--bg)", color: form.scheduleType === t ? "var(--purple)" : "var(--text-muted)", fontWeight: 600, cursor: "pointer", fontSize: "0.82rem", textTransform: "capitalize" }}>
+                      style={{ flex: 1, padding: "0.5rem", borderRadius: 8, border: `1.5px solid ${form.scheduleType === t ? "var(--purple)" : "var(--border)"}`, background: form.scheduleType === t ? "rgba(180,85,47,0.1)" : "var(--bg)", color: form.scheduleType === t ? "var(--purple)" : "var(--text-muted)", fontWeight: 600, cursor: "pointer", fontSize: "0.82rem", textTransform: "capitalize" }}>
                       {t}
                     </button>
                   ))}
@@ -451,7 +451,7 @@ export function RemindersView() {
                   <div style={{ display: "flex", gap: "0.35rem" }}>
                     {DAY_BTNS.map(({ label, value }) => (
                       <button key={value} onClick={() => toggleDay(value)}
-                        style={{ flex: 1, padding: "0.4rem 0", borderRadius: 8, border: `1.5px solid ${form.daysOfWeek.includes(value) ? "var(--purple)" : "var(--border)"}`, background: form.daysOfWeek.includes(value) ? "rgba(124,92,252,0.12)" : "var(--bg)", color: form.daysOfWeek.includes(value) ? "var(--purple)" : "var(--text-muted)", fontWeight: 600, cursor: "pointer", fontSize: "0.75rem" }}>
+                        style={{ flex: 1, padding: "0.4rem 0", borderRadius: 8, border: `1.5px solid ${form.daysOfWeek.includes(value) ? "var(--purple)" : "var(--border)"}`, background: form.daysOfWeek.includes(value) ? "rgba(180,85,47,0.12)" : "var(--bg)", color: form.daysOfWeek.includes(value) ? "var(--purple)" : "var(--text-muted)", fontWeight: 600, cursor: "pointer", fontSize: "0.75rem" }}>
                         {label}
                       </button>
                     ))}

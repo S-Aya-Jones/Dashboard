@@ -53,7 +53,7 @@ export function AvatarCoach({ exercise, setIndex, totalSets, isPlaying, videoUrl
 
   return (
     <>
-      <div className="rounded-3xl overflow-hidden border-2" style={{ borderColor: "#7C5CFC", background: "linear-gradient(135deg, #2a1a3a 0%, #1a0f2e 100%)" }}>
+      <div className="rounded-3xl overflow-hidden border-2" style={{ borderColor: "#B4552F", background: "linear-gradient(135deg, #2a1a3a 0%, #1a0f2e 100%)" }}>
 
         {/* Avatar / video area */}
         <div className="relative flex items-center justify-center" style={{ aspectRatio: "4/3", background: "linear-gradient(180deg, #1a0a2e 0%, #0d0618 100%)" }}>
@@ -72,7 +72,7 @@ export function AvatarCoach({ exercise, setIndex, totalSets, isPlaying, videoUrl
               </div>
               <button
                 className="flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-sm transition-all active:scale-95"
-                style={{ background: "#7C5CFC", color: "#fff" }}>
+                style={{ background: "#B4552F", color: "#fff" }}>
                 <Play size={14} fill="#fff" /> Watch Aya Coach This
               </button>
             </div>
@@ -80,7 +80,7 @@ export function AvatarCoach({ exercise, setIndex, totalSets, isPlaying, videoUrl
             /* No video yet — show avatar with animated pulse */
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
               <div className="relative">
-                <div className="absolute inset-0 rounded-full animate-ping opacity-20" style={{ background: "#7C5CFC" }} />
+                <div className="absolute inset-0 rounded-full animate-ping opacity-20" style={{ background: "#B4552F" }} />
                 <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-600 via-pink-500 to-amber-500 flex items-center justify-center text-5xl shadow-lg relative">
                   👩🏾
                 </div>
@@ -94,7 +94,7 @@ export function AvatarCoach({ exercise, setIndex, totalSets, isPlaying, videoUrl
 
           {/* Set badge */}
           <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full text-xs font-bold"
-            style={{ background: "rgba(124,92,252,0.3)", color: "#9B7FFF" }}>
+            style={{ background: "rgba(180,85,47,0.3)", color: "#D07A4F" }}>
             Set {setIndex + 1} / {totalSets}
           </div>
 
@@ -110,7 +110,7 @@ export function AvatarCoach({ exercise, setIndex, totalSets, isPlaying, videoUrl
 
         {/* Form cue */}
         <div className="p-4 space-y-3" style={{ background: "linear-gradient(180deg, #1a0a2e 0%, #0d0618 100%)" }}>
-          <div className="rounded-xl p-3 space-y-1" style={{ background: "rgba(124,92,252,0.12)", border: "1px solid rgba(124,92,252,0.2)" }}>
+          <div className="rounded-xl p-3 space-y-1" style={{ background: "rgba(180,85,47,0.12)", border: "1px solid rgba(180,85,47,0.2)" }}>
             <p className="text-[10px] font-bold uppercase tracking-widest text-purple-400">Aya says</p>
             <p className="text-sm leading-relaxed text-white">{currentCue}</p>
           </div>
@@ -121,7 +121,7 @@ export function AvatarCoach({ exercise, setIndex, totalSets, isPlaying, videoUrl
               <button key={i} onClick={() => setCurrentCueIndex(i)}
                 className="w-2 h-2 rounded-full transition-all"
                 style={{
-                  background: i === currentCueIndex ? "#7C5CFC" : "rgba(124,92,252,0.2)",
+                  background: i === currentCueIndex ? "#B4552F" : "rgba(180,85,47,0.2)",
                   transform: i === currentCueIndex ? "scale(1.3)" : "scale(1)",
                 }} />
             ))}
@@ -130,14 +130,14 @@ export function AvatarCoach({ exercise, setIndex, totalSets, isPlaying, videoUrl
           {/* Audio button */}
           <button onClick={speakCue} disabled={isLoading}
             className="w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 active:scale-95 transition-transform"
-            style={{ background: "rgba(124,92,252,0.2)", color: "#9B7FFF", border: "1px solid rgba(124,92,252,0.3)", opacity: isLoading ? 0.7 : 1 }}>
+            style={{ background: "rgba(180,85,47,0.2)", color: "#D07A4F", border: "1px solid rgba(180,85,47,0.3)", opacity: isLoading ? 0.7 : 1 }}>
             <Volume2 size={15} />
             {isLoading ? "Loading..." : "Hear Cue"}
           </button>
         </div>
 
         {/* Exercise name footer */}
-        <div className="px-4 py-3 border-t" style={{ background: "#0d0618", borderColor: "rgba(124,92,252,0.15)" }}>
+        <div className="px-4 py-3 border-t" style={{ background: "#0d0618", borderColor: "rgba(180,85,47,0.15)" }}>
           <p className="text-xs font-bold text-purple-300">{exercise.name}</p>
           <p className="text-[10px] text-purple-500 mt-0.5 leading-snug">{exercise.formCue}</p>
         </div>

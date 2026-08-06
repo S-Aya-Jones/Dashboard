@@ -28,7 +28,7 @@ interface MealResult {
   totalNote: string;
 }
 
-const PURPLE = "#9B7FFF";
+const PURPLE = "#D07A4F";
 const GOLD = "#E8C547";
 const PEACH = "#E8A87C";
 const ROSE = "#DA667B";
@@ -82,7 +82,7 @@ function MacroBar({ label, value, total, color }: { label: string; value: number
   return (
     <div className="flex items-center gap-2">
       <p className="text-xs w-10 flex-shrink-0" style={{ color: "var(--text-muted)" }}>{label}</p>
-      <div className="flex-1 h-1.5 rounded-full" style={{ background: "rgba(124,92,252,0.1)" }}>
+      <div className="flex-1 h-1.5 rounded-full" style={{ background: "rgba(180,85,47,0.1)" }}>
         <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
       </div>
       <p className="text-xs font-semibold w-10 text-right flex-shrink-0" style={{ color }}>{Math.round(value)}g</p>
@@ -114,7 +114,7 @@ function IngredientRow({ ing, onUpdate, onDelete }: {
   };
 
   return (
-    <div className="rounded-xl overflow-hidden" style={{ background: "rgba(124,92,252,0.04)", border: "1px solid rgba(124,92,252,0.1)" }}>
+    <div className="rounded-xl overflow-hidden" style={{ background: "rgba(180,85,47,0.04)", border: "1px solid rgba(180,85,47,0.1)" }}>
       {/* Main row */}
       <div className="flex items-center gap-2 px-3 py-2.5">
         <div className="flex-1 min-w-0">
@@ -124,7 +124,7 @@ function IngredientRow({ ing, onUpdate, onDelete }: {
               value={nameInput}
               onChange={e => setNameInput(e.target.value)}
               className="w-full text-xs font-semibold px-2 py-1 rounded-lg outline-none"
-              style={{ background: "rgba(124,92,252,0.1)", color: "var(--text)", border: "1px solid rgba(124,92,252,0.2)" }}
+              style={{ background: "rgba(180,85,47,0.1)", color: "var(--text)", border: "1px solid rgba(180,85,47,0.2)" }}
             />
           ) : (
             <p className="text-xs font-semibold truncate" style={{ color: "var(--text)" }}>{ing.name}</p>
@@ -146,7 +146,7 @@ function IngredientRow({ ing, onUpdate, onDelete }: {
           </div>
         ) : (
           <div className="flex gap-1 flex-shrink-0">
-            <button onClick={() => setEditing(true)} className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "rgba(124,92,252,0.08)", color: PURPLE }}>
+            <button onClick={() => setEditing(true)} className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "rgba(180,85,47,0.08)", color: PURPLE }}>
               <Edit2 size={12} />
             </button>
             <button onClick={onDelete} className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "rgba(218,102,123,0.08)", color: ROSE }}>
@@ -163,13 +163,13 @@ function IngredientRow({ ing, onUpdate, onDelete }: {
           <div className="flex items-center gap-1">
             <button onClick={() => setGramInput(g => String(Math.max(1, (parseFloat(g) || 0) - 10)))}
               className="w-7 h-7 rounded-lg text-sm font-bold flex items-center justify-center"
-              style={{ background: "rgba(124,92,252,0.1)", color: PURPLE }}>−</button>
+              style={{ background: "rgba(180,85,47,0.1)", color: PURPLE }}>−</button>
             <input type="number" value={gramInput} onChange={e => setGramInput(e.target.value)}
               className="w-16 text-xs text-center px-2 py-1.5 rounded-lg outline-none"
-              style={{ background: "rgba(124,92,252,0.1)", color: "var(--text)", border: "1px solid rgba(124,92,252,0.2)" }} />
+              style={{ background: "rgba(180,85,47,0.1)", color: "var(--text)", border: "1px solid rgba(180,85,47,0.2)" }} />
             <button onClick={() => setGramInput(g => String((parseFloat(g) || 0) + 10))}
               className="w-7 h-7 rounded-lg text-sm font-bold flex items-center justify-center"
-              style={{ background: "rgba(124,92,252,0.1)", color: PURPLE }}>+</button>
+              style={{ background: "rgba(180,85,47,0.1)", color: PURPLE }}>+</button>
           </div>
           <p className="text-xs" style={{ color: "var(--text-muted)" }}>g → {Math.round((ing.calPerG || 0) * (parseFloat(gramInput) || 0))} kcal</p>
         </div>
@@ -240,26 +240,26 @@ function AddIngredientForm({ onAdd, onCancel }: { onAdd: (ing: Ingredient) => vo
   };
 
   return (
-    <div className="rounded-xl p-3 space-y-3" style={{ background: "rgba(124,92,252,0.06)", border: "1px solid rgba(124,92,252,0.15)" }}>
+    <div className="rounded-xl p-3 space-y-3" style={{ background: "rgba(180,85,47,0.06)", border: "1px solid rgba(180,85,47,0.15)" }}>
       <p className="text-xs font-semibold" style={{ color: PURPLE }}>Add Ingredient</p>
       <div className="grid grid-cols-2 gap-2">
         <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Food name"
           className="text-xs px-3 py-2 rounded-xl outline-none"
-          style={{ background: "rgba(124,92,252,0.08)", border: "1px solid rgba(124,92,252,0.15)", color: "var(--text)" }} />
+          style={{ background: "rgba(180,85,47,0.08)", border: "1px solid rgba(180,85,47,0.15)", color: "var(--text)" }} />
         <input type="text" value={amount} onChange={e => setAmount(e.target.value)} placeholder="Amount (e.g. 1 cup)"
           className="text-xs px-3 py-2 rounded-xl outline-none"
-          style={{ background: "rgba(124,92,252,0.08)", border: "1px solid rgba(124,92,252,0.15)", color: "var(--text)" }} />
+          style={{ background: "rgba(180,85,47,0.08)", border: "1px solid rgba(180,85,47,0.15)", color: "var(--text)" }} />
       </div>
 
       {!manual && (
         <div className="flex gap-2">
           <button onClick={lookup} disabled={loading || !name.trim()}
             className="flex-1 text-xs py-2 rounded-xl font-semibold disabled:opacity-40"
-            style={{ background: "rgba(124,92,252,0.15)", color: PURPLE }}>
+            style={{ background: "rgba(180,85,47,0.15)", color: PURPLE }}>
             {loading ? "Looking up…" : "Look Up Macros"}
           </button>
           <button onClick={() => setManual(true)} className="text-xs px-3 py-2 rounded-xl"
-            style={{ background: "rgba(124,92,252,0.06)", color: "var(--text-muted)" }}>
+            style={{ background: "rgba(180,85,47,0.06)", color: "var(--text-muted)" }}>
             Manual
           </button>
           <button onClick={onCancel} className="text-xs px-3 py-2 rounded-xl"
@@ -287,13 +287,13 @@ function AddIngredientForm({ onAdd, onCancel }: { onAdd: (ing: Ingredient) => vo
                 <input type="number" value={manualFields[f.key as keyof typeof manualFields]}
                   onChange={e => setManualFields(prev => ({ ...prev, [f.key]: e.target.value }))}
                   className="w-full text-xs px-2 py-1.5 rounded-lg outline-none"
-                  style={{ background: "rgba(124,92,252,0.08)", border: "1px solid rgba(124,92,252,0.12)", color: "var(--text)" }} />
+                  style={{ background: "rgba(180,85,47,0.08)", border: "1px solid rgba(180,85,47,0.12)", color: "var(--text)" }} />
               </div>
             ))}
           </div>
           <div className="flex gap-2">
             <button onClick={addManual} className="flex-1 text-xs py-2 rounded-xl font-semibold"
-              style={{ background: "rgba(124,92,252,0.15)", color: PURPLE }}>
+              style={{ background: "rgba(180,85,47,0.15)", color: PURPLE }}>
               Add
             </button>
             <button onClick={onCancel} className="text-xs px-3 py-2 rounded-xl"
@@ -382,8 +382,8 @@ export function MealScanView() {
   return (
     <div className="space-y-4">
       {/* Upload zone */}
-      <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.15)" }}>
-        <div className="p-4" style={{ borderBottom: "1px solid rgba(124,92,252,0.1)" }}>
+      <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid rgba(180,85,47,0.15)" }}>
+        <div className="p-4" style={{ borderBottom: "1px solid rgba(180,85,47,0.1)" }}>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold mb-0.5" style={{ color: "var(--text-muted)", letterSpacing: "0.08em" }}>MEAL SCANNER</p>
@@ -391,7 +391,7 @@ export function MealScanView() {
             </div>
             {meal && (
               <button onClick={reset} className="text-xs px-3 py-1.5 rounded-xl"
-                style={{ background: "rgba(124,92,252,0.08)", color: "var(--text-muted)" }}>
+                style={{ background: "rgba(180,85,47,0.08)", color: "var(--text-muted)" }}>
                 New scan
               </button>
             )}
@@ -402,7 +402,7 @@ export function MealScanView() {
           <button onClick={() => fileRef.current?.click()}
             className="w-full flex flex-col items-center justify-center gap-3 py-10 hover:bg-purple-50/5 transition-colors">
             <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
-              style={{ background: "rgba(124,92,252,0.1)", border: "1.5px dashed rgba(124,92,252,0.3)" }}>
+              style={{ background: "rgba(180,85,47,0.1)", border: "1.5px dashed rgba(180,85,47,0.3)" }}>
               <Camera size={24} style={{ color: PURPLE }} />
             </div>
             <div className="text-center">
@@ -440,8 +440,8 @@ export function MealScanView() {
       {meal && t && (
         <>
           {/* Totals card */}
-          <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.15)" }}>
-            <div className="p-4" style={{ borderBottom: "1px solid rgba(124,92,252,0.1)" }}>
+          <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid rgba(180,85,47,0.15)" }}>
+            <div className="p-4" style={{ borderBottom: "1px solid rgba(180,85,47,0.1)" }}>
               {photo && <img src={photo} alt="Meal" className="w-full h-32 object-cover rounded-xl mb-3" />}
               <p className="text-sm font-semibold mb-0.5" style={{ color: "var(--text)" }}>{meal.mealName}</p>
               {meal.cookingNotes && (
@@ -450,14 +450,14 @@ export function MealScanView() {
             </div>
 
             {/* Big calorie number */}
-            <div className="p-4 text-center" style={{ borderBottom: "1px solid rgba(124,92,252,0.1)" }}>
+            <div className="p-4 text-center" style={{ borderBottom: "1px solid rgba(180,85,47,0.1)" }}>
               <p className="text-xs mb-1" style={{ color: "var(--text-muted)" }}>TOTAL CALORIES</p>
               <p className="text-4xl font-bold" style={{ color: GOLD }}>{Math.round(totalCals)}</p>
               <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>High-end estimate</p>
             </div>
 
             {/* Macro bars */}
-            <div className="px-4 py-3 space-y-2.5" style={{ borderBottom: "1px solid rgba(124,92,252,0.1)" }}>
+            <div className="px-4 py-3 space-y-2.5" style={{ borderBottom: "1px solid rgba(180,85,47,0.1)" }}>
               <MacroBar label="Protein" value={t.protein} total={t.protein + t.carbs + t.fat} color={PURPLE} />
               <MacroBar label="Carbs" value={t.carbs} total={t.protein + t.carbs + t.fat} color={GOLD} />
               <MacroBar label="Fat" value={t.fat} total={t.protein + t.carbs + t.fat} color={PEACH} />
@@ -465,13 +465,13 @@ export function MealScanView() {
             </div>
 
             {/* Calorie split */}
-            <div className="grid grid-cols-3 gap-0" style={{ borderBottom: "1px solid rgba(124,92,252,0.1)" }}>
+            <div className="grid grid-cols-3 gap-0" style={{ borderBottom: "1px solid rgba(180,85,47,0.1)" }}>
               {[
                 { label: "Protein", cals: proteinCals, grams: t.protein, color: PURPLE },
                 { label: "Carbs", cals: carbCals, grams: t.carbs, color: GOLD },
                 { label: "Fat", cals: fatCals, grams: t.fat, color: PEACH },
               ].map((m, i) => (
-                <div key={m.label} className={`py-3 text-center ${i < 2 ? "border-r border-[rgba(124,92,252,0.1)]" : ""}`}>
+                <div key={m.label} className={`py-3 text-center ${i < 2 ? "border-r border-[rgba(180,85,47,0.1)]" : ""}`}>
                   <p className="text-sm font-bold" style={{ color: m.color }}>{Math.round(m.grams)}g</p>
                   <p className="text-xs" style={{ color: "var(--text-muted)" }}>{m.label}</p>
                   <p className="text-xs" style={{ color: "var(--text-muted)" }}>{Math.round(m.cals)} kcal</p>
@@ -485,15 +485,15 @@ export function MealScanView() {
           </div>
 
           {/* Ingredients */}
-          <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid rgba(124,92,252,0.15)" }}>
-            <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: "1px solid rgba(124,92,252,0.1)" }}>
+          <div className="rounded-2xl overflow-hidden" style={{ background: "var(--surface)", border: "1px solid rgba(180,85,47,0.15)" }}>
+            <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: "1px solid rgba(180,85,47,0.1)" }}>
               <div>
                 <p className="text-xs font-semibold" style={{ color: "var(--text-muted)", letterSpacing: "0.08em" }}>INGREDIENTS</p>
                 <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>Edit grams to recalculate. Tap ✏ to adjust.</p>
               </div>
               <button onClick={() => setShowAddForm(v => !v)}
                 className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-xl font-semibold"
-                style={{ background: "rgba(124,92,252,0.12)", color: PURPLE }}>
+                style={{ background: "rgba(180,85,47,0.12)", color: PURPLE }}>
                 <Plus size={12} /> Add
               </button>
             </div>

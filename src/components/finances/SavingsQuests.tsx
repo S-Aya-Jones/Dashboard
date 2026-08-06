@@ -20,7 +20,7 @@ const RING_R   = 36; // eslint-disable-line @typescript-eslint/no-unused-vars
 const RING_COLORS = [
   { track: "#EDD0D7", fill: "#DA667B" }, // blush rose
   { track: "#D3DAD2", fill: "#71816D" }, // dusty olive
-  { track: "#E5E0D8", fill: "#7C5CFC" }, // purple
+  { track: "#E5E0D8", fill: "#B4552F" }, // purple
   { track: "#DDD5C8", fill: "#A8967E" }, // khaki
   { track: "#D9E0D8", fill: "#5A6E58" }, // deep olive
 ];

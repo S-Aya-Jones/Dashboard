@@ -10,14 +10,14 @@ import { id } from "@/lib/utils";
 import { parseISO, format, addDays, differenceInDays } from "date-fns";
 import { TodaySpendCard } from "@/components/finances/TodaySpendCard";
 
-const LIME   = "#7C5CFC";   // purple primary (was lime)
+const LIME   = "#B4552F";   // purple primary (was lime)
 const BG     = "#F4F0FE";   // light lavender bg
 const CARD   = "#FFFFFF";   // white card
-const BORDER = "rgba(124,92,252,0.12)";
+const BORDER = "rgba(180,85,47,0.12)";
 const MUTED  = "rgba(30,19,64,0.45)";
 const RED    = "#EF4444";
 const AMBER  = "#F59E0B";
-const COLORS = ["#7C5CFC","#EF4444","#E879F9","#FB923C","#10B981","#F59E0B","#6366F1","#EC4899"];
+const COLORS = ["#B4552F","#EF4444","#E0A44A","#FB923C","#10B981","#F59E0B","#6366F1","#EC4899"];
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface DetectedCare {
@@ -103,10 +103,10 @@ function fmtDate(d: Date) { return format(d, "MMM d"); }
 function ordinal(n: number) { const s = ["th","st","nd","rd"]; const v = n % 100; return s[(v-20)%10] || s[v] || s[0]; }
 function getCategoryColor(cat: BudgetLine["category"] | string): string {
   const map: Record<string, string> = {
-    transfer: "#6366F1", housing: "#7C5CFC", food: "#10B981", transport: "#F59E0B",
+    transfer: "#6366F1", housing: "#B4552F", food: "#10B981", transport: "#F59E0B",
     savings: "#8B5CF6", utilities: "#06B6D4", other: "#94A3B8",
     groceries: "#10B981", "eating out": "#FB923C", gas: "#F59E0B",
-    health: "#EF4444", fun: "#E879F9", "self-care": "#EC4899",
+    health: "#EF4444", fun: "#E0A44A", "self-care": "#EC4899",
     subscriptions: "#6366F1", travel: "#0EA5E9", shopping: "#F472B6",
   };
   return map[cat.toLowerCase()] ?? "#94A3B8";
@@ -302,7 +302,7 @@ function HealthGradeRing({ grade, score, color, size = 96 }: { grade: string; sc
   const offset = circ * 0.25;
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(124,92,252,0.15)" strokeWidth={7} />
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(180,85,47,0.15)" strokeWidth={7} />
       <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth={7}
         strokeDasharray={`${dash} ${circ - dash}`} strokeDashoffset={offset} strokeLinecap="round" />
       <text x={cx} y={cy + 1} textAnchor="middle" dominantBaseline="central"
@@ -343,7 +343,7 @@ function UpcomingChecksCard({ yearPlan, effectiveTakeHome, budgetLines, pc, payc
         return (
           <div key={key}>
             {newMonth && (
-              <div className="px-4 py-2" style={{ background: "rgba(124,92,252,0.03)", borderBottom: `1px solid ${BORDER}` }}>
+              <div className="px-4 py-2" style={{ background: "rgba(180,85,47,0.03)", borderBottom: `1px solid ${BORDER}` }}>
                 <p className="text-xs font-semibold" style={{ color: MUTED, letterSpacing: "0.07em" }}>{format(slot.checkDate, "MMMM yyyy").toUpperCase()}</p>
               </div>
             )}
@@ -367,7 +367,7 @@ function UpcomingChecksCard({ yearPlan, effectiveTakeHome, budgetLines, pc, payc
               </div>
             </button>
             {isExp && (
-              <div className="px-4 py-3 space-y-2" style={{ background: "rgba(124,92,252,0.02)", borderBottom: `1px solid ${BORDER}` }}>
+              <div className="px-4 py-3 space-y-2" style={{ background: "rgba(180,85,47,0.02)", borderBottom: `1px solid ${BORDER}` }}>
                 <div className="flex justify-between text-sm">
                   <span style={{ color: MUTED }}>Paycheck</span>
                   <span className="font-semibold" style={{ color: "var(--text)" }}>{fmt$(effectiveTakeHome)}</span>
@@ -401,7 +401,7 @@ function UpcomingChecksCard({ yearPlan, effectiveTakeHome, budgetLines, pc, payc
                       ) : (
                         <button onClick={() => addToPlan(key, focus.name, focus.cost, "other")}
                           className="text-xs px-2 py-0.5 rounded-lg"
-                          style={{ background: "rgba(124,92,252,0.1)", color: LIME, border: `1px solid rgba(124,92,252,0.2)` }}>
+                          style={{ background: "rgba(180,85,47,0.1)", color: LIME, border: `1px solid rgba(180,85,47,0.2)` }}>
                           + Plan
                         </button>
                       )}
@@ -418,7 +418,7 @@ function UpcomingChecksCard({ yearPlan, effectiveTakeHome, budgetLines, pc, payc
                       ) : (
                         <button onClick={() => addToPlan(key, b.name, b.amount, autoDetectCategory(b.name))}
                           className="text-xs px-2 py-0.5 rounded-lg"
-                          style={{ background: "rgba(124,92,252,0.1)", color: LIME, border: `1px solid rgba(124,92,252,0.2)` }}>
+                          style={{ background: "rgba(180,85,47,0.1)", color: LIME, border: `1px solid rgba(180,85,47,0.2)` }}>
                           + Plan
                         </button>
                       )}
@@ -513,15 +513,15 @@ function AIChat({ pc, yearPlan, budgetLines, liabilities, creditScores }: {
             <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
               <div className="max-w-[88%] px-3 py-2 rounded-xl text-sm leading-relaxed"
                 style={m.role === "user"
-                  ? { background: "rgba(124,92,252,0.12)", color: LIME }
-                  : { background: "rgba(124,92,252,0.07)", color: "var(--text)" }}>
+                  ? { background: "rgba(180,85,47,0.12)", color: LIME }
+                  : { background: "rgba(180,85,47,0.07)", color: "var(--text)" }}>
                 {m.text}
               </div>
             </div>
           ))}
           {busy && (
             <div className="flex justify-start">
-              <div className="px-3 py-2.5 rounded-xl flex gap-1" style={{ background: "rgba(124,92,252,0.07)" }}>
+              <div className="px-3 py-2.5 rounded-xl flex gap-1" style={{ background: "rgba(180,85,47,0.07)" }}>
                 {[0, 150, 300].map(d => <div key={d} className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: MUTED, animationDelay: `${d}ms` }} />)}
               </div>
             </div>
@@ -533,7 +533,7 @@ function AIChat({ pc, yearPlan, budgetLines, liabilities, creditScores }: {
         <input value={q} onChange={e => setQ(e.target.value)} onKeyDown={e => e.key === "Enter" && ask()}
           placeholder="Ask anything about your budget…"
           className="flex-1 rounded-xl px-3 py-2.5 text-sm outline-none"
-          style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+          style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }} />
         <button onClick={ask} disabled={!q.trim() || busy}
           className="px-4 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40"
           style={{ background: LIME, color: "#fff"}}>Ask</button>
@@ -716,7 +716,7 @@ export function FinancesView({ data, update }: Props) {
                   Got paid ✓
                 </button>
                 <button onClick={handleRefresh} disabled={refreshing} className="p-2 rounded-xl"
-                  style={{ background: "rgba(124,92,252,0.06)", border: `1px solid ${BORDER}` }}>
+                  style={{ background: "rgba(180,85,47,0.06)", border: `1px solid ${BORDER}` }}>
                   <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} style={{ color: MUTED }} />
                 </button>
               </div>
@@ -727,7 +727,7 @@ export function FinancesView({ data, update }: Props) {
             </div>
           </div>
         </div>
-        <div className="flex gap-1 rounded-xl p-1" style={{ background: "rgba(124,92,252,0.05)", border: `1px solid ${BORDER}` }}>
+        <div className="flex gap-1 rounded-xl p-1" style={{ background: "rgba(180,85,47,0.05)", border: `1px solid ${BORDER}` }}>
           {(["health","flow","credit","debt"] as const).map(k => (
             <button key={k} onClick={() => setTab(k)}
               className="flex-1 py-2 md:py-1.5 rounded-lg text-xs font-semibold transition-all"
@@ -780,17 +780,17 @@ export function FinancesView({ data, update }: Props) {
               <button onClick={() => setCheckOffset(Math.max(0, checkOffset - 1))}
                 disabled={checkOffset === 0}
                 className="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold transition-all"
-                style={{ background: checkOffset === 0 ? "transparent" : "rgba(124,92,252,0.1)", color: checkOffset === 0 ? MUTED : "#7C5CFC", border: `1px solid ${checkOffset === 0 ? "transparent" : "rgba(124,92,252,0.2)"}` }}>
+                style={{ background: checkOffset === 0 ? "transparent" : "rgba(180,85,47,0.1)", color: checkOffset === 0 ? MUTED : "#B4552F", border: `1px solid ${checkOffset === 0 ? "transparent" : "rgba(180,85,47,0.2)"}` }}>
                 ‹
               </button>
               <div className="flex-1 text-center">
-                <p className="text-xs font-semibold" style={{ color: isNextCheck ? "#7C5CFC" : LIME }}>
+                <p className="text-xs font-semibold" style={{ color: isNextCheck ? "#B4552F" : LIME }}>
                   {isNextCheck ? `Check ${checkOffset + 1} — ` : "This Check — "}{format(selectedSlot.checkDate, "MMM d")}
                 </p>
               </div>
               <button onClick={() => setCheckOffset(Math.min(yearPlan.length - 1, checkOffset + 1))}
                 className="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold transition-all"
-                style={{ background: "rgba(124,92,252,0.1)", color: "#7C5CFC", border: "1px solid rgba(124,92,252,0.2)" }}>
+                style={{ background: "rgba(180,85,47,0.1)", color: "#B4552F", border: "1px solid rgba(180,85,47,0.2)" }}>
                 ›
               </button>
             </div>
@@ -893,7 +893,7 @@ function HealthTab({ health, accounts, loadingAccts, refreshing, accountTransfer
                   <p className="text-xs font-bold w-6 text-right" style={{ color: f.score >= 70 ? LIME : f.score >= 50 ? AMBER : RED }}>{f.score}</p>
                 </div>
               </div>
-              <div className="h-1.5 rounded-full" style={{ background: "rgba(124,92,252,0.07)" }}>
+              <div className="h-1.5 rounded-full" style={{ background: "rgba(180,85,47,0.07)" }}>
                 <div className="h-1.5 rounded-full transition-all" style={{ width: `${f.score}%`, background: f.score >= 70 ? LIME : f.score >= 50 ? AMBER : RED }} />
               </div>
             </div>
@@ -936,13 +936,13 @@ function EditCareInline({ item, onSave }: { item: SelfCareItem; onSave: (cost: n
           <label className="text-xs mb-1 block" style={{ color: MUTED }}>Cost ($)</label>
           <input type="number" value={cost} onChange={e => setCost(e.target.value)}
             className="w-full rounded-xl px-3 py-2 text-sm outline-none"
-            style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+            style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }} />
         </div>
         <div>
           <label className="text-xs mb-1 block" style={{ color: MUTED }}>Frequency</label>
           <select value={freqW} onChange={e => setFreqW(e.target.value)}
             className="w-full rounded-xl px-3 py-2 text-sm outline-none"
-            style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }}>
+            style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }}>
             {FREQ_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
         </div>
@@ -1150,12 +1150,12 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
               </div>
               <button onClick={() => onMarkFocusDone(focus.id)}
                 className="px-4 py-2 rounded-xl text-sm font-semibold"
-                style={{ background: "rgba(124,92,252,0.12)", color: LIME, border: `1px solid rgba(124,92,252,0.3)` }}>Done ✓</button>
+                style={{ background: "rgba(180,85,47,0.12)", color: LIME, border: `1px solid rgba(180,85,47,0.3)` }}>Done ✓</button>
             </div>
             <div className="space-y-2 pt-4" style={{ borderTop: `1px solid ${BORDER}` }}>
               {([
                 { label: "Paycheck",  amount: planIncome,    color: "var(--text)", isIncome: true },
-                { label: "Savings",   amount: planSavings,   color: "#9B7FFF",     isIncome: false, cat: "savings" as BudgetLine["category"] },
+                { label: "Savings",   amount: planSavings,   color: "#D07A4F",     isIncome: false, cat: "savings" as BudgetLine["category"] },
                 ...planLines.map(l => ({ label: l.label, amount: l.amountPerCheck, color: AMBER, isIncome: false, cat: l.category })),
                 { label: "Bills",     amount: current.billsTotal, color: AMBER,    isIncome: false, cat: undefined },
                 { label: focus.name,  amount: focus.cost,    color: current.canAfford ? LIME : RED, isIncome: false, cat: undefined },
@@ -1277,7 +1277,7 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
                     <p className="text-sm font-semibold" style={{ color: paid ? MUTED : RED }}>{fmt$(b.amount)}</p>
                     <button onClick={() => !paid && onMarkBillPaid(b.id)}
                       className="w-7 h-7 rounded-lg flex items-center justify-center"
-                      style={{ background: paid ? "rgba(124,92,252,0.15)" : "rgba(124,92,252,0.07)", border: `1px solid ${paid ? "rgba(124,92,252,0.3)" : BORDER}` }}>
+                      style={{ background: paid ? "rgba(180,85,47,0.15)" : "rgba(180,85,47,0.07)", border: `1px solid ${paid ? "rgba(180,85,47,0.3)" : BORDER}` }}>
                       {paid ? <Check size={13} style={{ color: LIME }} /> : <span style={{ fontSize: 11, color: MUTED }}>✓</span>}
                     </button>
                   </div>
@@ -1355,7 +1355,7 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
                           <div className="px-4 pb-3 pt-2 space-y-1.5" style={{ borderTop: `1px solid ${BORDER}` }}>
                             {[
                               { label: "Paycheck",  amount: effectiveTakeHome,       color: "var(--text)", prefix: "", cat: "transfer" },
-                              { label: "Savings",   amount: slot.savings,            color: "#9B7FFF",prefix: "−", cat: "savings" },
+                              { label: "Savings",   amount: slot.savings,            color: "#D07A4F",prefix: "−", cat: "savings" },
                               { label: "Bills",     amount: slot.billsTotal,         color: AMBER,    prefix: "−", cat: "utilities" },
                               ...(slot.focusItem  ? [{ label: slot.focusItem.name, amount: slot.focusItem.cost, color: LIME, prefix: "−", cat: "other" }] : []),
                               ...(slot.pushedItem ? [{ label: `${slot.pushedItem.name} (pushed)`, amount: slot.pushedItem.cost, color: AMBER, prefix: "", cat: "other" }] : []),
@@ -1399,13 +1399,13 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
               {editPay ? (
                 <div className="flex items-center gap-2">
                   <div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-dark">$</span>
-                    <input type="number" value={payInput} onChange={e => setPayInput(e.target.value)} className="w-28 rounded-lg pl-7 pr-3 py-1.5 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} /></div>
+                    <input type="number" value={payInput} onChange={e => setPayInput(e.target.value)} className="w-28 rounded-lg pl-7 pr-3 py-1.5 text-sm outline-none" style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }} /></div>
                   <button onClick={() => { onUpdatePc({ ...pc, takeHomePerCheck: parseFloat(payInput) || pc.takeHomePerCheck }); setEditPay(false); showToast("Updated!"); }} className="text-xs px-3 py-1.5 rounded-lg font-semibold" style={{ background: LIME, color: "#fff"}}>Save</button>
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-bold text-dark">{fmt$(pc.takeHomePerCheck)}</p>
-                  <button onClick={() => setEditPay(true)} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Edit</button>
+                  <button onClick={() => setEditPay(true)} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(180,85,47,0.07)", color: MUTED }}>Edit</button>
                 </div>
               )}
             </div>
@@ -1414,13 +1414,13 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
               {editProjected ? (
                 <div className="flex items-center gap-2">
                   <div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-dark">$</span>
-                    <input type="number" value={projInput} onChange={e => setProjInput(e.target.value)} className="w-28 rounded-lg pl-7 pr-3 py-1.5 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} /></div>
+                    <input type="number" value={projInput} onChange={e => setProjInput(e.target.value)} className="w-28 rounded-lg pl-7 pr-3 py-1.5 text-sm outline-none" style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }} /></div>
                   <button onClick={() => { const v = parseFloat(projInput); onUpdatePc({ ...pc, projectedTakeHome: v && v !== pc.takeHomePerCheck ? v : undefined }); setEditProjected(false); showToast("Updated!"); }} className="text-xs px-3 py-1.5 rounded-lg font-semibold" style={{ background: LIME, color: "#fff"}}>Save</button>
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-bold text-dark">{pc.projectedTakeHome ? fmt$(pc.projectedTakeHome) : <span style={{ color: MUTED }}>Not set</span>}</p>
-                  <button onClick={() => setEditProjected(true)} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>{pc.projectedTakeHome ? "Edit" : "Set"}</button>
+                  <button onClick={() => setEditProjected(true)} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(180,85,47,0.07)", color: MUTED }}>{pc.projectedTakeHome ? "Edit" : "Set"}</button>
                   {pc.projectedTakeHome && <button onClick={() => { onUpdatePc({ ...pc, projectedTakeHome: undefined }); showToast("Cleared."); }} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(218,102,123,0.1)", color: RED }}>Clear</button>}
                 </div>
               )}
@@ -1431,7 +1431,7 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
                   <p className="text-sm" style={{ color: "var(--text)" }}>Savings per check</p>
                   {!editSavings && <p className="text-xs mt-0.5" style={{ color: MUTED }}>{pc.savingsPercent}% · {fmt$(Math.round(pc.takeHomePerCheck * pc.savingsPercent / 100))}</p>}
                 </div>
-                {!editSavings && <button onClick={() => setEditSavings(true)} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Edit</button>}
+                {!editSavings && <button onClick={() => setEditSavings(true)} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(180,85,47,0.07)", color: MUTED }}>Edit</button>}
               </div>
               {editSavings && (
                 <div className="space-y-2">
@@ -1447,14 +1447,14 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
                       {["5","10","15","20","25"].map(p => (
                         <button key={p} onClick={() => setSavingsPct(p)}
                           className="px-3 py-1.5 rounded-lg text-xs font-semibold"
-                          style={savingsPct === p ? { background: LIME, color: "#fff" } : { background: "rgba(124,92,252,0.07)", color: MUTED }}>
+                          style={savingsPct === p ? { background: LIME, color: "#fff" } : { background: "rgba(180,85,47,0.07)", color: MUTED }}>
                           {p}% · {fmt$(Math.round(pc.takeHomePerCheck * parseInt(p) / 100))}
                         </button>
                       ))}
                       <div className="relative">
                         <input type="number" value={savingsPct} onChange={e => setSavingsPct(e.target.value)}
                           placeholder="custom" className="w-20 rounded-lg px-2 py-1.5 text-xs outline-none"
-                          style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+                          style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }} />
                         <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs" style={{ color: MUTED }}>%</span>
                       </div>
                     </div>
@@ -1463,7 +1463,7 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold" style={{ color: MUTED }}>$</span>
                       <input type="number" value={savingsDollar} onChange={e => setSavingsDollar(e.target.value)}
                         placeholder="e.g. 300" className="w-full pl-7 pr-3 py-2 rounded-xl text-sm outline-none"
-                        style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+                        style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }} />
                     </div>
                   )}
                   {savingsMode === "dollar" && savingsDollar && pc.takeHomePerCheck > 0 && (
@@ -1500,11 +1500,11 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
                 <>
                   <span className="text-xs" style={{ color: MUTED }}>Clear all?</span>
                   <button onClick={() => { onUpdateBudgetLines([]); onUpdatePaycheckPlans({}); setConfirmReset(false); showToast("Budget lines cleared"); }} className="text-xs px-2 py-1.5 rounded-lg font-semibold" style={{ background: "rgba(239,68,68,0.15)", color: RED }}>Yes, clear</button>
-                  <button onClick={() => setConfirmReset(false)} className="text-xs px-2 py-1.5 rounded-lg" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Cancel</button>
+                  <button onClick={() => setConfirmReset(false)} className="text-xs px-2 py-1.5 rounded-lg" style={{ background: "rgba(180,85,47,0.07)", color: MUTED }}>Cancel</button>
                 </>
               ) : (
                 <>
-                  <button onClick={() => onUpdateBudgetLines(budgetLines.map(l => ({ ...l, category: autoDetectCategory(l.label) })))} className="text-xs px-2 py-1.5 rounded-lg" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Auto-fix</button>
+                  <button onClick={() => onUpdateBudgetLines(budgetLines.map(l => ({ ...l, category: autoDetectCategory(l.label) })))} className="text-xs px-2 py-1.5 rounded-lg" style={{ background: "rgba(180,85,47,0.07)", color: MUTED }}>Auto-fix</button>
                   <button onClick={() => setConfirmReset(true)} className="text-xs px-2 py-1.5 rounded-lg" style={{ background: "rgba(239,68,68,0.08)", color: RED }}>Reset</button>
                   <button onClick={() => setShowBudgetForm(!showBudgetForm)} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg" style={{ background: "rgba(200,255,0,0.1)", color: LIME, border: `1px solid rgba(200,255,0,0.2)` }}><Plus size={12} /> Add</button>
                 </>
@@ -1518,8 +1518,8 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
             </div>
             {pc.savingsPercent > 0 && (
               <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}` }}>
-                <div className="flex items-center gap-2.5"><CatDot cat="savings" size={10} /><p className="text-sm" style={{ color: "#9B7FFF" }}>Savings ({pc.savingsPercent}%)</p></div>
-                <p className="text-sm font-semibold" style={{ color: "#9B7FFF" }}>−{fmt$(Math.round(effectiveTakeHome * pc.savingsPercent / 100))}</p>
+                <div className="flex items-center gap-2.5"><CatDot cat="savings" size={10} /><p className="text-sm" style={{ color: "#D07A4F" }}>Savings ({pc.savingsPercent}%)</p></div>
+                <p className="text-sm font-semibold" style={{ color: "#D07A4F" }}>−{fmt$(Math.round(effectiveTakeHome * pc.savingsPercent / 100))}</p>
               </div>
             )}
             {budgetLines.map(line => (
@@ -1545,17 +1545,17 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
                       }}
                       autoFocus
                       className="w-20 text-sm text-right rounded-lg px-2 py-1"
-                      style={{ background: "rgba(124,92,252,0.08)", border: `1px solid ${BORDER}`, color: "var(--text)" }}
+                      style={{ background: "rgba(180,85,47,0.08)", border: `1px solid ${BORDER}`, color: "var(--text)" }}
                     />
                     <button onClick={() => { const v = parseFloat(editLineAmt); if (!isNaN(v) && v >= 0) { onUpdateBudgetLines(budgetLines.map(l => l.id === line.id ? { ...l, amountPerCheck: v } : l)); showToast("Updated!"); } setEditLineId(null); }} className="text-xs px-2 py-1 rounded-lg font-semibold" style={{ background: LIME, color: "#fff" }}>Save</button>
-                    <button onClick={() => setEditLineId(null)} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>✕</button>
+                    <button onClick={() => setEditLineId(null)} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(180,85,47,0.07)", color: MUTED }}>✕</button>
                   </div>
                 ) : (
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <CatDot cat={line.category} />
                       <p className="text-sm" style={{ color: "var(--text)" }}>{line.label || line.toAccount || line.category}</p>
-                      {line.isDetected && <span className="text-xs px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: "rgba(124,92,252,0.1)", color: LIME }}>auto</span>}
+                      {line.isDetected && <span className="text-xs px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: "rgba(180,85,47,0.1)", color: LIME }}>auto</span>}
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <p className="text-sm font-semibold" style={{ color: RED }}>−{fmt$(line.amountPerCheck)}</p>
@@ -1574,14 +1574,14 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
           {showBudgetForm && (
             <div className="rounded-2xl p-4 mt-2" style={{ background: CARD, border: `1px solid rgba(200,255,0,0.2)` }}>
               <div className="space-y-2 mb-3">
-                <input value={budgetLabel} onChange={e => { setBudgetLabel(e.target.value); setBudgetCat(autoDetectCategory(e.target.value)); }} placeholder="Label (e.g. Rent, BofA Transfer)" className="w-full rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+                <input value={budgetLabel} onChange={e => { setBudgetLabel(e.target.value); setBudgetCat(autoDetectCategory(e.target.value)); }} placeholder="Label (e.g. Rent, BofA Transfer)" className="w-full rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }} />
                 <div className="grid grid-cols-2 gap-2">
-                  <input type="number" value={budgetAmt} onChange={e => setBudgetAmt(e.target.value)} placeholder="Per check ($)" className="rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
-                  <select value={budgetCat} onChange={e => setBudgetCat(e.target.value as BudgetLine["category"])} className="rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }}>
+                  <input type="number" value={budgetAmt} onChange={e => setBudgetAmt(e.target.value)} placeholder="Per check ($)" className="rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }} />
+                  <select value={budgetCat} onChange={e => setBudgetCat(e.target.value as BudgetLine["category"])} className="rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }}>
                     <option value="housing">🏠 Housing</option><option value="transfer">🏦 Transfer</option><option value="food">🛒 Food</option><option value="transport">🚗 Transport</option><option value="utilities">💡 Utilities</option><option value="savings">💰 Savings</option><option value="other">📌 Other</option>
                   </select>
                 </div>
-                <input value={budgetToAcct} onChange={e => setBudgetToAcct(e.target.value)} placeholder="To account (optional)" className="w-full rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+                <input value={budgetToAcct} onChange={e => setBudgetToAcct(e.target.value)} placeholder="To account (optional)" className="w-full rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }} />
               </div>
               <button onClick={addBudgetLine} disabled={!budgetLabel || !budgetAmt} className="w-full py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40" style={{ background: LIME, color: "#fff"}}>Add to Breakdown</button>
             </div>
@@ -1589,7 +1589,7 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
 
           {/* AI Budget Adjuster */}
           {budgetLines.length > 0 && (
-            <div className="rounded-2xl p-4 mt-2" style={{ background: CARD, border: `1px solid rgba(124,92,252,0.2)` }}>
+            <div className="rounded-2xl p-4 mt-2" style={{ background: CARD, border: `1px solid rgba(180,85,47,0.2)` }}>
               <p className="text-xs font-semibold mb-1" style={{ color: MUTED, letterSpacing: "0.08em" }}>AI ADJUST BUDGET</p>
               <p className="text-xs mb-2" style={{ color: "var(--text-light)" }}>
                 &ldquo;Put half toward hair&rdquo; · &ldquo;Move $50 from food to savings&rdquo;
@@ -1599,10 +1599,10 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
                   onKeyDown={e => e.key === "Enter" && runBudgetAI()}
                   placeholder="Tell me how to adjust…"
                   className="flex-1 rounded-xl px-3 py-2.5 text-sm outline-none"
-                  style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}`, color: "var(--text)" }} />
+                  style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}`, color: "var(--text)" }} />
                 <button onClick={runBudgetAI} disabled={budgetAIBusy || !budgetAICmd.trim()}
                   className="px-4 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40"
-                  style={{ background: "rgba(124,92,252,0.12)", color: LIME }}>
+                  style={{ background: "rgba(180,85,47,0.12)", color: LIME }}>
                   {budgetAIBusy ? "…" : "Go"}
                 </button>
               </div>
@@ -1647,8 +1647,8 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button onClick={() => { onUpdateCare(selfCare.map(i => i.id === item.id ? { ...i, lastDone: format(new Date(), "yyyy-MM-dd") } : i)); showToast(`${item.name} — done!`); }} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(124,92,252,0.1)", color: LIME }}>Done</button>
-                      <button onClick={() => setEditId(isEditing ? null : item.id)} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Edit</button>
+                      <button onClick={() => { onUpdateCare(selfCare.map(i => i.id === item.id ? { ...i, lastDone: format(new Date(), "yyyy-MM-dd") } : i)); showToast(`${item.name} — done!`); }} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(180,85,47,0.1)", color: LIME }}>Done</button>
+                      <button onClick={() => setEditId(isEditing ? null : item.id)} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(180,85,47,0.07)", color: MUTED }}>Edit</button>
                       <button onClick={() => onUpdateCare(selfCare.filter(i => i.id !== item.id))}><Trash2 size={13} style={{ color: MUTED }} /></button>
                     </div>
                   </div>
@@ -1665,10 +1665,10 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
           {showCareForm && (
             <div className="rounded-2xl p-4 mt-2" style={{ background: CARD, border: `1px solid rgba(200,255,0,0.2)` }}>
               <div className="space-y-2 mb-3">
-                <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Waxing, Lashes" className="w-full rounded-xl px-3 py-3 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+                <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Waxing, Lashes" className="w-full rounded-xl px-3 py-3 text-sm outline-none" style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }} />
                 <div className="grid grid-cols-2 gap-2">
-                  <input type="number" value={cost} onChange={e => setCost(e.target.value)} placeholder="Cost ($)" className="rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
-                  <select value={freqWeeks} onChange={e => setFreqWeeks(e.target.value)} className="rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }}>
+                  <input type="number" value={cost} onChange={e => setCost(e.target.value)} placeholder="Cost ($)" className="rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }} />
+                  <select value={freqWeeks} onChange={e => setFreqWeeks(e.target.value)} className="rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }}>
                     {FREQ_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                   </select>
                 </div>
@@ -1682,11 +1682,11 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
         <div className="mb-5">
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs font-semibold" style={{ color: MUTED, letterSpacing: "0.08em" }}>RECURRING BILLS &amp; SUBSCRIPTIONS</p>
-            <button onClick={() => setShowBillForm(!showBillForm)} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg" style={{ background: "rgba(124,92,252,0.1)", color: LIME, border: `1px solid rgba(124,92,252,0.2)` }}><Plus size={12} /> Add</button>
+            <button onClick={() => setShowBillForm(!showBillForm)} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg" style={{ background: "rgba(180,85,47,0.1)", color: LIME, border: `1px solid rgba(180,85,47,0.2)` }}><Plus size={12} /> Add</button>
           </div>
           {/* Detected subscriptions from Plaid not yet added */}
           {(insights?.bills ?? []).filter(b => !bills.some(rb => rb.name.toLowerCase().includes(b.name.toLowerCase().slice(0, 6)) || b.name.toLowerCase().includes(rb.name.toLowerCase().slice(0, 6)))).length > 0 && (
-            <div className="rounded-2xl px-4 py-3 mb-3" style={{ background: "rgba(124,92,252,0.04)", border: `1px solid ${BORDER}` }}>
+            <div className="rounded-2xl px-4 py-3 mb-3" style={{ background: "rgba(180,85,47,0.04)", border: `1px solid ${BORDER}` }}>
               <p className="text-xs font-semibold mb-2" style={{ color: LIME }}>Detected from your bank:</p>
               {(insights!.bills!).filter(b => !bills.some(rb => rb.name.toLowerCase().includes(b.name.toLowerCase().slice(0, 6)) || b.name.toLowerCase().includes(rb.name.toLowerCase().slice(0, 6)))).map((b, i) => (
                 <div key={i} className="flex items-center justify-between py-1.5">
@@ -1711,7 +1711,7 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
                   </div>
                 </div>
               ))}
-              <div className="flex items-center justify-between px-4 py-3" style={{ background: "rgba(124,92,252,0.03)", borderTop: `1px solid ${BORDER}` }}>
+              <div className="flex items-center justify-between px-4 py-3" style={{ background: "rgba(180,85,47,0.03)", borderTop: `1px solid ${BORDER}` }}>
                 <p className="text-xs" style={{ color: MUTED }}>Monthly total</p>
                 <p className="text-sm font-bold" style={{ color: "var(--text)" }}>{fmt$(bills.reduce((s, b) => s + b.amount, 0))}/mo</p>
               </div>
@@ -1720,10 +1720,10 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
           {showBillForm && (
             <div className="rounded-2xl p-4" style={{ background: CARD, border: `1px solid rgba(200,255,0,0.2)` }}>
               <div className="space-y-2 mb-3">
-                <input value={billName} onChange={e => setBillName(e.target.value)} placeholder="Name (e.g. Rent, Phone)" className="w-full rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+                <input value={billName} onChange={e => setBillName(e.target.value)} placeholder="Name (e.g. Rent, Phone)" className="w-full rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }} />
                 <div className="grid grid-cols-2 gap-2">
-                  <input type="number" value={billAmt} onChange={e => setBillAmt(e.target.value)} placeholder="Amount ($)" className="rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
-                  <input type="number" min="1" max="31" value={billDay} onChange={e => setBillDay(e.target.value)} placeholder="Day due" className="rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+                  <input type="number" value={billAmt} onChange={e => setBillAmt(e.target.value)} placeholder="Amount ($)" className="rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }} />
+                  <input type="number" min="1" max="31" value={billDay} onChange={e => setBillDay(e.target.value)} placeholder="Day due" className="rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }} />
                 </div>
               </div>
               <button onClick={addBill} disabled={!billName || !billAmt} className="w-full py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40" style={{ background: LIME, color: "#fff"}}>Add Bill</button>
@@ -1741,17 +1741,17 @@ function FlowTab({ yearPlan, savingsAlerts, pc, effectiveTakeHome, paydayStr, bu
             <div className="rounded-2xl p-4 mb-3" style={{ background: CARD, border: `1px solid rgba(200,255,0,0.2)` }}>
               <div className="space-y-2 mb-3">
                 <div className="grid grid-cols-2 gap-2">
-                  <button onClick={() => setP2pDir("sent")} className="py-2.5 rounded-xl text-sm font-semibold" style={p2pDir === "sent" ? { background: RED, color: "#fff" } : { background: "rgba(124,92,252,0.07)", color: MUTED }}>↑ Sent</button>
-                  <button onClick={() => setP2pDir("received")} className="py-2.5 rounded-xl text-sm font-semibold" style={p2pDir === "received" ? { background: LIME, color: "#fff"} : { background: "rgba(124,92,252,0.07)", color: MUTED }}>↓ Received</button>
+                  <button onClick={() => setP2pDir("sent")} className="py-2.5 rounded-xl text-sm font-semibold" style={p2pDir === "sent" ? { background: RED, color: "#fff" } : { background: "rgba(180,85,47,0.07)", color: MUTED }}>↑ Sent</button>
+                  <button onClick={() => setP2pDir("received")} className="py-2.5 rounded-xl text-sm font-semibold" style={p2pDir === "received" ? { background: LIME, color: "#fff"} : { background: "rgba(180,85,47,0.07)", color: MUTED }}>↓ Received</button>
                 </div>
-                <input value={p2pPerson} onChange={e => setP2pPerson(e.target.value)} placeholder="Person" className="w-full rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+                <input value={p2pPerson} onChange={e => setP2pPerson(e.target.value)} placeholder="Person" className="w-full rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }} />
                 <div className="grid grid-cols-2 gap-2">
-                  <input type="number" value={p2pAmount} onChange={e => setP2pAmount(e.target.value)} placeholder="Amount ($)" className="rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
-                  <select value={p2pPlatform} onChange={e => setP2pPlatform(e.target.value as P2PTransfer["platform"])} className="rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }}>
+                  <input type="number" value={p2pAmount} onChange={e => setP2pAmount(e.target.value)} placeholder="Amount ($)" className="rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }} />
+                  <select value={p2pPlatform} onChange={e => setP2pPlatform(e.target.value as P2PTransfer["platform"])} className="rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }}>
                     <option value="zelle">Zelle</option><option value="venmo">Venmo</option><option value="cashapp">CashApp</option><option value="cash">Cash</option><option value="other">Other</option>
                   </select>
                 </div>
-                <input value={p2pNote} onChange={e => setP2pNote(e.target.value)} placeholder="Note (optional)" className="w-full rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+                <input value={p2pNote} onChange={e => setP2pNote(e.target.value)} placeholder="Note (optional)" className="w-full rounded-xl px-3 py-2.5 text-sm outline-none" style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }} />
               </div>
               <button onClick={addP2P} disabled={!p2pPerson || !p2pAmount} className="w-full py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40" style={{ background: LIME, color: "#fff"}}>Log It</button>
             </div>
@@ -1855,7 +1855,7 @@ function BaseBudgetCard({ baseBudget, onUpdate, showToast }: {
           {baseBudget.length === 0 && (
             <div className="rounded-2xl p-5 text-center mb-3" style={{ background: CARD, border: `1px dashed ${BORDER}` }}>
               <p className="text-sm mb-3" style={{ color: MUTED }}>No budget set yet. Load defaults or add categories.</p>
-              <button onClick={loadDefaults} className="text-xs px-4 py-2 rounded-xl font-semibold" style={{ background: "rgba(124,92,252,0.1)", color: LIME }}>
+              <button onClick={loadDefaults} className="text-xs px-4 py-2 rounded-xl font-semibold" style={{ background: "rgba(180,85,47,0.1)", color: LIME }}>
                 Load Common Categories
               </button>
             </div>
@@ -1878,14 +1878,14 @@ function BaseBudgetCard({ baseBudget, onUpdate, showToast }: {
                             onBlur={() => saveEdit(item.id)}
                             onKeyDown={e => { if (e.key === "Enter") saveEdit(item.id); if (e.key === "Escape") setEditing(null); }}
                             className="w-24 pl-5 pr-2 py-1 rounded-lg text-sm outline-none"
-                            style={{ background: "rgba(124,92,252,0.07)", border: `1px solid rgba(124,92,252,0.3)` }} />
+                            style={{ background: "rgba(180,85,47,0.07)", border: `1px solid rgba(180,85,47,0.3)` }} />
                         </div>
                       </>
                     ) : (
                       <>
                         <button onClick={() => { setEditing(item.id); setEditVal(String(item.monthlyLimit)); }}
                           className="text-sm font-semibold px-2 py-1 rounded-lg"
-                          style={{ color: item.monthlyLimit > 0 ? LIME : MUTED, background: "rgba(124,92,252,0.05)" }}>
+                          style={{ color: item.monthlyLimit > 0 ? LIME : MUTED, background: "rgba(180,85,47,0.05)" }}>
                           {item.monthlyLimit > 0 ? fmt$(item.monthlyLimit) : "Set"}
                         </button>
                         <span className="text-xs" style={{ color: MUTED }}>/mo</span>
@@ -1895,7 +1895,7 @@ function BaseBudgetCard({ baseBudget, onUpdate, showToast }: {
                   </div>
                 </div>
               ))}
-              <div className="flex items-center justify-between px-4 py-3" style={{ background: "rgba(124,92,252,0.04)" }}>
+              <div className="flex items-center justify-between px-4 py-3" style={{ background: "rgba(180,85,47,0.04)" }}>
                 <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>Total</p>
                 <p className="text-sm font-bold" style={{ color: LIME }}>{fmt$(total)}/mo</p>
               </div>
@@ -1909,7 +1909,7 @@ function BaseBudgetCard({ baseBudget, onUpdate, showToast }: {
               <Plus size={12} /> Add Category
             </button>
             {baseBudget.length === 0 && (
-              <button onClick={loadDefaults} className="text-xs px-3 py-1.5 rounded-lg" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>
+              <button onClick={loadDefaults} className="text-xs px-3 py-1.5 rounded-lg" style={{ background: "rgba(180,85,47,0.07)", color: MUTED }}>
                 Load Defaults
               </button>
             )}
@@ -1919,12 +1919,12 @@ function BaseBudgetCard({ baseBudget, onUpdate, showToast }: {
             <div className="rounded-2xl p-4 mt-2" style={{ background: CARD, border: `1px solid rgba(200,255,0,0.2)` }}>
               <input value={addCat} onChange={e => setAddCat(e.target.value)} placeholder="Category name (e.g. Groceries)"
                 className="w-full rounded-xl px-3 py-2.5 text-sm outline-none mb-2"
-                style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+                style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }} />
               <div className="relative mb-3">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold" style={{ color: MUTED }}>$</span>
                 <input type="number" value={addAmt} onChange={e => setAddAmt(e.target.value)} placeholder="Monthly limit"
                   className="w-full pl-7 pr-3 py-2.5 rounded-xl text-sm outline-none"
-                  style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+                  style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }} />
               </div>
               <button onClick={addItem} disabled={!addCat || !addAmt}
                 className="w-full py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40"
@@ -2030,7 +2030,7 @@ function BudgetPlannerCard({ budgetPlans, onUpdate, showToast }: {
                   className="text-xs px-3 py-1.5 rounded-xl font-semibold transition-all"
                   style={activePlan?.id === p.id
                     ? { background: LIME, color: "#fff" }
-                    : { background: "rgba(124,92,252,0.07)", color: MUTED }}>
+                    : { background: "rgba(180,85,47,0.07)", color: MUTED }}>
                   {p.name}
                 </button>
               ))}
@@ -2063,7 +2063,7 @@ function BudgetPlannerCard({ budgetPlans, onUpdate, showToast }: {
                 const color = pct > 100 ? RED : pct > 85 ? AMBER : LIME;
                 return (
                   <div className="px-4 py-2" style={{ borderBottom: `1px solid ${BORDER}` }}>
-                    <div className="h-2 rounded-full" style={{ background: "rgba(124,92,252,0.08)" }}>
+                    <div className="h-2 rounded-full" style={{ background: "rgba(180,85,47,0.08)" }}>
                       <div className="h-2 rounded-full transition-all" style={{ width: `${pct}%`, background: color }} />
                     </div>
                     <p className="text-xs mt-1 text-right" style={{ color }}>{pct}% allocated</p>
@@ -2088,13 +2088,13 @@ function BudgetPlannerCard({ budgetPlans, onUpdate, showToast }: {
                           onBlur={() => { const v = parseFloat(editItemVal); if (!isNaN(v)) updatePlanItem(activePlan.id, item.id, v); setEditingItem(null); }}
                           onKeyDown={e => { if (e.key === "Enter") { const v = parseFloat(editItemVal); if (!isNaN(v)) updatePlanItem(activePlan.id, item.id, v); setEditingItem(null); } if (e.key === "Escape") setEditingItem(null); }}
                           className="w-24 pl-5 pr-2 py-1 rounded-lg text-sm outline-none"
-                          style={{ background: "rgba(124,92,252,0.07)", border: `1px solid rgba(124,92,252,0.3)` }} />
+                          style={{ background: "rgba(180,85,47,0.07)", border: `1px solid rgba(180,85,47,0.3)` }} />
                       </div>
                     ) : (
                       <>
                         <button onClick={() => { setEditingItem(item.id); setEditItemVal(String(item.plannedMonthly)); }}
                           className="text-sm font-semibold px-2 py-1 rounded-lg"
-                          style={{ color: item.plannedMonthly > 0 ? LIME : MUTED, background: "rgba(124,92,252,0.05)" }}>
+                          style={{ color: item.plannedMonthly > 0 ? LIME : MUTED, background: "rgba(180,85,47,0.05)" }}>
                           {item.plannedMonthly > 0 ? fmt$(item.plannedMonthly) : "Set"}
                         </button>
                         <span className="text-xs" style={{ color: MUTED }}>/mo</span>
@@ -2112,13 +2112,13 @@ function BudgetPlannerCard({ budgetPlans, onUpdate, showToast }: {
                 <div className="px-4 py-3" style={{ borderTop: `1px solid ${BORDER}` }}>
                   <input value={addItemCat} onChange={e => setAddItemCat(e.target.value)} placeholder="Category"
                     className="w-full rounded-xl px-3 py-2 text-sm outline-none mb-2"
-                    style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+                    style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }} />
                   <div className="flex gap-2">
                     <div className="relative flex-1">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs" style={{ color: MUTED }}>$</span>
                       <input type="number" value={addItemAmt} onChange={e => setAddItemAmt(e.target.value)} placeholder="Monthly amount"
                         className="w-full pl-6 pr-3 py-2 rounded-xl text-sm outline-none"
-                        style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+                        style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }} />
                     </div>
                     <button onClick={() => addPlanItem(activePlan.id)} disabled={!addItemCat || !addItemAmt}
                       className="px-3 py-2 rounded-xl text-xs font-semibold disabled:opacity-40"
@@ -2156,12 +2156,12 @@ function BudgetPlannerCard({ budgetPlans, onUpdate, showToast }: {
               <div className="space-y-2 mb-3">
                 <input value={newPlanName} onChange={e => setNewPlanName(e.target.value)} placeholder='Plan name (e.g. "After Raise", "July Budget")'
                   className="w-full rounded-xl px-3 py-2.5 text-sm outline-none"
-                  style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+                  style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }} />
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold" style={{ color: MUTED }}>$</span>
                   <input type="number" value={newPlanIncome} onChange={e => setNewPlanIncome(e.target.value)} placeholder="Monthly income (optional)"
                     className="w-full pl-7 pr-3 py-2.5 rounded-xl text-sm outline-none"
-                    style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+                    style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }} />
                 </div>
               </div>
               <div className="flex gap-2">
@@ -2170,7 +2170,7 @@ function BudgetPlannerCard({ budgetPlans, onUpdate, showToast }: {
                   style={{ background: LIME, color: "#fff" }}>Create Plan</button>
                 <button onClick={() => setShowCreateForm(false)}
                   className="px-4 py-2.5 rounded-xl text-sm"
-                  style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Cancel</button>
+                  style={{ background: "rgba(180,85,47,0.07)", color: MUTED }}>Cancel</button>
               </div>
             </div>
           )}
@@ -2274,7 +2274,7 @@ function DebtTab({ liabilities, liabilitiesLoading, effectiveTakeHome, freeCash 
                         <p className="text-xs" style={{ color: MUTED }}>{fmt$(cc.balance)} of {fmt$(cc.creditLimit)} limit</p>
                         <p className="text-xs font-semibold" style={{ color: utilColor }}>{util}% used</p>
                       </div>
-                      <div className="h-1.5 rounded-full" style={{ background: "rgba(124,92,252,0.08)" }}>
+                      <div className="h-1.5 rounded-full" style={{ background: "rgba(180,85,47,0.08)" }}>
                         <div className="h-1.5 rounded-full transition-all" style={{ width: `${Math.min(100, util)}%`, background: utilColor }} />
                       </div>
                     </div>
@@ -2315,12 +2315,12 @@ function DebtTab({ liabilities, liabilitiesLoading, effectiveTakeHome, freeCash 
       <div className="rounded-2xl p-4" style={{ background: CARD, border: `1px solid ${BORDER}` }}>
         <div className="flex items-center justify-between mb-3">
           <p className="text-xs font-semibold" style={{ color: MUTED, letterSpacing: "0.08em" }}>AI PAYOFF PLAN</p>
-          <button onClick={fetchAdvice} disabled={adviceLoading} className="p-1.5 rounded-lg" style={{ background: "rgba(124,92,252,0.06)", border: `1px solid ${BORDER}` }}>
+          <button onClick={fetchAdvice} disabled={adviceLoading} className="p-1.5 rounded-lg" style={{ background: "rgba(180,85,47,0.06)", border: `1px solid ${BORDER}` }}>
             <RotateCcw size={12} className={adviceLoading ? "animate-spin" : ""} style={{ color: MUTED }} />
           </button>
         </div>
         {adviceLoading ? (
-          <div className="space-y-2">{[90, 75, 60].map(w => <div key={w} className="h-3 rounded animate-pulse" style={{ background: "rgba(124,92,252,0.08)", width: `${w}%` }} />)}</div>
+          <div className="space-y-2">{[90, 75, 60].map(w => <div key={w} className="h-3 rounded animate-pulse" style={{ background: "rgba(180,85,47,0.08)", width: `${w}%` }} />)}</div>
         ) : advice ? (
           <p className="text-sm leading-relaxed" style={{ color: "var(--text)" }}>{advice}</p>
         ) : (
@@ -2371,7 +2371,7 @@ function InsightsBanner({ detected, detectedBills, paycheckAmount, onAccept, onD
         {detected.map(d => (
           <button key={d.key} onClick={() => toggle(d.key)}
             className="w-full flex items-center justify-between py-2.5 px-3 rounded-xl transition-all"
-            style={{ background: sel.has(d.key) ? "rgba(124,92,252,0.10)" : "rgba(124,92,252,0.04)", border: `1px solid ${sel.has(d.key) ? "rgba(124,92,252,0.30)" : BORDER}` }}>
+            style={{ background: sel.has(d.key) ? "rgba(180,85,47,0.10)" : "rgba(180,85,47,0.04)", border: `1px solid ${sel.has(d.key) ? "rgba(180,85,47,0.30)" : BORDER}` }}>
             <div className="flex items-center gap-2.5 text-left">
               <span className="text-base">{d.emoji}</span>
               <div>
@@ -2382,7 +2382,7 @@ function InsightsBanner({ detected, detectedBills, paycheckAmount, onAccept, onD
               </div>
             </div>
             <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{ background: sel.has(d.key) ? LIME : "rgba(124,92,252,0.1)" }}>
+              style={{ background: sel.has(d.key) ? LIME : "rgba(180,85,47,0.1)" }}>
               {sel.has(d.key) && <Check size={11} color="#fff" />}
             </div>
           </button>
@@ -2394,13 +2394,13 @@ function InsightsBanner({ detected, detectedBills, paycheckAmount, onAccept, onD
           {detectedBills.slice(0, 6).map(b => (
             <button key={b.name} onClick={() => toggleB(b.name)}
               className="w-full flex items-center justify-between py-2 px-3 rounded-xl"
-              style={{ background: bSel.has(b.name) ? "rgba(124,92,252,0.10)" : "rgba(124,92,252,0.04)", border: `1px solid ${bSel.has(b.name) ? "rgba(124,92,252,0.30)" : BORDER}` }}>
+              style={{ background: bSel.has(b.name) ? "rgba(180,85,47,0.10)" : "rgba(180,85,47,0.04)", border: `1px solid ${bSel.has(b.name) ? "rgba(180,85,47,0.30)" : BORDER}` }}>
               <div className="text-left">
                 <p className="text-sm" style={{ color: "var(--text)" }}>{b.name}</p>
                 <p className="text-xs" style={{ color: MUTED }}>due {b.dayOfMonth}{ordinal(b.dayOfMonth)} · {fmt$(b.amount)}/mo</p>
               </div>
               <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-                style={{ background: bSel.has(b.name) ? LIME : "rgba(124,92,252,0.1)" }}>
+                style={{ background: bSel.has(b.name) ? LIME : "rgba(180,85,47,0.1)" }}>
                 {bSel.has(b.name) && <Check size={11} color="#fff" />}
               </div>
             </button>
@@ -2413,7 +2413,7 @@ function InsightsBanner({ detected, detectedBills, paycheckAmount, onAccept, onD
           Load {sel.size} item{sel.size !== 1 ? "s" : ""} into plan
         </button>
         <button onClick={onDismiss} className="px-4 py-2.5 rounded-xl text-sm"
-          style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Skip</button>
+          style={{ background: "rgba(180,85,47,0.07)", color: MUTED }}>Skip</button>
       </div>
     </div>
   );
@@ -2615,14 +2615,14 @@ function AIAdvisorCard({ pc, currentSlot, yearChecksRemaining, totalYearTreatmen
         <p className="text-xs font-semibold" style={{ color: MUTED, letterSpacing: "0.08em" }}>SMART ADVISOR</p>
         <button onClick={fetchAdvice} disabled={loading}
           className="p-1.5 rounded-lg transition-all"
-          style={{ background: "rgba(124,92,252,0.06)", border: `1px solid ${BORDER}` }}>
+          style={{ background: "rgba(180,85,47,0.06)", border: `1px solid ${BORDER}` }}>
           <RotateCcw size={12} className={loading ? "animate-spin" : ""} style={{ color: MUTED }} />
         </button>
       </div>
       {loading ? (
         <div className="space-y-2">
-          <div className="h-3 rounded animate-pulse" style={{ background: "rgba(124,92,252,0.08)", width: "90%" }} />
-          <div className="h-3 rounded animate-pulse" style={{ background: "rgba(124,92,252,0.08)", width: "70%" }} />
+          <div className="h-3 rounded animate-pulse" style={{ background: "rgba(180,85,47,0.08)", width: "90%" }} />
+          <div className="h-3 rounded animate-pulse" style={{ background: "rgba(180,85,47,0.08)", width: "70%" }} />
         </div>
       ) : advice ? (
         <p className="text-sm leading-relaxed" style={{ color: "var(--text)" }}>{advice}</p>
@@ -2728,7 +2728,7 @@ function SavingsCalibrationCard({ yearPlan, paycheckPlans, onUpdatePaycheckPlans
 
 // ── Paycheck Plan Card ────────────────────────────────────────────────────────
 const CAT_COLORS: Record<BudgetLine["category"], string> = {
-  housing: "#7C5CFC", transfer: "#6366F1", food: "#10B981",
+  housing: "#B4552F", transfer: "#6366F1", food: "#10B981",
   transport: "#FB923C", utilities: "#F59E0B", savings: "#10B981", other: "#7C6FAE",
 };
 function CatChip({ cat }: { cat: BudgetLine["category"] }) {
@@ -2742,7 +2742,7 @@ function CatChip({ cat }: { cat: BudgetLine["category"] }) {
 function CheckCircle({ checked, onToggle }: { checked: boolean; onToggle: () => void }) {
   return (
     <button onClick={onToggle} className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center transition-all"
-      style={{ background: checked ? "#10B981" : "transparent", border: `2px solid ${checked ? "#10B981" : "rgba(124,92,252,0.25)"}` }}>
+      style={{ background: checked ? "#10B981" : "transparent", border: `2px solid ${checked ? "#10B981" : "rgba(180,85,47,0.25)"}` }}>
       {checked && <Check size={12} color="#fff" strokeWidth={3} />}
     </button>
   );
@@ -2810,7 +2810,7 @@ function PaycheckPlanCard({ paydayStr, budgetLines, effectiveTakeHome, pc, paych
         </div>
         {totalItems > 0 && (
           <div className="flex items-center gap-1.5">
-            <div className="h-1.5 w-20 rounded-full overflow-hidden" style={{ background: "rgba(124,92,252,0.12)" }}>
+            <div className="h-1.5 w-20 rounded-full overflow-hidden" style={{ background: "rgba(180,85,47,0.12)" }}>
               <div className="h-full rounded-full transition-all" style={{ width: `${Math.round(checkedCount / totalItems * 100)}%`, background: "#10B981" }} />
             </div>
             <p className="text-xs font-semibold" style={{ color: checkedCount === totalItems ? "#10B981" : MUTED }}>
@@ -2827,15 +2827,15 @@ function PaycheckPlanCard({ paydayStr, budgetLines, effectiveTakeHome, pc, paych
             <p className="text-sm font-semibold" style={tx}>Paycheck income</p>
             <div className="flex items-center gap-2">
               <p className="text-sm font-bold" style={tx}>{fmt$(income)}</p>
-              <button onClick={() => { setEditInc(!editInc); setIncVal(String(income)); }} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Edit</button>
+              <button onClick={() => { setEditInc(!editInc); setIncVal(String(income)); }} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(180,85,47,0.07)", color: MUTED }}>Edit</button>
             </div>
           </div>
           {plan.incomeOverride !== undefined && !editInc && <p className="text-xs mt-1" style={mx}>Standard: {fmt$(effectiveTakeHome)}</p>}
           {editInc && (
             <div className="mt-2 flex gap-2">
-              <input type="number" value={incVal} onChange={e => setIncVal(e.target.value)} className="flex-1 rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} placeholder="Take-home this check" />
+              <input type="number" value={incVal} onChange={e => setIncVal(e.target.value)} className="flex-1 rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }} placeholder="Take-home this check" />
               <button onClick={() => { savePlan({ ...plan, incomeOverride: parseFloat(incVal) || undefined }); setEditInc(false); showToast("Updated!"); }} className="px-3 py-2 rounded-xl text-sm font-semibold" style={{ background: LIME, color: "#fff" }}>Save</button>
-              {plan.incomeOverride !== undefined && <button onClick={() => { savePlan({ ...plan, incomeOverride: undefined }); setEditInc(false); showToast("Reset"); }} className="px-3 py-2 rounded-xl text-sm" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Reset</button>}
+              {plan.incomeOverride !== undefined && <button onClick={() => { savePlan({ ...plan, incomeOverride: undefined }); setEditInc(false); showToast("Reset"); }} className="px-3 py-2 rounded-xl text-sm" style={{ background: "rgba(180,85,47,0.07)", color: MUTED }}>Reset</button>}
             </div>
           )}
         </div>
@@ -2856,15 +2856,15 @@ function PaycheckPlanCard({ paydayStr, budgetLines, effectiveTakeHome, pc, paych
                 ) : (
                   <p className="text-sm font-semibold" style={{ color: "#10B981" }}>−{fmt$(savingsDed)}</p>
                 )}
-                <button onClick={() => { setEditSav(!editSav); setSavVal(String(savingsDed)); }} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Edit</button>
+                <button onClick={() => { setEditSav(!editSav); setSavVal(String(savingsDed)); }} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(180,85,47,0.07)", color: MUTED }}>Edit</button>
               </div>
             </div>
             {plan.savingsOverride !== undefined && !editSav && <p className="text-xs mt-1 ml-8" style={mx}>Standard: {fmt$(Math.round(income * pc.savingsPercent / 100))}</p>}
             {editSav && (
               <div className="mt-2 flex gap-2">
-                <input type="number" value={savVal} onChange={e => setSavVal(e.target.value)} className="flex-1 rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} placeholder="Savings this check ($)" />
+                <input type="number" value={savVal} onChange={e => setSavVal(e.target.value)} className="flex-1 rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }} placeholder="Savings this check ($)" />
                 <button onClick={() => { savePlan({ ...plan, savingsOverride: parseFloat(savVal) || 0 }); setEditSav(false); showToast("Updated!"); }} className="px-3 py-2 rounded-xl text-sm font-semibold" style={{ background: LIME, color: "#fff" }}>Save</button>
-                {plan.savingsOverride !== undefined && <button onClick={() => { savePlan({ ...plan, savingsOverride: undefined }); setEditSav(false); showToast("Reset"); }} className="px-3 py-2 rounded-xl text-sm" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Reset</button>}
+                {plan.savingsOverride !== undefined && <button onClick={() => { savePlan({ ...plan, savingsOverride: undefined }); setEditSav(false); showToast("Reset"); }} className="px-3 py-2 rounded-xl text-sm" style={{ background: "rgba(180,85,47,0.07)", color: MUTED }}>Reset</button>}
               </div>
             )}
           </div>
@@ -2897,22 +2897,22 @@ function PaycheckPlanCard({ paydayStr, budgetLines, effectiveTakeHome, pc, paych
                   ) : (
                     <>
                       <p className="text-sm font-semibold" style={{ color: RED }}>−{fmt$(displayAmt)}</p>
-                      <button onClick={() => { setEditingId(isEditing ? null : line.id); setEditVal(String(displayAmt)); }} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Edit</button>
+                      <button onClick={() => { setEditingId(isEditing ? null : line.id); setEditVal(String(displayAmt)); }} className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(180,85,47,0.07)", color: MUTED }}>Edit</button>
                     </>
                   )}
                 </div>
               </div>
               {isActualEdit && (
                 <div className="mt-2 flex gap-2 ml-8">
-                  <input type="number" value={actualVal} onChange={e => setActualVal(e.target.value)} className="flex-1 rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} placeholder="Actual amount paid" />
+                  <input type="number" value={actualVal} onChange={e => setActualVal(e.target.value)} className="flex-1 rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }} placeholder="Actual amount paid" />
                   <button onClick={() => saveActual(line.id, parseFloat(actualVal) || displayAmt)} className="px-3 py-2 rounded-xl text-sm font-semibold" style={{ background: "#10B981", color: "#fff" }}>Save</button>
                 </div>
               )}
               {isEditing && !isChecked && (
                 <div className="mt-2 flex gap-2 ml-8">
-                  <input type="number" value={editVal} onChange={e => setEditVal(e.target.value)} className="flex-1 rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} placeholder="This paycheck amount" />
+                  <input type="number" value={editVal} onChange={e => setEditVal(e.target.value)} className="flex-1 rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }} placeholder="This paycheck amount" />
                   <button onClick={() => { setOverride(line.id, parseFloat(editVal) || 0); setEditingId(null); showToast("Updated!"); }} className="px-3 py-2 rounded-xl text-sm font-semibold" style={{ background: LIME, color: "#fff" }}>Save</button>
-                  {hasOverride && <button onClick={() => { clearOverride(line.id); setEditingId(null); showToast("Reset to standard"); }} className="px-3 py-2 rounded-xl text-sm" style={{ background: "rgba(124,92,252,0.07)", color: MUTED }}>Reset</button>}
+                  {hasOverride && <button onClick={() => { clearOverride(line.id); setEditingId(null); showToast("Reset to standard"); }} className="px-3 py-2 rounded-xl text-sm" style={{ background: "rgba(180,85,47,0.07)", color: MUTED }}>Reset</button>}
                 </div>
               )}
               {hasOverride && !isEditing && !isChecked && <p className="text-xs mt-1 ml-8" style={mx}>Standard: {fmt$(line.amountPerCheck)}</p>}
@@ -2931,7 +2931,7 @@ function PaycheckPlanCard({ paydayStr, budgetLines, effectiveTakeHome, pc, paych
                   <CheckCircle checked={isChecked} onToggle={() => toggleCheckIn(o.id, o.amount)} />
                   <CatChip cat={o.category as BudgetLine["category"]} />
                   <p className="text-sm truncate" style={tx}>{o.label}</p>
-                  <span className="text-xs px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: "rgba(232,121,249,0.15)", color: "#E879F9" }}>once</span>
+                  <span className="text-xs px-1.5 py-0.5 rounded-full flex-shrink-0" style={{ background: "rgba(224,164,74,0.15)", color: "#E0A44A" }}>once</span>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   {isChecked ? (
@@ -2948,19 +2948,19 @@ function PaycheckPlanCard({ paydayStr, budgetLines, effectiveTakeHome, pc, paych
 
         {/* Add one-time */}
         <div className="px-4 py-3" style={{ borderBottom: `1px solid ${BORDER}` }}>
-          <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg" style={{ background: "rgba(232,121,249,0.1)", color: "#E879F9", border: "1px solid rgba(232,121,249,0.2)" }}>
+          <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg" style={{ background: "rgba(224,164,74,0.1)", color: "#E0A44A", border: "1px solid rgba(224,164,74,0.2)" }}>
             <Plus size={12} /> One-time item this check
           </button>
           {showForm && (
             <div className="mt-2 space-y-2">
-              <input value={oneLabel} onChange={e => { setOneLabel(e.target.value); setOneCat(autoDetectCategory(e.target.value)); }} placeholder="Label (e.g. Car repair, Birthday gift)" className="w-full rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+              <input value={oneLabel} onChange={e => { setOneLabel(e.target.value); setOneCat(autoDetectCategory(e.target.value)); }} placeholder="Label (e.g. Car repair, Birthday gift)" className="w-full rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }} />
               <div className="grid grid-cols-2 gap-2">
-                <input type="number" value={oneAmt} onChange={e => setOneAmt(e.target.value)} placeholder="Amount ($)" className="rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
-                <select value={oneCat} onChange={e => setOneCat(e.target.value as BudgetLine["category"])} className="rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }}>
+                <input type="number" value={oneAmt} onChange={e => setOneAmt(e.target.value)} placeholder="Amount ($)" className="rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }} />
+                <select value={oneCat} onChange={e => setOneCat(e.target.value as BudgetLine["category"])} className="rounded-xl px-3 py-2 text-sm outline-none" style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }}>
                   <option value="housing">Housing</option><option value="transfer">Transfer</option><option value="food">Food</option><option value="transport">Transport</option><option value="utilities">Utilities</option><option value="savings">Savings</option><option value="other">Other</option>
                 </select>
               </div>
-              <button onClick={addOneTime} disabled={!oneLabel || !oneAmt} className="w-full py-2 rounded-xl text-sm font-semibold disabled:opacity-40" style={{ background: "#E879F9", color: "#fff" }}>Add This Check Only</button>
+              <button onClick={addOneTime} disabled={!oneLabel || !oneAmt} className="w-full py-2 rounded-xl text-sm font-semibold disabled:opacity-40" style={{ background: "#E0A44A", color: "#fff" }}>Add This Check Only</button>
             </div>
           )}
         </div>
@@ -3043,7 +3043,7 @@ function AccountsTab({ accounts, loadingAccts, refreshing, accountTransfers, onR
           <div className="flex gap-3">
             <button onClick={onRefresh} disabled={refreshing}
               className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm"
-              style={{ background: "rgba(124,92,252,0.06)", border: `1px solid ${BORDER}`, color: MUTED }}>
+              style={{ background: "rgba(180,85,47,0.06)", border: `1px solid ${BORDER}`, color: MUTED }}>
               <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
               {refreshing ? "Refreshing…" : "Refresh"}
             </button>
@@ -3069,7 +3069,7 @@ function AccountsTab({ accounts, loadingAccts, refreshing, accountTransfers, onR
                   <label className="text-xs mb-1 block" style={{ color: MUTED }}>From</label>
                   <select value={fromAcct} onChange={e => setFromAcct(e.target.value)}
                     className="w-full rounded-xl px-3 py-2.5 text-sm outline-none"
-                    style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }}>
+                    style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }}>
                     {knownAccounts.map(a => <option key={a} value={a}>{a}</option>)}
                   </select>
                 </div>
@@ -3077,17 +3077,17 @@ function AccountsTab({ accounts, loadingAccts, refreshing, accountTransfers, onR
                   <label className="text-xs mb-1 block" style={{ color: MUTED }}>To</label>
                   <select value={toAcct} onChange={e => setToAcct(e.target.value)}
                     className="w-full rounded-xl px-3 py-2.5 text-sm outline-none"
-                    style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }}>
+                    style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }}>
                     {knownAccounts.map(a => <option key={a} value={a}>{a}</option>)}
                   </select>
                 </div>
               </div>
               <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="Amount ($)"
                 className="w-full rounded-xl px-3 py-2.5 text-sm outline-none"
-                style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+                style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }} />
               <input value={purpose} onChange={e => setPurpose(e.target.value)} placeholder="Purpose (optional)"
                 className="w-full rounded-xl px-3 py-2.5 text-sm outline-none"
-                style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+                style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }} />
             </div>
             <button onClick={addTransfer} disabled={!amount}
               className="w-full py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40"
@@ -3186,7 +3186,7 @@ function CreditTab({ liabilities, liabilitiesLoading, creditScores, effectiveTak
 
             {/* Score bar 300–850 */}
             <div className="mt-4 relative">
-              <div className="h-2 rounded-full overflow-hidden" style={{ background: "rgba(124,92,252,0.08)" }}>
+              <div className="h-2 rounded-full overflow-hidden" style={{ background: "rgba(180,85,47,0.08)" }}>
                 {["rgba(218,102,123,0.8)","rgba(232,168,124,0.8)","rgba(138,158,135,0.8)","rgba(200,255,0,0.7)","rgba(200,255,0,1)"].map((c, i) => (
                   <div key={i} className="absolute top-0 h-2" style={{ left: `${i * 20}%`, width: "20%", background: c, opacity: 0.5 }} />
                 ))}
@@ -3237,10 +3237,10 @@ function CreditTab({ liabilities, liabilitiesLoading, creditScores, effectiveTak
               <input type="number" min="300" max="850" value={scoreInput} onChange={e => setScoreInput(e.target.value)}
                 placeholder="Score (300–850)"
                 className="rounded-xl px-3 py-2.5 text-sm outline-none"
-                style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+                style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }} />
               <select value={scoreSource} onChange={e => setScoreSource(e.target.value)}
                 className="rounded-xl px-3 py-2.5 text-sm outline-none"
-                style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }}>
+                style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }}>
                 {["Credit Karma","Chase","Capital One","Experian","Discover","Bank of America","Other"].map(s => (
                   <option key={s} value={s}>{s}</option>
                 ))}
@@ -3248,7 +3248,7 @@ function CreditTab({ liabilities, liabilitiesLoading, creditScores, effectiveTak
             </div>
             <input value={scoreNote} onChange={e => setScoreNote(e.target.value)} placeholder="Note (optional)"
               className="w-full rounded-xl px-3 py-2.5 text-sm outline-none"
-              style={{ background: "rgba(124,92,252,0.07)", border: `1px solid ${BORDER}` }} />
+              style={{ background: "rgba(180,85,47,0.07)", border: `1px solid ${BORDER}` }} />
             <button onClick={logScore} disabled={!scoreInput}
               className="w-full py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40"
               style={{ background: LIME, color: "#fff"}}>Save Score</button>

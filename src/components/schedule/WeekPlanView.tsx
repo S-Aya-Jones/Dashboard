@@ -11,7 +11,7 @@ interface Block { start: string; end: string; label: string; cat: Cat; note?: st
 
 const CAT_COLORS: Record<Cat, string> = {
   gym:      "#2bb3a3",
-  study:    "#7C5CFC",
+  study:    "#B4552F",
   work:     "#8a8fa3",
   exposure: "#e8842c",
   therapy:  "#3aa864",
@@ -159,7 +159,7 @@ export function WeekPlanView() {
               style={{
                 background: "var(--surface)",
                 border: isToday ? "2px solid var(--purple)" : "1.5px solid var(--border)",
-                boxShadow: isToday ? "0 4px 20px rgba(124,92,252,0.15)" : undefined,
+                boxShadow: isToday ? "0 4px 20px rgba(180,85,47,0.15)" : undefined,
               }}>
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-serif text-lg" style={{ color: "var(--text)" }}>{day.name}</h3>
@@ -176,7 +176,7 @@ export function WeekPlanView() {
                   const active = isToday && nowMin >= sh * 60 + sm && nowMin < eh * 60 + em;
                   return (
                     <div key={i} className="flex gap-2.5 rounded-lg px-2 py-1.5"
-                      style={active ? { background: "rgba(124,92,252,0.10)", border: "1px solid rgba(124,92,252,0.35)" } : undefined}>
+                      style={active ? { background: "rgba(180,85,47,0.10)", border: "1px solid rgba(180,85,47,0.35)" } : undefined}>
                       <span className="w-1 rounded-full flex-shrink-0" style={{ background: CAT_COLORS[b.cat] }} />
                       <div className="min-w-0">
                         <div className="text-sm leading-snug" style={{ color: "var(--text)" }}>

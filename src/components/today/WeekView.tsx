@@ -159,10 +159,10 @@ export function WeekView({ data, update }: Props) {
                       );
                     }
                     return (
-                      <div key={`e-${i}`} className="flex items-start gap-2 text-[11px] px-2 py-1.5 rounded-lg border-l-[3px]" style={{ background: "rgba(124,92,252,0.08)", borderColor: "#7C5CFC" }}>
-                        <Calendar size={11} className="mt-0.5 flex-shrink-0" style={{ color: "#7C5CFC" }} />
+                      <div key={`e-${i}`} className="flex items-start gap-2 text-[11px] px-2 py-1.5 rounded-lg border-l-[3px]" style={{ background: "rgba(180,85,47,0.08)", borderColor: "#B4552F" }}>
+                        <Calendar size={11} className="mt-0.5 flex-shrink-0" style={{ color: "#B4552F" }} />
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate" style={{ color: "#7C5CFC" }}>{row.e.title}</p>
+                          <p className="font-medium truncate" style={{ color: "#B4552F" }}>{row.e.title}</p>
                           {!row.e.allDay && row.e.start && <p className="text-sand-dark">{format(new Date(row.e.start), "h:mm a")}</p>}
                         </div>
                       </div>
@@ -199,7 +199,7 @@ export function WeekView({ data, update }: Props) {
                   <button key={i} type="button"
                     onClick={() => setBlockForm(f => ({ ...f, days: f.days.includes(i) ? f.days.filter(d => d !== i) : [...f.days, i] }))}
                     className="w-8 h-8 rounded-full text-xs font-semibold"
-                    style={blockForm.days.includes(i) ? { background: "#7C5CFC", color: "#fff" } : { background: "#eee", color: "#888" }}>
+                    style={blockForm.days.includes(i) ? { background: "#B4552F", color: "#fff" } : { background: "#eee", color: "#888" }}>
                     {label}
                   </button>
                 ))}

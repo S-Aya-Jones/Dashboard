@@ -17,7 +17,7 @@ interface Checkin {
 const DAY_RATINGS = [
   { key: "stormy", label: "Stormy", emoji: "🌩️", color: "#DA667B", bg: "rgba(218,102,123,0.08)", border: "rgba(218,102,123,0.42)" },
   { key: "choppy", label: "Choppy", emoji: "🌊",  color: "#F59E0B", bg: "rgba(245,158,11,0.08)",  border: "rgba(245,158,11,0.42)"  },
-  { key: "steady", label: "Steady", emoji: "⛵",  color: "#7C5CFC", bg: "rgba(124,92,252,0.08)",  border: "rgba(124,92,252,0.42)"  },
+  { key: "steady", label: "Steady", emoji: "⛵",  color: "#B4552F", bg: "rgba(180,85,47,0.08)",  border: "rgba(180,85,47,0.42)"  },
   { key: "calm",   label: "Calm",   emoji: "🌅",  color: "#71816D", bg: "rgba(113,129,109,0.08)", border: "rgba(113,129,109,0.42)" },
 ];
 
@@ -421,7 +421,7 @@ export function CheckinTab() {
                 transition: "border-color 0.15s ease",
                 boxSizing: "border-box",
               }}
-              onFocus={e => { e.currentTarget.style.borderColor = "rgba(124,92,252,0.42)"; }}
+              onFocus={e => { e.currentTarget.style.borderColor = "rgba(180,85,47,0.42)"; }}
               onBlur={e =>  { e.currentTarget.style.borderColor = "var(--border)"; }}
             />
             <p style={{ fontSize: "0.7rem", color: "var(--text-light)", marginTop: "0.45rem" }}>
@@ -486,15 +486,15 @@ export function CheckinTab() {
               borderRadius: "14px",
               border: "none",
               background: canSubmit
-                ? "linear-gradient(135deg, #7C5CFC 0%, #E879F9 100%)"
-                : "rgba(124,92,252,0.12)",
-              color: canSubmit ? "#fff" : "rgba(124,92,252,0.38)",
+                ? "linear-gradient(135deg, #B4552F 0%, #E0A44A 100%)"
+                : "rgba(180,85,47,0.12)",
+              color: canSubmit ? "#fff" : "rgba(180,85,47,0.38)",
               fontSize: "0.95rem",
               fontWeight: 700,
               cursor: canSubmit ? "pointer" : "not-allowed",
               transition: "all 0.15s ease",
               letterSpacing: "0.02em",
-              boxShadow: canSubmit ? "0 4px 18px rgba(124,92,252,0.3)" : "none",
+              boxShadow: canSubmit ? "0 4px 18px rgba(180,85,47,0.3)" : "none",
             }}
           >
             {submitting ? "Logging…" : "Log check-in"}

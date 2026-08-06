@@ -26,8 +26,8 @@ const TABS = [
 type TabId = typeof TABS[number]["id"];
 
 const SUBJECTS = [
-  { name: "Behavioral Sciences", color: "#7C5CFC" },
-  { name: "Biochemistry",        color: "#E879F9" },
+  { name: "Behavioral Sciences", color: "#B4552F" },
+  { name: "Biochemistry",        color: "#E0A44A" },
   { name: "Biology",             color: "#10B981" },
   { name: "CARS",                color: "#FB923C" },
   { name: "General Chemistry",   color: "#F59E0B" },
@@ -72,7 +72,7 @@ export default function Page() {
             <div className="fixed inset-0 z-50 flex items-center justify-center p-6"
               style={{ background: "rgba(26,5,51,0.85)", backdropFilter: "blur(8px)" }}>
               <div className="w-full max-w-sm rounded-3xl p-6 relative"
-                style={{ background: "var(--surface)", border: "1.5px solid var(--border)", boxShadow: "0 24px 80px rgba(124,92,252,0.3)" }}>
+                style={{ background: "var(--surface)", border: "1.5px solid var(--border)", boxShadow: "0 24px 80px rgba(180,85,47,0.3)" }}>
 
                 <button onClick={handleNo} className="absolute top-4 right-4" style={{ color: "var(--text-muted)" }}>
                   <X size={18} />
@@ -80,7 +80,7 @@ export default function Page() {
 
                 {/* Icon */}
                 <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
-                  style={{ background: "linear-gradient(135deg, #7C5CFC, #E879F9)" }}>
+                  style={{ background: "linear-gradient(135deg, #B4552F, #E0A44A)" }}>
                   <Brain size={28} color="#fff" />
                 </div>
 
@@ -127,9 +127,9 @@ export default function Page() {
                   <button onClick={handleYes}
                     className="flex-1 py-3 rounded-2xl text-sm font-bold transition-all"
                     style={{
-                      background: "linear-gradient(135deg, #7C5CFC, #E879F9)",
+                      background: "linear-gradient(135deg, #B4552F, #E0A44A)",
                       color: "#fff",
-                      boxShadow: "0 4px 16px rgba(124,92,252,0.4)",
+                      boxShadow: "0 4px 16px rgba(180,85,47,0.4)",
                       opacity: selectedSubject ? 1 : 0.6,
                     }}>
                     Start Timer ⚡
@@ -150,7 +150,7 @@ export default function Page() {
               <button key={t.id} onClick={() => setTab(t.id)}
                 className="flex-shrink-0 py-2.5 px-4 rounded-xl text-sm font-semibold transition-all"
                 style={tab === t.id
-                  ? { background: "var(--grad)", color: "#fff", boxShadow: "0 2px 12px rgba(124,92,252,0.3)" }
+                  ? { background: "var(--grad)", color: "#fff", boxShadow: "0 2px 12px rgba(180,85,47,0.3)" }
                   : { color: "var(--text-muted)" }}>
                 {t.label}
               </button>

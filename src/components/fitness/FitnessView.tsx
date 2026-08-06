@@ -18,7 +18,7 @@ const SESSION_TYPES = [
   { value: "gym",    label: "Gym 🏋🏾‍♀️",          color: "#71816D" },
   { value: "tennis", label: "Tennis 🎾",           color: "#DA667B" },
   { value: "walk",   label: "Morning Walk 🚶🏾‍♀️",   color: "#8A9E87" },
-  { value: "other",  label: "Other",               color: "rgba(124,92,252,0.3)" },
+  { value: "other",  label: "Other",               color: "rgba(180,85,47,0.3)" },
 ];
 
 // ── Apple Health helpers ───────────────────────────────────────────────────
@@ -53,7 +53,7 @@ function workoutColor(type: string): string {
   for (const [key, color] of WORKOUT_COLORS) {
     if (t.includes(key)) return color;
   }
-  return "rgba(124,92,252,0.3)";
+  return "rgba(180,85,47,0.3)";
 }
 
 function dayColor(date: string, health: HealthData | undefined): string {
@@ -117,7 +117,7 @@ function BarChart({ values, maxVal, color, height = 48 }: BarChartProps) {
               }}
             />
           ) : (
-            <div style={{ height: 2, background: "rgba(124,92,252,0.1)" }} className="rounded-t-sm" />
+            <div style={{ height: 2, background: "rgba(180,85,47,0.1)" }} className="rounded-t-sm" />
           )}
         </div>
       ))}
@@ -135,7 +135,7 @@ function AppleHealthTab({ data }: { data: DashboardData }) {
     return (
       <div
         className="rounded-2xl p-8 text-center space-y-4"
-        style={{ background: "var(--surface)", border: "1.5px dashed rgba(124,92,252,0.2)" }}
+        style={{ background: "var(--surface)", border: "1.5px dashed rgba(180,85,47,0.2)" }}
       >
         <div className="text-4xl">📱</div>
         <h3 className="font-serif text-xl" style={{ color: "var(--text)" }}>Connect Apple Health</h3>
@@ -238,7 +238,7 @@ function AppleHealthTab({ data }: { data: DashboardData }) {
                   <span style={{ color: item.color }}>{item.icon}</span>
                   <div
                     className="h-1.5 flex-1 mx-3 rounded-full overflow-hidden"
-                    style={{ background: "rgba(124,92,252,0.1)" }}
+                    style={{ background: "rgba(180,85,47,0.1)" }}
                   >
                     <div
                       className="h-full rounded-full transition-all"
@@ -291,7 +291,7 @@ function AppleHealthTab({ data }: { data: DashboardData }) {
                     style={{
                       background: color,
                       color: color === "var(--bg2)" ? "var(--text-muted)" : "#fff",
-                      boxShadow: isToday ? "0 0 0 2px #7C5CFC" : "none",
+                      boxShadow: isToday ? "0 0 0 2px #B4552F" : "none",
                     }}
                   >
                     {date.getDate()}
@@ -492,7 +492,7 @@ export function FitnessView({ data, update }: Props) {
       {/* Tabs */}
       <div
         className="flex gap-1 p-1 rounded-2xl"
-        style={{ background: "rgba(124,92,252,0.08)" }}
+        style={{ background: "rgba(180,85,47,0.08)" }}
       >
         {TABS.map(({ id: tid, label }) => (
           <button
@@ -502,7 +502,7 @@ export function FitnessView({ data, update }: Props) {
             style={{
               background: tab === tid ? "var(--bg)" : "transparent",
               color: tab === tid ? "var(--text)" : "var(--text-muted)",
-              boxShadow: tab === tid ? "0 2px 8px rgba(124,92,252,0.1)" : "none",
+              boxShadow: tab === tid ? "0 2px 8px rgba(180,85,47,0.1)" : "none",
             }}
           >
             {label}
@@ -589,7 +589,7 @@ export function FitnessView({ data, update }: Props) {
                           <div
                             key={i}
                             className="w-2 h-2 rounded-full"
-                            style={{ background: i < s.quality ? "#71816D" : "rgba(124,92,252,0.12)" }}
+                            style={{ background: i < s.quality ? "#71816D" : "rgba(180,85,47,0.12)" }}
                           />
                         ))}
                       </div>

@@ -98,8 +98,8 @@ export function FormChecker({ exercise, onClose, update }: Props) {
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 85) return "#9B7FFF"; // excellent
-    if (score >= 70) return "#7C5CFC"; // good
+    if (score >= 85) return "#D07A4F"; // excellent
+    if (score >= 70) return "#B4552F"; // good
     if (score >= 50) return "#C99A5C"; // needs work
     return "#DA667B"; // major issues
   };
@@ -131,7 +131,7 @@ export function FormChecker({ exercise, onClose, update }: Props) {
             />
 
             {/* Tips */}
-            <div className="rounded-2xl p-4 space-y-2" style={{ background: "rgba(124,92,252,0.05)" }}>
+            <div className="rounded-2xl p-4 space-y-2" style={{ background: "rgba(180,85,47,0.05)" }}>
               <p className="text-xs font-semibold text-purple-600">💡 Best photo tips:</p>
               <ul className="text-xs space-y-1" style={{ color: "var(--text-muted)" }}>
                 <li>• Full body in frame, side angle if possible</li>
@@ -151,7 +151,7 @@ export function FormChecker({ exercise, onClose, update }: Props) {
                 onClick={analyzeForm}
                 disabled={isAnalyzing}
                 className="w-full py-4 rounded-2xl font-semibold active:scale-95 transition-transform"
-                style={{ background: "#7C5CFC", color: "#fff", opacity: isAnalyzing ? 0.7 : 1 }}>
+                style={{ background: "#B4552F", color: "#fff", opacity: isAnalyzing ? 0.7 : 1 }}>
                 {isAnalyzing ? "Analyzing Form..." : "Analyze My Form"}
               </button>
               <button
@@ -175,7 +175,7 @@ export function FormChecker({ exercise, onClose, update }: Props) {
                   </span>
                   <span style={{ color: "var(--text-muted)" }}>/ 100</span>
                 </div>
-                <div className="h-2 rounded-full overflow-hidden mt-3" style={{ background: "rgba(124,92,252,0.07)" }}>
+                <div className="h-2 rounded-full overflow-hidden mt-3" style={{ background: "rgba(180,85,47,0.07)" }}>
                   <div
                     className="h-full rounded-full transition-all"
                     style={{ width: `${analysis.score}%`, background: getScoreColor(analysis.score) }}
@@ -184,7 +184,7 @@ export function FormChecker({ exercise, onClose, update }: Props) {
               </div>
 
               {/* Summary */}
-              <div className="rounded-2xl p-4" style={{ background: "rgba(124,92,252,0.05)", border: "1px solid rgba(124,92,252,0.15)" }}>
+              <div className="rounded-2xl p-4" style={{ background: "rgba(180,85,47,0.05)", border: "1px solid rgba(180,85,47,0.15)" }}>
                 <p className="text-sm leading-relaxed" style={{ color: "var(--text)" }}>{analysis.summary}</p>
               </div>
 
@@ -198,7 +198,7 @@ export function FormChecker({ exercise, onClose, update }: Props) {
                     const severityColor = {
                       critical: "#DA667B",
                       warning: "#C99A5C",
-                      tip: "#7C5CFC",
+                      tip: "#B4552F",
                     }[correction.severity];
 
                     return (
@@ -239,7 +239,7 @@ export function FormChecker({ exercise, onClose, update }: Props) {
                   setAnalysis(null);
                 }}
                 className="w-full py-3 rounded-2xl font-semibold"
-                style={{ background: "#7C5CFC", color: "#fff" }}>
+                style={{ background: "#B4552F", color: "#fff" }}>
                 Check Another Set
               </button>
             </div>

@@ -139,7 +139,7 @@ export function QBankView() {
         </div>
 
         <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--surface)" }}>
-          <motion.div className="h-full rounded-full" style={{ background: "linear-gradient(90deg,#7C5CFC,#ec4899)" }}
+          <motion.div className="h-full rounded-full" style={{ background: "linear-gradient(90deg,#B4552F,#ec4899)" }}
             animate={{ width: `${(i / session.length) * 100}%` }} />
         </div>
 
@@ -211,7 +211,7 @@ export function QBankView() {
         <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
           onClick={start} disabled={loading}
           className="mt-5 w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-xl font-semibold text-white disabled:opacity-50"
-          style={{ background: "linear-gradient(135deg,#7C5CFC,#ec4899)" }}>
+          style={{ background: "linear-gradient(135deg,#B4552F,#ec4899)" }}>
           <Play size={17} /> {loading ? "Loading…" : "Start session"}
         </motion.button>
       </div>

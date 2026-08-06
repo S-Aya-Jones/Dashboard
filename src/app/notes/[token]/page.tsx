@@ -90,21 +90,21 @@ export default async function SharedNotesPage({ params }: { params: { token: str
       <style>{`
         .wrap { max-width: 780px; margin: 0 auto; padding: 2.5rem 1.5rem 5rem;
                 font-family: system-ui, -apple-system, sans-serif; color: #1a1a2e; }
-        .hdr { border-bottom: 3px solid #7C5CFC; padding-bottom: 1.25rem; margin-bottom: 2rem; }
+        .hdr { border-bottom: 3px solid #B4552F; padding-bottom: 1.25rem; margin-bottom: 2rem; }
         .course { font-size: .72rem; font-weight: 800; letter-spacing: .08em;
-                  text-transform: uppercase; color: #7C5CFC; }
+                  text-transform: uppercase; color: #B4552F; }
         .ttl { font-size: 1.85rem; line-height: 1.25; margin: .35rem 0 .6rem; font-weight: 700; }
         .meta { font-size: .82rem; color: #6b7280; }
         .sum { margin-top: .9rem; font-size: .95rem; line-height: 1.7; color: #374151; }
         h2 { font-size: 1.28rem; font-weight: 700; margin: 2rem 0 .6rem;
              padding-bottom: .35rem; border-bottom: 1px solid #e5e7eb; }
-        h3 { font-size: 1.05rem; font-weight: 650; margin: 1.25rem 0 .4rem; color: #5b3fd4; }
+        h3 { font-size: 1.05rem; font-weight: 650; margin: 1.25rem 0 .4rem; color: #8E3F22; }
         p  { line-height: 1.78; margin: .55rem 0; }
         ul { margin: .45rem 0 .9rem 1.3rem; }
         li { line-height: 1.78; margin: .3rem 0; list-style: disc; }
         li.sub { margin-left: 1.25rem; }
         ul.ol li { list-style: decimal; }
-        blockquote { border-left: 3px solid #7C5CFC; background: #f6f4ff; padding: .7rem .95rem;
+        blockquote { border-left: 3px solid #B4552F; background: #f6f4ff; padding: .7rem .95rem;
                      margin: .9rem 0; border-radius: 0 8px 8px 0; line-height: 1.7; }
         code { background: #f3f4f6; padding: .1rem .35rem; border-radius: 4px; font-size: .9em; }
         .flag { display: inline-block; margin-left: .4rem; padding: .08rem .45rem; border-radius: 999px;
@@ -117,12 +117,12 @@ export default async function SharedNotesPage({ params }: { params: { token: str
         .bar { display: flex; gap: .6rem; flex-wrap: wrap; margin-bottom: 2rem; }
         .btn { display: inline-flex; align-items: center; gap: .4rem; font-size: .84rem; font-weight: 600;
                padding: .55rem 1rem; border-radius: 9px; text-decoration: none;
-               background: #7C5CFC; color: #fff; border: none; }
+               background: #B4552F; color: #fff; border: none; }
         .btn.alt { background: #fff; color: #4b4b63; border: 1.5px solid #e5e7eb; cursor: pointer; font-family: inherit; }
         .foot { margin-top: 3.5rem; padding-top: 1.25rem; border-top: 1px solid #e5e7eb;
                 font-size: .76rem; color: #9ca3af; }
         ${MATH_CSS}
-        .eq-block { background: #f6f4ff; border-left-color: #7C5CFC; }
+        .eq-block { background: #f6f4ff; border-left-color: #B4552F; }
         @media print {
           .bar, .foot { display: none; }
           .wrap { max-width: none; padding: 0; }

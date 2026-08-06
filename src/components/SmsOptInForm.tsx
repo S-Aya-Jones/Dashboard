@@ -7,7 +7,7 @@ export function SmsOptInForm() {
 
   if (confirmed) {
     return (
-      <div style={{ textAlign: "center", padding: "2rem 1rem", background: "rgba(124,92,252,0.06)", borderRadius: "12px", border: "1px solid rgba(124,92,252,0.2)", marginBottom: "1.25rem" }}>
+      <div style={{ textAlign: "center", padding: "2rem 1rem", background: "rgba(180,85,47,0.06)", borderRadius: "12px", border: "1px solid rgba(180,85,47,0.2)", marginBottom: "1.25rem" }}>
         <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem" }}>✓</div>
         <p style={{ fontWeight: 600, color: "#1E1340", margin: "0 0 0.35rem", fontSize: "1.05rem" }}>Opt-in confirmed.</p>
         <p style={{ fontSize: "0.85rem", color: "#7C6FAE", margin: 0 }}>
@@ -19,13 +19,13 @@ export function SmsOptInForm() {
 
   return (
     <>
-      <div style={{ display: "flex", gap: "0.75rem", alignItems: "flex-start", marginBottom: "1rem", padding: "1rem", background: "rgba(124,92,252,0.04)", borderRadius: "10px", border: "1px solid rgba(124,92,252,0.12)" }}>
+      <div style={{ display: "flex", gap: "0.75rem", alignItems: "flex-start", marginBottom: "1rem", padding: "1rem", background: "rgba(180,85,47,0.04)", borderRadius: "10px", border: "1px solid rgba(180,85,47,0.12)" }}>
         <input
           type="checkbox"
           id="consent"
           checked={checked}
           onChange={e => setChecked(e.target.checked)}
-          style={{ marginTop: "3px", flexShrink: 0, width: 16, height: 16, accentColor: "#7C5CFC", cursor: "pointer" }}
+          style={{ marginTop: "3px", flexShrink: 0, width: 16, height: 16, accentColor: "#B4552F", cursor: "pointer" }}
         />
         <label htmlFor="consent" style={{ fontSize: "0.85rem", lineHeight: 1.6, color: "#1E1340", cursor: "pointer" }}>
           Yes, I consent to receive automated text messages from Aya&apos;s Dashboard
@@ -41,7 +41,7 @@ export function SmsOptInForm() {
         style={{
           width: "100%",
           padding: "0.85rem 1.5rem",
-          background: checked ? "#7C5CFC" : "#D4CCFF",
+          background: checked ? "#B4552F" : "#D4CCFF",
           color: "#fff",
           border: "none",
           borderRadius: "10px",

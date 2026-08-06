@@ -38,7 +38,7 @@ export function TodayView({ data, update }: Props) {
       sortKey: e.allDay || !e.start ? -1 : new Date(e.start).getHours() * 100 + new Date(e.start).getMinutes(),
       kind: "event" as const, label: e.title,
       time: e.allDay || !e.start ? "All day" : format(new Date(e.start), "h:mm a"),
-      color: "#7C5CFC",
+      color: "#B4552F",
     })),
   ].sort((a, b) => a.sortKey - b.sortKey);
 
@@ -189,7 +189,7 @@ function SmartInsights({ data }: { data: DashboardData }) {
           <p className="text-xs mt-0.5 mb-2" style={{ color: "var(--text-muted)" }}>
             {shadowingLeft > 0 ? `${shadowingLeft.toFixed(1)} hrs to 200-hr goal` : "Goal reached! 🎉"}
           </p>
-          <div className="h-1.5 rounded-full" style={{ background: "rgba(124,92,252,0.1)" }}>
+          <div className="h-1.5 rounded-full" style={{ background: "rgba(180,85,47,0.1)" }}>
             <div className="h-1.5 rounded-full transition-all" style={{ width: `${shadowingPct}%`, background: "var(--grad)" }} />
           </div>
           <p className="text-xs mt-1 text-right" style={{ color: "var(--text-muted)" }}>{shadowingPct}%</p>

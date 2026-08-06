@@ -58,15 +58,15 @@ function formatDuration(secs: number): string {
 
 function subjectColor(name: string): string {
   const MAP: Record<string, string> = {
-    "Behavioral Sciences": "#7C5CFC",
-    "Biochemistry":        "#E879F9",
+    "Behavioral Sciences": "#B4552F",
+    "Biochemistry":        "#E0A44A",
     "Biology":             "#10B981",
     "Critical Analysis & Reasoning Skills": "#FB923C",
     "General Chemistry":   "#F59E0B",
     "Organic Chemistry":   "#EF4444",
     "Physics":             "#6366F1",
   };
-  return MAP[name] ?? "#7C5CFC";
+  return MAP[name] ?? "#B4552F";
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -401,7 +401,7 @@ export function DiagnosticView({ data, update }: Props) {
               alignItems: "center",
               justifyContent: "center",
               gap: 10,
-              boxShadow: "0 4px 20px rgba(124,92,252,0.3)",
+              boxShadow: "0 4px 20px rgba(180,85,47,0.3)",
             }}
           >
             <Play size={18} fill="#fff" />
@@ -414,9 +414,9 @@ export function DiagnosticView({ data, update }: Props) {
               minWidth: 180,
               padding: "14px 24px",
               borderRadius: 14,
-              border: "2px solid #7C5CFC",
-              background: "rgba(124,92,252,0.07)",
-              color: "#7C5CFC",
+              border: "2px solid #B4552F",
+              background: "rgba(180,85,47,0.07)",
+              color: "#B4552F",
               fontWeight: 700,
               fontSize: 15,
               cursor: "pointer",
@@ -488,7 +488,7 @@ export function DiagnosticView({ data, update }: Props) {
               key={s.name}
               style={{
                 width: 32, height: 6, borderRadius: 3,
-                background: i < sectionIdx ? "#10B981" : i === sectionIdx ? "#7C5CFC" : "var(--border)",
+                background: i < sectionIdx ? "#10B981" : i === sectionIdx ? "#B4552F" : "var(--border)",
                 transition: "background 0.3s",
               }}
             />
@@ -546,14 +546,14 @@ export function DiagnosticView({ data, update }: Props) {
               </div>
               <div style={{ display: "flex", justifyContent: "center", gap: 24, marginBottom: 28 }}>
                 <div>
-                  <div style={{ fontSize: 26, fontWeight: 800, color: "#7C5CFC" }}>
+                  <div style={{ fontSize: 26, fontWeight: 800, color: "#B4552F" }}>
                     {shortened ? Math.min(10, sec.questions) : sec.questions}
                   </div>
                   <div style={{ fontSize: 12, color: "var(--text-muted)" }}>Questions</div>
                 </div>
                 <div style={{ width: 1, background: "var(--border)" }} />
                 <div>
-                  <div style={{ fontSize: 26, fontWeight: 800, color: "#7C5CFC" }}>
+                  <div style={{ fontSize: 26, fontWeight: 800, color: "#B4552F" }}>
                     {shortened ? SHORTENED_MINUTES : sec.minutes}
                   </div>
                   <div style={{ fontSize: 12, color: "var(--text-muted)" }}>Minutes</div>
@@ -588,7 +588,7 @@ export function DiagnosticView({ data, update }: Props) {
               fontWeight: 700,
               fontSize: 16,
               cursor: "pointer",
-              boxShadow: "0 4px 20px rgba(124,92,252,0.3)",
+              boxShadow: "0 4px 20px rgba(180,85,47,0.3)",
               display: "inline-flex",
               alignItems: "center",
               gap: 10,
@@ -633,11 +633,11 @@ export function DiagnosticView({ data, update }: Props) {
             style={{
               display: "flex", alignItems: "center", gap: 6,
               fontSize: 18, fontWeight: 800,
-              color: isLow ? "#EF4444" : "#7C5CFC",
+              color: isLow ? "#EF4444" : "#B4552F",
               fontVariantNumeric: "tabular-nums",
             }}
           >
-            <Clock size={16} color={isLow ? "#EF4444" : "#7C5CFC"} />
+            <Clock size={16} color={isLow ? "#EF4444" : "#B4552F"} />
             {formatTime(timeLeft)}
           </div>
 
@@ -686,8 +686,8 @@ export function DiagnosticView({ data, update }: Props) {
                       display: "flex", alignItems: "flex-start", gap: 12,
                       padding: "12px 16px",
                       borderRadius: 12,
-                      border: `2px solid ${selected ? "#7C5CFC" : "var(--border)"}`,
-                      background: selected ? "rgba(124,92,252,0.07)" : "white",
+                      border: `2px solid ${selected ? "#B4552F" : "var(--border)"}`,
+                      background: selected ? "rgba(180,85,47,0.07)" : "white",
                       cursor: "pointer",
                       textAlign: "left",
                       width: "100%",
@@ -698,7 +698,7 @@ export function DiagnosticView({ data, update }: Props) {
                       style={{
                         width: 28, height: 28, minWidth: 28,
                         borderRadius: 8,
-                        background: selected ? "#7C5CFC" : "var(--bg)",
+                        background: selected ? "#B4552F" : "var(--bg)",
                         color: selected ? "#fff" : "var(--text-muted)",
                         display: "flex", alignItems: "center", justifyContent: "center",
                         fontWeight: 800, fontSize: 13,
@@ -706,7 +706,7 @@ export function DiagnosticView({ data, update }: Props) {
                     >
                       {choice.letter}
                     </span>
-                    <span style={{ fontSize: 14, lineHeight: 1.6, color: selected ? "#7C5CFC" : "var(--text)", paddingTop: 2 }}>
+                    <span style={{ fontSize: 14, lineHeight: 1.6, color: selected ? "#B4552F" : "var(--text)", paddingTop: 2 }}>
                       {choice.text}
                     </span>
                   </button>
@@ -743,12 +743,12 @@ export function DiagnosticView({ data, update }: Props) {
                   onClick={() => setCurrentQ(i)}
                   style={{
                     width: 22, height: 22, borderRadius: 5,
-                    border: i === currentQ ? "2px solid #7C5CFC" : "2px solid transparent",
-                    background: i === currentQ ? "rgba(124,92,252,0.15)" : answered ? "#7C5CFC" : "#E2D9FF",
+                    border: i === currentQ ? "2px solid #B4552F" : "2px solid transparent",
+                    background: i === currentQ ? "rgba(180,85,47,0.15)" : answered ? "#B4552F" : "#E2D9FF",
                     cursor: "pointer",
                     display: "flex", alignItems: "center", justifyContent: "center",
                     fontSize: 9, fontWeight: 700,
-                    color: i === currentQ ? "#7C5CFC" : answered ? "#fff" : "var(--text-muted)",
+                    color: i === currentQ ? "#B4552F" : answered ? "#fff" : "var(--text-muted)",
                   }}
                 >
                   {i + 1}
@@ -765,7 +765,7 @@ export function DiagnosticView({ data, update }: Props) {
                 border: "none", background: "var(--grad)",
                 color: "#fff", fontWeight: 700, fontSize: 13,
                 cursor: "pointer",
-                boxShadow: "0 2px 10px rgba(124,92,252,0.25)",
+                boxShadow: "0 2px 10px rgba(180,85,47,0.25)",
               }}
             >
               Next →
@@ -953,12 +953,12 @@ export function DiagnosticView({ data, update }: Props) {
                   key={score}
                   style={{
                     padding: "6px 12px", borderRadius: 8,
-                    background: isYours ? "rgba(124,92,252,0.12)" : "var(--bg)",
-                    border: isYours ? "1.5px solid #7C5CFC" : "1.5px solid transparent",
+                    background: isYours ? "rgba(180,85,47,0.12)" : "var(--bg)",
+                    border: isYours ? "1.5px solid #B4552F" : "1.5px solid transparent",
                     fontSize: 12,
                   }}
                 >
-                  <span style={{ fontWeight: 700, color: isYours ? "#7C5CFC" : "var(--text)" }}>{score}</span>
+                  <span style={{ fontWeight: 700, color: isYours ? "#B4552F" : "var(--text)" }}>{score}</span>
                   <span style={{ color: "var(--text-muted)", marginLeft: 4 }}>{p}</span>
                 </div>
               );
@@ -1000,7 +1000,7 @@ export function DiagnosticView({ data, update }: Props) {
               color: "#fff", fontWeight: 700, fontSize: 15,
               cursor: "pointer",
               display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-              boxShadow: "0 4px 20px rgba(124,92,252,0.3)",
+              boxShadow: "0 4px 20px rgba(180,85,47,0.3)",
             }}
           >
             <BarChart2 size={18} />

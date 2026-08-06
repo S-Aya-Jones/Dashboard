@@ -51,7 +51,7 @@ export function ExposureHub() {
 
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         <Stat icon={<Flame size={17} />} value={String(stats?.streak ?? 0)} label="day streak" tint="#e8842c" />
-        <Stat icon={<Sparkles size={17} />} value={String(stats?.thisWeek ?? 0)} label="this week" tint="#7C5CFC" />
+        <Stat icon={<Sparkles size={17} />} value={String(stats?.thisWeek ?? 0)} label="this week" tint="#B4552F" />
         <Stat icon={<Trophy size={17} />} value={`${stats?.mastered ?? 0}/${stats?.steps ?? 0}`} label="steps mastered" tint="#2bb3a3" />
         <Stat icon={<TrendingDown size={17} />} value={stats?.avgDrop === null || stats?.avgDrop === undefined ? "—" : `−${stats.avgDrop}`} label="avg anxiety drop" tint="#3aa864" />
       </div>
@@ -120,7 +120,7 @@ function Ladder({ ladder, onLog, reload }: {
           <button key={k} onClick={() => setPhobia(k)}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold"
             style={phobia === k
-              ? { background: "rgba(124,92,252,.13)", border: "1.5px solid var(--purple)", color: "var(--purple)" }
+              ? { background: "rgba(180,85,47,.13)", border: "1.5px solid var(--purple)", color: "var(--purple)" }
               : { background: "var(--surface)", border: "1.5px solid var(--border)", color: "var(--text-muted)" }}>
             <Icon size={16} /> {label}
           </button>
@@ -129,13 +129,13 @@ function Ladder({ ladder, onLog, reload }: {
 
       {nextStep && (
         <motion.div layout className="rounded-2xl p-5 relative overflow-hidden"
-          style={{ background: "linear-gradient(135deg,#7C5CFC,#a855f7)", color: "white" }}>
+          style={{ background: "linear-gradient(135deg,#B4552F,#a855f7)", color: "white" }}>
           <div className="text-[10px] font-bold uppercase tracking-wider opacity-85">Your next step</div>
           <div className="font-serif text-xl mt-1">{nextStep.title}</div>
           {nextStep.detail && <p className="text-sm opacity-90 mt-1">{nextStep.detail}</p>}
           <button onClick={() => onLog({ phobia, label: nextStep.title, stepId: nextStep.id })}
             className="mt-3 px-5 py-2.5 rounded-xl font-bold text-sm"
-            style={{ background: "white", color: "#7C5CFC" }}>
+            style={{ background: "white", color: "#B4552F" }}>
             I did it — log it
           </button>
         </motion.div>
@@ -223,7 +223,7 @@ function Routes({ routes, onLog, reload }: {
   return (
     <div className="space-y-4">
       <div className="rounded-xl px-4 py-3 text-xs leading-relaxed"
-        style={{ background: "rgba(124,92,252,.07)", border: "1px solid var(--border)", color: "var(--text-muted)" }}>
+        style={{ background: "rgba(180,85,47,.07)", border: "1px solid var(--border)", color: "var(--text-muted)" }}>
         Maps links open with <strong>highways, tolls and ferries avoided</strong> — that covers interstates.
         Google has no &ldquo;avoid bridges&rdquo; option, so the bridge-free flag is <em>your</em> knowledge:
         save a route once you&apos;ve confirmed it, and it stays trustworthy forever.
@@ -240,7 +240,7 @@ function Routes({ routes, onLog, reload }: {
               </div>
               <div className="flex gap-1.5 mt-2 flex-wrap">
                 {r.noHighway && <Tag text="no interstate" tint="#2bb3a3" />}
-                {r.noBridge && <Tag text="no bridges" tint="#7C5CFC" />}
+                {r.noBridge && <Tag text="no bridges" tint="#B4552F" />}
                 {r.minutes && <Tag text={`~${r.minutes} min`} tint="#8a8fa3" />}
                 {r.timesDriven > 0 && <Tag text={`driven ${r.timesDriven}×`} tint="#e8842c" />}
               </div>
@@ -377,7 +377,7 @@ function CheckIn({ checkins, sessions, reload }: { checkins: Checkin[]; sessions
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl p-5" style={{ background: "linear-gradient(135deg,rgba(124,92,252,.10),rgba(43,179,163,.08))", border: "1.5px solid var(--border)" }}>
+      <div className="rounded-2xl p-5" style={{ background: "linear-gradient(135deg,rgba(180,85,47,.10),rgba(43,179,163,.08))", border: "1.5px solid var(--border)" }}>
         <div className="flex items-center gap-2 mb-1">
           <CalendarCheck size={17} style={{ color: "var(--purple)" }} />
           <h3 className="font-bold" style={{ color: "var(--text)" }}>This week&apos;s check-in</h3>

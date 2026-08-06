@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-const PURPLE = "#7C5CFC";
+const PURPLE = "#B4552F";
 const GOLD = "#E8C547";
 const PEACH = "#E8A87C";
 
@@ -59,7 +59,7 @@ export default function ShortcutsPage() {
         </div>
 
         {/* How it works */}
-        <div style={{ background: "rgba(124,92,252,0.08)", borderRadius: "16px", padding: "1.5rem", marginBottom: "1.5rem", border: "1px solid rgba(124,92,252,0.2)" }}>
+        <div style={{ background: "rgba(180,85,47,0.08)", borderRadius: "16px", padding: "1.5rem", marginBottom: "1.5rem", border: "1px solid rgba(180,85,47,0.2)" }}>
           <p style={{ fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.1em", color: PURPLE, textTransform: "uppercase", margin: "0 0 1rem" }}>How It Works</p>
           {[
             ["1", "You text a contact named \"Dashboard\" on your iPhone (iMessage to yourself or a shortcut)"],
@@ -104,7 +104,7 @@ export default function ShortcutsPage() {
 
           {testResult && (
             <div style={{ marginTop: "1rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-              <div style={{ background: "rgba(124,92,252,0.12)", borderRadius: "10px", padding: "0.75rem 1rem", border: "1px solid rgba(124,92,252,0.2)" }}>
+              <div style={{ background: "rgba(180,85,47,0.12)", borderRadius: "10px", padding: "0.75rem 1rem", border: "1px solid rgba(180,85,47,0.2)" }}>
                 <p style={{ fontSize: "0.7rem", fontWeight: 700, color: PURPLE, margin: "0 0 0.35rem", letterSpacing: "0.08em", textTransform: "uppercase" }}>Aya&apos;s Reply</p>
                 <p style={{ fontSize: "0.85rem", color: "#fff", margin: 0, lineHeight: 1.6 }}>{testResult.reply}</p>
               </div>
