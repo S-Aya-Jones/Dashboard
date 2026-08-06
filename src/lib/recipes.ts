@@ -192,12 +192,22 @@ function macrosFrom(r: SpoonResult): Macros | undefined {
   return macros.calories || macros.protein ? macros : undefined;
 }
 
+// complexSearch hands back the 312x231 thumbnail, which is soft on a phone
+// screen. The same photo exists at 636x393 — twice the pixels for about twice
+// the bytes, and the difference is very visible on a card that size.
+function upscale(url: string): string {
+  return url.replace(
+    /^(https:\/\/img\.spoonacular\.com\/recipes\/\d+)-\d+x\d+\.(jpg|png)$/i,
+    "$1-636x393.$2"
+  );
+}
+
 function spoonCard(r: SpoonResult): RecipeCard {
   return {
     id: String(r.id),
     source: "spoonacular",
     title: r.title,
-    image: r.image,
+    image: r.image ? upscale(r.image) : r.image,
     category: r.dishTypes?.[0],
     area: r.cuisines?.[0],
     minutes: r.readyInMinutes,

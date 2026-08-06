@@ -29,6 +29,8 @@ async function ensureTable() {
       delinquent   INTEGER, derogatory INTEGER, collections INTEGER,
       balances     NUMERIC, monthly_payments NUMERIC,
       inquiries    INTEGER, public_records INTEGER,
+      credit_limit NUMERIC, late_payments INTEGER,
+      oldest_account_years NUMERIC,
       created_at   TIMESTAMPTZ DEFAULT NOW()
     )
   `;
@@ -80,6 +82,9 @@ export async function POST(req: NextRequest) {
     const pay = trio(t, "Payments");
     const inq = trio(t, "Inquiries\\(2 years\\)");
     const pub = trio(t, "Public Records");
+    // Without total limits there is no utilisation, which is 30% of the score.
+    const limit = trio(t, "Credit Limit") ?? trio(t, "High Credit") ?? trio(t, "Total Credit Limit");
+    const late  = trio(t, "Late Payments") ?? trio(t, "Times Late");
 
     if (!scores) {
       return NextResponse.json({
@@ -96,14 +101,21 @@ export async function POST(req: NextRequest) {
     const worst = (v: [number, number, number] | null) => (v ? Math.max(...v) : null);
 
     const sql = db();
+    // Older snapshots predate these columns.
+    await sql`ALTER TABLE credit_snapshots ADD COLUMN IF NOT EXISTS credit_limit NUMERIC`;
+    await sql`ALTER TABLE credit_snapshots ADD COLUMN IF NOT EXISTS late_payments INTEGER`;
+    await sql`ALTER TABLE credit_snapshots ADD COLUMN IF NOT EXISTS oldest_account_years NUMERIC`;
+
     await sql`
       INSERT INTO credit_snapshots
         (report_date, transunion, experian, equifax, open_accounts, closed_accounts,
-         delinquent, derogatory, collections, balances, monthly_payments, inquiries, public_records)
+         delinquent, derogatory, collections, balances, monthly_payments, inquiries,
+         public_records, credit_limit, late_payments)
       VALUES (${reportDate}, ${scores[0]}, ${scores[1]}, ${scores[2]},
               ${worst(open)}, ${worst(closed)}, ${worst(delinq)}, ${worst(derog)},
               ${worst(coll)}, ${bal ? Math.max(...bal) : null}, ${pay ? Math.max(...pay) : null},
-              ${worst(inq)}, ${worst(pub)})
+              ${worst(inq)}, ${worst(pub)},
+              ${limit ? Math.max(...limit) : null}, ${worst(late)})
     `;
 
     // Re-pull in 90 days — long enough for disputes and paydowns to land
