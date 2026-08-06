@@ -55,9 +55,9 @@ const WEEK: Record<number, { name: string; blocks: Block[] }> = {
   3: { name: "Wednesday · WFH", blocks: [
     { start: "05:00", end: "05:15", label: "Up", cat: "rest" },
     { start: "05:15", end: "06:45", label: "MCAT — content review only", cat: "study", note: "Parked at 90 min/week until Sep 1, then scales up" },
-    { start: "07:00", end: "12:00", label: "WFH · Biochem 8–10 · Physio 10–12", cat: "work", note: "Capture mode from your desk" },
-    { start: "12:00", end: "13:00", label: "Therapy (lunch)", cat: "therapy", note: "Anchored to the no-driving day" },
-    { start: "13:00", end: "15:00", label: "Work winds down", cat: "work" },
+    { start: "07:00", end: "11:00", label: "WFH · Biochem 8–10 · Physio from 10", cat: "work", note: "Capture mode from your desk" },
+    { start: "11:00", end: "12:00", label: "Therapy", cat: "therapy", note: "Overlaps Physiology 10–12 — catch the recording after" },
+    { start: "12:00", end: "15:00", label: "Work · Physio recording", cat: "work", note: "Re-watch the hour you missed" },
     { start: "15:00", end: "17:00", label: "Cook Thu/Fri meals", cat: "life", note: "Lecture recordings playing" },
     { start: "17:00", end: "18:30", label: "Light review — Biochem + Physio flashcards", cat: "study", note: "No new material after therapy" },
     { start: "18:30", end: "19:00", label: "Dinner", cat: "life" },
