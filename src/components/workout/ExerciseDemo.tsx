@@ -64,12 +64,20 @@ export function ExerciseDemo({
         )}
 
         <span
-          className="absolute bottom-2 left-2 text-[10px] font-semibold px-2 py-1 rounded-full"
+          className="absolute bottom-2 left-2 text-[10px] font-semibold px-2 py-1 rounded-full tabular-nums"
           style={{ background: "rgba(20,16,13,0.62)", color: "#fff", backdropFilter: "blur(6px)" }}
         >
           {frame === 0 ? "Start" : "Finish"}
         </span>
       </div>
+
+      {/* Never let an approximation pass as the real movement. */}
+      {demo.match === "close" && (
+        <p className="text-[11px] mt-2 leading-snug" style={{ color: "var(--text-light)" }}>
+          Closest demo available — this shows <span style={{ color: "var(--text-muted)" }}>{demo.name}</span>.
+          Your version differs; follow the cues.
+        </p>
+      )}
 
       {demo.cues.length > 0 && (
         <ol className="mt-3 space-y-1.5">

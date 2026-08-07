@@ -788,7 +788,10 @@ export interface BodyScanPhoto {
   date: string; // YYYY-MM-DD
   timestamp: string; // ISO datetime
   angle: "front" | "back" | "left" | "right" | "all"; // angle or "all" if multiple
-  photoData: string; // base64 image data
+  /** Set only on photos not yet moved into the media table. */
+  photoData?: string;
+  /** Where the photo actually lives — served from /api/media/{id}. */
+  mediaId?: string;
   height?: number; // inches or cm (user's height when photo taken)
   weight?: number; // lbs or kg (optional weight at time of photo)
   analysis?: {
@@ -812,7 +815,10 @@ export interface FormCheckPhoto {
   timestamp: string; // ISO datetime
   exerciseName: string;
   exerciseId: string;
-  photoData: string; // base64 image data
+  /** Set only on photos not yet moved into the media table. */
+  photoData?: string;
+  /** Where the photo actually lives — served from /api/media/{id}. */
+  mediaId?: string;
   formScore?: number; // 0-100
   corrections?: string[];
 }

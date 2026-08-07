@@ -74,7 +74,7 @@ function ProgramOverview({ onClose }: { onClose: () => void }) {
             { weeks: "Weeks 5–6", label: "Peak Intensity", color: "#C99A5C", desc: "Heaviest weights yet. Maximum stimulus with perfect form. Push every set." },
             { weeks: "Week 7", label: "Deload — Let It Grow", color: "#DA667B", desc: "50% of week 6 weight, same reps. Growth consolidates during recovery." },
           ].map(({ weeks, label, color, desc }) => (
-            <div key={weeks} className="rounded-xl px-4 py-3 flex items-start gap-3" style={{ background: "#FAF8FF", border: "1px solid var(--border)" }}>
+            <div key={weeks} className="rounded-xl px-4 py-3 flex items-start gap-3" style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
               <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1.5" style={{ background: color }} />
               <div>
                 <p className="text-xs font-semibold" style={{ color }}>{weeks} · {label}</p>
@@ -91,7 +91,7 @@ function ProgramOverview({ onClose }: { onClose: () => void }) {
             const isExpanded = expandedDay === day.id;
             const fullList = buildFullExerciseList(day);
             return (
-              <div key={day.id} className="rounded-2xl overflow-hidden" style={{ background: "#FAF8FF", border: "1px solid var(--border)" }}>
+              <div key={day.id} className="rounded-2xl overflow-hidden" style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
                 <button className="w-full flex items-center justify-between px-4 py-3.5 text-left"
                   onClick={() => setExpandedDay(isExpanded ? null : day.id)}>
                   <div>
@@ -172,7 +172,7 @@ function ProgramOverview({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* Program rules */}
-        <div className="rounded-2xl p-4 space-y-3" style={{ background: "#FAF8FF", border: "1px solid var(--border)" }}>
+        <div className="rounded-2xl p-4 space-y-3" style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
           <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Program Rules</p>
           {[
             { color: "var(--purple)", rule: "Hip thrust: ribs down, 1-second squeeze, vertical shins at top. No exceptions." },
@@ -535,21 +535,43 @@ function WalkingCard({ data, update }: Props) {
 
 // ── Home Tab ───────────────────────────────────────────────────────────────────
 
-// Day color theme
-const DAY_THEME: Record<string, { bg: string; accent: string; label: string }> = {
-  "mon-heavy-glutes":    { bg: "linear-gradient(135deg,#ede8ff 0%,#f4f0fe 100%)", accent: "var(--purple)", label: "Glute Day" },
-  "tue-flexibility":     { bg: "linear-gradient(135deg,#ede8ff 0%,#f4f0fe 100%)", accent: "#D07A4F", label: "Flexibility" },
-  "wed-stretch-glutes":  { bg: "linear-gradient(135deg,#ede8ff 0%,#f4f0fe 100%)", accent: "var(--purple)", label: "Glute Day" },
-  "thu-calisthenics":    { bg: "linear-gradient(135deg,#fdf4e8 0%,#f4f0fe 100%)", accent: "#C99A5C", label: "Skills" },
-  "fri-pump-glutes":     { bg: "linear-gradient(135deg,#ede8ff 0%,#f4f0fe 100%)", accent: "var(--purple)", label: "Glute Day" },
-  "sat-flexibility-bridge": { bg: "linear-gradient(135deg,#ede8ff 0%,#f4f0fe 100%)", accent: "#D07A4F", label: "Flexibility" },
-  "sun-recovery":        { bg: "linear-gradient(135deg,#fde8ed 0%,#f4f0fe 100%)", accent: "#DA667B", label: "Recovery" },
+// Day themes.
+//
+// These used to bake a light lavender gradient into the card background, so
+// on a dark phone the hero card drew near-white under near-white text and the
+// day's name disappeared. Each day now carries only its accent, and the wash
+// is derived from it — a translucent tint laid over var(--surface), which
+// composites correctly in both themes and keeps every card in the section
+// visibly part of one set.
+const DAY_ACCENT: Record<string, { accent: string; label: string }> = {
+  "mon-heavy-glutes":       { accent: "#B4552F", label: "Glute Day" },
+  "tue-flexibility":        { accent: "#71816D", label: "Flexibility" },
+  "wed-stretch-glutes":     { accent: "#B4552F", label: "Glute Day" },
+  "thu-calisthenics":       { accent: "#E0A44A", label: "Skills" },
+  "fri-pump-glutes":        { accent: "#B4552F", label: "Glute Day" },
+  "sat-flexibility-bridge": { accent: "#71816D", label: "Flexibility" },
+  "sun-recovery":           { accent: "#C9748A", label: "Recovery" },
 };
 
+/** A tint of the day's accent over the themed surface. */
+export function dayWash(accent: string, strength: "hero" | "tile" = "tile"): string {
+  const a = strength === "hero" ? "26" : "14";
+  const b = strength === "hero" ? "0D" : "08";
+  return `linear-gradient(135deg, ${accent}${a} 0%, ${accent}${b} 100%), var(--surface)`;
+}
+
+const DAY_THEME: Record<string, { bg: string; accent: string; label: string }> =
+  Object.fromEntries(
+    Object.entries(DAY_ACCENT).map(([id, { accent, label }]) => [
+      id,
+      { bg: dayWash(accent, "hero"), accent, label },
+    ])
+  );
+
 const BROWSE_CATEGORIES = [
-  { label: "Glute Days",      accent: "var(--purple)", ids: ["mon-heavy-glutes","wed-stretch-glutes","fri-pump-glutes"] },
-  { label: "Flexibility",     accent: "#D07A4F", ids: ["tue-flexibility","sat-flexibility-bridge"] },
-  { label: "Skills & Core",   accent: "#C99A5C", ids: ["thu-calisthenics"] },
+  { label: "Glute Days",      accent: "#B4552F", ids: ["mon-heavy-glutes","wed-stretch-glutes","fri-pump-glutes"] },
+  { label: "Flexibility",     accent: "#71816D", ids: ["tue-flexibility","sat-flexibility-bridge"] },
+  { label: "Skills & Core",   accent: "#E0A44A", ids: ["thu-calisthenics"] },
   { label: "Recovery",        accent: "#DA667B", ids: ["sun-recovery"] },
 ];
 
@@ -609,9 +631,11 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
         {/* ── Stats tracker ── */}
         <div className="grid grid-cols-3 gap-2">
           {[
+            // Three unrelated colours implied a difference in kind that isn't
+            // there — these are all just counts of the same thing.
             { value: totalCompleted, label: "Sessions", color: "var(--purple)", sub: "all time" },
-            { value: weekDone,       label: "This Week", color: "#D07A4F", sub: `of ${PROGRAM.length}` },
-            { value: streak,         label: "Streak",    color: "#DA667B", sub: streak === 1 ? "day" : "days" },
+            { value: weekDone,       label: "This Week", color: "var(--purple)", sub: `of ${PROGRAM.length}` },
+            { value: streak,         label: "Streak",    color: "var(--purple)", sub: streak === 1 ? "day" : "days" },
           ].map(({ value, label, color, sub }) => (
             <div key={label} className="rounded-2xl p-4 text-center flex flex-col items-center gap-0.5"
               style={{ background: "var(--surface)", border: `1px solid ${color}22` }}>
@@ -899,7 +923,7 @@ function HomeTab({ data, update, onStartSession, prepTime, setPrepTime, onViewPr
 
 // ── Main WorkoutView ───────────────────────────────────────────────────────────
 
-type Tab = "home" | "today" | "history" | "bodyscans";
+type Tab = "home" | "today" | "history";
 
 export function WorkoutView({ data, update }: Props) {
   const [tab,           setTab]           = useState<Tab>("home");
@@ -978,6 +1002,33 @@ export function WorkoutView({ data, update }: Props) {
 
   return (
     <div className="h-full flex flex-col overflow-hidden relative" style={{ background: "var(--bg)" }}>
+      {/* One segmented control instead of a second bottom nav.
+          The old one had four items: "Today" only ever started today's
+          session, which the hero card's own button already does, and "Scans"
+          was the same destination as the Body Scan tab directly above it —
+          three stacked levels of navigation on one screen. */}
+      <div className="flex-shrink-0 px-4 pt-3 pb-1">
+        <div className="flex gap-1 p-1 rounded-2xl" style={{ background: "var(--surface2)" }}>
+          {([["home", "Workouts"], ["history", "History"]] as const).map(([tid, label]) => {
+            const active = tab === tid;
+            return (
+              <button
+                key={tid}
+                onClick={() => setTab(tid)}
+                className="flex-1 py-2 rounded-xl text-sm font-semibold transition-all"
+                style={{
+                  background: active ? "var(--surface)" : "transparent",
+                  color: active ? "var(--text)" : "var(--text-muted)",
+                  boxShadow: active ? "var(--shadow)" : "none",
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="flex-1 overflow-hidden min-h-0">
         {tab === "home" && (
           <HomeTab data={data} update={update} onStartSession={startSession}
@@ -985,30 +1036,6 @@ export function WorkoutView({ data, update }: Props) {
             onViewProgram={() => setShowProgram(true)} />
         )}
         {tab === "history" && <HistoryView data={data} />}
-        {tab === "bodyscans" && <BodyScanView data={data} update={update} />}
-      </div>
-
-      {/* Bottom nav */}
-      <div className="flex-shrink-0 flex border-t" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
-        {([["home", "Home", Home], ["today", "Today", Play], ["bodyscans", "Scans", Camera], ["history", "History", TrendingUp]] as const).map(([tid, label, Icon]) => {
-          const active = tab === tid;
-          return (
-            <button key={tid}
-              onClick={() => {
-                if (tid === "today") {
-                  const d = getProgramDay(weekday);
-                  if (d) startSession(d.id);
-                } else {
-                  setTab(tid);
-                }
-              }}
-              className="flex-1 flex flex-col items-center gap-1 py-3 transition-colors"
-              style={{ color: active ? "var(--purple)" : "var(--text-light)" }}>
-              <Icon size={18} />
-              <span className="text-[10px] font-medium">{label}</span>
-            </button>
-          );
-        })}
       </div>
 
       {/* Program overview overlay */}
