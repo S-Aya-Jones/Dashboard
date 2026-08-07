@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Upload, Loader2, FileAudio, Trash2, Download, ChevronRight, KeyRound, Check, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LectureDetail } from "./LectureDetail";
@@ -110,6 +110,27 @@ export function LectureStudio() {
   const fileInput = useRef<HTMLInputElement>(null);
   const [keyState, setKeyState] = useState<{ configured: boolean; hint: string | null; provider: string | null } | null>(null);
   const [keyInput, setKeyInput] = useState("");
+
+  // Grouped by course, numbered oldest-first within each so "Biochem 3" means
+  // the third Biochem lecture and keeps meaning that as more are added.
+  const byCourse = useMemo(() => {
+    const groups = new Map<string, LectureListItem[]>();
+    for (const l of lectures) {
+      const g = groups.get(l.course) ?? [];
+      g.push(l);
+      groups.set(l.course, g);
+    }
+    return Array.from(groups.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([courseName, items]) => {
+        const oldestFirst = [...items].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+        const numberOf = new Map(oldestFirst.map((l, i) => [l.id, i + 1]));
+        // Newest at the top, but numbered by when it was recorded.
+        const numbered: { lecture: LectureListItem; number: number }[] =
+          [...oldestFirst].reverse().map(l => ({ lecture: l, number: numberOf.get(l.id)! }));
+        return [courseName, numbered] as [string, typeof numbered];
+      });
+  }, [lectures]);
   const [keySaving, setKeySaving] = useState(false);
   const [keyError, setKeyError] = useState<string | null>(null);
 
@@ -395,12 +416,34 @@ export function LectureStudio() {
         )}
       </div>
 
-      {/* Lecture list */}
-      <div className="space-y-3">
+      {/* Lecture list, grouped by course */}
+      <div className="space-y-6">
+        {lectures.length > 0 && (
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <p className="text-xs" style={{ color: "var(--text-light)" }}>
+              Everything here is saved permanently — notes, exam focus, questions and flashcards.
+            </p>
+            <a
+              href="/api/lectures/export-all"
+              className="text-xs font-semibold px-3 py-2 rounded-xl flex items-center gap-1.5 flex-shrink-0"
+              style={{ background: "var(--surface2)", color: "var(--text)", border: "1px solid var(--border)" }}
+            >
+              <Download size={13} /> Save a copy of everything
+            </a>
+          </div>
+        )}
         {lectures.length === 0 && (
           <p className="text-sm" style={{ color: "var(--text-muted)" }}>No lectures yet — drop your first recording above.</p>
         )}
-        {lectures.map(l => (
+        {byCourse.map(([courseName, items]) => (
+          <div key={courseName} className="space-y-3">
+            <div className="flex items-baseline justify-between gap-3">
+              <h3 className="font-serif text-lg" style={{ color: "var(--text)" }}>{courseName}</h3>
+              <span className="text-xs" style={{ color: "var(--text-light)" }}>
+                {items.length} lecture{items.length === 1 ? "" : "s"}
+              </span>
+            </div>
+            {items.map(({ lecture: l, number }) => (
           <motion.div
             key={l.id}
             layout
@@ -410,11 +453,19 @@ export function LectureStudio() {
             style={{ background: "var(--surface)", border: "1.5px solid var(--border)" }}
             onClick={() => l.status === "ready" && setSelected(l.id)}
           >
-            <FileAudio size={20} style={{ color: "var(--purple)", flexShrink: 0 }} />
+            <span
+              className="flex-shrink-0 w-9 h-9 rounded-full grid place-items-center text-xs font-bold tabular-nums"
+              style={{ background: "var(--surface2)", color: "var(--purple)", border: "1px solid var(--border)" }}
+              title={`Lecture ${number}`}
+            >
+              {number}
+            </span>
             <div className="flex-1 min-w-0">
               <div className="font-semibold truncate" style={{ color: "var(--text)" }}>{l.title}</div>
-              <div className="text-xs" style={{ color: "var(--text-muted)" }}>
-                {l.course} · {l.status === "ready" ? (l.summary ?? "") : `transcript saved — generation ${l.status === "error" ? "failed" : "unfinished"}`}
+              <div className="text-xs truncate" style={{ color: "var(--text-muted)" }}>
+                {l.status === "ready"
+                  ? (l.summary ?? "")
+                  : `transcript saved — generation ${l.status === "error" ? "failed" : "unfinished"}`}
               </div>
             </div>
             {l.status !== "ready" && !busy && (
@@ -425,6 +476,17 @@ export function LectureStudio() {
                 Resume
               </button>
             )}
+            {l.status === "ready" && (
+              <a
+                href={`/api/lectures/${l.id}/export`}
+                onClick={e => e.stopPropagation()}
+                className="p-2 rounded-lg"
+                style={{ color: "var(--text-muted)" }}
+                title="Save a copy — notes, exam focus, questions and flashcards"
+              >
+                <Download size={15} />
+              </a>
+            )}
             <button
               onClick={e => { e.stopPropagation(); removeLecture(l.id); }}
               className="p-2 rounded-lg"
@@ -434,7 +496,9 @@ export function LectureStudio() {
               <Trash2 size={16} />
             </button>
             {l.status === "ready" && <ChevronRight size={18} style={{ color: "var(--text-muted)" }} />}
-          </motion.div>
+              </motion.div>
+            ))}
+          </div>
         ))}
       </div>
     </div>
