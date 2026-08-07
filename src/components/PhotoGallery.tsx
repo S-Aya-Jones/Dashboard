@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ChevronDown, ChevronUp, Trash2, Download, MessageSquare } from "lucide-react";
 import { BodyScanPhoto, FormCheckPhoto } from "@/types/dashboard";
 import { format, parseISO } from "date-fns";
+import { photoSrc } from "@/lib/media";
 
 type Photo = BodyScanPhoto | FormCheckPhoto;
 
@@ -101,7 +102,7 @@ Compare
                   }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={photo.photoData}
+                    src={photoSrc(photo)}
                     alt={`${type} ${format(parseISO(photo.timestamp), "MMM dd, yyyy")}`}
                     className="w-full h-full object-cover"
                   />
@@ -206,7 +207,7 @@ Compare
               <button
                 onClick={() => {
                   const link = document.createElement("a");
-                  link.href = selected.photoData;
+                  link.href = photoSrc(selected);
                   link.download = `photo-${selected.id}.jpg`;
                   link.click();
                 }}
