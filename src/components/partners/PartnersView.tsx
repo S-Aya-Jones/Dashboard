@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { UserPlus, Copy, Check, Trash2, RefreshCw, Camera, Loader2 } from "lucide-react";
+import { shareOrigin } from "@/lib/siteUrl";
 
 // Setting up study partners. The link is the whole credential, so the two
 // things that matter here are being able to copy it easily and being able to
@@ -106,7 +107,9 @@ export function PartnersView() {
   }
 
   function copy(token: string, id: string) {
-    const url = `${window.location.origin}/partner/${token}`;
+    // Always the production domain — a link copied off a preview deployment
+    // lands her friends on Vercel's sign-in page.
+    const url = `${shareOrigin()}/partner/${token}`;
     navigator.clipboard?.writeText(url);
     setCopied(id);
     setTimeout(() => setCopied((c) => (c === id ? null : c)), 2000);
@@ -212,6 +215,11 @@ export function PartnersView() {
               <Trash2 size={15} />
             </button>
           </div>
+
+          {/* Visible so she can check the link before sending it. */}
+          <p className="text-[11px] mt-2 break-all font-mono" style={{ color: "var(--text-light)" }}>
+            {shareOrigin()}/partner/{p.token}
+          </p>
 
           {p.role === "quizmaster" && (
             <label className="flex items-center gap-2 mt-3 cursor-pointer">

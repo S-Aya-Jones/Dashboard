@@ -1,9 +1,9 @@
 "use client";
 
-import { use, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Loader2, Check, X, Sparkles, RefreshCw } from "lucide-react";
 
-// What Geandra and Erickson see. Nothing else in the app is reachable from
+// What Deandra and Erickson see. Nothing else in the app is reachable from
 // here — this page talks to one endpoint that can only return study material.
 
 interface Question {
@@ -26,8 +26,10 @@ interface Payload {
   error?: string;
 }
 
-export default function PartnerPage({ params }: { params: Promise<{ token: string }> }) {
-  const { token } = use(params);
+// Next 14 hands `params` to the page as a plain object, not a promise —
+// unwrapping it with use() throws before the page ever renders.
+export default function PartnerPage({ params }: { params: { token: string } }) {
+  const { token } = params;
 
   const [data, setData]       = useState<Payload | null>(null);
   const [course, setCourse]   = useState("");
@@ -167,6 +169,18 @@ export default function PartnerPage({ params }: { params: Promise<{ token: strin
                 ))}
               </div>
             )}
+          </div>
+        ) : data.courses.length === 0 ? (
+          // No finished lectures yet. Say so, rather than handing her partner an
+          // empty dropdown that looks like the link is broken.
+          <div className="rounded-2xl p-6 text-center" style={{ background: "var(--surface)", border: "1.5px solid var(--border)" }}>
+            <p className="font-serif text-lg mb-2" style={{ color: "var(--text)" }}>
+              Nothing to quiz from yet
+            </p>
+            <p className="text-sm leading-relaxed" style={{ color: "var(--text-muted)" }}>
+              Aya hasn&apos;t finished processing a lecture yet. Once she does, it&apos;ll show up
+              here automatically — your link keeps working, so just open it again later.
+            </p>
           </div>
         ) : (
           <>
