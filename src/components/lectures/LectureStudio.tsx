@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Upload, Loader2, FileAudio, Trash2, Download, ChevronRight, KeyRound, Check, Sparkles, Pencil } from "lucide-react";
+import { Upload, Loader2, FileAudio, Trash2, Download, ChevronRight, KeyRound, Check, Sparkles, Pencil, AlertTriangle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LectureDetail } from "./LectureDetail";
 
@@ -9,6 +9,24 @@ const COURSES = ["Physiology", "Biochemistry", "Microbiology", "Cell & Molecular
 
 interface LectureListItem {
   id: string; course: string; title: string; status: string; summary: string | null; createdAt: string;
+  chunksExpected?: number | null; chunksDone?: number;
+}
+
+// A lecture only ever reaches 'generating' once its transcript is stored, so
+// 'transcribing' means transcription never finished. Saying "transcript saved"
+// for both told her work was safe when nothing had been captured at all.
+function statusLine(l: LectureListItem): string {
+  if (l.status !== "transcribing") return "transcript saved — notes unfinished";
+  const done = l.chunksDone ?? 0;
+  const total = l.chunksExpected ?? 0;
+  if (done === 0) return "nothing was saved — this recording needs uploading again";
+  return `only ${done}${total ? ` of ${total}` : ""} pieces transcribed — upload didn't finish`;
+}
+
+/** Resume can only work if there is something on the server to resume from. */
+function resumable(l: LectureListItem): boolean {
+  if (l.status !== "transcribing") return true;
+  return (l.chunksDone ?? 1) > 0;
 }
 
 type Phase =
@@ -108,7 +126,7 @@ export function LectureStudio() {
   const [mp3Url, setMp3Url] = useState<string | null>(null);
   const [mp3Name, setMp3Name] = useState<string>("lecture.mp3");
   const fileInput = useRef<HTMLInputElement>(null);
-  const [keyState, setKeyState] = useState<{ configured: boolean; hint: string | null; provider: string | null } | null>(null);
+  const [keyState, setKeyState] = useState<{ configured: boolean; hint: string | null; provider: string | null; valid: boolean | null } | null>(null);
   const [keyInput, setKeyInput] = useState("");
   const [loadError, setLoadError] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
@@ -151,10 +169,11 @@ export function LectureStudio() {
 
   const refreshKey = useCallback(async () => {
     try {
-      const res = await fetch("/api/settings/transcription-key");
+      // verify=1 so a rotated key reads as broken here instead of at upload time.
+      const res = await fetch("/api/settings/transcription-key?verify=1", { cache: "no-store" });
       const d = await res.json();
-      setKeyState({ configured: !!d.configured, hint: d.hint ?? null, provider: d.provider ?? null });
-    } catch { setKeyState({ configured: false, hint: null, provider: null }); }
+      setKeyState({ configured: !!d.configured, hint: d.hint ?? null, provider: d.provider ?? null, valid: d.valid ?? null });
+    } catch { setKeyState({ configured: false, hint: null, provider: null, valid: null }); }
   }, []);
 
   useEffect(() => { refreshKey(); }, [refreshKey]);
@@ -373,10 +392,23 @@ export function LectureStudio() {
         </div>
       )}
 
-      {keyState?.configured && (
+      {keyState?.configured && keyState.valid !== false && (
         <div className="flex items-center gap-2 text-xs" style={{ color: "var(--text-muted)" }}>
           <Check size={14} style={{ color: "#2eaf6e" }} />
           Transcription key active{keyState.provider === "whisperapi" ? " — whisper-api.com" : keyState.provider === "openai" ? " — OpenAI Whisper" : ""} {keyState.hint ? `(${keyState.hint})` : ""}
+        </div>
+      )}
+
+      {/* A saved key the provider now rejects. Worth its own warning, because
+          the upload looks fine until every chunk fails. */}
+      {keyState?.configured && keyState.valid === false && (
+        <div className="flex items-start gap-2 text-xs rounded-xl px-3 py-2.5"
+          style={{ color: "var(--text)", background: "rgba(193,74,58,0.08)", border: "1px solid rgba(193,74,58,0.3)" }}>
+          <AlertTriangle size={14} style={{ color: "var(--red)", flexShrink: 0, marginTop: 1 }} />
+          <span>
+            Your saved transcription key {keyState.hint ? `(${keyState.hint}) ` : ""}is being rejected —
+            it&apos;s been rotated or revoked. Paste a current one below before uploading.
+          </span>
         </div>
       )}
 
@@ -510,12 +542,10 @@ export function LectureStudio() {
             <div className="flex-1 min-w-0">
               <div className="font-semibold truncate" style={{ color: "var(--text)" }}>{l.title}</div>
               <div className="text-xs truncate" style={{ color: "var(--text-muted)" }}>
-                {l.status === "ready"
-                  ? (l.summary ?? "")
-                  : `transcript saved — generation ${l.status === "error" ? "failed" : "unfinished"}`}
+                {l.status === "ready" ? (l.summary ?? "") : statusLine(l)}
               </div>
             </div>
-            {l.status !== "ready" && !busy && (
+            {l.status !== "ready" && !busy && resumable(l) && (
               <button
                 onClick={e => { e.stopPropagation(); resumeGeneration(l.id); }}
                 className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white flex-shrink-0"
