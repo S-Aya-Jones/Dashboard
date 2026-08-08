@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { GraduationCap, X, Maximize2 } from "lucide-react";
 import Link from "next/link";
 import { TutorView } from "./TutorView";
+import { useStudyContext } from "@/lib/studyContext";
 
 // The tutor, available from anywhere.
 //
@@ -14,6 +15,7 @@ import { TutorView } from "./TutorView";
 
 export function TutorDock() {
   const [open, setOpen] = useState(false);
+  const study = useStudyContext();
 
   // Escape closes it, like any other panel.
   useEffect(() => {
@@ -28,20 +30,25 @@ export function TutorDock() {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          aria-label="Open the tutor"
-          className="fixed z-40 rounded-full grid place-items-center shadow-xl transition-transform active:scale-95"
+          aria-label="Ask the tutor"
+          className="fixed z-40 rounded-full flex items-center gap-2 shadow-xl transition-transform active:scale-95"
           style={{
             // Above the voice button, clear of the mobile tab bar.
             right: "1.25rem",
             bottom: "10.5rem",
-            width: 52,
             height: 52,
+            padding: study.course ? "0 1.1rem 0 0.95rem" : "0 0.95rem",
             background: "var(--surface)",
             color: "var(--purple)",
             border: "1.5px solid var(--border2)",
           }}
         >
           <GraduationCap size={22} />
+          {/* Naming the subject makes it read as "ask about this", which is
+              the only reason to reach for it mid-quiz. */}
+          <span className="text-sm font-semibold hidden sm:inline" style={{ color: "var(--text)" }}>
+            {study.course ? `Ask about ${study.course}` : "Ask the tutor"}
+          </span>
         </button>
       )}
 
@@ -71,9 +78,16 @@ export function TutorDock() {
               className="flex items-center justify-between gap-2 px-4 py-3 flex-shrink-0"
               style={{ borderBottom: "1px solid var(--border)" }}
             >
-              <p className="font-serif text-lg flex items-center gap-2" style={{ color: "var(--text)" }}>
-                <GraduationCap size={17} style={{ color: "var(--purple)" }} /> Tutor
-              </p>
+              <div className="min-w-0">
+                <p className="font-serif text-lg flex items-center gap-2" style={{ color: "var(--text)" }}>
+                  <GraduationCap size={17} style={{ color: "var(--purple)" }} /> Tutor
+                </p>
+                {study.lectureTitle && (
+                  <p className="text-xs truncate" style={{ color: "var(--text-light)" }}>
+                    on {study.lectureTitle}
+                  </p>
+                )}
+              </div>
               <div className="flex items-center gap-1">
                 <Link
                   href="/tutor"
@@ -96,7 +110,7 @@ export function TutorDock() {
             </div>
 
             <div className="flex-1 overflow-y-auto px-4 py-4">
-              <TutorView compact />
+              <TutorView compact course={study.course} lectureId={study.lectureId} />
             </div>
           </aside>
         </>

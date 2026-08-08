@@ -8,6 +8,7 @@ import {
   Share2, Copy, Download,
 } from "lucide-react";
 import { renderMath, MATH_CSS } from "@/lib/mathText";
+import { useAnnounceStudyContext } from "@/lib/studyContext";
 
 interface QuizQ { q: string; choices: string[]; answer: number; explanation: string; difficulty?: string }
 interface Card { front: string; back: string }
@@ -36,6 +37,14 @@ export function LectureDetail({ id, onBack }: { id: string; onBack: () => void }
     fetch(`/api/lectures/${id}`).then(r => r.json()).then(d => setLecture(d.lecture ?? null));
   }, [id]);
 
+  // Tells the docked tutor which lecture is on screen, so opening it lands on
+  // this material instead of whatever course happened to be first.
+  useAnnounceStudyContext({
+    course: lecture?.course,
+    lectureId: lecture?.id,
+    lectureTitle: lecture?.title,
+  });
+
   if (!lecture) {
     return (
       <div className="flex items-center gap-3" style={{ color: "var(--text-muted)" }}>
@@ -57,7 +66,7 @@ export function LectureDetail({ id, onBack }: { id: string; onBack: () => void }
       <motion.div
         initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }}
         className="rounded-2xl p-6 relative overflow-hidden"
-        style={{ background: "linear-gradient(135deg,#B4552F 0%,#a855f7 55%,#ec4899 100%)", color: "white" }}>
+        style={{ background: "linear-gradient(135deg,#8C3F22 0%,#B4552F 55%,#D08A4A 100%)", color: "white" }}>
         <motion.div
           aria-hidden
           className="absolute -right-16 -top-16 rounded-full"
@@ -315,7 +324,7 @@ function NotesView({ text }: { text: string }) {
 
       <div className="h-1.5 rounded-full mb-4 overflow-hidden" style={{ background: "var(--bg)" }}>
         <motion.div className="h-full rounded-full"
-          style={{ background: "linear-gradient(90deg,#B4552F,#ec4899)" }}
+          style={{ background: "linear-gradient(90deg,#B4552F,#D08A4A)" }}
           animate={{ width: `${progress}%` }} transition={{ duration: 0.15 }} />
       </div>
 
@@ -666,7 +675,7 @@ function Quiz({ lectureId, quizJson }: { lectureId: string; quizJson: string }) 
       </div>
 
       <div className="h-1.5 rounded-full mb-6 overflow-hidden" style={{ background: "var(--bg)" }}>
-        <motion.div className="h-full rounded-full" style={{ background: "linear-gradient(90deg,#B4552F,#ec4899)" }}
+        <motion.div className="h-full rounded-full" style={{ background: "linear-gradient(90deg,#B4552F,#D08A4A)" }}
           animate={{ width: `${((i + (picked !== null ? 1 : 0)) / questions.length) * 100}%` }} />
       </div>
 

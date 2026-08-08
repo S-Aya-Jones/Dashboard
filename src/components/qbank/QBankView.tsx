@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Trophy, Zap, Filter, Layers, AlertTriangle, Repeat, Play } from "lucide-react";
 import { QuestionRunner, BankQuestion, FORMAT_LABEL } from "./QuestionRunner";
+import { useAnnounceStudyContext } from "@/lib/studyContext";
 
 interface Meta {
   byCourse: Array<{ course: string; total: number }>;
@@ -20,6 +21,8 @@ export function QBankView() {
   const [course, setCourse] = useState("");
   const [lectureId, setLectureId] = useState("");
   const [format, setFormat] = useState("");
+  // So the docked tutor opens on whatever she's being quizzed on.
+  useAnnounceStudyContext({ course: course || undefined, lectureId: lectureId || undefined });
   const [missedOnly, setMissedOnly] = useState(false);
   const [count, setCount] = useState(15);
 
@@ -156,7 +159,7 @@ export function QBankView() {
         </div>
 
         <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--surface)" }}>
-          <motion.div className="h-full rounded-full" style={{ background: "linear-gradient(90deg,#B4552F,#ec4899)" }}
+          <motion.div className="h-full rounded-full" style={{ background: "linear-gradient(90deg,#B4552F,#D08A4A)" }}
             animate={{ width: `${(i / session.length) * 100}%` }} />
         </div>
 
@@ -228,7 +231,7 @@ export function QBankView() {
         <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
           onClick={start} disabled={loading}
           className="mt-5 w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-xl font-semibold text-white disabled:opacity-50"
-          style={{ background: "linear-gradient(135deg,#B4552F,#ec4899)" }}>
+          style={{ background: "linear-gradient(135deg,#B4552F,#D08A4A)" }}>
           <Play size={17} /> {loading ? "Loading…" : "Start session"}
         </motion.button>
       </div>

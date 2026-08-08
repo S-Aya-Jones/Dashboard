@@ -260,7 +260,7 @@ function HeightComposer({ onLog }: { onLog: (t: { phobia: string; label: string 
           </div>
           <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: "var(--bg)" }}>
             <motion.div className="h-full" animate={{ width: `${pct}%` }}
-              style={{ background: pct >= 100 ? "#2bb3a3" : "linear-gradient(90deg,#B4552F,#ec4899)" }} />
+              style={{ background: pct >= 100 ? "#2bb3a3" : "linear-gradient(90deg,#B4552F,#D08A4A)" }} />
           </div>
           <span className="text-xs font-bold" style={{ color: pct >= 100 ? "#2bb3a3" : "var(--text-muted)" }}>
             {pct >= 100 ? "target hit" : `${minutes}m`}
