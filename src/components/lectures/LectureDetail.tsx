@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, Check, X, RotateCcw, Target, AlertTriangle, Flame,
+  ArrowLeft, Check, X, Target, AlertTriangle, Flame,
   ZoomIn, ZoomOut, Sparkles, Trophy, Zap, Brain, ThumbsUp, ThumbsDown, Repeat,
   Share2, Copy, Download,
 } from "lucide-react";

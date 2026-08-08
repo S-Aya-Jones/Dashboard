@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Upload, Loader2, FileAudio, Trash2, Download, ChevronRight, KeyRound, Check, Sparkles, Pencil, AlertTriangle } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { LectureDetail } from "./LectureDetail";
 
 const COURSES = ["Physiology", "Biochemistry", "Microbiology", "Cell & Molecular Bio", "MCAT", "Other"];
@@ -27,6 +27,24 @@ function statusLine(l: LectureListItem): string {
 function resumable(l: LectureListItem): boolean {
   if (l.status !== "transcribing") return true;
   return (l.chunksDone ?? 1) > 0;
+}
+
+// A whole week of lectures can be dropped at once and left alone. They run one
+// at a time rather than in parallel: conversion is CPU-bound in this tab, and
+// firing six transcription streams at the provider at once just trades a queue
+// here for a rate limit there.
+type ItemStatus = "waiting" | "working" | "done" | "failed";
+
+interface QueueItem {
+  key: string;
+  file: File;
+  course: string;
+  title: string;
+  status: ItemStatus;
+  error?: string;
+  lectureId?: string;
+  mp3Url?: string;
+  mp3Name?: string;
 }
 
 type Phase =
@@ -123,8 +141,9 @@ export function LectureStudio() {
   const [selected, setSelected] = useState<string | null>(null);
   const [course, setCourse] = useState(COURSES[0]);
   const [phase, setPhase] = useState<Phase>({ step: "idle" });
-  const [mp3Url, setMp3Url] = useState<string | null>(null);
-  const [mp3Name, setMp3Name] = useState<string>("lecture.mp3");
+  const [queue, setQueue] = useState<QueueItem[]>([]);
+  const [running, setRunning] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const [keyState, setKeyState] = useState<{ configured: boolean; hint: string | null; provider: string | null; valid: boolean | null } | null>(null);
   const [keyInput, setKeyInput] = useState("");
@@ -219,37 +238,83 @@ export function LectureStudio() {
   useEffect(() => { refreshRef.current = refresh; }, [refresh]);
   useEffect(() => { refresh(); }, [refresh]);
 
-  async function processFile(file: File) {
+  // ffmpeg.wasm costs several seconds and a ~30MB fetch to start, so one
+  // instance is kept for the whole batch. Its filesystem persists between runs,
+  // which means every file it wrote has to be removed afterwards — otherwise a
+  // short lecture inherits the leftover chunks of a longer one before it.
+  const ffmpegRef = useRef<unknown>(null);
+
+  async function getFFmpeg() {
+    if (ffmpegRef.current) return ffmpegRef.current as never;
+    const { FFmpeg } = await import("@ffmpeg/ffmpeg");
+    const { toBlobURL } = await import("@ffmpeg/util");
+    const ffmpeg = new FFmpeg();
+    const base = "https://unpkg.com/@ffmpeg/core@0.12.10/dist/umd";
+    await ffmpeg.load({
+      coreURL: await toBlobURL(`${base}/ffmpeg-core.js`, "text/javascript"),
+      wasmURL: await toBlobURL(`${base}/ffmpeg-core.wasm`, "application/wasm"),
+    });
+    ffmpegRef.current = ffmpeg;
+    return ffmpeg as never;
+  }
+
+  async function wipeWorkspace(ffmpeg: {
+    listDir: (p: string) => Promise<{ name: string }[]>;
+    deleteFile: (n: string) => Promise<unknown>;
+  }) {
+    try {
+      const dir = await ffmpeg.listDir("/");
+      for (const d of dir) {
+        if (/^(chunk\d+\.mp3|full\.mp3|input\.[\w]+)$/.test(d.name)) {
+          await ffmpeg.deleteFile(d.name).catch(() => {});
+        }
+      }
+    } catch { /* a fresh instance has nothing to clear */ }
+  }
+
+  // The ref is the source of truth, not a mirror of state. runQueue picks the
+  // next item the instant the previous one returns, which can be before React
+  // has re-rendered — a ref synced from state in an effect would still show the
+  // finished item as "waiting" and the loop would run it again forever.
+  const queueRef = useRef<QueueItem[]>([]);
+  const runningRef = useRef(false);
+
+  const commit = useCallback((next: QueueItem[]) => {
+    queueRef.current = next;
+    setQueue(next);
+  }, []);
+
+  const patchItem = useCallback((key: string, fields: Partial<QueueItem>) => {
+    commit(queueRef.current.map(it => (it.key === key ? { ...it, ...fields } : it)));
+  }, [commit]);
+
+  async function processOne(item: QueueItem) {
+    patchItem(item.key, { status: "working", error: undefined });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let ffmpeg: any = null;
     try {
       setPhase({ step: "loading-ffmpeg" });
-
-      const { FFmpeg } = await import("@ffmpeg/ffmpeg");
-      const { toBlobURL, fetchFile } = await import("@ffmpeg/util");
-      const ffmpeg = new FFmpeg();
-      const base = "https://unpkg.com/@ffmpeg/core@0.12.10/dist/umd";
-      await ffmpeg.load({
-        coreURL: await toBlobURL(`${base}/ffmpeg-core.js`, "text/javascript"),
-        wasmURL: await toBlobURL(`${base}/ffmpeg-core.wasm`, "application/wasm"),
-      });
+      ffmpeg = await getFFmpeg();
+      const { fetchFile } = await import("@ffmpeg/util");
+      await wipeWorkspace(ffmpeg);
 
       setPhase({ step: "converting" });
-      const inName = "input" + (file.name.match(/\.\w+$/)?.[0] ?? ".mp4");
-      await ffmpeg.writeFile(inName, await fetchFile(file));
+      const inName = "input" + (item.file.name.match(/\.\w+$/)?.[0] ?? ".mp4");
+      await ffmpeg.writeFile(inName, await fetchFile(item.file));
 
       // 16kHz mono 32kbps: perfect for speech, ~14MB/hour, ~1.2MB per 5-min chunk
       await ffmpeg.exec(["-i", inName, "-vn", "-ac", "1", "-ar", "16000", "-b:a", "32k", "full.mp3"]);
 
       const fullData = (await ffmpeg.readFile("full.mp3")) as Uint8Array;
       const blobUrl = URL.createObjectURL(new Blob([fullData.slice()], { type: "audio/mpeg" }));
-      setMp3Url(blobUrl);
-      setMp3Name(file.name.replace(/\.\w+$/, "") + ".mp3");
+      patchItem(item.key, { mp3Url: blobUrl, mp3Name: item.title + ".mp3" });
 
       // Split into 5-minute chunks so each upload stays under Vercel's 4.5MB cap
       await ffmpeg.exec(["-i", "full.mp3", "-f", "segment", "-segment_time", "300", "-c", "copy", "chunk%03d.mp3"]);
       const dir = await ffmpeg.listDir("/");
       const chunkNames = dir
-        .map(d => d.name)
-        .filter(n => /^chunk\d+\.mp3$/.test(n))
+        .map((d: { name: string }) => d.name)
+        .filter((n: string) => /^chunk\d+\.mp3$/.test(n))
         .sort();
       if (chunkNames.length === 0) throw new Error("audio conversion produced no chunks");
 
@@ -257,13 +322,14 @@ export function LectureStudio() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          course,
-          title: file.name.replace(/\.\w+$/, ""),
+          course: item.course,
+          title: item.title,
           chunksExpected: chunkNames.length,
         }),
       });
       const { id, error } = await createRes.json();
       if (!id) throw new Error(error ?? "could not create lecture");
+      patchItem(item.key, { lectureId: id });
 
       for (let i = 0; i < chunkNames.length; i++) {
         setPhase({ step: "transcribing", done: i, total: chunkNames.length });
@@ -283,22 +349,70 @@ export function LectureStudio() {
           const d = await res.json().catch(() => ({}));
           if (d.error === "NO_TRANSCRIPTION_KEY") {
             await refreshKey();
-            throw new Error("Add your transcription key above, then drop the file again — your MP3 is already downloadable below.");
+            throw new Error("No transcription key saved. Add one above, then press Retry.");
           }
           throw new Error(d.error ?? `chunk ${i} failed (${res.status})`);
         }
       }
 
       await runGeneration(id);
-
+      patchItem(item.key, { status: "done" });
+    } catch (e) {
+      patchItem(item.key, { status: "failed", error: String(e).slice(0, 400) });
+    } finally {
+      if (ffmpeg) await wipeWorkspace(ffmpeg);
       setPhase({ step: "idle" });
       await refresh();
-      setSelected(id);
-    } catch (e) {
-      await refresh();
-      setPhase({ step: "error", message: String(e).slice(0, 400) });
     }
   }
+
+  // One at a time, and a failure never takes the rest of the batch with it.
+  const runQueue = useCallback(async () => {
+    if (runningRef.current) return;
+    runningRef.current = true;
+    setRunning(true);
+    try {
+      for (;;) {
+        const next = queueRef.current.find(it => it.status === "waiting");
+        if (!next) break;
+        await processOne(next);
+      }
+    } finally {
+      runningRef.current = false;
+      setRunning(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function addFiles(files: File[]) {
+    if (!files.length) return;
+    const items: QueueItem[] = files.map((file, i) => ({
+      key: `${Date.now()}-${i}-${file.name}`,
+      file,
+      course,
+      title: file.name.replace(/\.\w+$/, ""),
+      status: "waiting",
+    }));
+    commit([...queueRef.current, ...items]);
+    runQueue();
+  }
+
+  function retryItem(key: string) {
+    patchItem(key, { status: "waiting", error: undefined });
+    runQueue();
+  }
+
+  function dropItem(key: string) {
+    commit(queueRef.current.filter(it => it.key !== key));
+  }
+
+  // Closing the tab mid-batch abandons whatever is still converting.
+  useEffect(() => {
+    if (!running) return;
+    const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [running]);
 
   // Three separate requests — one combined call exceeded Vercel's 60s cap
   async function runGeneration(id: string) {
@@ -353,7 +467,9 @@ export function LectureStudio() {
     return <LectureDetail id={selected} onBack={() => { setSelected(null); refresh(); }} />;
   }
 
-  const busy = phase.step !== "idle" && phase.step !== "error";
+  // Tracks the batch, not a single stage — `phase` drops back to idle between
+  // queued items, which would otherwise flicker the whole UI back to ready.
+  const busy = running;
 
   return (
     <div className="space-y-6">
@@ -437,7 +553,6 @@ export function LectureStudio() {
           <select
             value={course}
             onChange={e => setCourse(e.target.value)}
-            disabled={busy}
             className="rounded-lg px-3 py-2 text-sm"
             style={{ background: "var(--bg)", border: "1.5px solid var(--border)", color: "var(--text)" }}
           >
@@ -448,45 +563,121 @@ export function LectureStudio() {
         <input
           ref={fileInput}
           type="file"
+          multiple
           accept="video/mp4,video/*,audio/*"
           className="hidden"
-          onChange={e => { const f = e.target.files?.[0]; if (f) processFile(f); e.target.value = ""; }}
+          onChange={e => { addFiles(Array.from(e.target.files ?? [])); e.target.value = ""; }}
         />
 
-        {!busy && (
-          <motion.button
-            onClick={() => fileInput.current?.click()}
-            whileHover={{ scale: 1.01, borderColor: "var(--purple)" }}
-            whileTap={{ scale: 0.99 }}
-            className="w-full rounded-xl border-2 border-dashed p-10 flex flex-col items-center gap-3"
-            style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
-          >
-            <motion.span animate={{ y: [0, -6, 0] }} transition={{ repeat: Infinity, duration: 2.4, ease: "easeInOut" }}>
-              <Upload size={32} style={{ color: "var(--purple)" }} />
-            </motion.span>
-            <span className="font-semibold" style={{ color: "var(--text)" }}>Drop a lecture recording (MP4 or audio)</span>
-            <span className="text-xs">Converted to MP3 in your browser → transcribed → notes, concept map, exam focus, quiz &amp; flashcards</span>
-          </motion.button>
-        )}
+        {/* Always available, even mid-batch — more can be added to the back of
+            the queue while earlier ones are still running. */}
+        <motion.button
+          onClick={() => fileInput.current?.click()}
+          onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={e => {
+            e.preventDefault();
+            setDragOver(false);
+            addFiles(Array.from(e.dataTransfer.files ?? []));
+          }}
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.99 }}
+          className="w-full rounded-xl border-2 border-dashed p-10 flex flex-col items-center gap-3"
+          style={{
+            borderColor: dragOver ? "var(--purple)" : "var(--border)",
+            background: dragOver ? "rgba(180,85,47,0.05)" : "transparent",
+            color: "var(--text-muted)",
+          }}
+        >
+          <motion.span animate={{ y: [0, -6, 0] }} transition={{ repeat: Infinity, duration: 2.4, ease: "easeInOut" }}>
+            <Upload size={32} style={{ color: "var(--purple)" }} />
+          </motion.span>
+          <span className="font-semibold" style={{ color: "var(--text)" }}>
+            Drop as many lecture recordings as you like
+          </span>
+          <span className="text-xs">
+            They queue up and run one after another — you can close this page once they&apos;re all done
+          </span>
+        </motion.button>
 
-        {busy && <Pipeline phase={phase} />}
+        {/* The batch */}
+        {queue.length > 0 && (
+          <div className="mt-4 space-y-2">
+            {queue.map(it => (
+              <div key={it.key} className="rounded-xl p-3"
+                style={{ background: "var(--bg)", border: "1.5px solid var(--border)" }}>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span className="flex-shrink-0">
+                    {it.status === "working" ? <Loader2 size={15} className="animate-spin" style={{ color: "var(--purple)" }} />
+                      : it.status === "done" ? <Check size={15} style={{ color: "#2eaf6e" }} />
+                      : it.status === "failed" ? <AlertTriangle size={15} style={{ color: "var(--red)" }} />
+                      : <FileAudio size={15} style={{ color: "var(--text-light)" }} />}
+                  </span>
+                  <span className="text-sm font-semibold flex-1 min-w-[160px] truncate" style={{ color: "var(--text)" }}>
+                    {it.title}
+                  </span>
 
-        {phase.step === "error" && (
-          <div className="p-4 rounded-xl text-sm" style={{ background: "rgba(220,60,60,0.08)", color: "#c0392b", border: "1px solid rgba(220,60,60,0.25)" }}>
-            {phase.message}
-            <button onClick={() => setPhase({ step: "idle" })} className="ml-3 underline">dismiss</button>
+                  {/* Course is still changeable right up until it starts. */}
+                  {it.status === "waiting" ? (
+                    <select
+                      value={it.course}
+                      onChange={e => patchItem(it.key, { course: e.target.value })}
+                      className="rounded-lg px-2 py-1 text-xs"
+                      style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)" }}
+                    >
+                      {COURSES.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  ) : (
+                    <span className="text-xs" style={{ color: "var(--text-light)" }}>{it.course}</span>
+                  )}
+
+                  <span className="text-xs flex-shrink-0" style={{ color: "var(--text-muted)" }}>
+                    {it.status === "waiting" ? "waiting"
+                      : it.status === "done" ? "done"
+                      : it.status === "failed" ? "failed"
+                      : "working"}
+                  </span>
+
+                  {it.mp3Url && (
+                    <a href={it.mp3Url} download={it.mp3Name} title="MP3 for the commute"
+                      className="p-1.5 rounded-lg" style={{ color: "var(--purple)" }}>
+                      <Download size={14} />
+                    </a>
+                  )}
+                  {it.status === "failed" && (
+                    <button onClick={() => retryItem(it.key)} className="text-xs font-semibold underline"
+                      style={{ color: "var(--purple)" }}>
+                      Retry
+                    </button>
+                  )}
+                  {it.status !== "working" && (
+                    <button onClick={() => dropItem(it.key)} className="p-1.5 rounded-lg" title="Remove from this list"
+                      style={{ color: "var(--text-light)" }}>
+                      <Trash2 size={13} />
+                    </button>
+                  )}
+                </div>
+
+                {it.status === "working" && <div className="mt-2"><Pipeline phase={phase} /></div>}
+                {it.error && (
+                  <p className="text-xs mt-2 leading-relaxed" style={{ color: "#c0392b" }}>{it.error}</p>
+                )}
+              </div>
+            ))}
+
+            {running && (
+              <p className="text-xs" style={{ color: "var(--text-light)" }}>
+                Keep this page open until the last one finishes — the conversion runs here in your browser.
+              </p>
+            )}
+            {!running && queue.some(it => it.status === "done") && (
+              <button
+                onClick={() => commit(queueRef.current.filter(it => it.status !== "done"))}
+                className="text-xs font-semibold underline" style={{ color: "var(--text-muted)" }}>
+                Clear the finished ones
+              </button>
+            )}
           </div>
-        )}
-
-        {mp3Url && (
-          <a
-            href={mp3Url}
-            download={mp3Name}
-            className="mt-4 inline-flex items-center gap-2 text-sm font-semibold rounded-lg px-4 py-2"
-            style={{ background: "var(--bg)", border: "1.5px solid var(--border)", color: "var(--purple)" }}
-          >
-            <Download size={16} /> Download MP3 for the commute
-          </a>
         )}
       </div>
 
