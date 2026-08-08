@@ -166,6 +166,7 @@ export function LectureStudio() {
   }, [lectures]);
   const [keySaving, setKeySaving] = useState(false);
   const [keyError, setKeyError] = useState<string | null>(null);
+  const [showKeyForm, setShowKeyForm] = useState(false);
 
   const refreshKey = useCallback(async () => {
     try {
@@ -190,6 +191,7 @@ export function LectureStudio() {
       const d = await res.json();
       if (!res.ok) { setKeyError(d.error ?? "Could not save key"); return; }
       setKeyInput("");
+      setShowKeyForm(false);
       await refreshKey();
     } catch (e) {
       setKeyError(String(e));
@@ -355,12 +357,15 @@ export function LectureStudio() {
 
   return (
     <div className="space-y-6">
-      {/* One-time Whisper key setup */}
-      {keyState && !keyState.configured && (
+      {/* Key setup. Also shown when a saved key is being rejected — telling her
+          to paste a new one while hiding the only input is a dead end. */}
+      {keyState && (!keyState.configured || keyState.valid === false || showKeyForm) && (
         <div className="rounded-2xl p-6" style={{ background: "var(--surface)", border: "1.5px solid var(--purple)" }}>
           <div className="flex items-center gap-2 mb-2">
             <KeyRound size={18} style={{ color: "var(--purple)" }} />
-            <h3 className="font-semibold" style={{ color: "var(--text)" }}>One-time setup: transcription key</h3>
+            <h3 className="font-semibold" style={{ color: "var(--text)" }}>
+              {keyState.configured ? "Replace your transcription key" : "One-time setup: transcription key"}
+            </h3>
           </div>
           <p className="text-sm mb-3" style={{ color: "var(--text-muted)" }}>
             Paste a transcription API key — either one works:{" "}
@@ -387,15 +392,28 @@ export function LectureStudio() {
               style={{ background: "var(--purple)" }}>
               {keySaving ? "Verifying…" : "Save key"}
             </button>
+            {showKeyForm && keyState.valid !== false && (
+              <button
+                onClick={() => { setShowKeyForm(false); setKeyInput(""); setKeyError(null); }}
+                className="px-4 py-2 rounded-lg text-sm"
+                style={{ color: "var(--text-muted)", border: "1.5px solid var(--border)" }}>
+                Cancel
+              </button>
+            )}
           </div>
           {keyError && <p className="text-sm mt-2" style={{ color: "#c0392b" }}>{keyError}</p>}
         </div>
       )}
 
-      {keyState?.configured && keyState.valid !== false && (
+      {keyState?.configured && keyState.valid !== false && !showKeyForm && (
         <div className="flex items-center gap-2 text-xs" style={{ color: "var(--text-muted)" }}>
           <Check size={14} style={{ color: "#2eaf6e" }} />
           Transcription key active{keyState.provider === "whisperapi" ? " — whisper-api.com" : keyState.provider === "openai" ? " — OpenAI Whisper" : ""} {keyState.hint ? `(${keyState.hint})` : ""}
+          {/* A working key still needs to be changeable, or the next rotation
+              leaves her with no way in. */}
+          <button onClick={() => setShowKeyForm(true)} className="underline" style={{ color: "var(--purple)" }}>
+            Change
+          </button>
         </div>
       )}
 
