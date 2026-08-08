@@ -357,6 +357,19 @@ export function LectureStudio() {
 
   return (
     <div className="space-y-6">
+      {/* A saved key the provider now rejects. Worth its own warning, because
+          the upload looks fine until every chunk fails. */}
+      {keyState?.configured && keyState.valid === false && (
+        <div className="flex items-start gap-2 text-xs rounded-xl px-3 py-2.5"
+          style={{ color: "var(--text)", background: "rgba(193,74,58,0.08)", border: "1px solid rgba(193,74,58,0.3)" }}>
+          <AlertTriangle size={14} style={{ color: "var(--red)", flexShrink: 0, marginTop: 1 }} />
+          <span>
+            Your saved transcription key {keyState.hint ? `(${keyState.hint}) ` : ""}is being rejected —
+            it&apos;s been rotated or revoked. Paste a current one below before uploading.
+          </span>
+        </div>
+      )}
+
       {/* Key setup. Also shown when a saved key is being rejected — telling her
           to paste a new one while hiding the only input is a dead end. */}
       {keyState && (!keyState.configured || keyState.valid === false || showKeyForm) && (
@@ -414,19 +427,6 @@ export function LectureStudio() {
           <button onClick={() => setShowKeyForm(true)} className="underline" style={{ color: "var(--purple)" }}>
             Change
           </button>
-        </div>
-      )}
-
-      {/* A saved key the provider now rejects. Worth its own warning, because
-          the upload looks fine until every chunk fails. */}
-      {keyState?.configured && keyState.valid === false && (
-        <div className="flex items-start gap-2 text-xs rounded-xl px-3 py-2.5"
-          style={{ color: "var(--text)", background: "rgba(193,74,58,0.08)", border: "1px solid rgba(193,74,58,0.3)" }}>
-          <AlertTriangle size={14} style={{ color: "var(--red)", flexShrink: 0, marginTop: 1 }} />
-          <span>
-            Your saved transcription key {keyState.hint ? `(${keyState.hint}) ` : ""}is being rejected —
-            it&apos;s been rotated or revoked. Paste a current one below before uploading.
-          </span>
         </div>
       )}
 
