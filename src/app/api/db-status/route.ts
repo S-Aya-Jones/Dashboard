@@ -18,12 +18,31 @@ export async function GET() {
   let endpointId: string | null = null;
   let region: string | null = null;
   try {
-    const host = new URL(url).hostname;              // ep-xxx-yyy-123456.us-east-2.aws.neon.tech
-    endpointId = host.split(".")[0] || null;          // ep-xxx-yyy-123456
-    region = host.split(".").slice(1, 2)[0] ?? null;  // us-east-2
+    // ep-xxx-pooler.c-3.us-east-1.aws.neon.tech — the segment after the
+    // endpoint is Neon's proxy shard, not the region, so take the first part
+    // that actually looks like one.
+    const host = new URL(url).hostname;
+    const parts = host.split(".");
+    endpointId = parts[0] || null;
+    region = parts.find((p) => /^[a-z]{2}-[a-z]+-\d$/.test(p)) ?? null;
   } catch {
     return NextResponse.json({ configured: true, error: "DATABASE_URL is not a valid URL" });
   }
+
+  // Where this database came from decides where the plan is changed. Vercel's
+  // Neon integration provisions a whole family of POSTGRES_* variables and
+  // bills through Vercel — paying on neon.tech does nothing for it. A single
+  // hand-pasted DATABASE_URL means it's a direct Neon project.
+  const vercelIntegrationVars = [
+    "POSTGRES_URL", "POSTGRES_PRISMA_URL", "POSTGRES_URL_NON_POOLING",
+    "POSTGRES_USER", "POSTGRES_HOST", "POSTGRES_DATABASE",
+    "NEON_PROJECT_ID", "DATABASE_URL_UNPOOLED", "PGHOST",
+  ].filter((k) => Boolean(process.env[k]));
+
+  const provisionedByVercel = vercelIntegrationVars.length >= 2;
+  const billedVia = provisionedByVercel
+    ? "This database looks like it was created through Vercel (Storage tab). It is billed through Vercel, so upgrading on neon.tech will not affect it — change the plan in Vercel."
+    : "Only DATABASE_URL is set, so this looks like a Neon project you connected by hand. Its plan is changed in the Neon console.";
 
   const started = Date.now();
   try {
@@ -33,6 +52,8 @@ export async function GET() {
       configured: true,
       endpointId,
       region,
+      provisionedByVercel,
+      billedVia,
       ok: true,
       ms: Date.now() - started,
       message: "The database answered. Everything should work.",
@@ -44,6 +65,9 @@ export async function GET() {
       configured: true,
       endpointId,
       region,
+      provisionedByVercel,
+      billedVia,
+      integrationVarsPresent: vercelIntegrationVars,
       ok: false,
       overQuota,
       message: overQuota
