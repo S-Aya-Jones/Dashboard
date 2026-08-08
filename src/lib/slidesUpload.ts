@@ -59,6 +59,20 @@ async function pptxText(file: File): Promise<string> {
 }
 
 /**
+ * Attach several decks to one lecture, in order. A single recording routinely
+ * covers two lectures and therefore two decks.
+ */
+export async function uploadAllSlides(
+  lectureId: string,
+  files: File[],
+  onProgress?: SlideProgress,
+): Promise<void> {
+  for (let i = 0; i < files.length; i++) {
+    await uploadSlides(lectureId, files[i], onProgress, i > 0);
+  }
+}
+
+/**
  * Attach a deck to a lecture. Resolves once the slides are stored as text and
  * ready to be used by note generation.
  */
@@ -66,6 +80,7 @@ export async function uploadSlides(
   lectureId: string,
   file: File,
   onProgress?: SlideProgress,
+  append = false,
 ): Promise<void> {
   const isPdf  = /\.pdf$/i.test(file.name)  || file.type === "application/pdf";
   const isPptx = /\.pptx$/i.test(file.name) || file.type.includes("presentationml");
@@ -81,7 +96,7 @@ export async function uploadSlides(
     const res = await fetch(`/api/lectures/${lectureId}/slides`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: file.name, text }),
+      body: JSON.stringify({ name: file.name, text, append }),
     });
     if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? "couldn't save those slides");
     onProgress?.("digesting", 1);
@@ -104,12 +119,32 @@ export async function uploadSlides(
     }
   }
 
-  onProgress?.("digesting", 0.85);
-  const res = await fetch(`/api/lectures/${lectureId}/slides`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name: file.name }),
-  });
-  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? "couldn't read those slides");
+  // Read a window of slides at a time. One call for a whole deck overran
+  // Vercel's 60s limit and returned an HTML gateway error, which surfaced as an
+  // unexplained failure; each window is short enough to finish.
+  const MAX_WINDOWS = 15;
+  let from = 1;
+  for (let w = 0; w < MAX_WINDOWS; w++) {
+    onProgress?.("digesting", 0.85 + (0.15 * w) / MAX_WINDOWS);
+    const res = await fetch(`/api/lectures/${lectureId}/slides`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: file.name, from, append }),
+    });
+    if (!res.ok) {
+      // A gateway timeout is HTML, not JSON, so say something true rather than
+      // letting an empty parse become a meaningless message.
+      const detail = await res.json().catch(() => null);
+      throw new Error(
+        detail?.error ??
+        (res.status === 504
+          ? "reading the deck timed out — try a smaller PDF"
+          : `the slides server returned ${res.status}`),
+      );
+    }
+    const body = await res.json();
+    if (body.done) break;
+    from = body.next ?? from + 12;
+  }
   onProgress?.("digesting", 1);
 }
