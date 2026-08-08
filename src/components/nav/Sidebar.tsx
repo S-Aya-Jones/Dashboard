@@ -6,7 +6,7 @@ import {
   Sun, Calendar, Brain, BookOpen,
   Sparkles, DollarSign,
   ChevronLeft, ChevronRight, Dumbbell, Gem, UtensilsCrossed,
-  LayoutGrid, MoreHorizontal, X, Zap, Shield, Bell, Mail, Clock, Mic, ListChecks, GraduationCap
+  LayoutGrid, MoreHorizontal, X, Zap, Shield, Bell, Mail, Clock, Mic, ListChecks, GraduationCap, Users
 } from "lucide-react";
 import { useState } from "react";
 import { SaveIndicator } from "@/components/ui/SaveIndicator";
@@ -19,6 +19,7 @@ const navItems = [
   { href: "/exposure",     label: "Exposure",         icon: Brain },
   { href: "/school-inbox", label: "School Inbox",     icon: Mail },
   { href: "/tutor",        label: "Tutor",            icon: GraduationCap },
+  { href: "/partners",     label: "Study Partners",   icon: Users },
   { href: "/mcat",         label: "Med School",       icon: BookOpen },
   { href: "/finances",     label: "Finances",         icon: DollarSign },
   { href: "/reminders",    label: "Telegram",         icon: Bell },
