@@ -1,15 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Upload, Loader2, FileAudio, Trash2, Download, ChevronRight, KeyRound, Check, Sparkles, Pencil, AlertTriangle } from "lucide-react";
+import { Upload, Loader2, FileAudio, Trash2, Download, ChevronRight, KeyRound, Check, Sparkles, Pencil, AlertTriangle, Paperclip } from "lucide-react";
 import { motion } from "framer-motion";
 import { LectureDetail } from "./LectureDetail";
+import { uploadSlides } from "@/lib/slidesUpload";
 
 const COURSES = ["Physiology", "Biochemistry", "Microbiology", "Cell & Molecular Bio", "MCAT", "Other"];
 
 interface LectureListItem {
   id: string; course: string; title: string; status: string; summary: string | null; createdAt: string;
-  chunksExpected?: number | null; chunksDone?: number;
+  chunksExpected?: number | null; chunksDone?: number; slidesName?: string | null;
 }
 
 // A lecture only ever reaches 'generating' once its transcript is stored, so
@@ -45,6 +46,9 @@ interface QueueItem {
   lectureId?: string;
   mp3Url?: string;
   mp3Name?: string;
+  /** Optional deck, attached to the lecture once it exists. */
+  slidesFile?: File;
+  slidesNote?: string;
 }
 
 type Phase =
@@ -77,7 +81,10 @@ function Pipeline({ phase }: { phase: Phase }) {
   const activeKey =
     phase.step === "loading-ffmpeg" || phase.step === "converting" ? "convert"
     : phase.step === "transcribing" ? "transcribe"
-    : phase.step === "generating" ? phase.what
+    // Reading the deck sits between transcription and notes and has no step of
+    // its own — showing one would mark it complete on every lecture without
+    // slides. It holds the bar where it is and says what it's doing instead.
+    : phase.step === "generating" ? (phase.what === "slides" ? "transcribe" : phase.what)
     : "";
   const activeIdx = PIPELINE_STEPS.findIndex(s => s.key === activeKey);
 
@@ -85,7 +92,7 @@ function Pipeline({ phase }: { phase: Phase }) {
     phase.step === "loading-ffmpeg" ? "Loading the audio engine — first run takes ~15s"
     : phase.step === "converting" ? "Converting in your browser — nothing uploaded yet"
     : phase.step === "transcribing" ? `Chunk ${phase.done + 1} of ${phase.total}`
-    : phase.step === "generating" ? "Claude is writing this section"
+    : phase.step === "generating" ? (phase.what === "slides" ? "Reading your slides" : "Claude is writing this section")
     : "";
 
   return (
@@ -145,6 +152,10 @@ export function LectureStudio() {
   const [running, setRunning] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+  const slidesInput = useRef<HTMLInputElement>(null);
+  const slidesTarget = useRef<{ kind: "queue" | "lecture"; id: string } | null>(null);
+  const [slidesBusy, setSlidesBusy] = useState<string | null>(null);
+  const [slidesMsg, setSlidesMsg] = useState<{ id: string; text: string; bad?: boolean } | null>(null);
   const [keyState, setKeyState] = useState<{ configured: boolean; hint: string | null; provider: string | null; valid: boolean | null } | null>(null);
   const [keyInput, setKeyInput] = useState("");
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -355,6 +366,21 @@ export function LectureStudio() {
         }
       }
 
+      // Slides go up before the notes are written, so they're folded in on the
+      // first pass. A deck that fails must not cost her the transcribed
+      // lecture, so this never throws — it records a note and generation runs
+      // from the recording alone.
+      if (item.slidesFile) {
+        setPhase({ step: "generating", what: "slides" });
+        try {
+          await uploadSlides(id, item.slidesFile);
+        } catch (e) {
+          patchItem(item.key, {
+            slidesNote: `Slides couldn't be read (${e instanceof Error ? e.message : String(e)}). Notes were written from the recording only.`,
+          });
+        }
+      }
+
       await runGeneration(id);
       patchItem(item.key, { status: "done" });
     } catch (e) {
@@ -455,6 +481,42 @@ export function LectureStudio() {
       await refresh();
       setPhase({ step: "error", message: String(e).slice(0, 400) });
     }
+  }
+
+  // Attaching a deck to a lecture that already exists.
+  async function attachSlides(lectureId: string, file: File) {
+    setSlidesBusy(lectureId);
+    setSlidesMsg(null);
+    try {
+      await uploadSlides(lectureId, file, (stage) => {
+        setSlidesMsg({
+          id: lectureId,
+          text: stage === "digesting" ? "Reading the slides…" : "Uploading the slides…",
+        });
+      });
+      setSlidesMsg({ id: lectureId, text: "Slides attached. Redo the notes to fold them in." });
+      await refresh();
+    } catch (e) {
+      setSlidesMsg({ id: lectureId, text: e instanceof Error ? e.message : String(e), bad: true });
+    } finally {
+      setSlidesBusy(null);
+    }
+  }
+
+  async function removeSlides(lectureId: string) {
+    setSlidesBusy(lectureId);
+    try {
+      await fetch(`/api/lectures/${lectureId}/slides`, { method: "DELETE" });
+      setSlidesMsg(null);
+      await refresh();
+    } finally {
+      setSlidesBusy(null);
+    }
+  }
+
+  function pickSlidesFor(kind: "queue" | "lecture", id: string) {
+    slidesTarget.current = { kind, id };
+    slidesInput.current?.click();
   }
 
   async function removeLecture(id: string) {
@@ -569,6 +631,23 @@ export function LectureStudio() {
           onChange={e => { addFiles(Array.from(e.target.files ?? [])); e.target.value = ""; }}
         />
 
+        {/* One picker serves both the queue rows and the finished lectures;
+            slidesTarget records which asked for it. */}
+        <input
+          ref={slidesInput}
+          type="file"
+          accept=".pdf,application/pdf,.pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation"
+          className="hidden"
+          onChange={e => {
+            const f = e.target.files?.[0];
+            const t = slidesTarget.current;
+            e.target.value = "";
+            if (!f || !t) return;
+            if (t.kind === "queue") patchItem(t.id, { slidesFile: f, slidesNote: undefined });
+            else attachSlides(t.id, f);
+          }}
+        />
+
         {/* Always available, even mid-batch — more can be added to the back of
             the queue while earlier ones are still running. */}
         <motion.button
@@ -658,7 +737,35 @@ export function LectureStudio() {
                   )}
                 </div>
 
+                {/* Slides for this recording, attached before the notes are written. */}
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                  <Paperclip size={12} style={{ color: "var(--text-light)", flexShrink: 0 }} />
+                  {it.slidesFile ? (
+                    <>
+                      <span className="text-xs truncate max-w-[240px]" style={{ color: "var(--text-muted)" }}>
+                        {it.slidesFile.name}
+                      </span>
+                      {it.status === "waiting" && (
+                        <button onClick={() => patchItem(it.key, { slidesFile: undefined })}
+                          className="text-xs underline" style={{ color: "var(--text-light)" }}>
+                          remove
+                        </button>
+                      )}
+                    </>
+                  ) : it.status === "waiting" ? (
+                    <button onClick={() => pickSlidesFor("queue", it.key)}
+                      className="text-xs underline" style={{ color: "var(--purple)" }}>
+                      Add the slides for this lecture (PDF or .pptx)
+                    </button>
+                  ) : (
+                    <span className="text-xs" style={{ color: "var(--text-light)" }}>no slides</span>
+                  )}
+                </div>
+
                 {it.status === "working" && <div className="mt-2"><Pipeline phase={phase} /></div>}
+                {it.slidesNote && (
+                  <p className="text-xs mt-2 leading-relaxed" style={{ color: "var(--red)" }}>{it.slidesNote}</p>
+                )}
                 {it.error && (
                   <p className="text-xs mt-2 leading-relaxed" style={{ color: "#c0392b" }}>{it.error}</p>
                 )}
@@ -762,6 +869,17 @@ export function LectureStudio() {
                 Resume
               </button>
             )}
+            {/* Slides can be added to a lecture that's already been processed —
+                the notes are redone from the recording plus the deck. */}
+            <button
+              onClick={e => { e.stopPropagation(); pickSlidesFor("lecture", l.id); }}
+              disabled={slidesBusy === l.id}
+              className="p-2 rounded-lg disabled:opacity-40"
+              style={{ color: l.slidesName ? "var(--purple)" : "var(--text-muted)" }}
+              title={l.slidesName ? `Slides attached: ${l.slidesName} — click to replace` : "Attach the slides for this lecture"}
+            >
+              {slidesBusy === l.id ? <Loader2 size={15} className="animate-spin" /> : <Paperclip size={15} />}
+            </button>
             <button
               onClick={e => { e.stopPropagation(); setEditing(editing === l.id ? null : l.id); }}
               className="p-2 rounded-lg"
@@ -791,6 +909,40 @@ export function LectureStudio() {
             </button>
             {l.status === "ready" && <ChevronRight size={18} style={{ color: "var(--text-muted)" }} />}
               </motion.div>
+
+              {/* Attached deck: what it is, and the one action that makes it
+                  count — the notes already on file were written without it. */}
+              {(l.slidesName || (slidesMsg && slidesMsg.id === l.id)) && (
+                <div className="rounded-xl px-4 py-2.5 -mt-1 flex items-center gap-2 flex-wrap"
+                  style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}>
+                  <Paperclip size={12} style={{ color: "var(--text-light)", flexShrink: 0 }} />
+                  {l.slidesName && (
+                    <span className="text-xs truncate max-w-[260px]" style={{ color: "var(--text-muted)" }}>
+                      {l.slidesName}
+                    </span>
+                  )}
+                  {slidesMsg?.id === l.id && (
+                    <span className="text-xs" style={{ color: slidesMsg.bad ? "var(--red)" : "var(--text-muted)" }}>
+                      {slidesMsg.text}
+                    </span>
+                  )}
+                  {l.slidesName && !busy && slidesBusy !== l.id && (
+                    <>
+                      <button
+                        onClick={() => resumeGeneration(l.id)}
+                        className="text-xs font-semibold px-3 py-1.5 rounded-lg text-white"
+                        style={{ background: "var(--purple)" }}>
+                        Redo the notes with these slides
+                      </button>
+                      <button onClick={() => removeSlides(l.id)}
+                        className="text-xs underline" style={{ color: "var(--text-light)" }}>
+                        remove slides
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+
               {editing === l.id && (
                 <div
                   className="rounded-xl p-4 space-y-3 -mt-1"

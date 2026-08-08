@@ -16,8 +16,25 @@ const client = new Anthropic();
 type Stage = "notes1" | "notes2" | "map" | "exam" | "quiz" | "cards";
 
 const MAX_TRANSCRIPT = 60000;
+// The deck is the second source. Capped so a long one can't crowd the
+// transcript out of the context window.
+const MAX_SLIDES = 22000;
 
 const CONTEXT = `The student is a master's (MHS) student at Meharry Medical College on a pre-med track, taking Biochemistry, Physiology, Microbiology, and Cell & Molecular Biology. Her assessments are graduate-level quizzes and exams. She needs materials that prepare her for those exams — not summaries of what was said.`;
+
+// Appended only when a deck is attached. The transcript is speech — it garbles
+// spellings and cannot describe a diagram; the slides fix both. Where they
+// disagree it is usually the transcript that misheard, but a lecturer also
+// corrects their own slides out loud, so the conflict is worth surfacing rather
+// than silently resolving.
+const SLIDES_GUIDANCE = `
+
+You are also given the lecturer's SLIDES for this lecture. Use both sources:
+- Prefer the slides for the spelling of terms, drug and gene names, numbers, units and normal ranges — the transcript is speech-to-text and mangles these.
+- Slides describe figures, structures and tables the recording could not. Work that content into the notes where it belongs.
+- Prefer the transcript for explanation, emphasis and anything the lecturer said that is not on a slide.
+- Cover material that appears in only one source; do not drop a slide the lecturer skipped over, and do not drop something said aloud that never made it onto a slide.
+- If the two genuinely conflict on a fact, follow the slides and add a short note in the form: **[Slides say X; the recording said Y]**`;
 
 const PROMPTS: Record<Stage, { system: string; maxTokens: number }> = {
   notes1: {
@@ -213,14 +230,18 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       stage === "notes2" ? " (second half)" : "";
 
     const { system, maxTokens } = PROMPTS[stage];
+
+    const slides = (lecture.slidesText ?? "").trim().slice(0, MAX_SLIDES);
+    const userContent = slides
+      ? `Course: ${lecture.course}\n\nLecture transcript${part}:\n\n${slice}\n\n` +
+        `=== SLIDES FOR THIS LECTURE (${lecture.slidesName ?? "deck"}) ===\n\n${slides}`
+      : `Course: ${lecture.course}\n\nLecture transcript${part}:\n\n${slice}`;
+
     const msg = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: maxTokens,
-      system,
-      messages: [{
-        role: "user",
-        content: `Course: ${lecture.course}\n\nLecture transcript${part}:\n\n${slice}`,
-      }],
+      system: slides ? system + SLIDES_GUIDANCE : system,
+      messages: [{ role: "user", content: userContent }],
     });
 
     const raw = msg.content[0].type === "text" ? msg.content[0].text : "";
