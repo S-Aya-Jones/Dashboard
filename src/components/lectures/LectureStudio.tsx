@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Upload, Loader2, FileAudio, Trash2, Download, ChevronRight, KeyRound, Check, Sparkles, Pencil, AlertTriangle, Paperclip } from "lucide-react";
 import { motion } from "framer-motion";
 import { LectureDetail } from "./LectureDetail";
-import { uploadSlides } from "@/lib/slidesUpload";
+import { uploadSlides, uploadAllSlides } from "@/lib/slidesUpload";
 import { pairDecks, isDeck, isMedia, stripExtension } from "@/lib/matchSlides";
 
 const COURSES = ["Physiology", "Biochemistry", "Microbiology", "Cell & Molecular Bio", "MCAT", "Other"];
@@ -47,8 +47,8 @@ interface QueueItem {
   lectureId?: string;
   mp3Url?: string;
   mp3Name?: string;
-  /** Optional deck, attached to the lecture once it exists. */
-  slidesFile?: File;
+  /** Decks for this recording — one lecture recording often covers two. */
+  slidesFiles?: File[];
   slidesNote?: string;
 }
 
@@ -374,13 +374,13 @@ export function LectureStudio() {
       // first pass. A deck that fails must not cost her the transcribed
       // lecture, so this never throws — it records a note and generation runs
       // from the recording alone.
-      if (item.slidesFile) {
+      if (item.slidesFiles?.length) {
         setPhase({ step: "generating", what: "slides" });
         try {
-          await uploadSlides(id, item.slidesFile);
+          await uploadAllSlides(id, item.slidesFiles);
         } catch (e) {
           patchItem(item.key, {
-            slidesNote: `Slides couldn't be read (${e instanceof Error ? e.message : String(e)}). Notes were written from the recording only.`,
+            slidesNote: `${e instanceof Error ? e.message : String(e)} — the notes were written from the recording only.`,
           });
         }
       }
@@ -419,9 +419,23 @@ export function LectureStudio() {
   function addFiles(files: File[]) {
     if (!files.length) return;
 
-    const media = files.filter(isMedia);
-    const decks = files.filter(isDeck);
-    const ignored = files.filter(f => !isMedia(f) && !isDeck(f));
+    // Dropping the same file twice, or dropping again after a partial batch,
+    // should not produce two rows for one lecture.
+    const seen: Record<string, true> = {};
+    for (const it of queueRef.current) seen[`${it.file.name}:${it.file.size}`] = true;
+    for (const d of looseDecks) seen[`${d.name}:${d.size}`] = true;
+    for (const it of queueRef.current) for (const d of it.slidesFiles ?? []) seen[`${d.name}:${d.size}`] = true;
+
+    const fresh = files.filter(f => {
+      const k = `${f.name}:${f.size}`;
+      if (seen[k]) return false;
+      seen[k] = true;
+      return true;
+    });
+
+    const media = fresh.filter(isMedia);
+    const decks = fresh.filter(isDeck);
+    const ignored = fresh.filter(f => !isMedia(f) && !isDeck(f));
 
     const newItems: QueueItem[] = media.map((file, i) => ({
       key: `${Date.now()}-${i}-${file.name}`,
@@ -435,16 +449,16 @@ export function LectureStudio() {
 
     // Anything still waiting and deckless is fair game, so dropping the
     // recordings first and the slides afterwards works the same as together.
-    const candidates = next.filter(it => it.status === "waiting" && !it.slidesFile);
+    const candidates = next.filter(it => it.status === "waiting");
     const pool = [...looseDecks, ...decks];
 
     const { pairs, unmatchedDecks } = pairDecks<QueueItem, File>(
       candidates, pool, x => (x instanceof File ? x.name : x.file.name));
 
-    const deckFor: Record<string, File> = {};
-    for (const p of pairs) if (p.deck) deckFor[p.recording.key] = p.deck;
+    const deckFor: Record<string, File[]> = {};
+    for (const p of pairs) if (p.decks.length) deckFor[p.recording.key] = p.decks;
 
-    commit(next.map(it => (deckFor[it.key] ? { ...it, slidesFile: deckFor[it.key] } : it)));
+    commit(next.map(it => (deckFor[it.key] ? { ...it, slidesFiles: deckFor[it.key] } : it)));
     setLooseDecks(unmatchedDecks);
 
     if (ignored.length) {
@@ -461,7 +475,11 @@ export function LectureStudio() {
   function assignLooseDeck(deckName: string, itemKey: string) {
     const deck = looseDecks.find(d => d.name === deckName);
     if (!deck) return;
-    patchItem(itemKey, { slidesFile: deck, slidesNote: undefined });
+    const item = queueRef.current.find(it => it.key === itemKey);
+    patchItem(itemKey, {
+      slidesFiles: [...(item?.slidesFiles ?? []), deck],
+      slidesNote: undefined,
+    });
     setLooseDecks(ds => ds.filter(d => d.name !== deckName));
   }
 
@@ -685,8 +703,10 @@ export function LectureStudio() {
             const t = slidesTarget.current;
             e.target.value = "";
             if (!f || !t) return;
-            if (t.kind === "queue") patchItem(t.id, { slidesFile: f, slidesNote: undefined });
-            else attachSlides(t.id, f);
+            if (t.kind === "queue") {
+              const item = queueRef.current.find(it => it.key === t.id);
+              patchItem(t.id, { slidesFiles: [...(item?.slidesFiles ?? []), f], slidesNote: undefined });
+            } else attachSlides(t.id, f);
           }}
         />
 
@@ -734,14 +754,22 @@ export function LectureStudio() {
               {looseDecks.length === 1 ? "This deck didn't match a recording" : "These decks didn't match a recording"}
             </p>
             {looseDecks.map(d => (
-              <div key={d.name} className="flex items-center gap-2 flex-wrap">
+              <div key={d.name} className="flex items-center gap-2">
                 <Paperclip size={12} style={{ color: "var(--text-light)", flexShrink: 0 }} />
-                <span className="text-xs truncate max-w-[220px]" style={{ color: "var(--text-muted)" }}>{d.name}</span>
+                {/* The distinguishing part of these names is the end
+                    (BC1 vs BC2), so the middle gives way, not the tail. */}
+                <span
+                  className="text-xs flex-1 min-w-0 truncate"
+                  title={d.name}
+                  style={{ color: "var(--text-muted)", direction: "rtl", textAlign: "left" }}
+                >
+                  {d.name}
+                </span>
                 <select
                   defaultValue=""
                   onChange={e => { if (e.target.value) assignLooseDeck(d.name, e.target.value); }}
-                  className="rounded-lg px-2 py-1 text-xs"
-                  style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)" }}
+                  className="rounded-lg px-2 py-1 text-xs flex-shrink-0"
+                  style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)", maxWidth: "11rem" }}
                 >
                   <option value="">Belongs to…</option>
                   {queue.filter(it => it.status === "waiting").map(it => (
@@ -749,7 +777,7 @@ export function LectureStudio() {
                   ))}
                 </select>
                 <button onClick={() => setLooseDecks(ds => ds.filter(x => x.name !== d.name))}
-                  className="text-xs underline" style={{ color: "var(--text-light)" }}>
+                  className="text-xs underline flex-shrink-0" style={{ color: "var(--text-light)" }}>
                   discard
                 </button>
               </div>
@@ -820,29 +848,33 @@ export function LectureStudio() {
                   )}
                 </div>
 
-                {/* Slides for this recording, attached before the notes are written. */}
-                <div className="flex items-center gap-2 mt-2 flex-wrap">
-                  <Paperclip size={12} style={{ color: "var(--text-light)", flexShrink: 0 }} />
-                  {it.slidesFile ? (
-                    <>
-                      <span className="text-xs truncate max-w-[240px]" style={{ color: "var(--text-muted)" }}>
-                        {it.slidesFile.name}
+                {/* Decks for this recording, read before the notes are written. */}
+                <div className="mt-2 space-y-1">
+                  {(it.slidesFiles ?? []).map((d, di) => (
+                    <div key={d.name + di} className="flex items-center gap-2">
+                      <Paperclip size={12} style={{ color: "var(--text-light)", flexShrink: 0 }} />
+                      <span className="text-xs flex-1 min-w-0 truncate" title={d.name} style={{ color: "var(--text-muted)" }}>
+                        {d.name}
                       </span>
                       {it.status === "waiting" && (
-                        <button onClick={() => patchItem(it.key, { slidesFile: undefined })}
-                          className="text-xs underline" style={{ color: "var(--text-light)" }}>
+                        <button
+                          onClick={() => patchItem(it.key, {
+                            slidesFiles: (it.slidesFiles ?? []).filter((_, i) => i !== di),
+                          })}
+                          className="text-xs underline flex-shrink-0" style={{ color: "var(--text-light)" }}>
                           remove
                         </button>
                       )}
-                    </>
-                  ) : it.status === "waiting" ? (
+                    </div>
+                  ))}
+                  {it.status === "waiting" ? (
                     <button onClick={() => pickSlidesFor("queue", it.key)}
                       className="text-xs underline" style={{ color: "var(--purple)" }}>
-                      Add the slides for this lecture (PDF or .pptx)
+                      {it.slidesFiles?.length ? "Add another deck" : "Add the slides for this lecture (PDF or .pptx)"}
                     </button>
-                  ) : (
+                  ) : !it.slidesFiles?.length ? (
                     <span className="text-xs" style={{ color: "var(--text-light)" }}>no slides</span>
-                  )}
+                  ) : null}
                 </div>
 
                 {it.status === "working" && <div className="mt-2"><Pipeline phase={phase} /></div>}

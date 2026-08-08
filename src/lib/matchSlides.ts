@@ -40,15 +40,34 @@ function parse(filename: string): Parsed {
   const raw = base.split(/\s+/).filter(Boolean);
   const words: string[] = [];
   const numbers: string[] = [];
+  let prevWasMonth = false;
 
   for (const t of raw) {
     if (/^\d+$/.test(t)) {
-      // A bare year or a day-of-month carries no lecture identity.
-      if (t.length === 4 && Number(t) > 1900) continue;
+      // A bare year is never a lecture number.
+      if (t.length === 4 && Number(t) > 1900) { prevWasMonth = false; continue; }
+      // "Aug 3" is a date. Counting the 3 as a lecture number is what makes a
+      // deck for lecture 3 look like a match for a recording made on the 3rd.
+      if (prevWasMonth) { prevWasMonth = false; continue; }
       numbers.push(String(Number(t)));
       continue;
     }
-    if (NOISE.has(t) || MONTHS.has(t)) continue;
+
+    if (MONTHS.has(t)) { prevWasMonth = true; continue; }
+    prevWasMonth = false;
+
+    // Course codes carry the lecture number welded to a prefix: BC1, LEC02,
+    // PHYS3. Splitting them is the difference between matching her real files
+    // and matching none of them.
+    const split = t.match(/^([a-z]{1,6})(\d{1,3})$/);
+    if (split) {
+      const stem = split[1];
+      if (!NOISE.has(stem) && stem.length > 1) words.push(stem);
+      numbers.push(String(Number(split[2])));
+      continue;
+    }
+
+    if (NOISE.has(t)) continue;
     if (t.length === 1) continue;
     words.push(t);
   }
@@ -85,22 +104,23 @@ export function similarity(recording: string, deck: string): number {
   return wordScore;
 }
 
-export interface Pairing<R, D> {
+export interface MultiPairing<R, D> {
   recording: R;
-  deck: D | null;
+  decks: D[];
 }
 
 /**
- * Greedy best-first pairing. Each deck is used at most once, and only the
- * strongest remaining pair is taken at each step, so one ambiguous filename
- * cannot cascade into a chain of wrong assignments.
+ * Every deck goes to its best-matching recording, and a recording may collect
+ * several — one recording routinely covers two lectures, and therefore two
+ * decks. Each deck is still used at most once, and assignment is best-first so
+ * an ambiguous filename cannot displace a stronger match.
  */
 export function pairDecks<R, D>(
   recordings: R[],
   decks: D[],
   nameOf: (x: R | D) => string,
   threshold = 0.35,
-): { pairs: Pairing<R, D>[]; unmatchedDecks: D[] } {
+): { pairs: MultiPairing<R, D>[]; unmatchedDecks: D[] } {
   const scored: { r: number; d: number; s: number }[] = [];
   recordings.forEach((r, ri) => {
     decks.forEach((d, di) => {
@@ -110,21 +130,19 @@ export function pairDecks<R, D>(
   });
   scored.sort((x, y) => y.s - x.s);
 
-  const takenR: Record<number, true> = {};
   const takenD: Record<number, true> = {};
-  const assigned: Record<number, number> = {};
+  const assigned: Record<number, number[]> = {};
   for (const { r, d } of scored) {
-    if (takenR[r] || takenD[d]) continue;
-    takenR[r] = true;
+    if (takenD[d]) continue;
     takenD[d] = true;
-    assigned[r] = d;
+    (assigned[r] ??= []).push(d);
   }
 
   return {
-    pairs: recordings.map((r, ri) => {
-      const di = assigned[ri];
-      return { recording: r, deck: di === undefined ? null : decks[di] };
-    }),
+    pairs: recordings.map((r, ri) => ({
+      recording: r,
+      decks: (assigned[ri] ?? []).map(di => decks[di]),
+    })),
     unmatchedDecks: decks.filter((_, di) => !takenD[di]),
   };
 }
