@@ -82,7 +82,7 @@ export default function SmsOptInPage() {
           <Link href="/terms" style={{ color: "#B4552F", textDecoration: "none" }}>Terms of Service</Link>
           <span style={{ margin: "0 0.5rem" }}>·</span>
           <Link href="/privacy" style={{ color: "#B4552F", textDecoration: "none" }}>Privacy Policy</Link>
-          <p style={{ marginTop: "0.75rem", fontSize: "0.72rem", color: "#C4B8E8" }}>
+          <p style={{ marginTop: "0.75rem", fontSize: "0.72rem", color: "#9C8D81" }}>
             Aya&apos;s Dashboard · Sole Proprietor · shaniquaayajones@gmail.com
           </p>
         </div>
