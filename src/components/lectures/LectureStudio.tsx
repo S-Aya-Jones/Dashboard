@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Upload, Loader2, FileAudio, Trash2, Download, ChevronRight, KeyRound, Check, Sparkles } from "lucide-react";
+import { Upload, Loader2, FileAudio, Trash2, Download, ChevronRight, KeyRound, Check, Sparkles, Pencil } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LectureDetail } from "./LectureDetail";
 
@@ -111,6 +111,20 @@ export function LectureStudio() {
   const [keyState, setKeyState] = useState<{ configured: boolean; hint: string | null; provider: string | null } | null>(null);
   const [keyInput, setKeyInput] = useState("");
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [editing, setEditing] = useState<string | null>(null);
+
+  // Picking the wrong subject on upload shouldn't cost the recording.
+  const changeLecture = useCallback(async (id: string, fields: { course?: string; title?: string }) => {
+    const res = await fetch(`/api/lectures/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(fields),
+    });
+    if (res.ok) {
+      setEditing(null);
+      refreshRef.current?.();
+    }
+  }, []);
 
   // Grouped by course, numbered oldest-first within each so "Biochem 3" means
   // the third Biochem lecture and keeps meaning that as more are added.
@@ -180,6 +194,8 @@ export function LectureStudio() {
     }
   }, []);
 
+  const refreshRef = useRef<null | (() => void)>(null);
+  useEffect(() => { refreshRef.current = refresh; }, [refresh]);
   useEffect(() => { refresh(); }, [refresh]);
 
   async function processFile(file: File) {
@@ -475,8 +491,8 @@ export function LectureStudio() {
               </span>
             </div>
             {items.map(({ lecture: l, number }) => (
+              <div key={l.id} className="space-y-2">
           <motion.div
-            key={l.id}
             layout
             initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
             whileHover={{ y: -2, boxShadow: "0 6px 20px rgba(180,85,47,.13)" }}
@@ -507,6 +523,14 @@ export function LectureStudio() {
                 Resume
               </button>
             )}
+            <button
+              onClick={e => { e.stopPropagation(); setEditing(editing === l.id ? null : l.id); }}
+              className="p-2 rounded-lg"
+              style={{ color: editing === l.id ? "var(--purple)" : "var(--text-muted)" }}
+              title="Change the course or title"
+            >
+              <Pencil size={15} />
+            </button>
             {l.status === "ready" && (
               <a
                 href={`/api/lectures/${l.id}/export`}
@@ -528,6 +552,43 @@ export function LectureStudio() {
             </button>
             {l.status === "ready" && <ChevronRight size={18} style={{ color: "var(--text-muted)" }} />}
               </motion.div>
+              {editing === l.id && (
+                <div
+                  className="rounded-xl p-4 space-y-3 -mt-1"
+                  style={{ background: "var(--surface2)", border: "1px solid var(--border)" }}
+                  onClick={e => e.stopPropagation()}
+                >
+                  <div>
+                    <label className="text-xs font-semibold block mb-1.5" style={{ color: "var(--text-muted)" }}>
+                      Course
+                    </label>
+                    <select
+                      defaultValue={l.course}
+                      onChange={e => changeLecture(l.id, { course: e.target.value })}
+                    >
+                      {COURSES.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold block mb-1.5" style={{ color: "var(--text-muted)" }}>
+                      Title
+                    </label>
+                    <input
+                      type="text"
+                      defaultValue={l.title}
+                      onBlur={e => {
+                        const t = e.target.value.trim();
+                        if (t && t !== l.title) changeLecture(l.id, { title: t });
+                      }}
+                    />
+                  </div>
+                  <p className="text-[11px]" style={{ color: "var(--text-light)" }}>
+                    Changing the course moves this lecture into that group and renumbers both.
+                    The notes, questions and flashcards are untouched.
+                  </p>
+                </div>
+              )}
+              </div>
             ))}
           </div>
         ))}

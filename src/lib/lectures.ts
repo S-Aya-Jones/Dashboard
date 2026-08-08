@@ -142,7 +142,7 @@ export async function updateLecture(
   fields: Partial<{
     status: string; transcript: string; summary: string;
     outline: string; conceptMap: string; quiz: string; flashcards: string;
-    title: string; examFocus: string;
+    title: string; examFocus: string; course: string;
   }>,
 ): Promise<void> {
   const sql = db();
@@ -156,6 +156,7 @@ export async function updateLecture(
   if (fields.flashcards !== undefined) await sql`UPDATE lectures SET flashcards = ${fields.flashcards} WHERE id = ${id}`;
   if (fields.title !== undefined)      await sql`UPDATE lectures SET title = ${fields.title} WHERE id = ${id}`;
   if (fields.examFocus !== undefined)  await sql`UPDATE lectures SET exam_focus = ${fields.examFocus} WHERE id = ${id}`;
+  if (fields.course !== undefined)     await sql`UPDATE lectures SET course = ${fields.course} WHERE id = ${id}`;
 }
 
 export async function logMisses(

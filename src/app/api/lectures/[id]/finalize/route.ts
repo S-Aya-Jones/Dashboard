@@ -180,15 +180,25 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const lecture = await getLecture(params.id);
     if (!lecture) return NextResponse.json({ error: "not found" }, { status: 404 });
 
-    // Stage 1 assembles the transcript; later stages reuse the stored one
-    let transcript = lecture.transcript ?? "";
-    if (stage === "notes1" || !transcript) {
+    // Stage 1 assembles the transcript from the uploaded chunks — but only if
+    // there isn't already one stored. It used to re-read the chunks on every
+    // notes1 run regardless, which meant Resume failed with "no transcript
+    // chunks found" on a lecture whose transcript was sitting right there.
+    // That made the error's own advice ("press Resume") impossible to follow.
+    let transcript = (lecture.transcript ?? "").trim();
+    if (!transcript) {
       const chunks = await getChunkTexts(params.id);
       transcript = chunks.join("\n\n").trim();
       if (!transcript) {
-        return NextResponse.json({ error: "no transcript chunks found" }, { status: 400 });
+        return NextResponse.json(
+          { error: "No transcript found for this lecture — neither a saved transcript nor any uploaded chunks. The recording needs to be uploaded again." },
+          { status: 400 }
+        );
       }
       await updateLecture(params.id, { status: "generating", transcript });
+    } else if (stage === "notes1") {
+      // Resuming from a stored transcript: mark it running again.
+      await updateLecture(params.id, { status: "generating" });
     }
 
     // Notes are written in halves so neither call approaches the 60s cap
