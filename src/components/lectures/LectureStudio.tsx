@@ -5,6 +5,7 @@ import { Upload, Loader2, FileAudio, Trash2, Download, ChevronRight, KeyRound, C
 import { motion } from "framer-motion";
 import { LectureDetail } from "./LectureDetail";
 import { uploadSlides } from "@/lib/slidesUpload";
+import { pairDecks, isDeck, isMedia, stripExtension } from "@/lib/matchSlides";
 
 const COURSES = ["Physiology", "Biochemistry", "Microbiology", "Cell & Molecular Bio", "MCAT", "Other"];
 
@@ -128,7 +129,7 @@ function Pipeline({ phase }: { phase: Phase }) {
 
       <div className="h-1.5 rounded-full overflow-hidden mb-3" style={{ background: "var(--surface)" }}>
         <motion.div className="h-full rounded-full"
-          style={{ background: "linear-gradient(90deg,#B4552F,#ec4899)" }}
+          style={{ background: "linear-gradient(90deg,#B4552F,#D08A4A)" }}
           animate={{ width: `${((activeIdx + 1) / PIPELINE_STEPS.length) * 100}%` }}
           transition={{ type: "spring", stiffness: 90, damping: 20 }} />
       </div>
@@ -156,6 +157,9 @@ export function LectureStudio() {
   const slidesTarget = useRef<{ kind: "queue" | "lecture"; id: string } | null>(null);
   const [slidesBusy, setSlidesBusy] = useState<string | null>(null);
   const [slidesMsg, setSlidesMsg] = useState<{ id: string; text: string; bad?: boolean } | null>(null);
+  // Decks dropped in that no recording claimed. Held rather than discarded so
+  // she can point them at the right lecture herself.
+  const [looseDecks, setLooseDecks] = useState<File[]>([]);
   const [keyState, setKeyState] = useState<{ configured: boolean; hint: string | null; provider: string | null; valid: boolean | null } | null>(null);
   const [keyInput, setKeyInput] = useState("");
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -410,17 +414,55 @@ export function LectureStudio() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Recordings and slide decks can be dropped together — they're separated
+  // here and matched on filename, which is how the course posts them anyway.
   function addFiles(files: File[]) {
     if (!files.length) return;
-    const items: QueueItem[] = files.map((file, i) => ({
+
+    const media = files.filter(isMedia);
+    const decks = files.filter(isDeck);
+    const ignored = files.filter(f => !isMedia(f) && !isDeck(f));
+
+    const newItems: QueueItem[] = media.map((file, i) => ({
       key: `${Date.now()}-${i}-${file.name}`,
       file,
       course,
-      title: file.name.replace(/\.\w+$/, ""),
+      title: stripExtension(file.name),
       status: "waiting",
     }));
-    commit([...queueRef.current, ...items]);
+
+    const next = [...queueRef.current, ...newItems];
+
+    // Anything still waiting and deckless is fair game, so dropping the
+    // recordings first and the slides afterwards works the same as together.
+    const candidates = next.filter(it => it.status === "waiting" && !it.slidesFile);
+    const pool = [...looseDecks, ...decks];
+
+    const { pairs, unmatchedDecks } = pairDecks<QueueItem, File>(
+      candidates, pool, x => (x instanceof File ? x.name : x.file.name));
+
+    const deckFor: Record<string, File> = {};
+    for (const p of pairs) if (p.deck) deckFor[p.recording.key] = p.deck;
+
+    commit(next.map(it => (deckFor[it.key] ? { ...it, slidesFile: deckFor[it.key] } : it)));
+    setLooseDecks(unmatchedDecks);
+
+    if (ignored.length) {
+      setSlidesMsg({
+        id: "__drop__",
+        text: `Skipped ${ignored.map(f => f.name).join(", ")} — recordings or PDF/.pptx slides only.`,
+        bad: true,
+      });
+    }
     runQueue();
+  }
+
+  /** Point a stray deck at a specific queued recording. */
+  function assignLooseDeck(deckName: string, itemKey: string) {
+    const deck = looseDecks.find(d => d.name === deckName);
+    if (!deck) return;
+    patchItem(itemKey, { slidesFile: deck, slidesNote: undefined });
+    setLooseDecks(ds => ds.filter(d => d.name !== deckName));
   }
 
   function retryItem(key: string) {
@@ -626,7 +668,7 @@ export function LectureStudio() {
           ref={fileInput}
           type="file"
           multiple
-          accept="video/mp4,video/*,audio/*"
+          accept="video/*,audio/*,.pdf,application/pdf,.pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation"
           className="hidden"
           onChange={e => { addFiles(Array.from(e.target.files ?? [])); e.target.value = ""; }}
         />
@@ -672,12 +714,53 @@ export function LectureStudio() {
             <Upload size={32} style={{ color: "var(--purple)" }} />
           </motion.span>
           <span className="font-semibold" style={{ color: "var(--text)" }}>
-            Drop as many lecture recordings as you like
+            Drop your recordings and their slides together
           </span>
           <span className="text-xs">
-            They queue up and run one after another — you can close this page once they&apos;re all done
+            Slides are matched to recordings by filename — they queue up and run one after another
           </span>
         </motion.button>
+
+        {slidesMsg?.id === "__drop__" && (
+          <p className="text-xs mt-3" style={{ color: "var(--red)" }}>{slidesMsg.text}</p>
+        )}
+
+        {/* Decks whose filename didn't match any recording. Rather than
+            guessing, she says which lecture they belong to. */}
+        {looseDecks.length > 0 && (
+          <div className="mt-4 rounded-xl p-3 space-y-2"
+            style={{ background: "rgba(180,85,47,0.05)", border: "1px solid rgba(180,85,47,0.25)" }}>
+            <p className="text-xs font-semibold" style={{ color: "var(--text)" }}>
+              {looseDecks.length === 1 ? "This deck didn't match a recording" : "These decks didn't match a recording"}
+            </p>
+            {looseDecks.map(d => (
+              <div key={d.name} className="flex items-center gap-2 flex-wrap">
+                <Paperclip size={12} style={{ color: "var(--text-light)", flexShrink: 0 }} />
+                <span className="text-xs truncate max-w-[220px]" style={{ color: "var(--text-muted)" }}>{d.name}</span>
+                <select
+                  defaultValue=""
+                  onChange={e => { if (e.target.value) assignLooseDeck(d.name, e.target.value); }}
+                  className="rounded-lg px-2 py-1 text-xs"
+                  style={{ background: "var(--surface)", border: "1px solid var(--border)", color: "var(--text)" }}
+                >
+                  <option value="">Belongs to…</option>
+                  {queue.filter(it => it.status === "waiting").map(it => (
+                    <option key={it.key} value={it.key}>{it.title}</option>
+                  ))}
+                </select>
+                <button onClick={() => setLooseDecks(ds => ds.filter(x => x.name !== d.name))}
+                  className="text-xs underline" style={{ color: "var(--text-light)" }}>
+                  discard
+                </button>
+              </div>
+            ))}
+            {!queue.some(it => it.status === "waiting") && (
+              <p className="text-[11px]" style={{ color: "var(--text-light)" }}>
+                Drop the matching recording and these will attach to it.
+              </p>
+            )}
+          </div>
+        )}
 
         {/* The batch */}
         {queue.length > 0 && (

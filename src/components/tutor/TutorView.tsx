@@ -28,8 +28,15 @@ interface Material {
   missCount: number;
 }
 
-export function TutorView({ compact = false }: { compact?: boolean } = {}) {
-  const [course, setCourse]   = useState(COURSES[0]);
+export function TutorView({
+  compact = false,
+  course: courseProp,
+  lectureId: lectureIdProp,
+}: { compact?: boolean; course?: string; lectureId?: string } = {}) {
+  // Seeded from whatever study view is open, so the dock starts on the right
+  // material rather than on the first course in the list.
+  const [course, setCourse]   = useState(
+    courseProp && COURSES.includes(courseProp) ? courseProp : COURSES[0]);
   const [lectureId, setLectureId] = useState("");
   const [mode, setMode]       = useState<Mode>("explain");
   const [material, setMaterial] = useState<Material | null>(null);
@@ -39,12 +46,32 @@ export function TutorView({ compact = false }: { compact?: boolean } = {}) {
   const [err, setErr]         = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
+  // The lecture the page is showing. Held in a ref because changing course
+  // clears the selection, and the reselect has to happen after the new
+  // course's lectures have actually loaded.
+  const wantLecture = useRef<string | undefined>(lectureIdProp);
+  useEffect(() => {
+    wantLecture.current = lectureIdProp;
+    if (lectureIdProp) setLectureId(lectureIdProp);
+  }, [lectureIdProp]);
+
+  useEffect(() => {
+    if (courseProp && COURSES.includes(courseProp)) setCourse(courseProp);
+  }, [courseProp]);
+
   useEffect(() => {
     setMaterial(null);
     setLectureId("");
     fetch(`/api/tutor?course=${encodeURIComponent(course)}`, { cache: "no-store" })
       .then((r) => r.json())
-      .then((d) => { if (!d.error) setMaterial(d); })
+      .then((d) => {
+        if (d.error) return;
+        setMaterial(d);
+        const want = wantLecture.current;
+        if (want && (d.lectures ?? []).some((l: { id: string }) => l.id === want)) {
+          setLectureId(want);
+        }
+      })
       .catch(() => {});
   }, [course]);
 

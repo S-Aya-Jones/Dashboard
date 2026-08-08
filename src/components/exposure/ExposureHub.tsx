@@ -129,7 +129,7 @@ function Ladder({ ladder, onLog, reload }: {
 
       {nextStep && (
         <motion.div layout className="rounded-2xl p-5 relative overflow-hidden"
-          style={{ background: "linear-gradient(135deg,#B4552F,#a855f7)", color: "white" }}>
+          style={{ background: "linear-gradient(135deg,#B4552F,#C06A38)", color: "white" }}>
           <div className="text-[10px] font-bold uppercase tracking-wider opacity-85">Your next step</div>
           <div className="font-serif text-xl mt-1">{nextStep.title}</div>
           {nextStep.detail && <p className="text-sm opacity-90 mt-1">{nextStep.detail}</p>}
