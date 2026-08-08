@@ -55,6 +55,8 @@ export interface LectureRow {
   title: string;
   status: string;
   chunksExpected: number | null;
+  /** Chunks actually transcribed and saved. Only populated by listLectures. */
+  chunksDone: number;
   transcript: string | null;
   summary: string | null;
   outline: string | null;
@@ -73,6 +75,7 @@ function fromRow(r: Record<string, unknown>): LectureRow {
     title: r.title as string,
     status: r.status as string,
     chunksExpected: (r.chunks_expected as number) ?? null,
+    chunksDone: Number(r.chunks_done ?? 0),
     transcript: (r.transcript as string) ?? null,
     summary: (r.summary as string) ?? null,
     outline: (r.outline as string) ?? null,
@@ -99,11 +102,15 @@ export async function createLecture(course: string, title: string, chunksExpecte
 export async function listLectures(): Promise<LectureRow[]> {
   await ensureLectureTables();
   const sql = db();
+  // chunks_done lets the list say whether anything was actually captured — a
+  // lecture stuck at 'transcribing' with zero chunks has nothing to resume from,
+  // and telling her otherwise sends her to a button that cannot work.
   const rows = await sql`
-    SELECT id, course, title, status, chunks_expected, summary, created_at,
+    SELECT l.id, l.course, l.title, l.status, l.chunks_expected, l.summary, l.created_at,
            NULL as transcript, NULL as outline, NULL as concept_map, NULL as quiz,
-           NULL as flashcards, NULL as exam_focus, share_token
-    FROM lectures ORDER BY created_at DESC LIMIT 100
+           NULL as flashcards, NULL as exam_focus, l.share_token,
+           (SELECT COUNT(*) FROM lecture_chunks c WHERE c.lecture_id = l.id)::int AS chunks_done
+    FROM lectures l ORDER BY l.created_at DESC LIMIT 100
   `;
   return rows.map(fromRow);
 }

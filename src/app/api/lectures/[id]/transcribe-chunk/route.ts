@@ -27,6 +27,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     await saveChunkText(params.id, Number(index), text);
     return NextResponse.json({ ok: true, index: Number(index), chars: text.length });
   } catch (e) {
-    return NextResponse.json({ error: String(e).slice(0, 400) }, { status: 502 });
+    const raw = String(e);
+    // A revoked or rotated key is the common failure here, and the provider's
+    // reply is a wall of JSON with the key echoed back into it. Say the one
+    // thing she can act on instead.
+    if (/\b401\b|invalid_api_key|Incorrect API key/i.test(raw)) {
+      return NextResponse.json(
+        { error: "Your transcription key was rejected — it's been rotated or revoked. Paste a current key in Settings, then upload the recording again." },
+        { status: 401 },
+      );
+    }
+    return NextResponse.json({ error: raw.slice(0, 400) }, { status: 502 });
   }
 }

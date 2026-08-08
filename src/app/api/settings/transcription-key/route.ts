@@ -6,12 +6,22 @@ export const dynamic = "force-dynamic";
 
 const NAME = "TRANSCRIPTION_API_KEY";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const status = await appKeyStatus(NAME);
   const key = await getAppKey(NAME);
+
+  // A stored key is not a working key — it can be rotated or revoked at the
+  // provider long after it was saved. Callers that are about to rely on it ask
+  // for ?verify=1 so the UI reports what the provider actually says.
+  let valid: boolean | null = null;
+  if (key && req.nextUrl.searchParams.get("verify")) {
+    valid = (await verifyKey(key)).ok;
+  }
+
   return NextResponse.json({
     ...status,
     provider: key ? detectProvider(key) : null,
+    valid,
   });
 }
 
