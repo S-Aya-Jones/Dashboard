@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cronAuthorized } from "@/lib/cronAuth";
 import Anthropic from "@anthropic-ai/sdk";
 import { sendTelegram } from "@/lib/telegram";
 import {
@@ -31,7 +32,11 @@ function fmtEventDate(iso: string): string {
   return `${dateStr} at ${timeStr}`;
 }
 
-export async function GET(_req: NextRequest) {
+export async function GET(req: NextRequest) {
+  if (!cronAuthorized(req)) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
   try {
     // 0. 1-hour alerts — fire before anything else
     const oneHourEvents = await getEventsComingIn1Hour();

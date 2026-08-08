@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cronAuthorized } from "@/lib/cronAuth";
 import { loadData } from "@/lib/db";
 import { sendTelegram } from "@/lib/telegram";
 import { sendPushNotification } from "@/lib/push";
@@ -8,6 +9,10 @@ export const dynamic = "force-dynamic";
 // Fires at 7:55pm Central — the hand-off from study blocks into the
 // skincare hour (8–9pm) that closes the day before 9pm lights-out.
 export async function GET(req: NextRequest) {
+  if (!cronAuthorized(req)) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
   const auth = req.headers.get("authorization");
   if (process.env.CRON_SECRET && auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ ok: false }, { status: 401 });

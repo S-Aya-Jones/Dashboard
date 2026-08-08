@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cronAuthorized } from "@/lib/cronAuth";
 import Anthropic from "@anthropic-ai/sdk";
 import { loadData } from "@/lib/db";
 import { sendTelegram } from "@/lib/telegram";
@@ -9,6 +10,10 @@ export const dynamic = "force-dynamic";
 const client = new Anthropic();
 
 export async function GET(req: NextRequest) {
+  if (!cronAuthorized(req)) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
   const auth = req.headers.get("authorization");
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
