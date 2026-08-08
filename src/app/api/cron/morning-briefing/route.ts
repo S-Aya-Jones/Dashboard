@@ -1,0 +1,342 @@
+import { NextRequest, NextResponse } from "next/server";
+import Anthropic from "@anthropic-ai/sdk";
+import { loadData } from "@/lib/db";
+import { getAuthedClient } from "@/lib/google";
+import { google } from "googleapis";
+import { getPlaidClient, getPlaidItems, decryptToken } from "@/lib/plaid";
+import { sendTelegram } from "@/lib/telegram";
+import { sendPushNotification } from "@/lib/push";
+import { getActionableEmails, getUpcomingEvents } from "@/lib/gmail";
+
+export const dynamic = "force-dynamic";
+
+const client = new Anthropic();
+
+async function getAccounts() {
+  try {
+    const items = await getPlaidItems("aya");
+    if (!items.length) return [];
+    const plaid = getPlaidClient();
+    const all = [];
+    for (const item of items) {
+      try {
+        const token = decryptToken(item.access_token_enc);
+        const resp = await plaid.accountsGet({ access_token: token });
+        for (const acc of resp.data.accounts) {
+          all.push({
+            name: acc.name,
+            type: acc.type,
+            subtype: acc.subtype,
+            current: acc.balances.current,
+            available: acc.balances.available,
+            limit: acc.balances.limit,
+          });
+        }
+      } catch { /* skip failed items */ }
+    }
+    return all;
+  } catch { return []; }
+}
+
+async function getRecentTransactions() {
+  try {
+    const items = await getPlaidItems("aya");
+    if (!items.length) return [];
+    const plaid = getPlaidClient();
+    const all = [];
+    const since = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+    const today = new Date().toISOString().slice(0, 10);
+    for (const item of items) {
+      try {
+        const token = decryptToken(item.access_token_enc);
+        const resp = await plaid.transactionsGet({
+          access_token: token,
+          start_date: since,
+          end_date: today,
+          options: { count: 100 },
+        });
+        for (const tx of resp.data.transactions) {
+          if (tx.amount > 0) { // positive = money out
+            all.push({
+              name: tx.name,
+              amount: tx.amount,
+              date: tx.date,
+              category: tx.personal_finance_category?.primary ?? tx.category?.[0] ?? "OTHER",
+            });
+          }
+        }
+      } catch { /* skip */ }
+    }
+    return all.sort((a, b) => b.date.localeCompare(a.date));
+  } catch { return []; }
+}
+
+async function getTodayCalendarEvents() {
+  try {
+    if (!process.env.GOOGLE_REFRESH_TOKEN) return [];
+    const auth = await getAuthedClient();
+    const calendar = google.calendar({ version: "v3", auth });
+    const now = new Date();
+    const sevenDaysOut = new Date(Date.now() + 7 * 86400000);
+    const resp = await calendar.events.list({
+      calendarId: "primary",
+      timeMin: now.toISOString(),
+      timeMax: sevenDaysOut.toISOString(),
+      maxResults: 15,
+      singleEvents: true,
+      orderBy: "startTime",
+    });
+    return (resp.data.items ?? []).map(e => ({
+      title: e.summary ?? "(no title)",
+      start: e.start?.dateTime ?? e.start?.date,
+      allDay: !e.start?.dateTime,
+      location: e.location,
+      isToday: e.start?.dateTime
+        ? new Date(e.start.dateTime).toDateString() === now.toDateString()
+        : false,
+    }));
+  } catch { return []; }
+}
+
+async function getImportantEmails() {
+  try {
+    if (!process.env.GOOGLE_REFRESH_TOKEN) return [];
+    const auth = await getAuthedClient();
+    const gmail = google.gmail({ version: "v1", auth });
+    const list = await gmail.users.threads.list({
+      userId: "me",
+      q: "in:inbox is:unread",
+      maxResults: 20,
+    });
+    const threads = list.data.threads ?? [];
+    const summaries = [];
+    for (const t of threads.slice(0, 10)) {
+      try {
+        const detail = await gmail.users.threads.get({
+          userId: "me", id: t.id!, format: "metadata",
+          metadataHeaders: ["Subject", "From", "Date"],
+        });
+        const msg = detail.data.messages?.[0];
+        const headers = msg?.payload?.headers ?? [];
+        const get = (name: string) => headers.find(h => h.name === name)?.value ?? "";
+        summaries.push({
+          subject: get("Subject") || "(no subject)",
+          from: get("From"),
+          snippet: detail.data.snippet ?? "",
+        });
+      } catch { /* skip */ }
+    }
+    return summaries;
+  } catch { return []; }
+}
+
+export async function GET(req: NextRequest) {
+  // Verify cron secret
+  const auth = req.headers.get("authorization");
+  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const [data, accounts, transactions, calendarEvents, emails, emailIntel, upcomingEvents] = await Promise.all([
+      loadData(),
+      getAccounts(),
+      getRecentTransactions(),
+      getTodayCalendarEvents(),
+      getImportantEmails(),
+      getActionableEmails().catch(() => ({ deadlines: [], health: [], bills: [], action: [] })),
+      getUpcomingEvents(14).catch(() => []),
+    ]);
+
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+
+    // 75 Hard status
+    const h75 = data.seventyFiveHard;
+    const startDate = h75?.startDate ?? "2026-06-14";
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+    const todayD = new Date(); todayD.setHours(0, 0, 0, 0);
+    const dayNum = Math.max(1, Math.floor((todayD.getTime() - start.getTime()) / 86400000) + 1);
+    const yesterdayLog = h75?.logs.find(l => l.date === yesterday);
+    const todayLog = h75?.logs.find(l => l.date === today);
+
+    // Sleep
+    const lastSleep = data.sleepLogs?.slice(-1)[0];
+
+    // Steps
+    const walkingLogs = data.workout?.walkingLogs ?? [];
+    const yesterdaySteps = walkingLogs.find(l => l.date === yesterday)?.steps;
+
+    // Weight
+    const weights = data.workout?.bodyWeight ?? [];
+    const latestWeight = weights.slice(-1)[0];
+
+    // MCAT study sessions this week
+    const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+    const recentStudy = (data.studySessions ?? []).filter(s => s.date >= weekAgo);
+    const studyTimerThisWeek = (data.studyTimerLogs ?? [])
+      .filter(l => l.date >= weekAgo)
+      .reduce((sum, l) => sum + Math.round((l.durationSeconds ?? 0) / 60), 0);
+
+    // Budget categories
+    const budgetCategories = data.budgetCategories ?? [];
+    const categorySpend: Record<string, number> = {};
+    const thisMonth = today.slice(0, 7);
+    for (const tx of transactions) {
+      if (tx.date.startsWith(thisMonth)) {
+        const cat = tx.category;
+        categorySpend[cat] = (categorySpend[cat] ?? 0) + tx.amount;
+      }
+    }
+
+    const overBudget = budgetCategories
+      .filter(bc => categorySpend[bc.category] > bc.monthlyLimit)
+      .map(bc => ({
+        category: bc.category,
+        spent: categorySpend[bc.category],
+        limit: bc.monthlyLimit,
+        over: categorySpend[bc.category] - bc.monthlyLimit,
+      }));
+
+    // Checking balance
+    const checkingAccount = accounts.find(a => a.type === "depository" && a.subtype === "checking");
+    const savingsAccount = accounts.find(a => a.type === "depository" && a.subtype === "savings");
+    const creditAccounts = accounts.filter(a => a.type === "credit");
+
+    // Upcoming bills (next 7 days)
+    const todayDay = new Date().getDate();
+    const upcomingBills = (data.recurringBills ?? []).filter(b => {
+      const diff = b.dayOfMonth - todayDay;
+      return diff >= 0 && diff <= 7;
+    });
+
+    // Build context for Claude
+    const context = {
+      today,
+      dayOfWeek: new Date().toLocaleDateString("en-US", { weekday: "long" }),
+      "75hard": {
+        dayNumber: dayNum,
+        active: todayD >= start,
+        yesterdayCompleted: yesterdayLog ? {
+          workout: yesterdayLog.workout,
+          steps: yesterdayLog.steps,
+          water: yesterdayLog.water,
+          mcat: yesterdayLog.mcat,
+          progressPhoto: yesterdayLog.progressPhoto,
+          diet: yesterdayLog.diet,
+          exposureTherapy: yesterdayLog.exposureTherapy,
+        } : null,
+        todayStarted: todayLog ? Object.values(todayLog).some(v => v === true) : false,
+      },
+      health: {
+        lastSleepQuality: lastSleep?.quality,
+        lastSleepHours: lastSleep && lastSleep.wakeTime && lastSleep.bedtime
+          ? (() => {
+              const [bh, bm] = lastSleep.bedtime.split(":").map(Number);
+              const [wh, wm] = lastSleep.wakeTime.split(":").map(Number);
+              const hours = (wh + (wm / 60)) - (bh + (bm / 60));
+              return hours < 0 ? hours + 24 : hours;
+            })()
+          : null,
+        yesterdaySteps,
+        latestWeight: latestWeight?.weight,
+      },
+      finances: {
+        checkingBalance: checkingAccount?.available ?? checkingAccount?.current,
+        savingsBalance: savingsAccount?.current,
+        creditCards: creditAccounts.map(a => ({
+          name: a.name,
+          balance: Math.abs(a.current ?? 0),
+          limit: a.limit,
+          utilization: a.limit ? Math.round((Math.abs(a.current ?? 0) / a.limit) * 100) : null,
+        })),
+        overBudgetCategories: overBudget,
+        upcomingBills,
+        recentLargeSpends: transactions.filter(t => t.amount > 50).slice(0, 5),
+      },
+      mcat: {
+        studySessionsThisWeek: recentStudy.length,
+        studyMinutesThisWeek: studyTimerThisWeek,
+        testDate: data.mcatTestDate,
+        daysSinceLastSession: (() => {
+          const all = [...(data.studySessions ?? []), ...(data.studyTimerLogs ?? [])]
+            .map(s => s.date).sort().reverse();
+          if (!all.length) return null;
+          const last = new Date(all[0]);
+          return Math.floor((Date.now() - last.getTime()) / 86400000);
+        })(),
+      },
+      calendar: {
+        todayEvents: calendarEvents,
+      },
+      email: {
+        unreadCount: emails.length,
+        importantEmails: emails.slice(0, 3),
+        emailDeadlines: emailIntel.deadlines.slice(0, 5).map(e => ({ subject: e.subject, due: e.deadlineAt })),
+        appointmentsThisWeek: emailIntel.health.slice(0, 3).map(e => ({ subject: e.subject, from: e.senderName, preview: e.bodyPreview?.slice(0, 80) })),
+        billsDue: emailIntel.bills.slice(0, 3).map(e => ({ subject: e.subject, from: e.senderName })),
+        needsAction: emailIntel.action.slice(0, 3).map(e => ({ subject: e.subject, from: e.senderName })),
+        upcomingDeadlines: upcomingEvents.slice(0, 8).map(e => ({
+          type:   e.eventType,
+          title:  e.title,
+          from:   e.sourceSender,
+          when:   new Date(e.eventDate).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" }),
+          daysAway: Math.round((new Date(e.eventDate).getTime() - Date.now()) / 86400000),
+        })),
+      },
+    };
+
+    const systemPrompt = `You are Aya's personal AI assistant delivering her morning briefing via Telegram. Aya is a master's (MHS) student at Meharry Medical College on a pre-med track, working full-time 7:00–2:30. Her classes stream synchronously 8am–12pm: Mon/Wed = Biochemistry (8–10) then Physiology (10–12); Tue/Thu = CMB (8–10) then Microbiology (10–12); Friday has no classes. She takes 4 courses: Microbiology, Cell & Molecular Biology (CMB), Physiology, and Biochemistry.
+
+Her daily system: gym at 5:15am (Mon/Tue/Thu/Fri), heights exposure doses at her 10am and 1:30 work breaks, home by 3, study Block 1 at 5:00 and Block 2 at 7:00, skincare hour at 8, lights out at 9. Wednesday is WFH: MCAT block at 5:15am, therapy at lunch, light study only. Friday evenings are for Deandra. Saturday: shadowing, then a major driving-exposure session. Sunday: church, cooking, week planning at 7pm.
+
+Your job: write a concise, warm, intelligent morning briefing that feels like it came from someone who KNOWS her life — not a generic bot.
+
+Format rules:
+- Start with "Good morning Aya —"
+- Plain text — no markdown asterisks, no bullet symbols
+- Use line breaks to separate sections
+- Be specific — use actual numbers, actual names, actual dates
+- If there's a quiz or exam within 7 days, flag it prominently with the course name and date — tonight's study blocks should target the nearest assessments
+- If something needs her attention, call it out directly (deadline, appointment, bill due)
+- End with one sharp motivational line specific to where she is right now
+- Keep it under 300 words total
+- Sections: Sleep/Health → School (upcoming exams/quizzes + tonight's focus) → Money → MCAT → Calendar → Inbox intel → Closing
+
+Tone: warm, direct, like a brilliant friend who has full context on her life. Not corporate. Not generic.`;
+
+    const msg = await client.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 600,
+      system: systemPrompt,
+      messages: [{ role: "user", content: JSON.stringify(context) }],
+    });
+
+    const briefing = msg.content[0].type === "text" ? msg.content[0].text : "Good morning Aya! Your morning briefing had a hiccup — check your dashboard.";
+
+    // Send via Telegram
+    await sendTelegram(briefing);
+
+    // Save to SMS log for dashboard history
+    const phone = process.env.USER_PHONE_NUMBER ?? "6156811609";
+    const sms = data.sms ?? { phoneNumber: phone, enabled: true, messages: [], reminders: [] };
+    sms.messages = [...(sms.messages ?? []), {
+      id: `briefing-${Date.now()}`,
+      direction: "outbound" as const,
+      body: briefing,
+      timestamp: new Date().toISOString(),
+    }];
+    data.sms = sms;
+
+    await sendPushNotification(data, "Morning Briefing", briefing);
+
+    const { saveData } = await import("@/lib/db");
+    await saveData(data);
+
+    return NextResponse.json({ success: true, briefing });
+  } catch (e) {
+    console.error("Morning briefing error:", e);
+    return NextResponse.json({ error: String(e) }, { status: 500 });
+  }
+}

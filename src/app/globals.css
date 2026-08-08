@@ -5,12 +5,52 @@
 @tailwind utilities;
 
 :root {
-  --cream: #0A0A0A;
-  --brown: #FFFFFF;
-  --terracotta: #C8FF00;
-  --sage: #9B7FFF;
-  --rose: #FF6B9D;
-  --sand: rgba(255,255,255,0.35);
+  --bg:          #FAF6F1;
+  --bg2:         #F2EBE3;
+  --surface:     rgba(255,253,251,0.88);
+  --surface-solid: #FFFDFB;
+  --surface2:    #F7F2EC;
+  --border:      rgba(28,22,19,0.10);
+  --border2:     rgba(28,22,19,0.18);
+  --text:        #1C1613;
+  --text-muted:  #6B5D53;
+  --text-light:  #9C8D81;
+  /* Names kept for compatibility — values are the new warm system */
+  --purple:      #B4552F;   /* clay: primary accent */
+  --purple-lt:   #D07A4F;
+  --pink:        #C9855F;
+  --peach:       #E0A44A;   /* gold */
+  --green:       #3F6F5E;   /* deep sage */
+  --red:         #B23A2E;
+  --amber:       #D9922E;
+  --clay:        #B4552F;
+  --gold:        #E0A44A;
+  --sage:        #3F6F5E;
+  --espresso:    #2A211C;
+  /* Layered shadows read as real depth; a single blur reads as a smudge */
+  --shadow:      0 1px 2px rgba(28,22,19,.06), 0 4px 14px rgba(28,22,19,.07);
+  --shadow-md:   0 2px 4px rgba(28,22,19,.06), 0 10px 30px rgba(28,22,19,.10);
+  --shadow-lg:   0 4px 8px rgba(28,22,19,.07), 0 24px 60px rgba(28,22,19,.16);
+  --glass:       blur(18px) saturate(150%);
+  --grad:        linear-gradient(135deg, #B4552F 0%, #E0A44A 100%);
+  --grad-peach:  linear-gradient(135deg, #C9855F 0%, #E0A44A 100%);
+  --grad-soft:   linear-gradient(135deg, #FAF6F1 0%, #F2EBE3 100%);
+  --grad-deep:   linear-gradient(135deg, #2A211C 0%, #4A342A 55%, #B4552F 100%);
+
+  /* Raw channels for the Tailwind palette. Utilities resolve these through
+     rgb(var(--c-x) / <alpha-value>), so text-brown/60 still works AND the
+     colour flips with the theme — a static hex in tailwind.config could only
+     ever do one of those. */
+  --c-text:       28 22 19;
+  --c-text-muted: 107 93 83;
+  --c-text-light: 156 141 129;
+  --c-surface:    255 253 251;
+  --c-bg:         250 246 241;
+  --c-bg2:        242 235 227;
+  --c-clay:       180 85 47;
+  --c-gold:       224 164 74;
+  --c-sage:       63 111 94;
+  --c-red:        178 58 46;
 }
 
 * {
@@ -22,21 +62,52 @@ html {
 }
 
 body {
-  background-color: #0A0A0A;
-  color: #FFFFFF;
+  background-color: var(--bg);
+  /* Soft mesh gives the page depth without competing with content */
+  background-image:
+    radial-gradient(at 10% 2%,  rgba(180,85,47,.11)  0px, transparent 52%),
+    radial-gradient(at 92% 6%,  rgba(224,164,74,.13) 0px, transparent 48%),
+    radial-gradient(at 68% 96%, rgba(63,111,94,.08)  0px, transparent 46%);
+  background-attachment: fixed;
+  color: var(--text);
   font-family: 'Inter', system-ui, sans-serif;
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
 }
 
 h1, h2, h3 {
   font-family: 'Space Grotesk', system-ui, sans-serif;
   font-weight: 600;
+  letter-spacing: -0.022em;
+  color: var(--text);
+}
+h1 { letter-spacing: -0.032em; }
+
+/* Frosted card — the premium surface treatment used across the app */
+.glass {
+  background: var(--surface);
+  backdrop-filter: var(--glass);
+  -webkit-backdrop-filter: var(--glass);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
 }
 
+/* Gradient text for headline moments */
+.grad-text {
+  background: var(--grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Cards lift on hover — small, consistent, everywhere */
+.lift { transition: transform .18s ease, box-shadow .18s ease; }
+.lift:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #111111; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: rgba(180,85,47,0.28); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(180,85,47,0.5); }
 
 @keyframes checkPop {
   0% { transform: scale(0.8); }
@@ -69,58 +140,91 @@ h1, h2, h3 {
   100% { transform: translateX(-50%); }
 }
 
+@keyframes floatUp {
+  0%   { transform: translateY(0px); }
+  50%  { transform: translateY(-6px); }
+  100% { transform: translateY(0px); }
+}
+
 .animate-marquee {
   animation: marquee 50s linear infinite;
+}
+
+.animate-float {
+  animation: floatUp 4s ease-in-out infinite;
 }
 
 .checkbox-checked {
   animation: checkPop 0.25s ease-out;
 }
 
+/* ── Card system ─────────────────────────────────────────── */
 .card {
-  background: #141414;
-  border-radius: 1rem;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.4);
-  border: 1px solid rgba(255,255,255,0.06);
-  transition: box-shadow 0.2s ease;
+  background: var(--surface);
+  border-radius: 1.25rem;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
 }
 
 .card:hover {
-  box-shadow: 0 6px 32px rgba(0,0,0,0.5);
-  border-color: rgba(255,255,255,0.12);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
 }
 
-input[type="text"],
+.card-floating {
+  background: var(--surface);
+  border-radius: 1.25rem;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border);
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+.card-floating:hover {
+  box-shadow: 0 20px 60px rgba(180,85,47,0.22);
+  transform: translateY(-4px);
+}
+
+.card-gradient {
+  background: var(--grad);
+  border-radius: 1.25rem;
+  box-shadow: var(--shadow-md);
+  border: none;
+  color: #fff;
+}
+
+/* ── Inputs ──────────────────────────────────────────────── */
+:where(input[type="text"],
 input[type="number"],
 input[type="date"],
 textarea,
-select {
-  background: #1C1C1C;
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 0.5rem;
+select) {
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: 0.625rem;
   padding: 0.5rem 0.75rem;
   font-family: 'Inter', sans-serif;
   font-size: 0.875rem;
-  color: #FFFFFF;
-  transition: border-color 0.2s;
+  color: var(--text);
+  transition: border-color 0.2s, box-shadow 0.2s;
   outline: none;
   width: 100%;
 }
 
-input[type="text"]:focus,
-input[type="number"]:focus,
-input[type="date"]:focus,
-textarea:focus,
-select:focus {
-  border-color: #9B7FFF;
-  box-shadow: 0 0 0 3px rgba(155,127,255,0.15);
+:where(input[type="text"],
+input[type="number"],
+input[type="date"],
+textarea,
+select):focus {
+  border-color: var(--purple);
+  box-shadow: 0 0 0 3px rgba(180,85,47,0.15);
 }
 
 input::placeholder, textarea::placeholder {
-  color: rgba(255,255,255,0.3);
+  color: var(--text-light);
 }
 
-/* Vision Board masonry */
+/* ── Vision Board masonry ────────────────────────────────── */
 .masonry-grid {
   columns: 2;
   column-gap: 0.75rem;
@@ -137,10 +241,202 @@ input::placeholder, textarea::placeholder {
   display: block;
 }
 
+/* ── Pill / badge helpers ────────────────────────────────── */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.pill-purple {
+  background: rgba(180,85,47,0.12);
+  color: var(--purple);
+}
+
+.pill-pink {
+  background: rgba(232,121,249,0.12);
+  color: var(--pink);
+}
+
+.pill-peach {
+  background: rgba(251,146,60,0.12);
+  color: var(--peach);
+}
+
+.pill-green {
+  background: rgba(16,185,129,0.12);
+  color: var(--green);
+}
+
+.pill-red {
+  background: rgba(239,68,68,0.12);
+  color: var(--red);
+}
+
+/* ── Gradient text ───────────────────────────────────────── */
+.grad-text {
+  background: var(--grad);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
 #confetti-canvas {
   position: fixed;
   top: 0; left: 0;
   width: 100%; height: 100%;
   pointer-events: none;
   z-index: 9999;
+}
+
+.text-dark { color: var(--text); }
+
+
+/* ── Dark theme ─────────────────────────────────────────────────────────────
+   Deep plum rather than grey — keeps her identity instead of going generic. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:            #14100D;
+    --bg2:           #1D1713;
+    --surface:       rgba(38, 30, 25, 0.80);
+    --surface-solid: #261E19;
+    --surface2:      #2E251F;
+    --border:        rgba(224,164,74,0.16);
+    --border2:       rgba(224,164,74,0.30);
+    --text:          #F7F1EA;
+    --text-muted:    #B7A597;
+    --text-light:    #8A7A6C;
+    --purple:        #E0A44A;
+    --shadow:        0 1px 2px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.35);
+    --shadow-md:     0 2px 6px rgba(0,0,0,.45), 0 12px 34px rgba(0,0,0,.45);
+    --shadow-lg:     0 6px 14px rgba(0,0,0,.5),  0 28px 70px rgba(0,0,0,.55);
+    --grad-soft:     linear-gradient(135deg, #1D1713 0%, #14100D 100%);
+
+    --c-text:       247 241 234;
+    --c-text-muted: 183 165 151;
+    --c-text-light: 138 122 108;
+    --c-surface:    38 30 25;
+    --c-bg:         20 16 13;
+    --c-bg2:        29 23 19;
+    --c-clay:       224 164 74;   /* the accent warms to gold on dark */
+    --c-gold:       224 164 74;
+    --c-sage:       143 179 162;
+    --c-red:        224 136 120;
+  }
+  body {
+    background-image:
+      radial-gradient(at 8% 2%,   rgba(180,85,47,.20)  0px, transparent 52%),
+      radial-gradient(at 94% 4%,  rgba(224,164,74,.14) 0px, transparent 46%),
+      radial-gradient(at 66% 96%, rgba(63,111,94,.10)  0px, transparent 44%);
+  }
+  ::-webkit-scrollbar-track { background: var(--bg2); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+
+/* ── Editorial surfaces ─────────────────────────────────────────────────────
+   The reference shots get their richness from layered gradient art and depth,
+   not photography — photos in a tool you use at 5am just slow it down. These
+   are the pieces that give a card presence. */
+
+/* Hero card: deep gradient with a soft light source and a grain overlay so it
+   reads as a printed surface rather than a flat CSS rectangle. */
+.hero-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 26px;
+  background:
+    radial-gradient(120% 140% at 8% -10%, rgba(255,255,255,.28) 0%, transparent 45%),
+    var(--grad);
+  color: #fff;
+  box-shadow: var(--shadow-lg);
+  isolation: isolate;
+}
+.hero-card::after {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  opacity: .16;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'>\
+<filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/></filter>\
+<rect width='140' height='140' filter='url(%23n)' opacity='.5'/></svg>");
+}
+
+/* A soft colour bloom to drop behind sections that need lift */
+.bloom { position: relative; }
+.bloom::before {
+  content: "";
+  position: absolute;
+  inset: -18% -12% auto -12%;
+  height: 62%;
+  z-index: -1;
+  border-radius: 50%;
+  filter: blur(56px);
+  opacity: .5;
+  background: radial-gradient(closest-side, rgba(180,85,47,.42), transparent 72%);
+}
+
+/* Section headers that don't shout in all-caps */
+.section-title {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-size: 1.02rem;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  color: var(--text);
+}
+.section-kicker {
+  font-size: .66rem;
+  font-weight: 800;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--text-light);
+}
+
+/* Number display — tabular so columns of money line up */
+.stat {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+
+/* ── Photographic surfaces ──────────────────────────────────────────────────
+   A photo behind a hero needs a scrim or the type dies. This pairs any image
+   with a warm gradient veil and keeps contrast honest. */
+.photo-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 26px;
+  background-size: cover;
+  background-position: center;
+  color: #fff;
+  box-shadow: var(--shadow-lg);
+  isolation: isolate;
+}
+.photo-hero::before {
+  content: "";
+  position: absolute; inset: 0; z-index: 0;
+  background:
+    linear-gradient(180deg, rgba(28,22,19,.15) 0%, rgba(28,22,19,.72) 62%, rgba(28,22,19,.88) 100%),
+    linear-gradient(115deg, rgba(180,85,47,.42) 0%, transparent 58%);
+}
+.photo-hero > * { position: relative; z-index: 1; }
+
+/* Duotone treatment so mixed photography still looks like one set */
+.duotone { filter: sepia(.18) saturate(1.06) contrast(1.04); }
+
+/* Rounded image frame with a warm inner edge */
+.framed {
+  border-radius: 18px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.10), var(--shadow);
+  object-fit: cover;
 }
