@@ -110,6 +110,7 @@ export function LectureStudio() {
   const fileInput = useRef<HTMLInputElement>(null);
   const [keyState, setKeyState] = useState<{ configured: boolean; hint: string | null; provider: string | null } | null>(null);
   const [keyInput, setKeyInput] = useState("");
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Grouped by course, numbered oldest-first within each so "Biochem 3" means
   // the third Biochem lecture and keeps meaning that as more are added.
@@ -168,8 +169,15 @@ export function LectureStudio() {
     try {
       const res = await fetch("/api/lectures");
       const data = await res.json();
-      if (data.lectures) setLectures(data.lectures);
-    } catch { /* offline */ }
+      if (!res.ok) throw new Error(String(data.error ?? "Couldn't load your lectures"));
+      setLectures(data.lectures ?? []);
+      setLoadError(null);
+    } catch (e) {
+      // Falling through to the empty state here would say "No lectures yet"
+      // over a library that is sitting safely in the database — which reads
+      // as data loss when it is only a failure to read.
+      setLoadError(e instanceof Error ? e.message : "Couldn't load your lectures");
+    }
   }, []);
 
   useEffect(() => { refresh(); }, [refresh]);
@@ -432,9 +440,32 @@ export function LectureStudio() {
             </a>
           </div>
         )}
-        {lectures.length === 0 && (
+        {loadError ? (
+          <div
+            className="rounded-2xl p-5"
+            style={{ background: "var(--surface)", border: "1.5px solid var(--red)" }}
+          >
+            <p className="font-semibold text-sm" style={{ color: "var(--red)" }}>
+              Couldn&apos;t reach the database — your lectures are safe
+            </p>
+            <p className="text-sm mt-2 leading-relaxed" style={{ color: "var(--text-muted)" }}>
+              Nothing has been deleted. They&apos;re stored on the server and will be
+              here as soon as the connection is back.
+              {/^.*402.*$/.test(loadError) || loadError.includes("quota")
+                ? " The database is over its data transfer quota."
+                : ""}
+            </p>
+            <button
+              onClick={refresh}
+              className="mt-3 text-xs font-semibold px-4 py-2 rounded-xl"
+              style={{ background: "var(--text)", color: "var(--surface)" }}
+            >
+              Try again
+            </button>
+          </div>
+        ) : lectures.length === 0 ? (
           <p className="text-sm" style={{ color: "var(--text-muted)" }}>No lectures yet — drop your first recording above.</p>
-        )}
+        ) : null}
         {byCourse.map(([courseName, items]) => (
           <div key={courseName} className="space-y-3">
             <div className="flex items-baseline justify-between gap-3">
