@@ -34,8 +34,25 @@ export function QBankView() {
   const loadMeta = useCallback(async () => {
     try {
       const res = await fetch("/api/qbank?meta=1");
-      setMeta(await res.json());
-    } catch { /* offline */ }
+      const body = await res.json();
+      // An error response used to be stored as if it were the metadata. `meta`
+      // was then truthy but had no byCourse, so meta?.byCourse.map() threw and
+      // took the whole page down with a client-side exception.
+      if (!res.ok || !Array.isArray(body?.byCourse)) {
+        setMeta(null);
+        setErr(
+          typeof body?.error === "string" && /quota|402/i.test(body.error)
+            ? "The database is over its transfer quota, so the bank can't be read right now. Nothing has been deleted."
+            : "Couldn't load the question bank right now. Nothing has been deleted."
+        );
+        return;
+      }
+      setMeta(body);
+      setErr(null);
+    } catch {
+      setMeta(null);
+      setErr("Couldn't reach the server.");
+    }
   }, []);
 
   useEffect(() => { loadMeta(); }, [loadMeta]);
@@ -77,7 +94,7 @@ export function QBankView() {
     }).catch(() => {});
   }
 
-  const totalQuestions = meta?.byCourse.reduce((s, c) => s + c.total, 0) ?? 0;
+  const totalQuestions = meta?.byCourse?.reduce((s, c) => s + c.total, 0) ?? 0;
   const acc = meta && meta.attempts.total > 0
     ? Math.round((meta.attempts.correct / meta.attempts.total) * 100) : null;
 
@@ -174,7 +191,7 @@ export function QBankView() {
           <Field label="Course">
             <select value={course} onChange={e => { setCourse(e.target.value); setLectureId(""); }} style={sel}>
               <option value="">All courses</option>
-              {meta?.byCourse.map(c => <option key={c.course} value={c.course}>{c.course} ({c.total})</option>)}
+              {meta?.byCourse?.map(c => <option key={c.course} value={c.course}>{c.course} ({c.total})</option>)}
             </select>
           </Field>
           <Field label="Lecture">
@@ -189,7 +206,7 @@ export function QBankView() {
             <select value={format} onChange={e => setFormat(e.target.value)} style={sel}>
               <option value="">Every format</option>
               {FORMATS.map(f => {
-                const n = meta?.byFormat.find(x => x.format === f)?.total ?? 0;
+                const n = meta?.byFormat?.find(x => x.format === f)?.total ?? 0;
                 return <option key={f} value={f}>{FORMAT_LABEL[f]}{n ? ` (${n})` : ""}</option>;
               })}
             </select>

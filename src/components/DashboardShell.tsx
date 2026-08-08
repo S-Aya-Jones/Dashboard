@@ -30,7 +30,7 @@ function VisionBoardBanner({ items }: { items: VisionItem[] }) {
 }
 
 export function DashboardShell({ children }: Props) {
-  const { data, update, saving, loading } = useDashboard();
+  const { data, update, saving, loading, dataError, reload } = useDashboard();
 
   if (loading) {
     return (
@@ -51,6 +51,29 @@ export function DashboardShell({ children }: Props) {
       <Sidebar saving={saving} />
       <main className="flex-1 overflow-x-hidden pb-44 md:pb-8">
         <div className="max-w-5xl mx-auto px-4 md:px-6 py-4 md:py-8">
+          {/* When the database can't be read, the screen is showing blank
+              defaults — not her data. Saying so is the difference between a
+              confusing app and a frightening one. */}
+          {dataError && (
+            <div
+              className="rounded-2xl p-4 mb-5"
+              style={{ background: "var(--surface)", border: "1.5px solid var(--red)" }}
+            >
+              <p className="text-sm font-semibold" style={{ color: "var(--red)" }}>
+                Not showing your real data right now
+              </p>
+              <p className="text-sm mt-1.5 leading-relaxed" style={{ color: "var(--text-muted)" }}>
+                {dataError} Nothing has been deleted.
+              </p>
+              <button
+                onClick={reload}
+                className="mt-3 text-xs font-semibold px-4 py-2 rounded-xl"
+                style={{ background: "var(--text)", color: "var(--surface)" }}
+              >
+                Try again
+              </button>
+            </div>
+          )}
           <VisionBoardBanner items={data.visionBoard?.items ?? []} />
           {children({ data, update })}
         </div>
