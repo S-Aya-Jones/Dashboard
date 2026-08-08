@@ -36,6 +36,20 @@ export async function ensureLectureTables() {
       PRIMARY KEY (lecture_id, idx)
     )
   `;
+  // Slides are stored as the text Claude reads back out of the deck, never as
+  // the deck itself. A term of PDFs sitting in the database is exactly the
+  // shape of blob that exhausted the transfer quota before.
+  await sql`ALTER TABLE lectures ADD COLUMN IF NOT EXISTS slides_text TEXT`;
+  await sql`ALTER TABLE lectures ADD COLUMN IF NOT EXISTS slides_name TEXT`;
+  // Upload staging only — rows are deleted as soon as the deck is digested.
+  await sql`
+    CREATE TABLE IF NOT EXISTS lecture_slide_parts (
+      lecture_id TEXT NOT NULL,
+      idx        INTEGER NOT NULL,
+      data       TEXT NOT NULL,
+      PRIMARY KEY (lecture_id, idx)
+    )
+  `;
   await sql`
     CREATE TABLE IF NOT EXISTS error_log (
       id         TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
@@ -64,6 +78,8 @@ export interface LectureRow {
   quiz: string | null;
   flashcards: string | null;
   examFocus: string | null;
+  slidesText: string | null;
+  slidesName: string | null;
   shareToken: string | null;
   createdAt: string;
 }
@@ -83,6 +99,8 @@ function fromRow(r: Record<string, unknown>): LectureRow {
     quiz: (r.quiz as string) ?? null,
     flashcards: (r.flashcards as string) ?? null,
     examFocus: (r.exam_focus as string) ?? null,
+    slidesText: (r.slides_text as string) ?? null,
+    slidesName: (r.slides_name as string) ?? null,
     shareToken: (r.share_token as string) ?? null,
     createdAt: String(r.created_at),
   };
@@ -109,6 +127,7 @@ export async function listLectures(): Promise<LectureRow[]> {
     SELECT l.id, l.course, l.title, l.status, l.chunks_expected, l.summary, l.created_at,
            NULL as transcript, NULL as outline, NULL as concept_map, NULL as quiz,
            NULL as flashcards, NULL as exam_focus, l.share_token,
+           NULL as slides_text, l.slides_name,
            (SELECT COUNT(*) FROM lecture_chunks c WHERE c.lecture_id = l.id)::int AS chunks_done
     FROM lectures l ORDER BY l.created_at DESC LIMIT 100
   `;
@@ -125,6 +144,7 @@ export async function getLecture(id: string): Promise<LectureRow | null> {
 export async function deleteLecture(id: string): Promise<void> {
   const sql = db();
   await sql`DELETE FROM lecture_chunks WHERE lecture_id = ${id}`;
+  await sql`DELETE FROM lecture_slide_parts WHERE lecture_id = ${id}`;
   await sql`DELETE FROM lectures WHERE id = ${id}`;
 }
 
@@ -150,6 +170,7 @@ export async function updateLecture(
     status: string; transcript: string; summary: string;
     outline: string; conceptMap: string; quiz: string; flashcards: string;
     title: string; examFocus: string; course: string;
+    slidesText: string | null; slidesName: string | null;
   }>,
 ): Promise<void> {
   const sql = db();
@@ -159,6 +180,8 @@ export async function updateLecture(
   if (fields.summary !== undefined)    await sql`UPDATE lectures SET summary = ${fields.summary} WHERE id = ${id}`;
   if (fields.outline !== undefined)    await sql`UPDATE lectures SET outline = ${fields.outline} WHERE id = ${id}`;
   if (fields.conceptMap !== undefined) await sql`UPDATE lectures SET concept_map = ${fields.conceptMap} WHERE id = ${id}`;
+  if (fields.slidesText !== undefined)  await sql`UPDATE lectures SET slides_text = ${fields.slidesText} WHERE id = ${id}`;
+  if (fields.slidesName !== undefined)  await sql`UPDATE lectures SET slides_name = ${fields.slidesName} WHERE id = ${id}`;
   if (fields.quiz !== undefined)       await sql`UPDATE lectures SET quiz = ${fields.quiz} WHERE id = ${id}`;
   if (fields.flashcards !== undefined) await sql`UPDATE lectures SET flashcards = ${fields.flashcards} WHERE id = ${id}`;
   if (fields.title !== undefined)      await sql`UPDATE lectures SET title = ${fields.title} WHERE id = ${id}`;

@@ -78,7 +78,7 @@ Return ONLY a JSON object (no markdown fences):
 
 Universal rules:
 - "topic" is a short subject label (2-4 words) so questions can be grouped and weak areas found. Reuse consistent topic names.
-- Every question must be answerable from the lecture transcript. Never invent facts not present.
+- Every question must be answerable from the lecture material you are given. Never invent facts not present.
 - Distractors must be plausible — things a student who half-knows the material would pick. No filler options.
 - "explanation" must teach: why the answer is right, and why the most tempting wrong option is wrong.
 - Spread questions across the WHOLE lecture, not just the opening.
@@ -137,7 +137,15 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       system: `${SYSTEM_BASE}\n\nTHIS BATCH — ${label}:\n${spec}`,
       messages: [{
         role: "user",
-        content: `Course: ${lecture.course}\nLecture: ${lecture.title}\n\nTranscript:\n\n${transcript.slice(0, MAX_TRANSCRIPT)}`,
+        content: (() => {
+          // Figures and exact values live on the slides, and those are what
+          // graduate-level questions are actually built from.
+          const slides = (lecture.slidesText ?? "").trim().slice(0, 18000);
+          const base = `Course: ${lecture.course}\nLecture: ${lecture.title}\n\nTranscript:\n\n${transcript.slice(0, MAX_TRANSCRIPT)}`;
+          return slides
+            ? `${base}\n\n=== SLIDES FOR THIS LECTURE ===\n\n${slides}`
+            : base;
+        })(),
       }],
     });
 
