@@ -37,6 +37,12 @@ function resumable(l: LectureListItem): boolean {
 // here for a rate limit there.
 type ItemStatus = "waiting" | "working" | "done" | "failed";
 
+/** A failure that will hit every remaining item identically — out of credit,
+ *  bad key. Worth stopping the batch for rather than failing each in turn. */
+class BlockingError extends Error {
+  blocking = true;
+}
+
 interface QueueItem {
   key: string;
   file: File;
@@ -293,6 +299,8 @@ export function LectureStudio() {
   // finished item as "waiting" and the loop would run it again forever.
   const queueRef = useRef<QueueItem[]>([]);
   const runningRef = useRef(false);
+  // Set when a failure would repeat identically for every remaining item.
+  const haltedRef = useRef(false);
 
   const commit = useCallback((next: QueueItem[]) => {
     queueRef.current = next;
@@ -388,7 +396,12 @@ export function LectureStudio() {
       await runGeneration(id);
       patchItem(item.key, { status: "done" });
     } catch (e) {
-      patchItem(item.key, { status: "failed", error: String(e).slice(0, 400) });
+      const blocking = e instanceof BlockingError;
+      patchItem(item.key, {
+        status: "failed",
+        error: e instanceof Error ? e.message.slice(0, 400) : String(e).slice(0, 400),
+      });
+      if (blocking) haltedRef.current = true;
     } finally {
       if (ffmpeg) await wipeWorkspace(ffmpeg);
       setPhase({ step: "idle" });
@@ -403,6 +416,7 @@ export function LectureStudio() {
     setRunning(true);
     try {
       for (;;) {
+        if (haltedRef.current) break;
         const next = queueRef.current.find(it => it.status === "waiting");
         if (!next) break;
         await processOne(next);
@@ -484,6 +498,7 @@ export function LectureStudio() {
   }
 
   function retryItem(key: string) {
+    haltedRef.current = false;
     patchItem(key, { status: "waiting", error: undefined });
     runQueue();
   }
@@ -515,6 +530,9 @@ export function LectureStudio() {
       const res = await fetch(`/api/lectures/${id}/finalize?stage=${st.key}`, { method: "POST" });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
+        // A blocking failure already explains itself and what to do; wrapping
+        // it in "Generating notes failed:" only buries the part that matters.
+        if (d.blocking) throw new BlockingError(d.error);
         const detail = d.error ?? (res.status === 504 ? "timed out" : `HTTP ${res.status}`);
         throw new Error(`Generating ${st.label} failed: ${detail}. Your transcript is saved — press Resume on the lecture below to pick up from here.`);
       }
@@ -526,6 +544,7 @@ export function LectureStudio() {
       const res = await fetch(`/api/lectures/${id}/bank?batch=${b}`, { method: "POST" });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
+        if (d.blocking) throw new BlockingError(d.error);
         throw new Error(`Question bank batch ${b + 1} failed: ${d.error ?? res.status}. Press Resume to continue.`);
       }
     }
