@@ -196,7 +196,7 @@ function buildStudyBlocksMsg(assessments: Assessment[], dow: number): string {
   } else if (dow === 5) {
     msg =
       "4:55 \u2014 Friday. Rap Session is done; give this block to whichever course felt " +
-      "worst this week, then it's Geandra time.";
+      "worst this week, then it's Deandra time.";
   } else if (dow === 0) {
     msg = "4:55 \u2014 Sunday: run the error log, then the nearest assessment.";
     if (b1) msg += `\n\nStart with ${b1.course} \u2014 ${fmtAssessment(b1)}`;
@@ -222,7 +222,7 @@ function buildLeaveWorkMsg(dow: number): string {
     case 4:
       return "2:25 — head home. Free afternoon til 4:30, then the short neighborhood exposure drive (#2 this week) — 20 minutes, then Block 1 at 5:00.";
     case 5:
-      return "2:25 — Friday. Rap Session at 3. If it's payday: 30-min budget check after (bills tab is already sorted), then whichever course felt worst this week. Geandra at 6. Enjoy it — you earned it.";
+      return "2:25 — Friday. Rap Session at 3. If it's payday: 30-min budget check after (bills tab is already sorted), then whichever course felt worst this week. Deandra at 6. Enjoy it — you earned it.";
     default:
       return "2:25 — head home. Free afternoon, Block 1 at 5:00.";
   }
@@ -250,7 +250,7 @@ const DAY_TEMPLATES: Record<number, string> = {
   2: "Tuesday: gym 5:15 → work · Micro 8–10 · CMB 10–12 → Block 1 at 5, Block 2 at 7.",
   3: "Wednesday (WFH): MCAT 5:15–6:45 → WFH · Biochem 8–10 · Physio 10–12 → therapy at lunch → cook at 3 → light review only.",
   4: "Thursday: gym 5:15 → work · Micro 8–10 · CMB 10–12 → 4:30 short exposure drive → Block 1 at 5, Block 2 at 7.",
-  5: "Friday: gym 5:15 → work (no classes!) → budget check if payday → Geandra tonight.",
+  5: "Friday: gym 5:15 → work (no classes!) → budget check if payday → Deandra tonight.",
   6: "Saturday: shadowing 7:30–11:30 → major driving exposure 12:30 → cleaning → open evening.",
 };
 
@@ -350,7 +350,7 @@ export const SLOTS: Slot[] = [
   },
   {
     key: "study-blocks",
-    days: [0, 1, 2, 3, 4],  // Sun–Thu (Fri = Geandra, Sat = open)
+    days: [0, 1, 2, 3, 4],  // Sun–Thu (Fri = Deandra, Sat = open)
     time: "16:55",
     graceMin: 90,
     run: async ({ dow }) => {
@@ -470,7 +470,7 @@ const DAY_BLOCKS: Record<number, Array<[string, string]>> = {
   2: [["05:15", "Gym"], ["17:00", "Block 1 — Microbiology"], ["19:00", "Block 2 — CMB"], ["20:00", "Skincare hour"]],
   3: [["05:15", "MCAT block"], ["11:00", "Therapy"], ["15:00", "Cook Thu/Fri meals"], ["17:00", "Light review"], ["20:00", "Skincare hour"]],
   4: [["05:15", "Gym"], ["16:30", "Short exposure drive"], ["17:00", "Block 1 — Microbiology"], ["19:00", "Block 2 — CMB"], ["20:00", "Skincare hour"]],
-  5: [["05:15", "Gym"], ["15:30", "Weakest subject"], ["18:00", "Geandra time"]],
+  5: [["05:15", "Gym"], ["15:30", "Weakest subject"], ["18:00", "Deandra time"]],
   6: [["07:30", "Shadowing"], ["12:30", "Major driving exposure"], ["15:30", "Cleaning reset"]],
   0: [["07:00", "Long study"], ["09:00", "Church"], ["14:00", "Groceries"], ["15:00", "Cook Mon–Wed"], ["19:00", "Week planning"]],
 };

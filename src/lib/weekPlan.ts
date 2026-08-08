@@ -103,7 +103,7 @@ export const WEEK: Record<number, { name: string; sub?: string; blocks: PlanBloc
     { start: "15:00", end: "16:00", label: "Rap Session", cat: "study", note: "Every Friday of the term — the one class that isn't a lecture" },
     { start: "16:00", end: "16:30", label: "Budget check (paydays)", cat: "life", note: "Bills tab is already sorted" },
     { start: "16:30", end: "17:30", label: "Weakest subject of the week", cat: "study", note: "The pressure valve · 2nd shadowing slot fits here" },
-    { start: "18:00", end: "21:00", label: "Geandra time", cat: "people", note: "The week's one late night — bed by 10:30" },
+    { start: "18:00", end: "21:00", label: "Deandra time", cat: "people", note: "The week's one late night — bed by 10:30" },
   ]},
   6: { name: "Saturday", blocks: [
     { start: "06:30", end: "07:15", label: "Up + breakfast", cat: "rest" },

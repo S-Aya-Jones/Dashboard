@@ -35,7 +35,7 @@ const TEMPLATE: Series[] = [
   { cal: "study", summary: "Study Block 2 — second course + error log", desc: "Second-nearest course. Every miss goes in the error log — that's the exam study guide.", anchor: "2026-08-04", start: "19:00", end: "20:00", rrule: "RRULE:FREQ=WEEKLY;BYDAY=MO,TU,TH" },
   { cal: "study", summary: "MCAT Block (WFH morning)", desc: "Freshest 90 min of the week. Exam weeks: this stays, everything else MCAT pauses.", anchor: "2026-08-05", start: "05:15", end: "06:45", rrule: "RRULE:FREQ=WEEKLY;BYDAY=WE" },
   { cal: "study", summary: "Light review — post-therapy, no new material", desc: "Flashcards, lecture rewatch, organize notes.", anchor: "2026-08-05", start: "17:00", end: "18:30", rrule: "RRULE:FREQ=WEEKLY;BYDAY=WE" },
-  { cal: "study", summary: "Friday light study", desc: "Wrap the week's loose ends before Geandra time.", anchor: "2026-08-07", start: "15:30", end: "17:00", rrule: "RRULE:FREQ=WEEKLY;BYDAY=FR" },
+  { cal: "study", summary: "Friday light study", desc: "Wrap the week's loose ends before Deandra time.", anchor: "2026-08-07", start: "15:30", end: "17:00", rrule: "RRULE:FREQ=WEEKLY;BYDAY=FR" },
   { cal: "study", summary: "Sunday long study", desc: "Fresh brain before church. Exam weeks: error-log territory.", anchor: "2026-08-09", start: "07:00", end: "08:30", rrule: "RRULE:FREQ=WEEKLY;BYDAY=SU" },
   { cal: "study", summary: "Sunday study — error log review", desc: "Run the week's missed questions. Sets up Monday's Block 1.", anchor: "2026-08-09", start: "17:00", end: "18:30", rrule: "RRULE:FREQ=WEEKLY;BYDAY=SU" },
 
@@ -50,7 +50,7 @@ const TEMPLATE: Series[] = [
   { cal: "primary", summary: "Cook — Mon–Wed meals", desc: "Lecture recordings playing while you cook.", anchor: "2026-08-09", start: "15:00", end: "17:00", rrule: "RRULE:FREQ=WEEKLY;BYDAY=SU" },
   { cal: "primary", summary: "Week planning", desc: "20 minutes with the Deadlines tab. Assign every study block. Check if exam-week mode activates.", anchor: "2026-08-09", start: "19:00", end: "19:30", rrule: "RRULE:FREQ=WEEKLY;BYDAY=SU" },
   { cal: "primary", summary: "Skincare + wind-down", desc: "Phone on the charger. Call him while you do your routine. Gym bag staged. Lights out at 9.", anchor: "2026-08-04", start: "20:00", end: "21:00", rrule: "RRULE:FREQ=DAILY" },
-  { cal: "primary", summary: "Geandra time", desc: "Protected. The week's one late night — bed by 10:30.", anchor: "2026-08-07", start: "18:00", end: "21:00", rrule: "RRULE:FREQ=WEEKLY;BYDAY=FR" },
+  { cal: "primary", summary: "Deandra time", desc: "Protected. The week's one late night — bed by 10:30.", anchor: "2026-08-07", start: "18:00", end: "21:00", rrule: "RRULE:FREQ=WEEKLY;BYDAY=FR" },
   { cal: "primary", summary: "Church", desc: "Adjust to actual service time.", anchor: "2026-08-09", start: "09:00", end: "12:00", rrule: "RRULE:FREQ=WEEKLY;BYDAY=SU", remindMin: 30 },
   { cal: "primary", summary: "Budget check (payday)", desc: "30 minutes off the bills tab. Biweekly — shift the anchor if payday differs.", anchor: "2026-08-07", start: "15:00", end: "15:30", rrule: "RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=FR" },
 ];

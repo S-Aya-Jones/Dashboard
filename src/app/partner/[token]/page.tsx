@@ -3,7 +3,7 @@
 import { use, useCallback, useEffect, useState } from "react";
 import { Loader2, Check, X, Sparkles, RefreshCw } from "lucide-react";
 
-// What Geandra and Erickson see. Nothing else in the app is reachable from
+// What Deandra and Erickson see. Nothing else in the app is reachable from
 // here — this page talks to one endpoint that can only return study material.
 
 interface Question {
