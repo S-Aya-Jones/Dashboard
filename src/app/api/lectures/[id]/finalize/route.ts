@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { describeAiError } from "@/lib/aiError";
 import Anthropic from "@anthropic-ai/sdk";
 import { getLecture, getChunkTexts, updateLecture } from "@/lib/lectures";
 
@@ -287,6 +288,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     return NextResponse.json({ ok: true, stage });
   } catch (e) {
-    return NextResponse.json({ error: String(e).slice(0, 300), stage }, { status: 500 });
+    const f = describeAiError(e);
+    return NextResponse.json(
+      { error: f.message, blocking: f.blocking, stage },
+      { status: f.blocking ? 402 : 500 },
+    );
   }
 }

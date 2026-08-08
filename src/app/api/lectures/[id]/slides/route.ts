@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { describeAiError } from "@/lib/aiError";
 import Anthropic from "@anthropic-ai/sdk";
 import { neonClient } from "@/lib/neon";
 import { getLecture, updateLecture, ensureLectureTables } from "@/lib/lectures";
@@ -142,7 +143,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           { status: 413 },
         );
       }
-      return NextResponse.json({ error: `The slides couldn't be read (${raw.slice(0, 180)})` }, { status: 502 });
+      const f = describeAiError(e);
+      return NextResponse.json(
+        { error: f.blocking ? f.message : `The slides couldn't be read — ${f.message}`, blocking: f.blocking },
+        { status: f.blocking ? 402 : 502 },
+      );
     }
   } catch (e) {
     return NextResponse.json({ error: String(e).slice(0, 300) }, { status: 500 });

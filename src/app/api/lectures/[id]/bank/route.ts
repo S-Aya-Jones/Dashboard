@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { describeAiError } from "@/lib/aiError";
 import Anthropic from "@anthropic-ai/sdk";
 import { getLecture } from "@/lib/lectures";
 import { insertQuestions, countQuestions, clearQuestions } from "@/lib/qbank";
@@ -159,7 +160,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     return NextResponse.json({ ok: true, batch, label, added, total });
   } catch (e) {
-    return NextResponse.json({ error: String(e).slice(0, 300), batch }, { status: 500 });
+    const f = describeAiError(e);
+    return NextResponse.json(
+      { error: f.message, blocking: f.blocking, batch },
+      { status: f.blocking ? 402 : 500 },
+    );
   }
 }
 
