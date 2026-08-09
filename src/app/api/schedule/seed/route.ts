@@ -18,6 +18,7 @@ interface Series {
   anchor: string;      // YYYY-MM-DD of first occurrence
   start: string;       // HH:MM Chicago
   end: string;         // HH:MM Chicago
+  /** Empty for a one-off event. */
   rrule: string;
   remindMin?: number;  // popup minutes (default 5)
 }
@@ -43,6 +44,16 @@ const TEMPLATE: Series[] = [
   { cal: "primary", summary: "Short exposure drive (#2)", desc: "20-minute neighborhood loop before Block 1.", anchor: "2026-08-06", start: "16:30", end: "17:00", rrule: "RRULE:FREQ=WEEKLY;BYDAY=TH" },
   { cal: "primary", summary: "Major driving exposure", desc: "The dedicated weekly session, fresh off Saturday therapy. Boyfriend rides passenger on visit weekends, then repeat solo. Never the night before an assessment.", anchor: "2026-08-08", start: "12:30", end: "14:00", rrule: "RRULE:FREQ=WEEKLY;BYDAY=SA", remindMin: 30 },
   { cal: "primary", summary: "Therapy", desc: "Wednesday 11am — anchored to the WFH no-driving day. Overlaps Physiology, catch the recording after.", anchor: "2026-08-05", start: "11:00", end: "12:00", rrule: "RRULE:FREQ=WEEKLY;BYDAY=WE", remindMin: 30 },
+  // Therapist B moves off Saturdays. The 22nd is the last Saturday session;
+  // the weekly Sunday slot starts the following week (she is away in between).
+  { cal: "primary", summary: "Therapy — final Saturday session", desc: "Last one on a Saturday. From the 30th this moves to Sundays at 10.", anchor: "2026-08-22", start: "10:00", end: "11:00", rrule: "", remindMin: 30 },
+  { cal: "primary", summary: "Therapy (Sunday)", desc: "Weekly, one hour. NOTE: this overlaps the 9–12 church block — confirm which gives way.", anchor: "2026-08-30", start: "10:00", end: "11:00", rrule: "RRULE:FREQ=WEEKLY;BYDAY=SU", remindMin: 30 },
+
+  // The storage-unit matter. Four hours a week, mostly in lunch breaks, because
+  // that is the only recurring hour that is hers and is not already spoken for.
+  { cal: "primary", summary: "Legal — storage unit", desc: "Finding and briefing an affordable lawyer. Calls go here: firms answer at lunch.", anchor: "2026-08-10", start: "12:00", end: "12:45", rrule: "RRULE:FREQ=WEEKLY;BYDAY=MO,TU,TH,FR", remindMin: 10 },
+  { cal: "primary", summary: "Legal — storage unit (longer block)", desc: "The hour for paperwork, quotes and anything that needs more than a phone call.", anchor: "2026-08-07", start: "16:00", end: "17:00", rrule: "RRULE:FREQ=WEEKLY;BYDAY=FR", remindMin: 10 },
+
   { cal: "primary", summary: "Hospital shadowing", desc: "Primary weekly slot. Exam weeks: this pauses first.", anchor: "2026-08-08", start: "07:30", end: "11:30", rrule: "RRULE:FREQ=WEEKLY;BYDAY=SA", remindMin: 30 },
   { cal: "primary", summary: "Cleaning reset", desc: "Full house reset so the week starts clean.", anchor: "2026-08-08", start: "15:30", end: "17:00", rrule: "RRULE:FREQ=WEEKLY;BYDAY=SA" },
   { cal: "primary", summary: "Cook — Thu/Fri meals", desc: "During class streaming on the WFH day.", anchor: "2026-08-05", start: "15:00", end: "17:00", rrule: "RRULE:FREQ=WEEKLY;BYDAY=WE" },
@@ -177,7 +188,9 @@ async function seed() {
           description: s.desc,
           start: { dateTime: `${s.anchor}T${s.start}:00`, timeZone: "America/Chicago" },
           end:   { dateTime: `${s.anchor}T${s.end}:00`,   timeZone: "America/Chicago" },
-          recurrence: [s.rrule],
+          // A one-off (empty rrule) must omit the field entirely — sending
+          // recurrence: [""] is rejected.
+          ...(s.rrule ? { recurrence: [s.rrule] } : {}),
           reminders: { useDefault: false, overrides: [{ method: "popup", minutes: s.remindMin ?? 5 }] },
         },
       });

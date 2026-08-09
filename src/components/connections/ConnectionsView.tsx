@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { today as todayStr, id } from "@/lib/utils";
 import { dateLabel } from "@/lib/whenText";
+import { PeopleSection } from "./PeopleSection";
 
 interface Props {
   data: DashboardData;
@@ -55,6 +56,10 @@ export function ConnectionsView({ data, update }: Props) {
           <Plus size={14} className="mr-1.5 inline" /> Log Time Together
         </Button>
       </div>
+
+      {/* Who is due a call and whose birthday is coming. The log below records
+          what already happened; this is the half that can prompt her. */}
+      <PeopleSection data={data} update={update} />
 
       {nudges.length > 0 && (
         <Card>
