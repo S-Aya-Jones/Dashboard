@@ -319,6 +319,25 @@ export interface BudgetCategory {
   monthlyLimit: number;
 }
 
+/**
+ * Someone she wants to stay in touch with on purpose rather than when it
+ * occurs to her. ConnectionLog records that a call happened; this records that
+ * one is due, which is the half that can actually prompt her.
+ */
+export interface Person {
+  id: string;
+  name: string;
+  relationship: string;
+  /** MM-DD, or YYYY-MM-DD when the year is known. */
+  birthday?: string;
+  /** Call at least this often. Omitted means no cadence, birthday only. */
+  cadenceDays?: number;
+  /** YYYY-MM-DD of the last contact — the clock this cadence runs from. */
+  lastContact?: string;
+  phone?: string;
+  notes?: string;
+}
+
 export interface ConnectionLog {
   id: string;
   date: string;
@@ -679,6 +698,7 @@ export interface DashboardData {
   budgetPlans?: BudgetPlan[];
 
   // Connections
+  people: Person[];
   connectionLogs: ConnectionLog[];
 
   // Wins
@@ -909,6 +929,7 @@ export const defaultDashboardData = (): DashboardData => ({
       { nameContains: "ymca",           category: "PERSONAL_CARE"  },
     ],
   },
+  people: [],
   connectionLogs: [],
   wins: [],
   goals: [],

@@ -8,6 +8,8 @@ import {
 import { getUpcomingEvents } from "@/lib/gmail";
 import { sendSms, smsAlsoEnabled } from "@/lib/sms";
 import { dueNotifications, markNotified, upsertObligation } from "@/lib/obligations";
+import { loadData } from "@/lib/db";
+import { whatIsDue, dueLine } from "@/lib/people";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // The notification spine: every scheduled ping in Aya's day, fired by
@@ -325,6 +327,28 @@ export const SLOTS: Slot[] = [
       const res = await fetch(`${origin}/api/school/extract`, { method: "POST", cache: "no-store" });
       const d = await res.json().catch(() => ({}));
       return `found ${d.found ?? 0} of ${d.scanned ?? 0}`;
+    },
+  },
+  {
+    // Birthdays and overdue calls. Late morning on purpose: a reminder to ring
+    // her grandma is useless at 6:50am and useless again after 9pm.
+    key: "people-checkin",
+    days: [0, 1, 2, 3, 4, 5, 6],
+    time: "11:00",
+    graceMin: 240,
+    run: async () => {
+      const data = await loadData("aya");
+      const due = whatIsDue(data.people ?? []);
+      if (!due.length) return "nobody due";
+
+      // Birthdays every day they are close; calls only on the day they fall
+      // due and then weekly, so an unreturned call doesn't nag daily.
+      const worth = due.filter(i =>
+        i.kind === "birthday" ? i.days <= 3 : i.days === 0 || (i.days > 0 && i.days % 7 === 0));
+      if (!worth.length) return `${due.length} due, none worth a message today`;
+
+      await notify(worth.map(dueLine).join("\n"));
+      return `${worth.length} sent`;
     },
   },
   {
