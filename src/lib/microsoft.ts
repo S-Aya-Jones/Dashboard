@@ -197,6 +197,12 @@ export async function fetchEmails(accessToken: string, top = 30): Promise<GraphE
     `&$select=id,subject,from,receivedDateTime,isRead,bodyPreview,body`,
     { headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" } },
   );
+  if (!res.ok) {
+    // Returning [] here made a rejected token look like an empty inbox, so a
+    // disconnected school account read as "no new mail" instead of an error.
+    const detail = await res.text().catch(() => "");
+    throw new Error(`Outlook inbox fetch failed (${res.status}): ${detail.slice(0, 160)}`);
+  }
   const data = await res.json();
   return (data.value as GraphEmail[]) ?? [];
 }

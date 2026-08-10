@@ -251,6 +251,11 @@ export async function fetchGmailMessages(accessToken: string, maxResults = 50): 
           `${GMAIL}/users/me/messages/${id}?format=full`,
           { headers: { Authorization: `Bearer ${accessToken}` } },
         );
+        // Without this, an error body parses as a message with no headers:
+        // every field reads empty, the date falls back to "now", and a row of
+        // nothing gets stored looking exactly like a real email. That is how
+        // the inbox filled with blank messages the extractor could not read.
+        if (!msgRes.ok) throw new Error(`gmail message ${id}: ${msgRes.status}`);
         const msg = await msgRes.json();
         const headers: GmailHeader[] = msg.payload?.headers ?? [];
         const from    = hdr(headers, "from");
@@ -260,6 +265,11 @@ export async function fetchGmailMessages(accessToken: string, maxResults = 50): 
         const dateStr = hdr(headers, "date");
         const isRead  = !(msg.labelIds ?? []).includes("UNREAD");
         const body    = decodeBody(msg.payload ?? {});
+
+        // A message with no subject, no body and no date is not a message.
+        if (!hdr(headers, "subject") && !body.trim() && !dateStr) {
+          throw new Error(`gmail message ${id}: empty payload`);
+        }
 
         results.push({
           id,
@@ -403,6 +413,8 @@ export async function upsertGmailEmails(emails: ParsedEmail[]): Promise<void> {
   await ensureGmailTables();
   const sql = db();
   for (const e of emails) {
+    // Belt and braces: never persist a shell, whatever produced it.
+    if (!e.subject?.trim() && !e.bodyContent?.trim() && !e.bodyPreview?.trim()) continue;
     const category = categorizeEmail(e);
     const school   = category === "school";
     const deadline = school ? extractDeadline(e) : null;
