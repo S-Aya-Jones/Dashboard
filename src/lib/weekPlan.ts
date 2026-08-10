@@ -16,6 +16,12 @@ export interface PlanBlock {
   label: string;
   cat: Cat;
   note?: string;
+  /**
+   * A block whose subject advances each week. The label carries "{rotation}"
+   * and one entry is chosen per ISO week, so office hours cycle through her
+   * four courses instead of always defaulting to whichever felt worst.
+   */
+  rotation?: string[];
 }
 
 // Warm palette only — these sit next to clay, gold and sage.
@@ -50,7 +56,8 @@ export const WEEK: Record<number, { name: string; sub?: string; blocks: PlanBloc
     { start: "07:00", end: "12:00", label: "Work · Biochem 8–10 · Physio 10–12", cat: "work", note: "Capture mode · heights dose at the 10:00 class switch" },
     { start: "12:00", end: "14:30", label: "Independent Study block · at work", cat: "work", note: "School's own 12–3 study time · heights dose 1:30" },
     { start: "14:30", end: "15:20", label: "Extended-route drive home", cat: "exposure", note: "Driving exposure #1 — no time pressure" },
-    { start: "15:20", end: "17:00", label: "Flex — flashcards, admin, breathe", cat: "rest" },
+    { start: "15:20", end: "16:20", label: "Legal — storage unit", cat: "life", note: "Finding and briefing a lawyer · firms answer in the afternoon" },
+    { start: "16:20", end: "17:00", label: "Flex — flashcards, admin, breathe", cat: "rest" },
     { start: "17:00", end: "18:30", label: "Block 1 — Biochemistry", cat: "study", note: "Same-day review · questions first · deadline overrides in exam weeks" },
     { start: "18:30", end: "19:00", label: "Dinner (Sunday-cooked)", cat: "life" },
     { start: "19:00", end: "20:00", label: "Block 2 — Physiology", cat: "study", note: "Log every miss in the error log" },
@@ -63,7 +70,8 @@ export const WEEK: Record<number, { name: string; sub?: string; blocks: PlanBloc
     { start: "07:00", end: "12:00", label: "Work · Micro 8–10 · CMB 10–12", cat: "work", note: "Capture mode · heights dose at the 10:00 class switch" },
     { start: "12:00", end: "14:30", label: "Independent Study block · at work", cat: "work", note: "School's own 12–3 study time · heights dose 1:30" },
     { start: "14:30", end: "15:00", label: "Drive home — direct", cat: "work" },
-    { start: "15:00", end: "17:00", label: "Flex — flashcards, admin, breathe", cat: "rest" },
+    { start: "15:00", end: "16:00", label: "Legal — storage unit", cat: "life", note: "Calls, quotes, paperwork" },
+    { start: "16:00", end: "17:00", label: "Flex — flashcards, admin, breathe", cat: "rest" },
     { start: "17:00", end: "18:30", label: "Block 1 — Microbiology", cat: "study", note: "Same-day review · questions first" },
     { start: "18:30", end: "19:00", label: "Dinner", cat: "life" },
     { start: "19:00", end: "20:00", label: "Block 2 — Cell & Molecular Bio", cat: "study", note: "Log every miss" },
@@ -74,7 +82,11 @@ export const WEEK: Record<number, { name: string; sub?: string; blocks: PlanBloc
     { start: "05:15", end: "06:45", label: "MCAT — content review only", cat: "study", note: "Parked at 90 min/week until Sep 1, then scales up" },
     { start: "07:00", end: "11:00", label: "WFH · Biochem 8–10 · Physio from 10", cat: "work", note: "Capture mode from your desk" },
     { start: "11:00", end: "12:00", label: "Therapy", cat: "therapy", note: "Overlaps Physiology 10–12 — catch the recording after" },
-    { start: "12:00", end: "15:00", label: "Work · Physio recording", cat: "work", note: "Re-watch the hour you missed" },
+    { start: "12:00", end: "13:00", label: "Work · Physio recording", cat: "work", note: "Re-watch the hour you missed" },
+    { start: "13:00", end: "13:30", label: "Office hours — {rotation}", cat: "people",
+      rotation: ["Biochemistry", "Physiology", "Microbiology", "Cell & Molecular Bio"],
+      note: "One professor a week, so all four know your face by December. Check the syllabus for their posted time and move this to match." },
+    { start: "13:30", end: "15:00", label: "Work · Physio recording", cat: "work" },
     { start: "15:00", end: "17:00", label: "Cook Thu/Fri meals", cat: "life", note: "Lecture recordings playing" },
     { start: "17:00", end: "18:30", label: "Light review — Biochem + Physio flashcards", cat: "study", note: "No new material after therapy" },
     { start: "18:30", end: "19:00", label: "Dinner", cat: "life" },
@@ -87,7 +99,8 @@ export const WEEK: Record<number, { name: string; sub?: string; blocks: PlanBloc
     { start: "06:10", end: "07:00", label: "Shower, ready, breakfast", cat: "rest" },
     { start: "07:00", end: "12:00", label: "Work · Micro 8–10 · CMB 10–12", cat: "work", note: "Capture mode · heights dose at the 10:00 class switch" },
     { start: "12:00", end: "14:30", label: "Independent Study block · at work", cat: "work", note: "School's own 12–3 study time · heights dose 1:30" },
-    { start: "14:30", end: "16:30", label: "Home · flex — flashcards, admin", cat: "rest" },
+    { start: "14:30", end: "15:30", label: "Legal — storage unit", cat: "life", note: "The longer block — documents and anything needing focus" },
+    { start: "15:30", end: "16:30", label: "Home · flex — flashcards, admin", cat: "rest" },
     { start: "16:30", end: "17:00", label: "Short exposure drive", cat: "exposure", note: "Driving exposure #2 — 20-min loop" },
     { start: "17:00", end: "18:30", label: "Block 1 — Microbiology", cat: "study", note: "Flipped so Micro isn't always the tired block" },
     { start: "18:30", end: "19:00", label: "Dinner", cat: "life" },
@@ -110,7 +123,7 @@ export const WEEK: Record<number, { name: string; sub?: string; blocks: PlanBloc
     { start: "07:30", end: "11:30", label: "Hospital shadowing", cat: "people", note: "Pauses first during exam weeks" },
     { start: "12:00", end: "12:30", label: "Lunch", cat: "life" },
     { start: "12:30", end: "14:00", label: "Major driving exposure", cat: "exposure", note: "The big weekly session — never before an assessment" },
-    { start: "14:30", end: "15:30", label: "Reserved: Therapist B", cat: "therapy", note: "Placeholder until day confirmed" },
+    { start: "14:30", end: "15:30", label: "Legal — storage unit", cat: "life", note: "Freed when therapy moved to Sundays · the week's fourth hour" },
     { start: "15:30", end: "17:00", label: "Cleaning reset", cat: "life" },
     { start: "17:00", end: "22:00", label: "Open — social, boyfriend visits, nothing", cat: "people", note: "Real flex, not failure" },
     { start: "22:00", end: "22:30", label: "Skincare, bed", cat: "rest" },
@@ -119,6 +132,7 @@ export const WEEK: Record<number, { name: string; sub?: string; blocks: PlanBloc
     { start: "06:30", end: "07:00", label: "Up + breakfast", cat: "rest" },
     { start: "07:00", end: "08:30", label: "Long study — fresh brain before church", cat: "study" },
     { start: "09:00", end: "12:00", label: "Church", cat: "people" },
+    { start: "10:00", end: "11:00", label: "Therapy (Therapist B)", cat: "therapy", note: "CLASHES with church 9–12 — one of them has to give. From Aug 30; last Saturday session is Aug 22 at 10." },
     { start: "12:30", end: "14:00", label: "Family time + lunch", cat: "people" },
     { start: "14:00", end: "15:00", label: "Groceries", cat: "life" },
     { start: "15:00", end: "17:00", label: "Cook Mon–Wed meals", cat: "life", note: "Lecture recordings playing" },
@@ -133,6 +147,30 @@ export const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
 export const DAY_SHORT: Record<number, string> = {
   1: "Mon", 2: "Tue", 3: "Wed", 4: "Thu", 5: "Fri", 6: "Sat", 0: "Sun",
 };
+
+/**
+ * ISO week number. Used so a rotating block advances once a week and lands on
+ * the same subject for every day of that week — a rotation keyed on the date
+ * would change mid-week and a rotation keyed on a stored counter would drift
+ * whenever a week got skipped.
+ */
+export function isoWeek(d: Date): number {
+  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  // Thursday determines the year a week belongs to.
+  t.setUTCDate(t.getUTCDate() + 4 - (t.getUTCDay() || 7));
+  const yearStart = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+  return Math.ceil(((t.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+}
+
+/** The label for a block on a given date, with any rotation resolved. */
+export function resolveLabel(
+  block: { label: string; rotation?: string[] },
+  when: Date = new Date(),
+): string {
+  if (!block.rotation?.length) return block.label;
+  const pick = block.rotation[isoWeek(when) % block.rotation.length];
+  return block.label.replace("{rotation}", pick);
+}
 
 export function planMinutes(t: string): number {
   const [h, m] = t.split(":").map(Number);
@@ -169,6 +207,7 @@ export function planAsScheduleBlocks(): ScheduleBlock[] {
         type: CAT_TO_TYPE[b.cat],
         color: CAT_COLORS[b.cat],
         ...(b.note ? { notes: b.note } : {}),
+        ...(b.rotation ? { rotation: b.rotation } : {}),
       });
     }
   }
