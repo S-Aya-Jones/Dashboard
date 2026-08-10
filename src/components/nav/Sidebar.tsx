@@ -6,7 +6,7 @@ import {
   Sun, Calendar, Brain, BookOpen,
   Sparkles, DollarSign,
   ChevronLeft, ChevronRight, Dumbbell, Gem, UtensilsCrossed,
-  LayoutGrid, MoreHorizontal, X, Zap, Shield, Bell, Mail, Clock, Mic, ListChecks, GraduationCap, Users, HeartHandshake
+  LayoutGrid, MoreHorizontal, X, Zap, Shield, Bell, Mail, Clock, Mic, ListChecks, GraduationCap, Users, HeartHandshake, CircleCheck
 } from "lucide-react";
 import { useState } from "react";
 import { SaveIndicator } from "@/components/ui/SaveIndicator";
@@ -14,6 +14,7 @@ import { SaveIndicator } from "@/components/ui/SaveIndicator";
 const navItems = [
   { href: "/",             label: "Today",            icon: Sun },
   { href: "/schedule",     label: "Schedule",         icon: Clock },
+  { href: "/habits",       label: "Habits",           icon: CircleCheck },
   { href: "/lectures",     label: "Lecture Studio",   icon: Mic },
   { href: "/qbank",        label: "Question Bank",    icon: ListChecks },
   { href: "/exposure",     label: "Exposure",         icon: Brain },
@@ -141,7 +142,15 @@ export function Sidebar({ saving = false }: SidebarProps) {
 
       {/* ── Mobile bottom nav (hidden on md+) ── */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex items-stretch"
-        style={{ background: "var(--surface)", borderTop: "1.5px solid var(--border)", boxShadow: "0 -4px 24px rgba(180,85,47,0.1)" }}>
+        style={{
+          background: "var(--surface)",
+          borderTop: "1.5px solid var(--border)",
+          boxShadow: "0 -4px 24px rgba(180,85,47,0.1)",
+          // The page is rendered edge-to-edge (viewport-fit=cover), so the tab
+          // row would otherwise sit under the iPhone home indicator — which is
+          // why it looked wrong installed but fine in Safari.
+          paddingBottom: "env(safe-area-inset-bottom)",
+        }}>
         {mobileMain.map(({ href, label, icon: Icon }) => {
           const active = isActive(pathname, href);
           const is75 = href === "/75hard";
@@ -165,7 +174,11 @@ export function Sidebar({ saving = false }: SidebarProps) {
       {/* ── More drawer overlay ── */}
       {moreOpen && (
         <div className="md:hidden fixed inset-0 z-50 flex flex-col justify-end" onClick={() => setMoreOpen(false)}>
-          <div className="rounded-t-3xl p-5" style={{ background: "var(--surface)", border: "1.5px solid var(--border)" }}
+          <div className="rounded-t-3xl p-5" style={{
+              background: "var(--surface)",
+              border: "1.5px solid var(--border)",
+              paddingBottom: "calc(1.25rem + env(safe-area-inset-bottom))",
+            }}
             onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-serif text-lg" style={{ color: "var(--text)" }}>Navigation</h2>
