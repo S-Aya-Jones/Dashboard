@@ -10,6 +10,7 @@ import { sendSms, smsAlsoEnabled } from "@/lib/sms";
 import { dueNotifications, markNotified, upsertObligation } from "@/lib/obligations";
 import { loadData } from "@/lib/db";
 import { whatIsDue, dueLine } from "@/lib/people";
+import { unnotifiedUpdates, markUpdatesNotified, updateDigest } from "@/lib/schoolUpdates";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // The notification spine: every scheduled ping in Aya's day, fired by
@@ -326,7 +327,17 @@ export const SLOTS: Slot[] = [
     run: async ({ origin }) => {
       const res = await fetch(`${origin}/api/school/extract`, { method: "POST", cache: "no-store" });
       const d = await res.json().catch(() => ({}));
-      return `found ${d.found ?? 0} of ${d.scanned ?? 0}`;
+
+      // Dated work becomes a reminder on its own schedule. Everything else —
+      // a moved link, an access cut-off, a scholarship — has no date to fire
+      // on, so it is told to her once, here, and then marked as told.
+      const pending = await unnotifiedUpdates();
+      if (pending.length) {
+        await notify(updateDigest(pending));
+        await markUpdatesNotified(pending.map(u => u.id));
+      }
+
+      return `found ${d.found ?? 0} of ${d.scanned ?? 0}, told her ${pending.length}`;
     },
   },
   {
