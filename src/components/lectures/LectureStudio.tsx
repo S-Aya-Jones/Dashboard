@@ -316,6 +316,30 @@ export function LectureStudio() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let ffmpeg: any = null;
     try {
+      // A retry must resume the lecture this item already created, not make a
+      // second one. Retrying after a generation failure was creating a
+      // duplicate row AND re-running every chunk through the transcription
+      // provider — paying twice to arrive back at the same place.
+      if (item.lectureId) {
+        const known = lectures.find(l => l.id === item.lectureId);
+        const complete = known && (known.chunksDone ?? 0) >= (known.chunksExpected ?? 1);
+        if (complete) {
+          if (item.slidesFiles?.length) {
+            setPhase({ step: "generating", what: "slides" });
+            try {
+              await uploadAllSlides(item.lectureId, item.slidesFiles);
+            } catch (e) {
+              patchItem(item.key, {
+                slidesNote: `${e instanceof Error ? e.message : String(e)} — the notes were written from the recording only.`,
+              });
+            }
+          }
+          await runGeneration(item.lectureId);
+          patchItem(item.key, { status: "done" });
+          return;
+        }
+      }
+
       setPhase({ step: "loading-ffmpeg" });
       ffmpeg = await getFFmpeg();
       const { fetchFile } = await import("@ffmpeg/util");
