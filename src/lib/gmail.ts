@@ -341,11 +341,20 @@ const BB_SUBJECTS = [
   /assignment.*posted/i, /submission/i,
 ];
 
+// Meharry blocks connecting the school mailbox, so course mail reaches her by
+// being forwarded into Gmail. A forwarded message is *from her*, with the real
+// sender only inside the body as "From: someone@mmc.edu" — so a sender-only
+// test classifies every forwarded course email as general and the extractor
+// never looks at it. The body has to be part of the test.
+const FORWARD_MARKERS = /\bmmc\.edu\b|\bmeharry\b|blackboard|\bdr\.?\s+nayyar\b/i;
+
 export function isSchoolEmail(e: ParsedEmail): boolean {
-  return (
-    BB_SENDERS.some(p => p.test(e.senderEmail) || p.test(e.senderName)) ||
-    BB_SUBJECTS.some(p => p.test(e.subject))
-  );
+  if (BB_SENDERS.some(p => p.test(e.senderEmail) || p.test(e.senderName))) return true;
+  if (BB_SUBJECTS.some(p => p.test(e.subject))) return true;
+
+  const forwarded = /^\s*(fw|fwd|re)\s*:/i.test(e.subject) || /^-+\s*forwarded message/im.test(e.bodyContent);
+  const body = `${e.bodyPreview}\n${e.bodyContent.slice(0, 4000)}`;
+  return forwarded ? FORWARD_MARKERS.test(body) : /\bmmc\.edu\b/i.test(body);
 }
 
 export function categorizeEmail(e: ParsedEmail): EmailCategory {
@@ -412,6 +421,15 @@ export async function upsertGmailEmails(emails: ParsedEmail[]): Promise<void> {
   if (!emails.length) return;
   await ensureGmailTables();
   const sql = db();
+
+  // Sweep out the empty rows the earlier fetch bug wrote. They cost the
+  // extractor tokens on every run and can never yield anything.
+  await sql`
+    DELETE FROM school_emails
+    WHERE COALESCE(subject, '') = ''
+      AND COALESCE(body_content, '') = ''
+      AND COALESCE(body_preview, '') = ''
+  `;
   for (const e of emails) {
     // Belt and braces: never persist a shell, whatever produced it.
     if (!e.subject?.trim() && !e.bodyContent?.trim() && !e.bodyPreview?.trim()) continue;

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { getStoredEmails } from "@/lib/gmail";
 import { upsertObligation } from "@/lib/obligations";
+import { recordUpdate, UpdateKind } from "@/lib/schoolUpdates";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -16,7 +17,10 @@ const client = new Anthropic();
 const SYSTEM = `You read a graduate student's course email and extract only REAL obligations — things she must DO by a date.
 
 Return ONLY JSON (no fences):
-{ "obligations": [ { "kind": "assignment|exam|appointment|admin", "title": "short specific title including the course", "detail": "what she actually has to do, one sentence", "dueAt": "YYYY-MM-DDTHH:MM:00", "confidence": "high|medium|low" } ] }
+{
+  "obligations": [ { "kind": "assignment|exam|appointment|admin", "title": "short specific title including the course", "detail": "what she actually has to do, one sentence", "dueAt": "YYYY-MM-DDTHH:MM:00", "confidence": "high|medium|low" } ],
+  "updates": [ { "kind": "change|action|opportunity|warning", "headline": "what changed, under 90 characters", "detail": "why it matters to her, one sentence", "course": "course name or null" } ]
+}
 
 Extract nothing — return an empty array — for:
 - "New content posted", "grade posted", announcements, syllabus updates
@@ -29,9 +33,19 @@ Extract when there IS a task with a date:
 - Something requiring her reply, signature, form, or attendance by a date
 - Financial aid or registration steps with a deadline
 
+UPDATES are the other half, and matter as much. These are things that change how her week works but carry no deadline she can be reminded of. Extract an update when the email says any of:
+- Something has MOVED or CHANGED: a room, a link, a platform, a time, a policy, who to contact
+- Access will be WITHDRAWN or is CONDITIONAL: "this stops after week 3", "you cannot sit a quiz unless registered"
+- A prerequisite she would not otherwise know: "the course won't appear until you enrol", "you must submit both X and Y"
+- An opportunity with money or standing attached: a scholarship, an award, a research place
+
+Do not create an update for ordinary announcements, posted grades, or anything already captured as an obligation.
+Write the headline as the fact itself — "Zoom links are on Blackboard now, no longer emailed" — not "email about Zoom links".
+
 Rules:
 - dueAt must be an actual date from the email. If no date is stated or clearly implied, do not extract it.
 - Assume the current year unless the email says otherwise. If only a date is given with no time, use 23:59.
+- Relative dates count as stated: "this week" means the coming Friday, "by week 3" means the Friday of the third week of term. Resolve them and mark confidence "low".
 - Title must name the course when identifiable, e.g. "Biochemistry — Problem Set 2".
 - confidence "low" if you are inferring the date rather than reading it.`;
 
@@ -66,6 +80,7 @@ export async function POST() {
     }));
 
     const found: Array<Record<string, unknown>> = [];
+    const updates: Array<Record<string, unknown>> = [];
 
     // Small groups keep each call fast and let one bad email fail alone
     for (let i = 0; i < payload.length; i += 6) {
@@ -103,6 +118,19 @@ export async function POST() {
           });
           found.push(o);
         }
+
+        for (const u of (parsed.updates ?? [])) {
+          if (!u?.headline) continue;
+          const emailId = group.find(g => g.subject && u.course !== undefined)?.id ?? group[0].id;
+          await recordUpdate({
+            emailId,
+            kind: (["change", "action", "opportunity", "warning"].includes(u.kind) ? u.kind : "change") as UpdateKind,
+            headline: String(u.headline).slice(0, 200),
+            detail: String(u.detail ?? "").slice(0, 400),
+            course: u.course ? String(u.course).slice(0, 60) : null,
+          });
+          updates.push(u);
+        }
       } catch { /* skip this group, keep the rest */ }
     }
 
@@ -111,6 +139,8 @@ export async function POST() {
       scanned: candidates.length,
       found: found.length,
       obligations: found,
+      updates: updates.length,
+      updateList: updates,
     });
   } catch (e) {
     return NextResponse.json({ error: String(e).slice(0, 300) }, { status: 500 });
