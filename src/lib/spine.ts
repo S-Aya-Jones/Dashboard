@@ -501,13 +501,13 @@ export interface DispatchResult {
 
 // Her weekly template, so today's blocks can warn 30 minutes ahead
 const DAY_BLOCKS: Record<number, Array<[string, string]>> = {
-  1: [["05:15", "Gym"], ["17:00", "Block 1 — Biochemistry"], ["19:00", "Block 2 — Physiology"], ["20:00", "Skincare hour"]],
-  2: [["05:15", "Gym"], ["17:00", "Block 1 — Microbiology"], ["19:00", "Block 2 — CMB"], ["20:00", "Skincare hour"]],
-  3: [["05:15", "MCAT block"], ["11:00", "Therapy"], ["15:00", "Cook Thu/Fri meals"], ["17:00", "Light review"], ["20:00", "Skincare hour"]],
-  4: [["05:15", "Gym"], ["16:30", "Short exposure drive"], ["17:00", "Block 1 — Microbiology"], ["19:00", "Block 2 — CMB"], ["20:00", "Skincare hour"]],
+  1: [["05:15", "Gym"], ["15:20", "Legal — storage unit"], ["17:00", "Block 1 — Biochemistry"], ["19:00", "Block 2 — Physiology"], ["20:00", "Skincare hour"]],
+  2: [["05:15", "Gym"], ["15:00", "Legal — storage unit"], ["17:00", "Block 1 — Microbiology"], ["19:00", "Block 2 — CMB"], ["20:00", "Skincare hour"]],
+  3: [["05:15", "MCAT block"], ["11:00", "Therapy"], ["13:00", "Office hours"], ["15:00", "Cook Thu/Fri meals"], ["17:00", "Light review"], ["20:00", "Skincare hour"]],
+  4: [["05:15", "Gym"], ["14:30", "Legal — storage unit"], ["16:30", "Short exposure drive"], ["17:00", "Block 1 — Microbiology"], ["19:00", "Block 2 — CMB"], ["20:00", "Skincare hour"]],
   5: [["05:15", "Gym"], ["15:30", "Weakest subject"], ["18:00", "Deandra time"]],
-  6: [["07:30", "Shadowing"], ["12:30", "Major driving exposure"], ["15:30", "Cleaning reset"]],
-  0: [["07:00", "Long study"], ["09:00", "Church"], ["14:00", "Groceries"], ["15:00", "Cook Mon–Wed"], ["19:00", "Week planning"]],
+  6: [["07:30", "Shadowing"], ["12:30", "Major driving exposure"], ["14:30", "Legal — storage unit"], ["15:30", "Cleaning reset"]],
+  0: [["07:00", "Long study"], ["09:00", "Church"], ["10:00", "Therapy (Therapist B)"], ["14:00", "Groceries"], ["15:00", "Cook Mon–Wed"], ["19:00", "Week planning"]],
 };
 
 export async function runDispatch(origin: string): Promise<DispatchResult> {

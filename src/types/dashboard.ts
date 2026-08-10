@@ -275,6 +275,8 @@ export interface ScheduleBlock {
   type: "work" | "walk" | "mcat" | "exposure" | "meal" | "sleep" | "personal" | "other";
   color?: string;
   notes?: string;
+  /** Subjects this block cycles through, one per ISO week. */
+  rotation?: string[];
 }
 
 export interface P2PTransfer {

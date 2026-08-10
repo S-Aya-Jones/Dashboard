@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { resolveLabel } from "@/lib/weekPlan";
 import { ChevronDown } from "lucide-react";
 import {
   WEEK, CAT_COLORS, CAT_LABELS, DAY_ORDER, DAY_SHORT,
@@ -94,13 +95,13 @@ export function WeekPlanView() {
             <h2 className="font-serif text-2xl" style={{ color: "var(--text)" }}>{heading}</h2>
             {isToday && currentIdx >= 0 && (
               <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-                Right now: <span style={{ color: "var(--text)", fontWeight: 600 }}>{plan.blocks[currentIdx].label}</span>
+                Right now: <span style={{ color: "var(--text)", fontWeight: 600 }}>{resolveLabel(plan.blocks[currentIdx])}</span>
               </p>
             )}
             {isToday && currentIdx < 0 && nextIdx >= 0 && (
               <p className="text-sm" style={{ color: "var(--text-muted)" }}>
                 Next up at {fmt(plan.blocks[nextIdx].start)}:{" "}
-                <span style={{ color: "var(--text)", fontWeight: 600 }}>{plan.blocks[nextIdx].label}</span>
+                <span style={{ color: "var(--text)", fontWeight: 600 }}>{resolveLabel(plan.blocks[nextIdx])}</span>
               </p>
             )}
           </div>
@@ -137,7 +138,7 @@ export function WeekPlanView() {
                     className="leading-snug"
                     style={{ color: "var(--text)", fontWeight: active ? 700 : 500 }}
                   >
-                    {b.label}
+                    {resolveLabel(b)}
                     {active && (
                       <span className="ml-2 text-xs font-bold" style={{ color: "var(--purple)" }}>now</span>
                     )}

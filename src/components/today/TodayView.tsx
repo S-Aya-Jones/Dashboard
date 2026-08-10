@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, KeyboardEvent } from "react";
+import { resolveLabel } from "@/lib/weekPlan";
 import { format, differenceInDays, parseISO, startOfDay, subDays } from "date-fns";
 import { Plus, Trash2, Check, Brain, Clock, Dumbbell, Stethoscope, Calendar } from "lucide-react";
 import { DashboardData } from "@/types/dashboard";
@@ -121,7 +122,7 @@ export function TodayView({ data, update }: Props) {
                     className="font-medium flex-1 text-sm leading-snug min-w-0"
                     style={{ color: "var(--text)" }}
                   >
-                    {row.label}
+                    {resolveLabel(row)}
                   </span>
                   <span className="text-xs font-medium text-sand-dark whitespace-nowrap self-start pt-0.5">
                     {row.time}
