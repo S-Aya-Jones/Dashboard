@@ -3,6 +3,7 @@ import "./globals.css";
 import { PwaRegistration } from "@/components/PwaRegistration";
 import { VoiceButton } from "@/components/VoiceButton";
 import { TutorDock } from "@/components/tutor/TutorDock";
+import { PreviewBanner } from "@/components/ui/PreviewBanner";
 
 export const metadata: Metadata = {
   title: "Aya's Dashboard",
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="antialiased">
         <PwaRegistration />
+        <PreviewBanner />
         {children}
         <VoiceButton />
         <TutorDock />
