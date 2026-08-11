@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, Clock, Sun, Moon, RotateCcw, Pencil, Sparkles, AlertTriangle } from "lucide-react";
+import { Check, Sun, Moon, RotateCcw, Pencil, Sparkles, AlertTriangle, Camera } from "lucide-react";
 import { DashboardData } from "@/types/dashboard";
 import { Card } from "@/components/ui/Card";
+import { StepRing } from "./StepRing";
 import { routineSteps, waitLabel, routineMinutes, ruleWarnings, CORE_RULES } from "@/lib/skincareSteps";
 
 interface Props {
@@ -23,6 +24,9 @@ export function RoutineSteps({ data, update }: Props) {
   const [showRules, setShowRules] = useState(false);
   const [done, setDone] = useState<Record<string, boolean>>({});
   const [waitLeft, setWaitLeft] = useState(0);
+  const [waitTotal, setWaitTotal] = useState(0);
+  const photoFor = useRef<string | null>(null);
+  const photoInput = useRef<HTMLInputElement>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -44,13 +48,58 @@ export function RoutineSteps({ data, update }: Props) {
   function reset(next?: "am" | "pm" | "weekly") {
     setDone({});
     setWaitLeft(0);
+    setWaitTotal(0);
     if (next) setWhich(next);
   }
 
   function tick(id: string, waitSec: number) {
     const nowDone = !done[id];
     setDone(d => ({ ...d, [id]: nowDone }));
-    setWaitLeft(nowDone && waitSec > 0 ? waitSec : 0);
+    const w = nowDone && waitSec > 0 ? waitSec : 0;
+    setWaitLeft(w);
+    setWaitTotal(w);
+  }
+
+  async function attachPhoto(file: File) {
+    const id = photoFor.current;
+    if (!id) return;
+    const dataUrl = await new Promise<string>(res => {
+      const fr = new FileReader();
+      fr.onload = e => res(e.target?.result as string);
+      fr.readAsDataURL(file);
+    });
+
+    // 240px square is all a 44px thumbnail ever needs.
+    const small = await new Promise<string>(res => {
+      const img = new Image();
+      img.onload = () => {
+        const size = 240;
+        const c = document.createElement("canvas");
+        c.width = size; c.height = size;
+        const ctx = c.getContext("2d");
+        if (!ctx) return res(dataUrl);
+        const side = Math.min(img.width, img.height);
+        ctx.drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, size, size);
+        res(c.toDataURL("image/jpeg", 0.82));
+      };
+      img.onerror = () => res(dataUrl);
+      img.src = dataUrl;
+    });
+
+    const res = await fetch("/api/media", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dataUrl: small }),
+    });
+    if (!res.ok) return;
+    const { mediaId } = await res.json();
+    if (!mediaId) return;
+
+    update(d => ({
+      ...d,
+      skincareProducts: (d.skincareProducts ?? []).map(p => (p.id === id ? { ...p, mediaId } : p)),
+    }));
+    photoFor.current = null;
   }
 
   function saveHowTo(id: string, howTo: string) {
@@ -63,6 +112,13 @@ export function RoutineSteps({ data, update }: Props) {
 
   return (
     <Card>
+      <input
+        ref={photoInput}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={e => { const f = e.target.files?.[0]; e.target.value = ""; if (f) attachPhoto(f); }}
+      />
       <div className="flex items-center justify-between gap-3 mb-1">
         <h2 className="font-serif text-xl" style={{ color: "var(--text)" }}>Your routine, in order</h2>
         <div className="flex gap-1.5 flex-wrap">
@@ -117,15 +173,9 @@ export function RoutineSteps({ data, update }: Props) {
       )}
 
       {waitLeft > 0 && (
-        <div className="rounded-xl px-3 py-2.5 mb-3 flex items-center gap-2"
-          style={{ background: "rgba(180,85,47,0.08)", border: "1px solid rgba(180,85,47,0.25)" }}>
-          <Clock size={14} style={{ color: "var(--purple)" }} />
-          <span className="text-sm tabular-nums" style={{ color: "var(--text)" }}>
-            {Math.floor(waitLeft / 60)}:{String(waitLeft % 60).padStart(2, "0")} before the next step
-          </span>
-          <button onClick={() => setWaitLeft(0)} className="text-xs underline ml-auto" style={{ color: "var(--text-muted)" }}>
-            skip
-          </button>
+        <div className="rounded-2xl p-4 mb-3"
+          style={{ background: "rgba(180,85,47,0.06)", border: "1px solid rgba(180,85,47,0.25)" }}>
+          <StepRing left={waitLeft} total={waitTotal} onSkip={() => setWaitLeft(0)} />
         </div>
       )}
 
@@ -144,6 +194,23 @@ export function RoutineSteps({ data, update }: Props) {
                   border: `1px solid ${isDone ? "rgba(63,111,94,0.3)" : "var(--border)"}`,
                 }}>
                 <div className="flex items-start gap-3">
+                  {/* The bottle, so she recognises it rather than reading it. */}
+                  <button
+                    onClick={() => { photoFor.current = s.product.id; photoInput.current?.click(); }}
+                    aria-label={`Photo for ${s.product.name}`}
+                    className="rounded-xl overflow-hidden flex-shrink-0 grid place-items-center"
+                    style={{
+                      width: 44, height: 44,
+                      background: s.product.mediaId ? "transparent" : "var(--surface)",
+                      border: "1px solid var(--border)",
+                      color: "var(--text-light)",
+                    }}
+                  >
+                    {s.product.mediaId
+                      // eslint-disable-next-line @next/next/no-img-element
+                      ? <img src={`/api/media/${s.product.mediaId}`} alt="" className="w-full h-full object-cover" />
+                      : <Camera size={14} />}
+                  </button>
                   <button
                     onClick={() => tick(s.product.id, s.waitAfterSec)}
                     aria-label={isDone ? "Undo" : "Done"}

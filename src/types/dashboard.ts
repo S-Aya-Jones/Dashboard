@@ -151,6 +151,8 @@ export interface SkincareProduct {
   frequency?: string;
   /** Marks a step as the active treatment, which the peel night excludes. */
   isActive?: boolean;
+  /** Photo of the actual bottle, stored in the media table not the blob. */
+  mediaId?: string;
 }
 
 export interface SkinCheckIn {

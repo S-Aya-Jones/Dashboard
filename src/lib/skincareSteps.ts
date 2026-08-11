@@ -134,8 +134,7 @@ const DEFAULTS: StepDefaults[] = [
 export function defaultsFor(name: string): Omit<StepDefaults, "match"> | null {
   const hit = DEFAULTS.find(d => d.match.test(name));
   if (!hit) return null;
-  const { match: _m, ...rest } = hit;
-  return rest;
+  return { howTo: hit.howTo, waitAfterSec: hit.waitAfterSec, frequency: hit.frequency };
 }
 
 export interface RoutineStep {
