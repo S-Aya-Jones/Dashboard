@@ -21,6 +21,9 @@ export function useDashboard() {
   // write would have overwritten her real records with empty ones. A read
   // failure must disable writing, not enable it.
   const loadedFromServer = useRef(false);
+  // The updatedAt this tab loaded. Sent with every save so the server can tell
+  // a genuine edit from a stale tab about to revert everything.
+  const baseUpdatedAt = useRef<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -39,6 +42,7 @@ export function useDashboard() {
       }
 
       setData(body as DashboardData);
+      baseUpdatedAt.current = (body as DashboardData).updatedAt ?? null;
       loadedFromServer.current = true;
       setDataError(null);
     } catch {
@@ -60,12 +64,23 @@ export function useDashboard() {
         const res = await fetch("/api/data", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(newData),
+          body: JSON.stringify({ ...newData, baseUpdatedAt: baseUpdatedAt.current }),
         });
+
+        if (res.status === 409) {
+          // This tab would have written its own copy over newer data. Stop
+          // saving from here until it reloads, rather than reverting the lot.
+          loadedFromServer.current = false;
+          setDataError("This page is out of date — something changed on another device. Reload to see it; nothing from this page has been saved.");
+          return;
+        }
+
         if (!res.ok) {
           // Say so rather than letting her carry on believing it saved.
           setDataError("That didn't save — the database is unreachable. Don't rely on changes made now.");
         } else {
+          // The save moved the clock on; this tab is now the current version.
+          baseUpdatedAt.current = new Date().toISOString();
           setDataError(null);
         }
       } catch {
