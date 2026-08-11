@@ -38,13 +38,39 @@ export async function GET() {
 //
 // Reporting ok on a failed write is how you lose data quietly — the client
 // believes it saved and moves on. A failed save has to say so.
+// A tab that has been open a while holds a whole copy of her data in memory,
+// and every save writes the whole blob. So a stale tab doesn't lose one edit —
+// it silently reverts everything changed elsewhere since it loaded. That is how
+// a routine written from another device disappears without any error.
+//
+// The client sends the updatedAt it loaded. If the stored one has moved on, the
+// write is refused and the client is told to reload rather than overwrite.
 export async function POST(req: Request) {
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ ok: true, warning: "DB not configured" });
   }
   try {
     const body = await req.json();
-    await saveData({ ...body, userId: "aya" });
+
+    if (typeof body.baseUpdatedAt === "string") {
+      const current = await loadData("aya");
+      if (current.updatedAt && current.updatedAt !== body.baseUpdatedAt) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "stale",
+            serverUpdatedAt: current.updatedAt,
+            detail: "This page is out of date — something changed elsewhere. Reload before saving.",
+          },
+          { status: 409 },
+        );
+      }
+    }
+
+    // baseUpdatedAt is a transport concern; it must not be stored.
+    const payload = { ...body };
+    delete payload.baseUpdatedAt;
+    await saveData({ ...payload, userId: "aya" });
     return NextResponse.json({ ok: true });
   } catch (e) {
     const raw = e instanceof Error ? e.message : String(e);
