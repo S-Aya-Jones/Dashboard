@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { RoutineSteps } from "./RoutineSteps";
 import { format, parseISO } from "date-fns";
-import { Plus, Trash2, Sparkles, Camera, ChevronDown, ChevronUp, RefreshCw, Send, ChevronRight } from "lucide-react";
+import { Plus, Trash2, Sparkles, Camera, ChevronDown, ChevronUp, RefreshCw, Send, ChevronRight, Image as ImageIcon, Clock, Check } from "lucide-react";
 import { DashboardData, SkincareProduct, BeautyAnalysisEntry } from "@/types/dashboard";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -835,7 +836,7 @@ function InspirationSection({ selfieBase64, selfieMime }: { selfieBase64: string
 export function SkincareView({ data, update }: Props) {
   const [productOpen, setProductOpen] = useState(false);
   const [checkInOpen, setCheckInOpen] = useState(false);
-  const [productForm, setProductForm] = useState<{ name: string; brand: string; routine: "am" | "pm" | "both"; isTesting: boolean; startDate: string; notes: string }>({ name: "", brand: "", routine: "am", isTesting: false, startDate: "", notes: "" });
+  const [productForm, setProductForm] = useState<{ name: string; brand: string; routine: "am" | "pm" | "both" | "weekly"; isTesting: boolean; startDate: string; notes: string }>({ name: "", brand: "", routine: "am", isTesting: false, startDate: "", notes: "" });
   const [checkInForm, setCheckInForm] = useState({ breakouts: false, observations: "", changes: "" });
 
   const [photo, setPhoto] = useState<string | null>(null);
@@ -845,6 +846,7 @@ export function SkincareView({ data, update }: Props) {
   const [selfieBase64ForInspo, setSelfieBase64ForInspo] = useState<string | null>(null);
   const [selfieMimeForInspo, setSelfieMimeForInspo] = useState<string>("image/jpeg");
   const fileRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
 
   const today = todayStr();
   const amProducts = data.skincareProducts.filter((p) => p.routine === "am" || p.routine === "both").sort((a, b) => a.order - b.order);
@@ -980,6 +982,9 @@ export function SkincareView({ data, update }: Props) {
         </div>
       </div>
 
+      {/* The routine she actually follows, before anything that analyses her. */}
+      <RoutineSteps data={data} update={update} />
+
       {/* Beauty Analysis */}
       {analysis && photo ? (
         <AnalysisCard analysis={analysis} photo={photo} onReset={resetAnalysis} />
@@ -991,17 +996,27 @@ export function SkincareView({ data, update }: Props) {
           </div>
 
           {!photo && !analyzing && (
-            <button onClick={() => fileRef.current?.click()}
-              className="w-full flex flex-col items-center justify-center gap-3 py-10 transition-colors hover:bg-terracotta/10">
+            <div className="flex flex-col items-center gap-4 py-9 px-4">
               <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
                 style={{ background: "rgba(180,85,47,0.1)", border: "1.5px dashed rgba(180,85,47,0.3)" }}>
                 <Camera size={24} style={{ color: "#D07A4F" }} />
               </div>
-              <div className="text-center">
-                <p className="text-sm font-medium" style={{ color: "var(--text)" }}>Upload a selfie</p>
-                <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>Best results with good lighting, face centered</p>
+              <p className="text-xs text-center" style={{ color: "var(--text-muted)" }}>
+                Best results with good lighting, face centered
+              </p>
+              <div className="flex gap-2 w-full" style={{ maxWidth: "22rem" }}>
+                <button onClick={() => fileRef.current?.click()}
+                  className="flex-1 text-sm font-semibold py-2.5 rounded-xl inline-flex items-center justify-center gap-1.5"
+                  style={{ background: "var(--text)", color: "var(--surface)" }}>
+                  <ImageIcon size={15} /> Choose a photo
+                </button>
+                <button onClick={() => cameraRef.current?.click()}
+                  className="flex-1 text-sm font-semibold py-2.5 rounded-xl inline-flex items-center justify-center gap-1.5"
+                  style={{ background: "var(--surface2)", color: "var(--text)", border: "1px solid var(--border)" }}>
+                  <Camera size={15} /> Take one
+                </button>
               </div>
-            </button>
+            </div>
           )}
 
           {photo && analyzing && (
@@ -1026,7 +1041,11 @@ export function SkincareView({ data, update }: Props) {
             </div>
           )}
 
-          <input ref={fileRef} type="file" accept="image/*" capture="user" className="hidden" onChange={handlePhotoSelect} />
+          {/* Two inputs, because one cannot do both. capture="user" forces the
+              front camera and removes the photo-library option from the iOS
+              sheet entirely, so choosing an existing photo was impossible. */}
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoSelect} />
+          <input ref={cameraRef} type="file" accept="image/*" capture="user" className="hidden" onChange={handlePhotoSelect} />
         </div>
       )}
 
