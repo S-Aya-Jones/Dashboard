@@ -137,11 +137,22 @@ export interface SkincareProduct {
   id: string;
   name: string;
   brand?: string;
-  routine: "am" | "pm" | "both";
+  /** "weekly" is the one peel night, which cannot share a night with an active. */
+  routine: "am" | "pm" | "both" | "weekly";
   order: number;
   isTesting: boolean;
   startDate?: string;
   notes?: string;
+  /** What to actually do at this step — a list of names isn't a routine. */
+  howTo?: string;
+  /** Seconds to wait before the next step, where waiting matters. */
+  waitAfterSec?: number;
+  /** e.g. "every night", "Mon/Wed/Fri" — retinoids aren't nightly at first. */
+  frequency?: string;
+  /** Marks a step as the active treatment, which the peel night excludes. */
+  isActive?: boolean;
+  /** Photo of the actual bottle, stored in the media table not the blob. */
+  mediaId?: string;
 }
 
 export interface SkinCheckIn {
