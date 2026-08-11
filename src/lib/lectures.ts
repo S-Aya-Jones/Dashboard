@@ -40,6 +40,9 @@ export async function ensureLectureTables() {
   // the deck itself. A term of PDFs sitting in the database is exactly the
   // shape of blob that exhausted the transfer quota before.
   await sql`ALTER TABLE lectures ADD COLUMN IF NOT EXISTS slides_text TEXT`;
+  // A taught lesson, built from the transcript and the deck together. Notes are
+  // something to read; this is something to sit through.
+  await sql`ALTER TABLE lectures ADD COLUMN IF NOT EXISTS lesson TEXT`;
   await sql`ALTER TABLE lectures ADD COLUMN IF NOT EXISTS slides_name TEXT`;
   // Upload staging only — rows are deleted as soon as the deck is digested.
   await sql`
@@ -80,6 +83,7 @@ export interface LectureRow {
   examFocus: string | null;
   slidesText: string | null;
   slidesName: string | null;
+  lesson: string | null;
   shareToken: string | null;
   createdAt: string;
 }
@@ -101,6 +105,7 @@ function fromRow(r: Record<string, unknown>): LectureRow {
     examFocus: (r.exam_focus as string) ?? null,
     slidesText: (r.slides_text as string) ?? null,
     slidesName: (r.slides_name as string) ?? null,
+    lesson: (r.lesson as string) ?? null,
     shareToken: (r.share_token as string) ?? null,
     createdAt: String(r.created_at),
   };
@@ -127,7 +132,7 @@ export async function listLectures(): Promise<LectureRow[]> {
     SELECT l.id, l.course, l.title, l.status, l.chunks_expected, l.summary, l.created_at,
            NULL as transcript, NULL as outline, NULL as concept_map, NULL as quiz,
            NULL as flashcards, NULL as exam_focus, l.share_token,
-           NULL as slides_text, l.slides_name,
+           NULL as slides_text, l.slides_name, NULL as lesson,
            (SELECT COUNT(*) FROM lecture_chunks c WHERE c.lecture_id = l.id)::int AS chunks_done
     FROM lectures l ORDER BY l.created_at DESC LIMIT 100
   `;
@@ -170,7 +175,7 @@ export async function updateLecture(
     status: string; transcript: string; summary: string;
     outline: string; conceptMap: string; quiz: string; flashcards: string;
     title: string; examFocus: string; course: string;
-    slidesText: string | null; slidesName: string | null;
+    slidesText: string | null; slidesName: string | null; lesson: string | null;
   }>,
 ): Promise<void> {
   const sql = db();
@@ -182,6 +187,7 @@ export async function updateLecture(
   if (fields.conceptMap !== undefined) await sql`UPDATE lectures SET concept_map = ${fields.conceptMap} WHERE id = ${id}`;
   if (fields.slidesText !== undefined)  await sql`UPDATE lectures SET slides_text = ${fields.slidesText} WHERE id = ${id}`;
   if (fields.slidesName !== undefined)  await sql`UPDATE lectures SET slides_name = ${fields.slidesName} WHERE id = ${id}`;
+  if (fields.lesson !== undefined)      await sql`UPDATE lectures SET lesson = ${fields.lesson} WHERE id = ${id}`;
   if (fields.quiz !== undefined)       await sql`UPDATE lectures SET quiz = ${fields.quiz} WHERE id = ${id}`;
   if (fields.flashcards !== undefined) await sql`UPDATE lectures SET flashcards = ${fields.flashcards} WHERE id = ${id}`;
   if (fields.title !== undefined)      await sql`UPDATE lectures SET title = ${fields.title} WHERE id = ${id}`;

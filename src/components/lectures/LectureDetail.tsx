@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { renderMath, MATH_CSS } from "@/lib/mathText";
 import { useAnnounceStudyContext } from "@/lib/studyContext";
+import { LessonView } from "./LessonView";
 
 interface QuizQ { q: string; choices: string[]; answer: number; explanation: string; difficulty?: string }
 interface Card { front: string; back: string }
@@ -24,14 +25,16 @@ interface Lecture {
   transcript: string | null; summary: string | null; outline: string | null;
   conceptMap: string | null; quiz: string | null; flashcards: string | null;
   examFocus: string | null; shareToken?: string | null;
+  lesson?: string | null;
 }
 
-const TABS = ["Notes", "Exam Focus", "Concept Map", "Quiz", "Flashcards", "Transcript"] as const;
+const TABS = ["Lesson", "Notes", "Exam Focus", "Concept Map", "Quiz", "Flashcards", "Transcript"] as const;
 type Tab = typeof TABS[number];
 
 export function LectureDetail({ id, onBack }: { id: string; onBack: () => void }) {
   const [lecture, setLecture] = useState<Lecture | null>(null);
-  const [tab, setTab] = useState<Tab>("Notes");
+  // Lesson first: being taught it is the point, notes are the reference.
+  const [tab, setTab] = useState<Tab>("Lesson");
 
   useEffect(() => {
     fetch(`/api/lectures/${id}`).then(r => r.json()).then(d => setLecture(d.lecture ?? null));
@@ -103,6 +106,9 @@ export function LectureDetail({ id, onBack }: { id: string; onBack: () => void }
           transition={{ duration: 0.2 }}
           className="rounded-2xl p-6 md:p-8"
           style={{ background: "var(--surface)", border: "1.5px solid var(--border)" }}>
+          {tab === "Lesson" && (
+            <LessonView lectureId={lecture.id} course={lecture.course} initial={lecture.lesson ?? null} />
+          )}
           {tab === "Notes" && <NotesView text={lecture.outline ?? ""} />}
           {tab === "Exam Focus" && <ExamFocusView json={lecture.examFocus} />}
           {tab === "Concept Map" && <MermaidView chart={lecture.conceptMap ?? ""} />}
