@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ScheduleChanges } from "@/components/schedule/ScheduleChanges";
 import { Sidebar } from "@/components/nav/Sidebar";
 import { DayScheduleView } from "@/components/schedule/DayScheduleView";
 import { WeekPlanView } from "@/components/schedule/WeekPlanView";
@@ -38,6 +39,12 @@ export default function Page() {
             </button>
           </div>
         </div>
+        {/* Telling it what changed sits above the week, because that is the
+            thing she came here to do when something has moved. */}
+        <div style={{ marginBottom: "1.5rem" }}>
+          <ScheduleChanges />
+        </div>
+
         {tab === "plan" ? <WeekPlanView /> : <DayScheduleView />}
       </main>
     </div>
