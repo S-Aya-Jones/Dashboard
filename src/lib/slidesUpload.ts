@@ -59,6 +59,56 @@ async function pptxText(file: File): Promise<string> {
 }
 
 /**
+ * Readable text out of an HTML file, without uploading it.
+ *
+ * Course material turns up as HTML more often than as a deck — a Blackboard
+ * page saved to disk, a handout exported from Word, a "save page as". It is
+ * already text, so the browser parses it and sends only what it says.
+ *
+ * Headings become slide markers so the lesson can still cite "which part of the
+ * deck this came from"; without them the whole file collapses into one wall.
+ */
+async function htmlText(file: File): Promise<string> {
+  const raw = await file.text();
+  const doc = new DOMParser().parseFromString(raw, "text/html");
+
+  // Navigation, scripts and styling are not the material.
+  doc.querySelectorAll("script, style, nav, header, footer, noscript, svg").forEach(n => n.remove());
+
+  const out: string[] = [];
+  let section = 0;
+  const seen = new Set<Node>();
+
+  const blocks = doc.body?.querySelectorAll("h1, h2, h3, h4, p, li, td, th, pre, blockquote") ?? [];
+  blocks.forEach(el => {
+    // A <li> inside a <td> would otherwise be emitted twice.
+    if (Array.from(seen).some(a => a.contains(el))) return;
+    const text = (el.textContent ?? "").replace(/\s+/g, " ").trim();
+    if (!text) return;
+
+    if (/^H[1-4]$/.test(el.tagName)) {
+      section += 1;
+      out.push("", `SLIDE ${section}: ${text}`);
+      seen.add(el);
+      return;
+    }
+    if (!out.length) out.push(`SLIDE 1: ${stripExtensionLocal(file.name)}`);
+    out.push(`- ${text}`);
+    seen.add(el);
+  });
+
+  const text = out.join("\n").trim();
+  if (text.replace(/SLIDE \d+:.*/g, "").trim().length < 40) {
+    throw new Error("that HTML file has almost no readable text in it");
+  }
+  return text;
+}
+
+function stripExtensionLocal(name: string): string {
+  return name.replace(/\.[A-Za-z0-9]{1,5}$/, "");
+}
+
+/**
  * Attach several decks to one lecture, in order. A single recording routinely
  * covers two lectures and therefore two decks.
  */
@@ -84,9 +134,29 @@ export async function uploadSlides(
 ): Promise<void> {
   const isPdf  = /\.pdf$/i.test(file.name)  || file.type === "application/pdf";
   const isPptx = /\.pptx$/i.test(file.name) || file.type.includes("presentationml");
+  const isText = /\.(html?|txt|md|markdown)$/i.test(file.name)
+    || file.type === "text/html" || file.type === "text/plain" || file.type === "text/markdown";
 
-  if (!isPdf && !isPptx) {
-    throw new Error("Slides need to be a PDF or a .pptx. In PowerPoint or Google Slides: File → Download → PDF.");
+  if (!isPdf && !isPptx && !isText) {
+    throw new Error("Slides can be a PDF, a .pptx, or an HTML/text file. In PowerPoint or Google Slides: File → Download → PDF.");
+  }
+
+  // HTML and plain text are already words — parsed here, nothing uploaded.
+  if (isText) {
+    onProgress?.("reading", 0.3);
+    const isHtml = /\.html?$/i.test(file.name) || file.type === "text/html";
+    const text = isHtml ? await htmlText(file) : (await file.text()).trim();
+    if (text.length < 40) throw new Error("that file has almost no readable text in it");
+
+    onProgress?.("uploading", 0.8);
+    const res = await fetch(`/api/lectures/${lectureId}/slides`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: file.name, text: text.slice(0, 40000), append }),
+    });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? "couldn't save that file");
+    onProgress?.("digesting", 1);
+    return;
   }
 
   if (isPptx) {
