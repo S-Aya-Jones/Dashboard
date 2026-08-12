@@ -120,7 +120,7 @@ export function MaterialView() {
           ref={fileRef}
           type="file"
           multiple
-          accept=".pdf,application/pdf,.pptx,.html,.htm,text/html,.txt,.md,image/*"
+          accept=".pdf,application/pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.pptx,.html,.htm,text/html,.txt,.md,image/*"
           className="hidden"
           onChange={e => { const f = Array.from(e.target.files ?? []); e.target.value = ""; onFiles(f); }}
         />
@@ -138,7 +138,7 @@ export function MaterialView() {
           <span className="text-sm font-semibold" style={{ color: "var(--text)" }}>
             {busy ?? "Drop what they shared"}
           </span>
-          <span className="text-xs">PDF, .pptx, HTML or text · an HTML page and its images together</span>
+          <span className="text-xs">PDF, Word, .pptx, HTML or text · an HTML page and its images together</span>
         </button>
 
         {err && <p className="text-xs" style={{ color: "var(--red)" }}>{err}</p>}
