@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { WhyWrong } from "./WhyWrong";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, X, GripVertical, PenLine } from "lucide-react";
 
@@ -348,6 +349,30 @@ export function QuestionRunner({
                 {q.explanation}
               </div>
             )}
+            {/* Knowing why the other three fail is the other half of the
+                skill, and the half a multiple-choice exam actually tests. */}
+            {choices.length > 1 && /^\d+$/.test(q.answer) && (
+              <WhyWrong
+                prompt={q.prompt}
+                choices={choices}
+                correctAnswer={choices[parseInt(q.answer, 10)] ?? ""}
+                correctIndex={parseInt(q.answer, 10)}
+                explanation={q.explanation}
+                onLogMiss={option => {
+                  fetch("/api/error-log", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      course: q.course,
+                      lectureId: q.lectureId ?? "",
+                      question: `Why is this wrong: "${option}" — in: ${q.prompt.slice(0, 160)}`,
+                      correct: q.explanation ?? "",
+                    }),
+                  }).catch(() => {});
+                }}
+              />
+            )}
+
             {showNext && (
               <button onClick={onNext} className="mt-4 w-full py-3 rounded-xl font-semibold text-white"
                 style={{ background: "var(--purple)" }}>
