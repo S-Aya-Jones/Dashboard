@@ -77,13 +77,56 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     // PowerPoint is unzipped in the browser, so its text arrives directly and
     // needs no model pass.
     if (typeof body.text === "string" && body.text.trim()) {
+      const images: string[] = Array.isArray(body.images) ? body.images.slice(0, 12) : [];
+      let text: string = body.text;
+
+      // An HTML export of a biochemistry lecture is mostly figures — pathways,
+      // structures, titration curves. Sending only its text throws away the
+      // half that matters, so the images are read too and described in place.
+      if (images.length) {
+        try {
+          const msg = await client.messages.create({
+            model: "claude-haiku-4-5-20251001",
+            max_tokens: 4000,
+            system: DIGEST_SYSTEM,
+            messages: [{
+              role: "user",
+              content: [
+                ...images.map(data => ({
+                  type: "image" as const,
+                  source: { type: "base64" as const, media_type: "image/jpeg" as const, data },
+                })),
+                {
+                  type: "text" as const,
+                  text:
+                    `Course: ${lecture.course}\nLecture: ${lecture.title}\n\n` +
+                    `Below is the text of this handout, and above are its ${images.length} figures in order. ` +
+                    `Return the same material with each figure described in place as a FIGURE: line, ` +
+                    `keeping the SLIDE numbering the text already uses.\n\n${body.text.slice(0, 20000)}`,
+                },
+              ],
+            }],
+          });
+          const described = firstText(msg).trim();
+          // Only take the read if it actually produced something; a thin reply
+          // must not replace the text she already has.
+          if (described.length > body.text.length / 2) text = described;
+        } catch (e) {
+          const f = describeAiError(e);
+          if (f.blocking) {
+            return NextResponse.json({ error: f.message, blocking: true }, { status: 402 });
+          }
+          // Otherwise keep the text. Losing the figures beats losing the file.
+        }
+      }
+
       const prior = append ? (lecture.slidesText ?? "") : "";
-      const merged = (prior ? `${prior}\n\n${body.text}` : body.text).slice(0, MAX_SLIDES_TEXT);
+      const merged = (prior ? `${prior}\n\n${text}` : text).slice(0, MAX_SLIDES_TEXT);
       await updateLecture(params.id, {
         slidesText: merged,
         slidesName: append && lecture.slidesName ? `${lecture.slidesName} + ${name}` : name,
       });
-      return NextResponse.json({ ok: true, done: true, chars: merged.length });
+      return NextResponse.json({ ok: true, done: true, chars: merged.length, figures: images.length });
     }
 
     // Otherwise the staged PDF pieces are reassembled and read, one window of

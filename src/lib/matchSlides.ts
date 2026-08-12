@@ -150,7 +150,13 @@ export function pairDecks<R, D>(
 const DECK_RE = /\.(pdf|pptx|html?|txt|md|markdown)$/i;
 const MEDIA_RE = /\.(mp4|m4a|mp3|wav|mov|webm|aac|ogg|mkv|avi|flac)$/i;
 
+/** A figure that belongs to a saved HTML page, not a deck of its own. */
+export function isLooseImage(file: { name: string; type?: string }): boolean {
+  return /^image\//.test(file.type ?? "") || /\.(png|jpe?g|gif|webp|svg)$/i.test(file.name);
+}
+
 export function isDeck(file: { name: string; type?: string }): boolean {
+  if (isLooseImage(file)) return true;
   return DECK_RE.test(file.name)
     || file.type === "application/pdf"
     || file.type === "text/html"
