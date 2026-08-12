@@ -13,7 +13,7 @@ const MAX_FIGURES = 12; // base64 chars per request, well under Vercel's 4.5MB b
 
 export type SlideProgress = (stage: "reading" | "uploading" | "digesting", pct: number) => void;
 
-function toBase64(buf: ArrayBuffer): string {
+export function toBase64(buf: ArrayBuffer): string {
   const bytes = new Uint8Array(buf);
   let binary = "";
   for (let i = 0; i < bytes.length; i += 0x8000) {
@@ -23,7 +23,7 @@ function toBase64(buf: ArrayBuffer): string {
 }
 
 /** Pull the visible text out of a .pptx without uploading it. */
-async function pptxText(file: File): Promise<string> {
+export async function pptxText(file: File): Promise<string> {
   const JSZip = (await import("jszip")).default;
   const zip = await JSZip.loadAsync(await file.arrayBuffer());
 
@@ -71,7 +71,7 @@ async function pptxText(file: File): Promise<string> {
  * Headings become slide markers so the lesson can still cite "which part of the
  * deck this came from"; without them the whole file collapses into one wall.
  */
-async function htmlText(file: File, companions: File[] = []): Promise<{ text: string; images: string[] }> {
+export async function htmlText(file: File, companions: File[] = []): Promise<{ text: string; images: string[] }> {
   const raw = await file.text();
   const doc = new DOMParser().parseFromString(raw, "text/html");
 
@@ -130,7 +130,7 @@ async function htmlText(file: File, companions: File[] = []): Promise<{ text: st
 }
 
 /** Cap the size before it goes anywhere — figures are the expensive part. */
-async function shrinkToJpegBase64(dataUrl: string): Promise<string> {
+export async function shrinkToJpegBase64(dataUrl: string): Promise<string> {
   const out = await new Promise<string>((res, rej) => {
     const img = new Image();
     img.onload = () => {
@@ -154,7 +154,7 @@ async function shrinkToJpegBase64(dataUrl: string): Promise<string> {
   return out.replace(/^data:image\/jpeg;base64,/, "");
 }
 
-function fileToDataUrl(f: File): Promise<string> {
+export function fileToDataUrl(f: File): Promise<string> {
   return new Promise((res, rej) => {
     const fr = new FileReader();
     fr.onload = e => res(e.target?.result as string);

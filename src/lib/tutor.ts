@@ -1,4 +1,5 @@
 import { neonClient } from "@/lib/neon";
+import { materialContext } from "@/lib/courseMaterial";
 
 // The teaching assistant is grounded in her own material.
 //
@@ -34,6 +35,8 @@ export interface TutorContext {
   course: string;
   lectures: LectureContext[];
   misses: MissContext[];
+  /** What her class has shared for this course, already labelled by source. */
+  shared: string;
   hasMaterial: boolean;
 }
 
@@ -93,11 +96,17 @@ export async function buildTutorContext(
     missedAt: String(r.missed_at),
   }));
 
+  // Anything her class has shared for this course. Kept separate from her own
+  // lectures rather than merged: a classmate's summary and her professor's
+  // slides should not carry equal weight when they disagree.
+  const shared = await materialContext(course);
+
   return {
     course,
     lectures,
     misses,
-    hasMaterial: lectures.some((l) => l.outline.trim().length > 0),
+    shared,
+    hasMaterial: lectures.some((l) => l.outline.trim().length > 0) || shared.length > 0,
   };
 }
 
@@ -113,6 +122,15 @@ export function renderContext(ctx: TutorContext): string {
     }
   } else {
     parts.push("=== SHE HAS NO PROCESSED LECTURES IN THIS COURSE YET ===");
+  }
+
+  if (ctx.shared) {
+    parts.push("\n=== MATERIAL HER CLASSMATES SHARED ===");
+    parts.push(
+      "Useful, but second to her own lectures. Where this disagrees with a lecture or a slide, " +
+      "follow the lecture and say so — name the source when you use it, so she knows whose it was.",
+    );
+    parts.push(ctx.shared);
   }
 
   if (ctx.misses.length) {
