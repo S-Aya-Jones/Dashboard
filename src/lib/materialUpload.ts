@@ -1,4 +1,4 @@
-import { toBase64, pptxText, htmlText } from "@/lib/slidesUpload";
+import { toBase64, pptxText, htmlText, docxText } from "@/lib/slidesUpload";
 
 // Getting a classmate's study guide into the app.
 //
@@ -30,11 +30,12 @@ export async function uploadMaterial(
 ): Promise<void> {
   const isPdf  = /\.pdf$/i.test(file.name)  || file.type === "application/pdf";
   const isPptx = /\.pptx$/i.test(file.name) || file.type.includes("presentationml");
+  const isDocx = /\.docx$/i.test(file.name) || file.type.includes("wordprocessingml");
   const isHtml = /\.html?$/i.test(file.name) || file.type === "text/html";
   const isText = /\.(txt|md|markdown)$/i.test(file.name) || file.type === "text/plain";
 
-  if (!isPdf && !isPptx && !isHtml && !isText) {
-    throw new Error("That needs to be a PDF, .pptx, HTML or text file.");
+  if (!isPdf && !isPptx && !isDocx && !isHtml && !isText) {
+    throw new Error("That needs to be a PDF, .docx, .pptx, HTML or text file.");
   }
 
   const post = async (payload: Record<string, unknown>) => {
@@ -54,6 +55,14 @@ export async function uploadMaterial(
     }
     return res.json().catch(() => ({}));
   };
+
+  if (isDocx) {
+    onProgress?.("reading");
+    const { text, images } = await docxText(file);
+    onProgress?.(images.length ? "digesting" : "uploading");
+    await post({ text, images });
+    return;
+  }
 
   if (isHtml) {
     onProgress?.("reading");

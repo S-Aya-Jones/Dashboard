@@ -72,7 +72,22 @@ export async function pptxText(file: File): Promise<string> {
  * deck this came from"; without them the whole file collapses into one wall.
  */
 export async function htmlText(file: File, companions: File[] = []): Promise<{ text: string; images: string[] }> {
-  const raw = await file.text();
+  return parseHtmlString(await file.text(), stripExtensionLocal(file.name), companions);
+}
+
+/**
+ * Structured text and figures out of an HTML string.
+ *
+ * Shared by saved web pages and by Word documents, because mammoth converts a
+ * .docx into HTML — the headings, lists, tables and images all arrive in the
+ * same shapes, so they should be read by the same code rather than by a second
+ * copy that drifts.
+ */
+export async function parseHtmlString(
+  raw: string,
+  fallbackTitle: string,
+  companions: File[] = [],
+): Promise<{ text: string; images: string[] }> {
   const doc = new DOMParser().parseFromString(raw, "text/html");
 
   // Figures, before the tags come off. A saved page keeps its images either
@@ -117,16 +132,40 @@ export async function htmlText(file: File, companions: File[] = []): Promise<{ t
       seen.add(el);
       return;
     }
-    if (!out.length) out.push(`SLIDE 1: ${stripExtensionLocal(file.name)}`);
+    if (!out.length) out.push(`SLIDE 1: ${fallbackTitle}`);
     out.push(`- ${text}`);
     seen.add(el);
   });
 
   const text = out.join("\n").trim();
   if (text.replace(/SLIDE \d+:.*/g, "").trim().length < 40 && images.length === 0) {
-    throw new Error("that HTML file has almost no readable text or figures in it");
+    throw new Error("there's almost no readable text or figures in that file");
   }
   return { text, images };
+}
+
+/**
+ * A Word document, read through mammoth.
+ *
+ * Course handouts are .docx more often than anything else, and a study guide
+ * someone typed up is almost always Word. mammoth converts it to HTML with its
+ * images inlined as data URIs, which the reader above already knows how to
+ * handle — so headings still become slide markers and figures still get read.
+ */
+export async function docxText(file: File): Promise<{ text: string; images: string[] }> {
+  const mammoth = await import("mammoth");
+  const { value: html } = await mammoth.convertToHtml(
+    { arrayBuffer: await file.arrayBuffer() },
+    {
+      // Inline every image so the shared reader can pick it up; a Word file has
+      // no sibling folder to fall back on.
+      convertImage: mammoth.images.imgElement(async (image: { read: (enc: string) => Promise<string>; contentType: string }) => {
+        const b64 = await image.read("base64");
+        return { src: `data:${image.contentType};base64,${b64}` };
+      }),
+    },
+  );
+  return parseHtmlString(html, stripExtensionLocal(file.name));
 }
 
 /** Cap the size before it goes anywhere — figures are the expensive part. */
@@ -199,14 +238,30 @@ export async function uploadSlides(
 ): Promise<void> {
   const isPdf  = /\.pdf$/i.test(file.name)  || file.type === "application/pdf";
   const isPptx = /\.pptx$/i.test(file.name) || file.type.includes("presentationml");
+  const isDocx = /\.docx$/i.test(file.name) || file.type.includes("wordprocessingml");
   const isText = /\.(html?|txt|md|markdown)$/i.test(file.name)
     || file.type === "text/html" || file.type === "text/plain" || file.type === "text/markdown";
 
-  if (!isPdf && !isPptx && !isText) {
-    throw new Error("Slides can be a PDF, a .pptx, or an HTML/text file. In PowerPoint or Google Slides: File → Download → PDF.");
+  if (!isPdf && !isPptx && !isDocx && !isText) {
+    throw new Error("Slides can be a PDF, .pptx, .docx, HTML or text. In PowerPoint or Google Slides: File → Download → PDF.");
   }
 
-  // HTML and plain text are already words — parsed here, nothing uploaded.
+  // Word, HTML and plain text are all words already — parsed here, nothing
+  // uploaded and no model call unless there are figures to describe.
+  if (isDocx) {
+    onProgress?.("reading", 0.3);
+    const { text, images } = await docxText(file);
+    onProgress?.(images.length ? "digesting" : "uploading", 0.8);
+    const res = await fetch(`/api/lectures/${lectureId}/slides`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: file.name, text: text.slice(0, 40000), images, append }),
+    });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? "couldn't read that document");
+    onProgress?.("digesting", 1);
+    return;
+  }
+
   if (isText) {
     onProgress?.("reading", 0.3);
     const isHtml = /\.html?$/i.test(file.name) || file.type === "text/html";
