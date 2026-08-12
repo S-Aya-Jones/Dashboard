@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { describeAiError, firstText } from "@/lib/aiError";
 import { getLecture, updateLecture } from "@/lib/lectures";
+import { LEARNING_PROFILE } from "@/lib/learningProfile";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -31,15 +32,19 @@ Return ONLY JSON, no fences:
 { "segments": [ {
     "title": "the one idea this segment teaches, as a short phrase",
     "slide": "which slide or part of the deck this maps to, or null",
+    "analogy": "the everyday thing this is like, which part maps to which, and where it stops being true — 2-4 sentences. null only if there is honestly no good one.",
     "teach": "the teaching itself — 150-300 words",
     "board": "optional: a pathway, equation, or comparison written in plain text, as a lecturer would put it on the board. null if not useful.",
     "check": { "q": "one question testing whether it landed", "a": "the answer", "why": "one sentence on why, and what the wrong instinct usually is" }
   } ] }
 
+${LEARNING_PROFILE}
+
 How to write "teach":
 - Start from what she already knows and build. Introduce the term after the idea, never before.
+- The analogy field carries the comparison; "teach" then does the real mechanism. Build on it rather than repeating it.
 - Explain WHY, not just what. "Histidine buffers at physiological pH" is a fact; why its pKa being 6.0 makes that true is the teaching.
-- Say the thing that makes it click — the analogy, the reason it evolved this way, the reason the exam asks about it.
+- Say the thing that makes it click — the reason it evolved this way, the reason the exam asks about it.
 - Name the trap. Where do students get this wrong, and what is the wrong answer that feels right?
 - Use the lecturer's own framing and emphasis where the transcript shows it. If they said something twice, or said "this will be on the exam", teach it as they weighted it.
 - Plain readable notation for chemistry and formulas — never LaTeX. pH = -log[H+], not \\log. Use ^ for exponents and charges.
