@@ -6,7 +6,10 @@
 // of XML, which the browser can open itself, so its text is extracted here and
 // no file is uploaded at all.
 
-const PART_BYTES = 2_000_000; // base64 chars per request, well under Vercel's 4.5MB body cap
+const PART_BYTES = 2_000_000;
+// Twelve figures at 900px is roughly 2MB of base64 — under Vercel's body cap,
+// and enough for a handout without the token cost running away.
+const MAX_FIGURES = 12; // base64 chars per request, well under Vercel's 4.5MB body cap
 
 export type SlideProgress = (stage: "reading" | "uploading" | "digesting", pct: number) => void;
 
@@ -68,9 +71,31 @@ async function pptxText(file: File): Promise<string> {
  * Headings become slide markers so the lesson can still cite "which part of the
  * deck this came from"; without them the whole file collapses into one wall.
  */
-async function htmlText(file: File): Promise<string> {
+async function htmlText(file: File, companions: File[] = []): Promise<{ text: string; images: string[] }> {
   const raw = await file.text();
   const doc = new DOMParser().parseFromString(raw, "text/html");
+
+  // Figures, before the tags come off. A saved page keeps its images either
+  // inline as data URIs or in a sibling folder, so both are handled: anything
+  // she selected alongside the HTML is matched to the src it is referenced by.
+  const byName = new Map<string, File>();
+  for (const f of companions) byName.set(f.name.toLowerCase(), f);
+
+  const images: string[] = [];
+  const imgEls = Array.from(doc.querySelectorAll("img")).slice(0, MAX_FIGURES);
+  for (const el of imgEls) {
+    const src = el.getAttribute("src") ?? "";
+    if (!src) continue;
+    try {
+      if (src.startsWith("data:image/")) {
+        images.push(await shrinkToJpegBase64(src));
+      } else {
+        const leaf = decodeURIComponent(src.split("/").pop() ?? "").toLowerCase();
+        const companion = byName.get(leaf);
+        if (companion) images.push(await shrinkToJpegBase64(await fileToDataUrl(companion)));
+      }
+    } catch { /* one unreadable figure shouldn't cost the whole file */ }
+  }
 
   // Navigation, scripts and styling are not the material.
   doc.querySelectorAll("script, style, nav, header, footer, noscript, svg").forEach(n => n.remove());
@@ -98,10 +123,44 @@ async function htmlText(file: File): Promise<string> {
   });
 
   const text = out.join("\n").trim();
-  if (text.replace(/SLIDE \d+:.*/g, "").trim().length < 40) {
-    throw new Error("that HTML file has almost no readable text in it");
+  if (text.replace(/SLIDE \d+:.*/g, "").trim().length < 40 && images.length === 0) {
+    throw new Error("that HTML file has almost no readable text or figures in it");
   }
-  return text;
+  return { text, images };
+}
+
+/** Cap the size before it goes anywhere — figures are the expensive part. */
+async function shrinkToJpegBase64(dataUrl: string): Promise<string> {
+  const out = await new Promise<string>((res, rej) => {
+    const img = new Image();
+    img.onload = () => {
+      const max = 900;
+      const scale = Math.min(1, max / Math.max(img.width, img.height));
+      const w = Math.max(1, Math.round(img.width * scale));
+      const h = Math.max(1, Math.round(img.height * scale));
+      const c = document.createElement("canvas");
+      c.width = w; c.height = h;
+      const ctx = c.getContext("2d");
+      if (!ctx) return rej(new Error("no canvas"));
+      // White behind, so a transparent diagram doesn't read as black on black.
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, w, h);
+      ctx.drawImage(img, 0, 0, w, h);
+      res(c.toDataURL("image/jpeg", 0.8));
+    };
+    img.onerror = () => rej(new Error("unreadable image"));
+    img.src = dataUrl;
+  });
+  return out.replace(/^data:image\/jpeg;base64,/, "");
+}
+
+function fileToDataUrl(f: File): Promise<string> {
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = e => res(e.target?.result as string);
+    fr.onerror = () => rej(new Error("unreadable file"));
+    fr.readAsDataURL(f);
+  });
 }
 
 function stripExtensionLocal(name: string): string {
@@ -117,8 +176,13 @@ export async function uploadAllSlides(
   files: File[],
   onProgress?: SlideProgress,
 ): Promise<void> {
-  for (let i = 0; i < files.length; i++) {
-    await uploadSlides(lectureId, files[i], onProgress, i > 0);
+  // Loose images belong to whichever HTML file references them, not to a
+  // routine of their own — a saved page arrives as one .html plus its folder.
+  const docs = files.filter(f => !/^image\//.test(f.type) && !/\.(png|jpe?g|gif|webp|svg)$/i.test(f.name));
+  const loose = files.filter(f => !docs.includes(f));
+
+  for (let i = 0; i < docs.length; i++) {
+    await uploadSlides(lectureId, docs[i], onProgress, i > 0, loose);
   }
 }
 
@@ -131,6 +195,7 @@ export async function uploadSlides(
   file: File,
   onProgress?: SlideProgress,
   append = false,
+  companions: File[] = [],
 ): Promise<void> {
   const isPdf  = /\.pdf$/i.test(file.name)  || file.type === "application/pdf";
   const isPptx = /\.pptx$/i.test(file.name) || file.type.includes("presentationml");
@@ -145,14 +210,23 @@ export async function uploadSlides(
   if (isText) {
     onProgress?.("reading", 0.3);
     const isHtml = /\.html?$/i.test(file.name) || file.type === "text/html";
-    const text = isHtml ? await htmlText(file) : (await file.text()).trim();
-    if (text.length < 40) throw new Error("that file has almost no readable text in it");
+    const parsed = isHtml
+      ? await htmlText(file, companions)
+      : { text: (await file.text()).trim(), images: [] as string[] };
+    if (parsed.text.length < 40 && !parsed.images.length) {
+      throw new Error("that file has almost no readable text in it");
+    }
 
-    onProgress?.("uploading", 0.8);
+    onProgress?.(parsed.images.length ? "digesting" : "uploading", 0.8);
     const res = await fetch(`/api/lectures/${lectureId}/slides`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: file.name, text: text.slice(0, 40000), append }),
+      body: JSON.stringify({
+        name: file.name,
+        text: parsed.text.slice(0, 40000),
+        images: parsed.images,
+        append,
+      }),
     });
     if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? "couldn't save that file");
     onProgress?.("digesting", 1);
