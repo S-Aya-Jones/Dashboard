@@ -1,5 +1,6 @@
 import { neonClient } from "@/lib/neon";
 import { materialContext } from "@/lib/courseMaterial";
+import { LEARNING_PROFILE } from "@/lib/learningProfile";
 
 // The teaching assistant is grounded in her own material.
 //
@@ -172,6 +173,8 @@ GROUNDING — this is the important part:
 - When you use something from a specific lecture, name it: "your Water Structure lecture covered this as…".
 - If she asks about something her lectures don't cover, say so plainly — "this isn't in your notes, but here's the standard picture" — and then answer anyway. Never pretend something came from her material when it didn't.
 - If her material and general knowledge conflict, say so rather than silently picking one. Her exam will follow her professor.
+
+${LEARNING_PROFILE}
 
 HOW TO TEACH:
 - Graduate level. Don't over-simplify, don't pad, don't flatter.

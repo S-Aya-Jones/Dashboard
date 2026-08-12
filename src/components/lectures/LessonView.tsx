@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, ChevronLeft, ChevronRight, Check, X, Presentation, Volume2, GraduationCap } from "lucide-react";
+import { Loader2, ChevronLeft, ChevronRight, Check, X, Presentation, Volume2, GraduationCap, Lightbulb } from "lucide-react";
 import { say } from "@/lib/coachVoice";
 
 // Being taught the lecture she missed.
@@ -15,6 +15,7 @@ interface Check { q: string; a: string; why?: string }
 interface Segment {
   title: string;
   slide?: string | null;
+  analogy?: string | null;
   teach: string;
   board?: string | null;
   check?: Check;
@@ -132,7 +133,7 @@ export function LessonView({ lectureId, course, initial }: Props) {
             {seg.title}
           </h2>
           <button
-            onClick={() => say(seg.teach.slice(0, 1200))}
+            onClick={() => say(`${seg.analogy ? seg.analogy + " " : ""}${seg.teach}`.slice(0, 1400))}
             aria-label="Read this aloud"
             className="p-2 rounded-lg flex-shrink-0"
             style={{ color: "var(--text-light)" }}
@@ -159,6 +160,18 @@ export function LessonView({ lectureId, course, initial }: Props) {
                 {seg.slide}
               </pre>
             )}
+          </div>
+        )}
+
+        {seg.analogy && (
+          <div
+            className="rounded-xl p-4 mb-4 flex items-start gap-3"
+            style={{ background: "rgba(224,164,74,0.10)", border: "1px solid rgba(224,164,74,0.35)" }}
+          >
+            <Lightbulb size={16} style={{ color: "#C9A227", flexShrink: 0, marginTop: 2 }} />
+            <p className="text-[15px] leading-relaxed" style={{ color: "var(--text)" }}>
+              {seg.analogy}
+            </p>
           </div>
         )}
 

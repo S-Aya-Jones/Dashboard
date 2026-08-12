@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { LEARNING_PROFILE_SHORT } from "@/lib/learningProfile";
 import { describeAiError, firstText } from "@/lib/aiError";
 import Anthropic from "@anthropic-ai/sdk";
 import { getLecture, getChunkTexts, updateLecture } from "@/lib/lectures";
@@ -21,7 +22,9 @@ const MAX_TRANSCRIPT = 60000;
 // transcript out of the context window.
 const MAX_SLIDES = 22000;
 
-const CONTEXT = `The student is a master's (MHS) student at Meharry Medical College on a pre-med track, taking Biochemistry, Physiology, Microbiology, and Cell & Molecular Biology. Her assessments are graduate-level quizzes and exams. She needs materials that prepare her for those exams — not summaries of what was said.`;
+const LEARNING = `\n\n${LEARNING_PROFILE_SHORT}`;
+
+const CONTEXT = `The student is a master's (MHS) student at Meharry Medical College on a pre-med track, taking Biochemistry, Physiology, Microbiology, and Cell & Molecular Biology. Her assessments are graduate-level quizzes and exams. She needs materials that prepare her for those exams — not summaries of what was said.${LEARNING}`;
 
 // Appended only when a deck is attached. The transcript is speech — it garbles
 // spellings and cannot describe a diagram; the slides fix both. Where they
