@@ -89,15 +89,15 @@ export function MaterialView() {
         </div>
 
         <div className="grid sm:grid-cols-2 gap-2">
-          <label className="text-xs" style={{ color: "var(--text-muted)" }}>
-            Course
+          <label className="text-xs block" style={{ color: "var(--text-muted)" }}>
+            <span className="block mb-1">Course</span>
             <select value={course} onChange={e => setCourse(e.target.value)}>
               {COURSES.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </label>
-          <label className="text-xs" style={{ color: "var(--text-muted)" }}>
-            Who shared it
-            <input value={source} onChange={e => setSource(e.target.value)} placeholder="a name, or leave blank" />
+          <label className="text-xs block" style={{ color: "var(--text-muted)" }}>
+            <span className="block mb-1">Who shared it</span>
+            <input type="text" value={source} onChange={e => setSource(e.target.value)} placeholder="a name, or leave blank" />
           </label>
         </div>
 

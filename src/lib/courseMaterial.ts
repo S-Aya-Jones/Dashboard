@@ -100,6 +100,19 @@ export async function listMaterial(course?: string): Promise<Omit<CourseMaterial
   });
 }
 
+/** Extend a record already being built, for a PDF read a window at a time. */
+export async function appendMaterialText(id: string, more: string): Promise<number> {
+  await ensure();
+  const sql = db();
+  const rows = await sql`
+    UPDATE course_material
+    SET text = LEFT(text || E'\n\n' || ${more}, ${MAX_TEXT})
+    WHERE id = ${id}
+    RETURNING length(text) AS len
+  `;
+  return rows.length ? Number(rows[0].len) : 0;
+}
+
 export async function getMaterial(id: string): Promise<CourseMaterial | null> {
   await ensure();
   const sql = db();

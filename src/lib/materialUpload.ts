@@ -45,8 +45,14 @@ export async function uploadMaterial(
     });
     if (!res.ok) {
       const d = await res.json().catch(() => null);
-      throw new Error(d?.error ?? `couldn't save that (${res.status})`);
+      // A 504 is a gateway timeout and has no JSON body, so name it rather
+      // than reporting an empty parse.
+      throw new Error(
+        d?.error ??
+        (res.status === 504 ? "that took too long to read — try a smaller file" : `couldn't save that (${res.status})`),
+      );
     }
+    return res.json().catch(() => ({}));
   };
 
   if (isHtml) {
@@ -90,6 +96,17 @@ export async function uploadMaterial(
     }
   }
 
+  // Read a window of pages at a time. One call for a whole study guide overran
+  // the 60s function limit and returned a 504 with nothing saved.
   onProgress?.("digesting");
-  await post({ partKey: key });
+  const MAX_WINDOWS = 12;
+  let from = 1;
+  let id: string | undefined;
+  for (let w = 0; w < MAX_WINDOWS; w++) {
+    const body = await post({ partKey: key, from, ...(id ? { id } : {}) });
+    id = body.id ?? id;
+    if (body.done) break;
+    from = body.next ?? from + 10;
+    onProgress?.("digesting");
+  }
 }

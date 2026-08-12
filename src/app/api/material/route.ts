@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { describeAiError, firstText } from "@/lib/aiError";
 import {
-  addMaterial, listMaterial, deleteMaterial,
+  addMaterial, appendMaterialText, listMaterial, deleteMaterial,
   assembleParts, clearParts,
 } from "@/lib/courseMaterial";
 
@@ -15,11 +15,20 @@ const client = new Anthropic();
 // set. Text and HTML arrive already parsed by the browser; a PDF arrives in
 // staged pieces and is read here, the same way a lecture deck is.
 
+// Pages per request. Reading a whole study guide in one call overran Vercel's
+// 60s limit and came back as a 504 — the same mistake already fixed for lecture
+// decks, repeated here. Windows keep each call short; the PDF is cached so
+// re-sending it per window costs little.
+const WINDOW = 10;
+const END_MARKER = "END_OF_DOCUMENT";
+
 const READ_SYSTEM = `You are reading study material shared between students on a graduate medical-science course (Biochemistry, Physiology, Microbiology, Cell & Molecular Biology).
 
 Return the material as clean, complete text. Keep every definition, value, unit, mechanism and question exactly as written — this is someone's study guide and its details are the point. Describe any figure, diagram, pathway or table in place, beginning that line with FIGURE: or TABLE:.
 
-Do not summarise, shorten, or improve it. Plain text only, no preamble, no LaTeX — use ^ for exponents and charges.`;
+Do not summarise, shorten, or improve it. Plain text only, no preamble, no LaTeX — use ^ for exponents and charges.
+
+You will be asked for a numbered range of pages. Read only that range. If the document ends before the end of the range, read what exists and then output the single line ${END_MARKER}.`;
 
 export async function GET(req: NextRequest) {
   try {
@@ -45,25 +54,43 @@ export async function POST(req: NextRequest) {
     const images: string[] = Array.isArray(body.images) ? body.images.slice(0, 12) : [];
     const partKey: string | undefined = typeof body.partKey === "string" ? body.partKey : undefined;
 
-    // A PDF that was uploaded in pieces.
+    // A PDF that was uploaded in pieces, read a window of pages per request.
     if (partKey) {
       const base64 = await assembleParts(partKey);
       if (!base64) return NextResponse.json({ error: "Nothing was uploaded." }, { status: 400 });
+
+      const from = Number.isFinite(body.from) && body.from > 0 ? Math.floor(body.from) : 1;
+      const existingId: string | undefined = typeof body.id === "string" ? body.id : undefined;
+
       try {
         const msg = await client.messages.create({
           model: "claude-haiku-4-5-20251001",
-          max_tokens: 8000,
+          max_tokens: 4000,
           system: READ_SYSTEM,
           messages: [{
             role: "user",
             content: [
-              { type: "document", source: { type: "base64", media_type: "application/pdf", data: base64 } },
-              { type: "text", text: `Course: ${course}\nShared as: ${title}\n\nRead this out in full.` },
+              {
+                type: "document",
+                source: { type: "base64", media_type: "application/pdf", data: base64 },
+                cache_control: { type: "ephemeral" },
+              },
+              { type: "text", text: `Course: ${course}\nShared as: ${title}\n\nRead pages ${from} to ${from + WINDOW - 1}.` },
             ],
           }],
         });
-        text = firstText(msg).trim();
-        await clearParts(partKey);
+
+        const raw = firstText(msg);
+        const done = raw.includes(END_MARKER) || !raw.trim();
+        const chunk = raw.replace(END_MARKER, "").trim();
+
+        // First window creates the record; later ones extend it, so she can
+        // see it appear rather than waiting for the whole document.
+        const id = existingId ?? (await addMaterial({ course, title, source, kind, text: chunk })).id;
+        const chars = existingId ? await appendMaterialText(existingId, chunk) : chunk.length;
+
+        if (done) await clearParts(partKey);
+        return NextResponse.json({ ok: true, id, done, next: from + WINDOW, chars });
       } catch (e) {
         // Pieces stay put so a retry costs nothing extra.
         const f = describeAiError(e);
