@@ -729,7 +729,7 @@ export function LectureStudio() {
           ref={fileInput}
           type="file"
           multiple
-          accept="video/*,audio/*,.pdf,application/pdf,.pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation"
+          accept="video/*,audio/*,.pdf,application/pdf,.pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation,.html,.htm,text/html,.txt,.md"
           className="hidden"
           onChange={e => { addFiles(Array.from(e.target.files ?? [])); e.target.value = ""; }}
         />
@@ -739,7 +739,7 @@ export function LectureStudio() {
         <input
           ref={slidesInput}
           type="file"
-          accept=".pdf,application/pdf,.pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation"
+          accept=".pdf,application/pdf,.pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation,.html,.htm,text/html,.txt,.md"
           className="hidden"
           onChange={e => {
             const f = e.target.files?.[0];
@@ -913,7 +913,7 @@ export function LectureStudio() {
                   {it.status === "waiting" ? (
                     <button onClick={() => pickSlidesFor("queue", it.key)}
                       className="text-xs underline" style={{ color: "var(--purple)" }}>
-                      {it.slidesFiles?.length ? "Add another deck" : "Add the slides for this lecture (PDF or .pptx)"}
+                      {it.slidesFiles?.length ? "Add another deck" : "Add the slides for this lecture (PDF, .pptx, HTML)"}
                     </button>
                   ) : !it.slidesFiles?.length ? (
                     <span className="text-xs" style={{ color: "var(--text-light)" }}>no slides</span>

@@ -147,12 +147,15 @@ export function pairDecks<R, D>(
   };
 }
 
-const DECK_RE = /\.(pdf|pptx)$/i;
+const DECK_RE = /\.(pdf|pptx|html?|txt|md|markdown)$/i;
 const MEDIA_RE = /\.(mp4|m4a|mp3|wav|mov|webm|aac|ogg|mkv|avi|flac)$/i;
 
 export function isDeck(file: { name: string; type?: string }): boolean {
   return DECK_RE.test(file.name)
     || file.type === "application/pdf"
+    || file.type === "text/html"
+    || file.type === "text/markdown"
+    // text/plain last: some browsers report it for files that are really decks.
     || (file.type ?? "").includes("presentationml");
 }
 
