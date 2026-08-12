@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { firstText } from "@/lib/aiError";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -46,7 +47,7 @@ export async function POST(req: Request) {
       messages: [{ role: "user", content: `My check snapshot:\n${lines.join("\n")}\n\nWhat's my key action for this check?` }],
     });
 
-    const advice = msg.content[0].type === "text" ? msg.content[0].text.trim() : "";
+    const advice = firstText(msg).trim();
     return NextResponse.json({ advice });
   } catch (e) {
     console.error("Budget advice error:", e);

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { firstText } from "@/lib/aiError";
 import Anthropic from "@anthropic-ai/sdk";
 
 export const dynamic = "force-dynamic";
@@ -36,7 +37,7 @@ Return ONLY a JSON array like: [{"id":"...","amountPerCheck":123}]`;
       messages: [{ role: "user", content: prompt }],
     });
 
-    const text = msg.content[0].type === "text" ? msg.content[0].text : "[]";
+    const text = firstText(msg) || "[]";
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     const updates: { id: string; amountPerCheck: number }[] = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
 

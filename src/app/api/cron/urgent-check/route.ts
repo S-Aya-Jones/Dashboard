@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { firstText } from "@/lib/aiError";
 import Anthropic from "@anthropic-ai/sdk";
 import { sendTelegram } from "@/lib/telegram";
 import {
@@ -104,7 +105,7 @@ Start with "Heads up —"`,
       messages: [{ role: "user", content: JSON.stringify(context) }],
     });
 
-    const text = msg.content[0].type === "text" ? msg.content[0].text : "Heads up — check your dashboard for urgent items.";
+    const text = firstText(msg) || "Heads up — check your dashboard for urgent items.";
 
     await sendTelegram(text);
 

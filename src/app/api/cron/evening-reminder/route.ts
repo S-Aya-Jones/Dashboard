@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { firstText } from "@/lib/aiError";
 import Anthropic from "@anthropic-ai/sdk";
 import { loadData } from "@/lib/db";
 import { sendTelegram } from "@/lib/telegram";
@@ -55,7 +56,7 @@ Start with "6pm —"`,
       messages: [{ role: "user", content: JSON.stringify(context) }],
     });
 
-    const text = msg.content[0].type === "text" ? msg.content[0].text : "6pm — check your 75 Hard progress for today before the night gets away from you.";
+    const text = firstText(msg) || "6pm — check your 75 Hard progress for today before the night gets away from you.";
 
     await sendTelegram(text);
 

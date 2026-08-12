@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { describeAiError } from "@/lib/aiError";
+import { describeAiError, firstText } from "@/lib/aiError";
 import Anthropic from "@anthropic-ai/sdk";
 import { getLecture, getChunkTexts, updateLecture } from "@/lib/lectures";
 
@@ -245,7 +245,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       messages: [{ role: "user", content: userContent }],
     });
 
-    const raw = msg.content[0].type === "text" ? msg.content[0].text : "";
+    const raw = firstText(msg);
 
     if (stage === "notes1") {
       // TITLE: / SUMMARY: / --- / markdown

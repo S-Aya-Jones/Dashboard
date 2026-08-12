@@ -51,3 +51,20 @@ export function describeAiError(e: unknown): AiFailure {
 
   return { blocking: false, message: raw.slice(0, 220) };
 }
+
+/**
+ * The first text block of a reply.
+ *
+ * Every call site used to read content[0] and assume it was text. That holds
+ * for Haiku, which returns a single text block — but a model that emits any
+ * leading block puts the text at index 1, and the check silently yields "".
+ * The lesson route hit exactly that: 200 OK, an empty string parsed to zero
+ * segments, and "done" reported with nothing written. Reading by type instead
+ * of by position removes the whole class.
+ */
+export function firstText(msg: { content: Array<{ type: string; text?: string }> }): string {
+  for (const block of msg.content) {
+    if (block.type === "text" && typeof block.text === "string") return block.text;
+  }
+  return "";
+}

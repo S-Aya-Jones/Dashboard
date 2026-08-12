@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { firstText } from "@/lib/aiError";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -62,7 +63,7 @@ Rules:
       messages: [{ role: "user", content: prompt }],
     });
 
-    const answer = (msg.content[0] as { type: string; text: string }).text;
+    const answer = firstText(msg);
     return NextResponse.json({ answer });
   } catch (e) {
     console.error("Chat error:", e);

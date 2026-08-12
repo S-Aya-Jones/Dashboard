@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { firstText } from "@/lib/aiError";
 import Anthropic from "@anthropic-ai/sdk";
 import { upsertObligation } from "@/lib/obligations";
 
@@ -75,7 +76,7 @@ export async function POST(req: NextRequest) {
       }],
     });
 
-    const raw = msg.content[0].type === "text" ? msg.content[0].text : "[]";
+    const raw = firstText(msg) || "[]";
     const match = raw.match(/\[[\s\S]*\]/);
     const found: Extracted[] = [];
     if (match) {
