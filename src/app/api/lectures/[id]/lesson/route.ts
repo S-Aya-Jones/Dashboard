@@ -150,6 +150,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       total: merged.length,
       done,
       next: part + 1,
+      // Temporary: an empty part is indistinguishable from a finished lecture
+      // from the outside, so say what the model actually did.
+      ...(fresh.length === 0 ? { stopReason: msg.stop_reason, sample: raw.slice(0, 300) } : {}),
     });
   } catch (e) {
     const f = describeAiError(e);
