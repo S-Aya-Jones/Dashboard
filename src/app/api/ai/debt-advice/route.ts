@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { firstText } from "@/lib/aiError";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -53,7 +54,7 @@ Be direct. Name specific accounts. No fluff. 4 sentences max.`;
       messages: [{ role: "user", content: prompt }],
     });
 
-    const advice = (msg.content[0] as { type: string; text: string }).text;
+    const advice = firstText(msg);
     return NextResponse.json({ advice });
   } catch (e) {
     console.error("Debt advice error:", e);

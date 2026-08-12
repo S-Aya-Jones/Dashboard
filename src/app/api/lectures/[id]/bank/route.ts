@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { describeAiError } from "@/lib/aiError";
+import { describeAiError, firstText } from "@/lib/aiError";
 import Anthropic from "@anthropic-ai/sdk";
 import { getLecture } from "@/lib/lectures";
 import { insertQuestions, countQuestions, clearQuestions } from "@/lib/qbank";
@@ -150,7 +150,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       }],
     });
 
-    const raw = msg.content[0].type === "text" ? msg.content[0].text : "";
+    const raw = firstText(msg);
     const parsed = parseJson(raw);
     const items = Array.isArray(parsed.questions) ? parsed.questions : [];
     // Batch 0 starts a fresh bank so re-running (Resume) never duplicates

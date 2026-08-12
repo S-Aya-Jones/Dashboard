@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { firstText } from "@/lib/aiError";
 import Anthropic from "@anthropic-ai/sdk";
 import { getStoredEmails } from "@/lib/gmail";
 import { upsertObligation } from "@/lib/obligations";
@@ -97,7 +98,7 @@ export async function POST() {
             ).join("\n\n"),
           }],
         });
-        const raw = msg.content[0].type === "text" ? msg.content[0].text : "";
+        const raw = firstText(msg);
         const parsed = parse(raw);
         for (const o of (parsed.obligations ?? [])) {
           if (!o?.title || !o?.dueAt) continue;

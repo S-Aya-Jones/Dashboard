@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
-import { describeAiError } from "@/lib/aiError";
+import { describeAiError, firstText } from "@/lib/aiError";
 import { getLecture, updateLecture } from "@/lib/lectures";
 
 export const dynamic = "force-dynamic";
@@ -126,7 +126,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       }],
     });
 
-    const raw = msg.content[0]?.type === "text" ? msg.content[0].text : "";
+    const raw = firstText(msg);
     const fresh = parseSegments(raw);
 
     // An empty part with a healthy response means the prompt or the parse is
@@ -150,9 +150,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       total: merged.length,
       done,
       next: part + 1,
-      // Temporary: an empty part is indistinguishable from a finished lecture
-      // from the outside, so say what the model actually did.
-      ...(fresh.length === 0 ? { stopReason: msg.stop_reason, sample: raw.slice(0, 300) } : {}),
     });
   } catch (e) {
     const f = describeAiError(e);

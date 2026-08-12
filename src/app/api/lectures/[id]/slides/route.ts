@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { describeAiError } from "@/lib/aiError";
+import { describeAiError, firstText } from "@/lib/aiError";
 import Anthropic from "@anthropic-ai/sdk";
 import { neonClient } from "@/lib/neon";
 import { getLecture, updateLecture, ensureLectureTables } from "@/lib/lectures";
@@ -115,7 +115,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         }],
       });
 
-      const raw = msg.content[0]?.type === "text" ? msg.content[0].text : "";
+      const raw = firstText(msg);
       const done = raw.includes(END_MARKER) || !raw.trim();
       const text = raw.replace(END_MARKER, "").trim();
 
