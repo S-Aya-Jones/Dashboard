@@ -20,7 +20,7 @@ const client = new Anthropic();
 // limit, and because she can start on part one while the rest is still being
 // written.
 
-const PER_PART = 4;
+const PER_PART = 3;
 const MAX_PARTS = 8;
 
 const SYSTEM = `You are teaching one lecture to a master's student at Meharry Medical College (pre-med, working full time, taking Biochemistry, Physiology, Microbiology and Cell & Molecular Biology). She could not attend this lecture live. She has the transcript and the slides; neither has worked, because reading a transcript is not the same as being taught.
@@ -47,12 +47,48 @@ How to write "teach":
 
 Segment the lecture by IDEA, not by time or by slide. One concept per segment, in the order the lecture builds them.`;
 
-function parseJson(raw: string): { segments?: unknown[] } {
+/**
+ * Segments out of a possibly-truncated response.
+ *
+ * Teaching prose is long, so a reply can stop mid-array and leave the JSON
+ * unclosed. Parsing the whole thing then throws away three complete segments
+ * because of a fourth that never finished — which is exactly what happened on
+ * the first run: 200 OK, zero segments, no error anywhere. So whole objects are
+ * pulled out one at a time and whatever completed is kept.
+ */
+function parseSegments(raw: string): unknown[] {
   const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
-  try { return JSON.parse(cleaned); } catch { /* fall through */ }
-  const m = cleaned.match(/\{[\s\S]*\}/);
-  if (!m) return {};
-  try { return JSON.parse(m[0]); } catch { return {}; }
+
+  try {
+    const whole = JSON.parse(cleaned);
+    if (Array.isArray(whole?.segments)) return whole.segments;
+  } catch { /* truncated — salvage below */ }
+
+  const out: unknown[] = [];
+  let depth = 0, start = -1, inStr = false, esc = false;
+  // Skip the wrapper object's own brace by starting at the array.
+  const from = cleaned.indexOf("[");
+  if (from < 0) return out;
+
+  for (let i = from + 1; i < cleaned.length; i++) {
+    const c = cleaned[i];
+    if (inStr) {
+      if (esc) esc = false;
+      else if (c === "\\") esc = true;
+      else if (c === '"') inStr = false;
+      continue;
+    }
+    if (c === '"') inStr = true;
+    else if (c === "{") { if (depth === 0) start = i; depth++; }
+    else if (c === "}") {
+      depth--;
+      if (depth === 0 && start >= 0) {
+        try { out.push(JSON.parse(cleaned.slice(start, i + 1))); } catch { /* skip */ }
+        start = -1;
+      }
+    }
+  }
+  return out;
 }
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
@@ -76,7 +112,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     const msg = await client.messages.create({
       model: "claude-sonnet-5",
-      max_tokens: 5000,
+      max_tokens: 8000,
       system: SYSTEM,
       messages: [{
         role: "user",
@@ -91,8 +127,17 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     });
 
     const raw = msg.content[0]?.type === "text" ? msg.content[0].text : "";
-    const parsed = parseJson(raw);
-    const fresh = Array.isArray(parsed.segments) ? parsed.segments : [];
+    const fresh = parseSegments(raw);
+
+    // An empty part with a healthy response means the prompt or the parse is
+    // wrong, not that the lecture ended. Say which, rather than reporting
+    // success with nothing to show for it.
+    if (!fresh.length && msg.stop_reason !== "end_turn") {
+      return NextResponse.json(
+        { error: `The lesson came back unusable (${msg.stop_reason ?? "unknown"}). Try again.` },
+        { status: 502 },
+      );
+    }
 
     const merged = [...existing, ...fresh];
     await updateLecture(params.id, { lesson: JSON.stringify(merged) });
