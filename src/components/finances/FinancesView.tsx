@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { MoneyGlance } from "./MoneyGlance";
 import { CreditTracker } from "./CreditTracker";
+import { LoanReadiness } from "./LoanReadiness";
 import { usePlaidLink } from "react-plaid-link";
 import { RefreshCw, Unlink, Plus, Trash2, Check, ChevronDown, ChevronUp, RotateCcw, Pencil } from "lucide-react";
 import { DashboardData, PaycheckConfig, SelfCareItem, RecurringBill, P2PTransfer, AccountTransfer, BudgetLine, CreditScoreEntry, BaseBudgetItem, BudgetPlan, BudgetPlanItem } from "@/types/dashboard";
@@ -573,7 +574,7 @@ function PlaidConnectButton({ onConnected }: { onConnected: () => void }) {
 interface Props { data: DashboardData; update: (fn: (d: DashboardData) => DashboardData) => void; }
 
 export function FinancesView({ data, update }: Props) {
-  const [tab, setTab]                       = useState<"health"|"flow"|"credit"|"debt">("flow");
+  const [tab, setTab]                       = useState<"health"|"flow"|"debt">("flow");
   const [checkOffset, setCheckOffset]       = useState(0); // 0=this check, 1=next check, etc.
   const [toast, setToast]                   = useState<string | null>(null);
   const [insights, setInsights]             = useState<InsightsData | null>(null);
@@ -694,7 +695,7 @@ export function FinancesView({ data, update }: Props) {
   const savingsAlerts = computeSavingsAlerts(yearPlan);
   const health        = calcHealthGrade(pc, liabilities, data.creditScores ?? [], budgetLines);
 
-  const TAB_LABELS: Record<typeof tab, string> = { health: "Health", flow: "Flow", credit: "Credit", debt: "Debt" };
+  const TAB_LABELS: Record<typeof tab, string> = { health: "Health", flow: "Flow", debt: "Debt" };
 
   return (
     <div style={{ background: BG, minHeight: "100%" }}>
@@ -728,7 +729,7 @@ export function FinancesView({ data, update }: Props) {
           </div>
         </div>
         <div className="flex gap-1 rounded-xl p-1" style={{ background: "rgba(180,85,47,0.05)", border: `1px solid ${BORDER}` }}>
-          {(["health","flow","credit","debt"] as const).map(k => (
+          {(["health","flow","debt"] as const).map(k => (
             <button key={k} onClick={() => setTab(k)}
               className="flex-1 py-2 md:py-1.5 rounded-lg text-xs font-semibold transition-all"
               style={tab === k ? { background: LIME, color: "#fff"} : { color: MUTED }}>
@@ -761,7 +762,19 @@ export function FinancesView({ data, update }: Props) {
         {tab === "flow" && (
           <div className="space-y-4">
             <MoneyGlance />
+            {/* Credit lives here rather than behind its own tab — the reason
+                she tracks it at all is the loan question, and that belongs
+                next to the money, not one tap away. */}
+            <LoanReadiness
+              profile={data.loanProfile}
+              onProfile={(loanProfile) => update(d => ({ ...d, loanProfile }))}
+            />
             <CreditTracker />
+            <CreditCard
+              liabilities={liabilities}
+              creditScores={data.creditScores ?? []}
+              onUpdateScores={(scores) => update(d => ({ ...d, creditScores: scores }))}
+            />
           </div>
         )}
         {tab === "health" && (
@@ -836,16 +849,6 @@ export function FinancesView({ data, update }: Props) {
           />
           </>);
         })()}
-        {tab === "credit" && (
-          <CreditTab
-            liabilities={liabilities}
-            liabilitiesLoading={liabilitiesLoading}
-            creditScores={data.creditScores ?? []}
-            effectiveTakeHome={effectiveTakeHome}
-            freeCash={yearPlan[0]?.free ?? 0}
-            onUpdateScores={(scores) => update(d => ({ ...d, creditScores: scores }))}
-          />
-        )}
         {tab === "debt" && (
           <DebtTab
             liabilities={liabilities}
@@ -3126,7 +3129,7 @@ function AccountsTab({ accounts, loadingAccts, refreshing, accountTransfers, onR
   );
 }
 
-// ── Credit Tab ────────────────────────────────────────────────────────────────
+// ── Credit score card ────────────────────────────────────────────────────────────────
 function scoreLabel(s: number): { text: string; color: string } {
   if (s >= 800) return { text: "Exceptional", color: LIME };
   if (s >= 740) return { text: "Very Good",   color: LIME };
@@ -3135,15 +3138,11 @@ function scoreLabel(s: number): { text: string; color: string } {
   return               { text: "Poor",        color: RED };
 }
 
-function CreditTab({ liabilities, liabilitiesLoading, creditScores, effectiveTakeHome, freeCash, onUpdateScores }: {
+function CreditCard({ liabilities, creditScores, onUpdateScores }: {
   liabilities: LiabilitiesData | null;
-  liabilitiesLoading: boolean;
   creditScores: CreditScoreEntry[];
-  effectiveTakeHome: number;
-  freeCash: number;
   onUpdateScores: (s: CreditScoreEntry[]) => void;
 }) {
-  void liabilities; void liabilitiesLoading; void effectiveTakeHome; void freeCash;
   const [showScoreForm, setShowScoreForm] = useState(false);
   const [scoreInput, setScoreInput]       = useState("");
   const [scoreSource, setScoreSource]     = useState("Credit Karma");

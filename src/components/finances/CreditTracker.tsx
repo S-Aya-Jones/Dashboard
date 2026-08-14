@@ -12,6 +12,9 @@ interface Snapshot {
   balances: string | number | null; inquiries: number | null;
 }
 
+const BUREAU_NAME = (b: string) =>
+  b === "transunion" ? "TransUnion" : b === "experian" ? "Experian" : b === "equifax" ? "Equifax" : b;
+
 const band = (s: number) =>
   s >= 740 ? { label: "Very good", tone: "#2bb3a3" }
   : s >= 670 ? { label: "Good", tone: "#3aa864" }
@@ -32,17 +35,31 @@ export function CreditTracker() {
   }, []);
   useEffect(() => { load(); }, [load]);
 
-  async function upload(file: File) {
+  // All three bureaus at once, or one at a time — a batch merges into a single
+  // dated snapshot, and uploading Equifax later fills the gap in that same
+  // snapshot rather than starting a second one.
+  async function upload(files: File[]) {
+    if (!files.length) return;
     setBusy(true); setMsg(null);
     try {
-      const html = await file.text();
+      const reports = await Promise.all(
+        files.map(async f => ({ name: f.name, html: await f.text() })),
+      );
       const res = await fetch("/api/credit", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ html }),
+        body: JSON.stringify({ reports }),
       });
       const d = await res.json();
-      if (!res.ok) { setMsg(d.error ?? "Couldn't read that file"); return; }
-      setMsg(`Saved ${d.reportDate}. Next pull scheduled for ${d.nextPull}.`);
+      if (!res.ok) { setMsg(d.error ?? "Couldn't read those files"); return; }
+
+      const failed = (d.files ?? []).filter((f: { ok: boolean }) => !f.ok);
+      const parts = [
+        `${d.merged ? "Added to" : "Saved"} the ${d.reportDate} report`,
+        d.covered?.length ? `(${d.covered.map(BUREAU_NAME).join(", ")})` : "",
+        d.missing?.length ? `· still missing ${d.missing.map(BUREAU_NAME).join(" and ")}` : "",
+        failed.length ? `· couldn't read ${failed.map((f: { file: string }) => f.file).join(", ")}` : "",
+      ].filter(Boolean);
+      setMsg(parts.join(" ") + ".");
       await load();
     } catch (e) {
       setMsg(String(e).slice(0, 120));
@@ -57,19 +74,20 @@ export function CreditTracker() {
       <div className="flex items-center gap-2 mb-1">
         <TrendingUp size={17} style={{ color: "var(--purple)" }} />
         <h3 className="section-title flex-1">Credit</h3>
-        <input ref={fileRef} type="file" accept=".html,.htm,text/html" className="hidden"
-          onChange={e => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = ""; }} />
+        <input ref={fileRef} type="file" accept=".html,.htm,text/html" multiple className="hidden"
+          onChange={e => { upload(Array.from(e.target.files ?? [])); e.target.value = ""; }} />
         <button onClick={() => fileRef.current?.click()} disabled={busy}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white disabled:opacity-50"
           style={{ background: "var(--purple)" }}>
-          <Upload size={12} /> {busy ? "Reading…" : "Upload report"}
+          <Upload size={12} /> {busy ? "Reading…" : "Upload reports"}
         </button>
       </div>
 
       {!latest && (
         <p className="text-xs mt-2" style={{ color: "var(--text-muted)" }}>
-          Upload a tri-bureau export (IdentityIQ, Credit Karma) and it tracks the numbers over time,
-          then reminds you to pull a fresh one every 90 days.
+          Upload a tri-bureau export (IdentityIQ, Credit Karma), or pick all three bureau
+          reports at once — TransUnion, Experian and Equifax merge into one dated snapshot.
+          It tracks the numbers over time and reminds you to pull fresh ones every 90 days.
         </p>
       )}
 
