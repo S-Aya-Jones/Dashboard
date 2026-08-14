@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { GraduationCap, ChevronDown, AlertTriangle, CheckCircle2, HelpCircle } from "lucide-react";
 import type { CreditSnapshot } from "@/lib/creditPlan";
+import { CREDIT_UPDATED } from "@/lib/creditEvents";
 import {
   buildLoanReadiness, DEFAULT_LOAN_PROFILE,
   type LoanProfile, type AdverseCheck,
@@ -35,10 +36,15 @@ export function LoanReadiness({ profile, onProfile }: Props) {
   const [showQuestions, setShowQuestions] = useState(false);
 
   useEffect(() => {
-    fetch("/api/credit/plan", { cache: "no-store" })
-      .then(r => r.json())
-      .then(d => setSnapshot(d.snapshot ?? null))
-      .catch(() => { /* the rules still run with no report */ });
+    const load = () => {
+      fetch("/api/credit/plan", { cache: "no-store" })
+        .then(r => r.json())
+        .then(d => setSnapshot(d.snapshot ?? null))
+        .catch(() => { /* the rules still run with no report */ });
+    };
+    load();
+    window.addEventListener(CREDIT_UPDATED, load);
+    return () => window.removeEventListener(CREDIT_UPDATED, load);
   }, []);
 
   const p = profile ?? DEFAULT_LOAN_PROFILE;

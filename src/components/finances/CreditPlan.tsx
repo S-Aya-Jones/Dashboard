@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ChevronDown, TrendingUp, TrendingDown } from "lucide-react";
+import { CREDIT_UPDATED } from "@/lib/creditEvents";
 
 // The score on its own tells you nothing you can act on. This is the report
 // read back as a ranked list: what's dragging it, ordered by how much that
@@ -47,10 +48,15 @@ export function CreditPlan() {
   const [open, setOpen] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/credit/plan", { cache: "no-store" })
-      .then((r) => r.json())
-      .then(setData)
-      .catch(() => {});
+    const load = () => {
+      fetch("/api/credit/plan", { cache: "no-store" })
+        .then((r) => r.json())
+        .then(setData)
+        .catch(() => {});
+    };
+    load();
+    window.addEventListener(CREDIT_UPDATED, load);
+    return () => window.removeEventListener(CREDIT_UPDATED, load);
   }, []);
 
   const plan = data?.plan;

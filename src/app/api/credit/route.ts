@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neonClient } from "@/lib/neon";
 import { upsertObligation } from "@/lib/obligations";
-import { parseReport, type Bureau } from "@/lib/creditReport";
+import { parseReport, type Bureau, type Parsed } from "@/lib/creditReport";
+import { parsePdfReport } from "@/lib/creditPdf";
+import { describeAiError } from "@/lib/aiError";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -71,19 +73,42 @@ export async function POST(req: NextRequest) {
     await ensureTable();
     const body = await req.json();
 
-    // One file or many. The single-file shape is what the old client sent.
+    // One file or many, HTML or PDF. The single-file `html` shape is what the
+    // old client sent and still works.
     const incoming: Array<{ name: string; html: string }> =
       Array.isArray(body.reports) ? body.reports
       : typeof body.html === "string" ? [{ name: body.name ?? "report", html: body.html }]
       : [];
+    const pdfs: Array<{ name: string; data: string }> =
+      Array.isArray(body.pdfs) ? body.pdfs : [];
 
-    if (!incoming.length) {
+    if (!incoming.length && !pdfs.length) {
       return NextResponse.json({ error: "Pick at least one report to upload." }, { status: 400 });
     }
 
-    const parsed = incoming
+    const parsed: Parsed[] = incoming
       .filter(r => typeof r.html === "string" && r.html.length)
       .map(r => parseReport(r.html, r.name ?? "report"));
+
+    // A PDF has no text layer to regex, so it goes through the same document
+    // reader the rest of the app uses. One failing PDF must not lose the
+    // files that parsed.
+    for (const f of pdfs) {
+      if (typeof f?.data !== "string" || !f.data.length) continue;
+      try {
+        parsed.push(await parsePdfReport(f.data, f.name ?? "report.pdf"));
+      } catch (e) {
+        const d = describeAiError(e);
+        parsed.push({
+          file: f.name ?? "report.pdf", ok: false, error: d.message,
+          covered: [], reportDate: new Date().toISOString().slice(0, 10),
+          scores: { transunion: null, experian: null, equifax: null },
+          open: null, closed: null, delinquent: null, derogatory: null, collections: null,
+          inquiries: null, publicRecords: null, latePayments: null,
+          balances: null, payments: null, creditLimit: null,
+        });
+      }
+    }
 
     const good = parsed.filter(p => p.ok);
     if (!good.length) {
@@ -94,8 +119,13 @@ export async function POST(req: NextRequest) {
     }
 
     // The batch is one pull, so it is one snapshot. Newest date in the batch
-    // wins — the three bureaus are rarely stamped the same minute.
-    const reportDate = good.map(p => p.reportDate).sort().slice(-1)[0];
+    // wins — the three bureaus are rarely stamped the same minute. A client
+    // uploading files one request at a time passes groupDate so the whole
+    // selection still lands in a single snapshot.
+    const groupDate = typeof body.groupDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.groupDate)
+      ? body.groupDate
+      : null;
+    const reportDate = groupDate ?? good.map(p => p.reportDate).sort().slice(-1)[0];
 
     const merged = {
       transunion: good.map(p => p.scores.transunion).find(n => n !== null) ?? null,

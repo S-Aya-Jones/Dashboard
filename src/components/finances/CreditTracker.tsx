@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Upload, TrendingUp, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { CreditPlan } from "./CreditPlan";
+import { toBase64 } from "@/lib/slidesUpload";
+import { CREDIT_UPDATED, announceCreditUpdate } from "@/lib/creditEvents";
 
 interface Snapshot {
   report_date: string;
@@ -34,35 +36,91 @@ export function CreditTracker() {
     } catch { /* offline */ }
   }, []);
   useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    const on = () => load();
+    window.addEventListener(CREDIT_UPDATED, on);
+    return () => window.removeEventListener(CREDIT_UPDATED, on);
+  }, [load]);
 
-  // All three bureaus at once, or one at a time — a batch merges into a single
-  // dated snapshot, and uploading Equifax later fills the gap in that same
-  // snapshot rather than starting a second one.
+  const isPdf = (f: File) => /\.pdf$/i.test(f.name) || f.type === "application/pdf";
+
+  // All three bureaus at once, or one at a time — everything in one selection
+  // merges into a single dated snapshot, and uploading Equifax tomorrow fills
+  // the gap in that same snapshot rather than starting a second one.
+  //
+  // HTML files go up together because they are small. PDFs go one per request:
+  // three of them in one body would blow the 4.5MB request limit, and reading
+  // a PDF takes long enough that batching them risks the function timeout.
+  // The first response's date is threaded through the rest as groupDate so
+  // they still land together.
   async function upload(files: File[]) {
     if (!files.length) return;
     setBusy(true); setMsg(null);
-    try {
-      const reports = await Promise.all(
-        files.map(async f => ({ name: f.name, html: await f.text() })),
-      );
+
+    const tooBig = files.filter(f => f.size > 3.5 * 1024 * 1024);
+    if (tooBig.length) {
+      setMsg(`Too large to upload: ${tooBig.map(f => f.name).join(", ")}. Save the summary pages only and try again.`);
+      setBusy(false);
+      return;
+    }
+
+    const htmlFiles = files.filter(f => !isPdf(f));
+    const pdfFiles  = files.filter(isPdf);
+    const covered = new Set<string>();
+    const failures: string[] = [];
+    let groupDate: string | null = null;
+    let merged = false;
+    let anyOk = false;
+
+    const send = async (payload: Record<string, unknown>, names: string[]) => {
       const res = await fetch("/api/credit", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reports }),
+        body: JSON.stringify({ ...payload, ...(groupDate ? { groupDate } : {}) }),
       });
       const d = await res.json();
-      if (!res.ok) { setMsg(d.error ?? "Couldn't read those files"); return; }
+      if (!res.ok) { failures.push(...names); return; }
+      anyOk = true;
+      merged = merged || Boolean(d.merged);
+      groupDate = groupDate ?? d.reportDate ?? null;
+      for (const b of d.covered ?? []) covered.add(b);
+      for (const f of (d.files ?? []).filter((x: { ok: boolean }) => !x.ok)) failures.push(f.file);
+    };
 
-      const failed = (d.files ?? []).filter((f: { ok: boolean }) => !f.ok);
+    try {
+      if (htmlFiles.length) {
+        const reports = await Promise.all(
+          htmlFiles.map(async f => ({ name: f.name, html: await f.text() })),
+        );
+        await send({ reports }, htmlFiles.map(f => f.name));
+      }
+
+      for (let i = 0; i < pdfFiles.length; i++) {
+        const f = pdfFiles[i];
+        setMsg(`Reading ${f.name}${pdfFiles.length > 1 ? ` (${i + 1} of ${pdfFiles.length})` : ""}…`);
+        const data = toBase64(await f.arrayBuffer());
+        await send({ pdfs: [{ name: f.name, data }] }, [f.name]);
+      }
+
+      if (!anyOk) {
+        setMsg(`Couldn't read ${failures.join(", ") || "those files"}.`);
+        return;
+      }
+
+      const missing = ["transunion", "experian", "equifax"].filter(b => !covered.has(b));
       const parts = [
-        `${d.merged ? "Added to" : "Saved"} the ${d.reportDate} report`,
-        d.covered?.length ? `(${d.covered.map(BUREAU_NAME).join(", ")})` : "",
-        d.missing?.length ? `· still missing ${d.missing.map(BUREAU_NAME).join(" and ")}` : "",
-        failed.length ? `· couldn't read ${failed.map((f: { file: string }) => f.file).join(", ")}` : "",
+        `${merged ? "Added to" : "Saved"} the ${groupDate} report`,
+        covered.size ? `(${Array.from(covered).map(BUREAU_NAME).join(", ")})` : "",
+        missing.length ? `· still missing ${missing.map(BUREAU_NAME).join(" and ")}` : "",
+        failures.length ? `· couldn't read ${failures.join(", ")}` : "",
       ].filter(Boolean);
       setMsg(parts.join(" ") + ".");
+
       await load();
+      // The plan, the loan panel and the summary line all read the snapshot —
+      // a new report should redraw them rather than wait for a reload.
+      announceCreditUpdate();
     } catch (e) {
-      setMsg(String(e).slice(0, 120));
+      setMsg(String(e).slice(0, 160));
     } finally { setBusy(false); }
   }
 
@@ -74,7 +132,7 @@ export function CreditTracker() {
       <div className="flex items-center gap-2 mb-1">
         <TrendingUp size={17} style={{ color: "var(--purple)" }} />
         <h3 className="section-title flex-1">Credit</h3>
-        <input ref={fileRef} type="file" accept=".html,.htm,text/html" multiple className="hidden"
+        <input ref={fileRef} type="file" accept=".html,.htm,text/html,.pdf,application/pdf" multiple className="hidden"
           onChange={e => { upload(Array.from(e.target.files ?? [])); e.target.value = ""; }} />
         <button onClick={() => fileRef.current?.click()} disabled={busy}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white disabled:opacity-50"
@@ -85,9 +143,10 @@ export function CreditTracker() {
 
       {!latest && (
         <p className="text-xs mt-2" style={{ color: "var(--text-muted)" }}>
-          Upload a tri-bureau export (IdentityIQ, Credit Karma), or pick all three bureau
-          reports at once — TransUnion, Experian and Equifax merge into one dated snapshot.
-          It tracks the numbers over time and reminds you to pull fresh ones every 90 days.
+          HTML or PDF. Upload a tri-bureau export (IdentityIQ, Credit Karma), or pick all
+          three bureau reports at once — TransUnion, Experian and Equifax merge into one
+          dated snapshot. The game plan below is built from whatever you upload, and you
+          get a reminder to pull fresh reports every 90 days.
         </p>
       )}
 
