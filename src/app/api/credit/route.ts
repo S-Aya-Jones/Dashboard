@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { neonClient } from "@/lib/neon";
 import { upsertObligation } from "@/lib/obligations";
 import { parseReport, type Bureau, type Parsed } from "@/lib/creditReport";
-import { parsePdfReport } from "@/lib/creditPdf";
+import { parsePdfReport, extractAccountsFromText } from "@/lib/creditPdf";
+import { stripHtml } from "@/lib/creditReport";
+import type { CreditAccount } from "@/lib/creditAccounts";
 import { describeAiError } from "@/lib/aiError";
 
 export const dynamic = "force-dynamic";
@@ -49,6 +51,23 @@ async function ensureTable() {
   await sql`ALTER TABLE credit_snapshots ADD COLUMN IF NOT EXISTS credit_limit NUMERIC`;
   await sql`ALTER TABLE credit_snapshots ADD COLUMN IF NOT EXISTS late_payments INTEGER`;
   await sql`ALTER TABLE credit_snapshots ADD COLUMN IF NOT EXISTS oldest_account_years NUMERIC`;
+
+  // Per-account detail, so the plan can name the card instead of saying
+  // "your cards". Keyed on report_date rather than snapshot id so a second
+  // upload for the same pull replaces its own rows cleanly.
+  await sql`
+    CREATE TABLE IF NOT EXISTS credit_accounts (
+      id          TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+      report_date TEXT NOT NULL,
+      name        TEXT NOT NULL,
+      kind        TEXT NOT NULL,
+      status      TEXT NOT NULL,
+      balance     NUMERIC, credit_limit NUMERIC, past_due NUMERIC,
+      opened_year INTEGER,
+      created_at  TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS credit_accounts_date ON credit_accounts (report_date)`;
 }
 
 /** Worst case across whatever reported it — the honest number to track. */
@@ -86,9 +105,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Pick at least one report to upload." }, { status: 400 });
     }
 
-    const parsed: Parsed[] = incoming
-      .filter(r => typeof r.html === "string" && r.html.length)
-      .map(r => parseReport(r.html, r.name ?? "report"));
+    const htmlFiles = incoming.filter(r => typeof r.html === "string" && r.html.length);
+    const parsed: Parsed[] = htmlFiles.map(r => parseReport(r.html, r.name ?? "report"));
+
+    // The regex path gets the totals exactly; account tables vary too much
+    // between exports for a pattern to hold, so those come from the reader.
+    // A failure here costs detail, never the upload.
+    await Promise.all(
+      htmlFiles.map(async (r, i) => {
+        if (!parsed[i]?.ok) return;
+        parsed[i].accounts = await extractAccountsFromText(stripHtml(r.html), r.name ?? "report");
+      }),
+    );
 
     // A PDF has no text layer to regex, so it goes through the same document
     // reader the rest of the app uses. One failing PDF must not lose the
@@ -105,7 +133,7 @@ export async function POST(req: NextRequest) {
           scores: { transunion: null, experian: null, equifax: null },
           open: null, closed: null, delinquent: null, derogatory: null, collections: null,
           inquiries: null, publicRecords: null, latePayments: null,
-          balances: null, payments: null, creditLimit: null,
+          balances: null, payments: null, creditLimit: null, accounts: [],
         });
       }
     }
@@ -187,6 +215,31 @@ export async function POST(req: NextRequest) {
       `;
     }
 
+    // Accounts for this pull. Merged by name across the batch — the same card
+    // appears on all three bureau reports — then written as the set for this
+    // date, replacing only the names this upload actually covered so a
+    // later single-bureau upload can't wipe the rest.
+    const byName = new Map<string, CreditAccount>();
+    for (const p of good) {
+      for (const a of p.accounts) {
+        const key = a.name.toLowerCase();
+        const seen = byName.get(key);
+        const detail = (x: CreditAccount) =>
+          Number(x.balance !== null) + Number(x.limit !== null) + Number(x.status !== "unknown");
+        if (!seen || detail(a) > detail(seen)) byName.set(key, a);
+      }
+    }
+    const accounts = Array.from(byName.values());
+
+    for (const a of accounts) {
+      await sql`DELETE FROM credit_accounts WHERE report_date = ${reportDate} AND lower(name) = ${a.name.toLowerCase()}`;
+      await sql`
+        INSERT INTO credit_accounts (report_date, name, kind, status, balance, credit_limit, past_due, opened_year)
+        VALUES (${reportDate}, ${a.name}, ${a.kind}, ${a.status},
+                ${a.balance}, ${a.limit}, ${a.pastDue}, ${a.openedYear})
+      `;
+    }
+
     // Re-pull in 90 days — long enough for disputes and paydowns to land
     const next = new Date(Date.now() + 90 * 86400000);
     next.setHours(9, 0, 0, 0);
@@ -215,6 +268,7 @@ export async function POST(req: NextRequest) {
       balances: merged.balances,
       covered,
       missing,
+      accounts: accounts.length,
       files: parsed.map(p => ({ file: p.file, ok: p.ok, error: p.error, covered: p.covered })),
       nextPull: next.toISOString().slice(0, 10),
     });

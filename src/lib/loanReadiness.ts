@@ -158,8 +158,8 @@ export function buildLoanReadiness(
     target,
     gap: score !== null ? Math.max(0, target - score) : null,
     note: gradPlusOpen === true
-      ? "Grad PLUS itself has no score cutoff — this number is for the private loan you'd need if Grad PLUS doesn't cover everything, and for the cosigner question."
-      : "Federal money is capped now, so anything above the cap comes from a private lender. Those do use a score, and below about 700 they'll want a cosigner and charge you more.",
+      ? "Neither federal loan checks your score — unsubsidized has no credit check at all, and Grad PLUS is the pass/fail test below. This number is for a private loan on top, and for whether you need a cosigner."
+      : "Your federal unsubsidized loan has no credit check — you get it regardless of your score. Approval only becomes a question above the cap, where a private lender takes over. Those do use a score: about 670 gets you looked at with a cosigner, about 700 on your own and at a rate worth having.",
   };
 
   const steps: ReadinessStep[] = [];
@@ -174,6 +174,15 @@ export function buildLoanReadiness(
       when: "This week. Aid offices get slower as the term goes on.",
     });
   }
+
+  steps.push({
+    id: "fafsa",
+    rank: 1,
+    title: "File the FAFSA — the part nobody can turn you down for",
+    detail: "studentaid.gov, once a year. It is what releases the unsubsidized loan, and there is no credit check on it whatsoever.",
+    why: "This is the floor under everything else. However your score goes, this money is yours — so the credit work below is only ever about the gap above it, never about whether you can go.",
+    when: "As early in the cycle as you can. Some aid is first-come.",
+  });
 
   if (adverseFlagged) {
     steps.push({
@@ -230,14 +239,14 @@ export function buildLoanReadiness(
 
   const headline =
     gradPlusOpen === false
-      ? "Grad PLUS is closed — plan around the cap"
+      ? "Your federal loan is automatic. Approval is only a question above the cap."
       : gradPlusOpen === true
       ? "Grad PLUS is open to you — the test is adverse credit, not a score"
-      : "One question decides everything here";
+      : "One question decides how much you can borrow";
 
   const summary =
     gradPlusOpen === false
-      ? `Grad PLUS ended for new borrowers on 1 July 2026. Your federal ceiling is $${limits.annual.toLocaleString()} a year and $${limits.aggregate.toLocaleString()} lifetime. Anything above that is a private loan, and private lenders do use your score.`
+      ? `Nobody checks your credit for the federal unsubsidized loan — $${limits.annual.toLocaleString()} a year, $${limits.aggregate.toLocaleString()} lifetime, yours by filing the FAFSA. Grad PLUS ended for new borrowers on 1 July 2026, so anything above that ceiling comes from a private lender, and that is the only place your score decides whether you are approved.`
       : gradPlusOpen === true
       ? "You started before the cutoff, so Grad PLUS stays open while you're enrolled, for up to three years. It has no minimum credit score — it's a pass/fail check on specific events listed below."
       : "Grad PLUS closed to new borrowers on 1 July 2026, with a carve-out for students already enrolled. Which side you're on changes how much you can borrow and whether your score matters at all.";
