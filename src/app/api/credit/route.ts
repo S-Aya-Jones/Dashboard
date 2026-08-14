@@ -5,6 +5,7 @@ import { parseReport, type Bureau, type Parsed } from "@/lib/creditReport";
 import { parsePdfReport, extractAccountsFromText } from "@/lib/creditPdf";
 import { stripHtml } from "@/lib/creditReport";
 import type { CreditAccount } from "@/lib/creditAccounts";
+import { assembleParts, clearParts } from "@/lib/courseMaterial";
 import { describeAiError } from "@/lib/aiError";
 
 export const dynamic = "force-dynamic";
@@ -98,7 +99,10 @@ export async function POST(req: NextRequest) {
       Array.isArray(body.reports) ? body.reports
       : typeof body.html === "string" ? [{ name: body.name ?? "report", html: body.html }]
       : [];
-    const pdfs: Array<{ name: string; data: string }> =
+    // A PDF arrives either inline (small) or staged in pieces under a key.
+    // Vercel caps a request body at 4.5MB and base64 inflates by a third, so
+    // a real credit report — routinely 3–8MB — cannot be sent inline at all.
+    const pdfs: Array<{ name: string; data?: string; partKey?: string }> =
       Array.isArray(body.pdfs) ? body.pdfs : [];
 
     if (!incoming.length && !pdfs.length) {
@@ -122,13 +126,18 @@ export async function POST(req: NextRequest) {
     // reader the rest of the app uses. One failing PDF must not lose the
     // files that parsed.
     for (const f of pdfs) {
-      if (typeof f?.data !== "string" || !f.data.length) continue;
+      const label = f?.name ?? "report.pdf";
       try {
-        parsed.push(await parsePdfReport(f.data, f.name ?? "report.pdf"));
+        const data = f.partKey ? await assembleParts(f.partKey) : f.data;
+        if (typeof data !== "string" || !data.length) {
+          throw new Error("The upload arrived empty — try picking the file again.");
+        }
+        parsed.push(await parsePdfReport(data, label));
+        if (f.partKey) await clearParts(f.partKey).catch(() => {});
       } catch (e) {
         const d = describeAiError(e);
         parsed.push({
-          file: f.name ?? "report.pdf", ok: false, error: d.message,
+          file: label, ok: false, error: d.message,
           covered: [], reportDate: new Date().toISOString().slice(0, 10),
           scores: { transunion: null, experian: null, equifax: null },
           open: null, closed: null, delinquent: null, derogatory: null, collections: null,

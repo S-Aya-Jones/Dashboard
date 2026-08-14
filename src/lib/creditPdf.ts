@@ -65,8 +65,18 @@ function parseJson(raw: string): Record<string, unknown> | null {
   const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
   try { return JSON.parse(cleaned); } catch { /* fall through */ }
   const m = cleaned.match(/\{[\s\S]*\}/);
-  if (!m) return null;
-  try { return JSON.parse(m[0]); } catch { return null; }
+  if (m) { try { return JSON.parse(m[0]); } catch { /* fall through */ } }
+
+  // A report with a long account list can run past max_tokens and stop
+  // mid-object. Rather than lose the scores along with it, walk back to the
+  // last complete account and close the structure by hand.
+  const cut = cleaned.lastIndexOf("},");
+  if (cut > 0) {
+    for (const tail of ["}]}", "}]}}", "}}"]) {
+      try { return JSON.parse(cleaned.slice(0, cut + 1) + tail); } catch { /* try the next */ }
+    }
+  }
+  return null;
 }
 
 const BUREAUS: Bureau[] = ["transunion", "experian", "equifax"];

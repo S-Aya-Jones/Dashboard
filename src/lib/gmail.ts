@@ -38,6 +38,11 @@ export async function ensureGmailTables() {
   await sql`ALTER TABLE gmail_tokens ADD COLUMN IF NOT EXISTS user_email TEXT`;
   await sql`ALTER TABLE gmail_tokens ADD COLUMN IF NOT EXISTS user_name TEXT`;
   await sql`ALTER TABLE gmail_tokens ADD COLUMN IF NOT EXISTS updated_at TEXT`;
+  // Why the connection last dropped. Without this the app can only show
+  // "not connected", which is the difference between a fixable problem and a
+  // mystery that recurs every week.
+  await sql`ALTER TABLE gmail_tokens ADD COLUMN IF NOT EXISTS last_error TEXT`;
+  await sql`ALTER TABLE gmail_tokens ADD COLUMN IF NOT EXISTS last_error_at TEXT`;
   // Migrate TIMESTAMPTZ → TEXT (TIMESTAMPTZ causes silent write failures in Neon HTTP driver)
   await sql`
     DO $$ BEGIN
@@ -82,6 +87,9 @@ export interface TokenRow {
   expiresAt:    Date;
   userEmail:    string | null;
   userName:     string | null;
+  /** Why the last refresh failed, if it did. */
+  lastError:    string | null;
+  lastErrorAt:  string | null;
 }
 
 export async function saveGmailTokens(
@@ -127,6 +135,8 @@ export async function getGmailTokens(): Promise<TokenRow | null> {
     expiresAt,
     userEmail:    (r.user_email as string) ?? null,
     userName:     (r.user_name  as string) ?? null,
+    lastError:    (r.last_error as string) ?? null,
+    lastErrorAt:  (r.last_error_at as string) ?? null,
   };
 }
 
@@ -135,13 +145,34 @@ export async function clearGmailTokens() {
   await sql`DELETE FROM gmail_tokens WHERE id = 'singleton'`;
 }
 
+/** Remember why the connection dropped, so the UI can say something useful. */
+async function noteTokenError(reason: string) {
+  try {
+    const sql = db();
+    await sql`
+      UPDATE gmail_tokens SET last_error = ${reason.slice(0, 300)}, last_error_at = NOW()::text
+      WHERE id = 'singleton'
+    `;
+  } catch { /* diagnostics must never break the caller */ }
+}
+
+async function clearTokenError() {
+  try {
+    const sql = db();
+    await sql`UPDATE gmail_tokens SET last_error = NULL, last_error_at = NULL WHERE id = 'singleton'`;
+  } catch { /* ignore */ }
+}
+
 export async function getFreshGmailToken(): Promise<string | null> {
   const stored = await getGmailTokens();
   if (!stored) return null;
 
   const fiveMin = new Date(Date.now() + 5 * 60 * 1000);
   if (stored.expiresAt > fiveMin) return stored.accessToken;
-  if (!stored.refreshToken) return null;
+  if (!stored.refreshToken) {
+    await noteTokenError("no_refresh_token");
+    return null;
+  }
 
   const res = await fetch(TOKEN_URL, {
     method: "POST",
@@ -153,9 +184,25 @@ export async function getFreshGmailToken(): Promise<string | null> {
       grant_type:    "refresh_token",
     }),
   });
-  if (!res.ok) return null;
+  if (!res.ok) {
+    // This is the line that was returning a bare null. A revoked refresh
+    // token and a network blip looked identical to every caller, so the app
+    // could only ever say "not connected" and she had to guess why.
+    const body = await res.text().catch(() => "");
+    let reason = `http_${res.status}`;
+    try {
+      const j = JSON.parse(body);
+      if (j.error) reason = String(j.error);
+    } catch { /* keep the status */ }
+    await noteTokenError(reason);
+    return null;
+  }
   const data = await res.json();
-  if (!data.access_token) return null;
+  if (!data.access_token) {
+    await noteTokenError("no_access_token_returned");
+    return null;
+  }
+  await clearTokenError();
 
   await saveGmailTokens(
     data.access_token,
