@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { MoneyGlance } from "./MoneyGlance";
 import { CreditTracker } from "./CreditTracker";
 import { LoanReadiness } from "./LoanReadiness";
+import { CreditSummary } from "./CreditSummary";
 import { usePlaidLink } from "react-plaid-link";
 import { RefreshCw, Unlink, Plus, Trash2, Check, ChevronDown, ChevronUp, RotateCcw, Pencil } from "lucide-react";
 import { DashboardData, PaycheckConfig, SelfCareItem, RecurringBill, P2PTransfer, AccountTransfer, BudgetLine, CreditScoreEntry, BaseBudgetItem, BudgetPlan, BudgetPlanItem } from "@/types/dashboard";
@@ -574,7 +575,7 @@ function PlaidConnectButton({ onConnected }: { onConnected: () => void }) {
 interface Props { data: DashboardData; update: (fn: (d: DashboardData) => DashboardData) => void; }
 
 export function FinancesView({ data, update }: Props) {
-  const [tab, setTab]                       = useState<"health"|"flow"|"debt">("flow");
+  const [tab, setTab]                       = useState<"health"|"flow"|"credit"|"debt">("flow");
   const [checkOffset, setCheckOffset]       = useState(0); // 0=this check, 1=next check, etc.
   const [toast, setToast]                   = useState<string | null>(null);
   const [insights, setInsights]             = useState<InsightsData | null>(null);
@@ -695,7 +696,7 @@ export function FinancesView({ data, update }: Props) {
   const savingsAlerts = computeSavingsAlerts(yearPlan);
   const health        = calcHealthGrade(pc, liabilities, data.creditScores ?? [], budgetLines);
 
-  const TAB_LABELS: Record<typeof tab, string> = { health: "Health", flow: "Flow", debt: "Debt" };
+  const TAB_LABELS: Record<typeof tab, string> = { health: "Health", flow: "Flow", credit: "Credit", debt: "Debt" };
 
   return (
     <div style={{ background: BG, minHeight: "100%" }}>
@@ -729,7 +730,7 @@ export function FinancesView({ data, update }: Props) {
           </div>
         </div>
         <div className="flex gap-1 rounded-xl p-1" style={{ background: "rgba(180,85,47,0.05)", border: `1px solid ${BORDER}` }}>
-          {(["health","flow","debt"] as const).map(k => (
+          {(["health","flow","credit","debt"] as const).map(k => (
             <button key={k} onClick={() => setTab(k)}
               className="flex-1 py-2 md:py-1.5 rounded-lg text-xs font-semibold transition-all"
               style={tab === k ? { background: LIME, color: "#fff"} : { color: MUTED }}>
@@ -762,9 +763,14 @@ export function FinancesView({ data, update }: Props) {
         {tab === "flow" && (
           <div className="space-y-4">
             <MoneyGlance />
-            {/* Credit lives here rather than behind its own tab — the reason
-                she tracks it at all is the loan question, and that belongs
-                next to the money, not one tap away. */}
+            {/* The number and what it means for the loan, next to the money.
+                The full stack is one tap away in the Credit tab. */}
+            <CreditSummary profile={data.loanProfile} onOpen={() => setTab("credit")} />
+          </div>
+        )}
+
+        {tab === "credit" && (
+          <div className="space-y-4">
             <LoanReadiness
               profile={data.loanProfile}
               onProfile={(loanProfile) => update(d => ({ ...d, loanProfile }))}
