@@ -33,16 +33,28 @@ export function defaultBlocks(): ScheduleBlock[] {
 /**
  * What Today and the week editor should actually render.
  *
- * Blocks saved before the Week Plan became the single source were generated
- * with random ids; the plan generates deterministic `plan-` ones. A stored
- * list with no plan block in it is the old, obsolete schedule — the one with
- * no classes and therapy on the wrong day — so it gets replaced rather than
- * shown. Once she edits or adds blocks, the plan ids on the untouched ones
- * keep this from firing again.
+ * The recurring week is regenerated from lib/weekPlan.ts on every read, and
+ * only her own additions are taken from storage. That ordering matters: the
+ * previous version returned the stored list wholesale whenever it contained a
+ * `plan-` id, so the first time she added a block through the week editor the
+ * entire plan froze into a snapshot. Every later change to weekPlan.ts —
+ * including the four legal hours she kept asking where to find — was written
+ * to a file nothing read any more.
+ *
+ * Blocks saved before the plan became the single source have random ids and no
+ * plan block among them. That whole list is the old, obsolete schedule (no
+ * classes, therapy on the wrong day), so it is dropped rather than merged.
  */
-export function resolveBlocks(stored?: ScheduleBlock[]): ScheduleBlock[] {
-  if (!stored?.length) return planAsScheduleBlocks();
-  return stored.some(b => b.id.startsWith("plan-")) ? stored : planAsScheduleBlocks();
+export function resolveBlocks(stored?: ScheduleBlock[], hidden?: string[]): ScheduleBlock[] {
+  const plan = planAsScheduleBlocks();
+  const hide = new Set(hidden ?? []);
+  const visible = plan.filter(b => !hide.has(b.id));
+
+  if (!stored?.length) return visible;
+  if (!stored.some(b => b.id.startsWith("plan-"))) return visible;
+
+  const custom = stored.filter(b => !b.id.startsWith("plan-"));
+  return [...visible, ...custom].sort((a, b) => toMinutes(a.startTime) - toMinutes(b.startTime));
 }
 
 export function toMinutes(t: string) {
