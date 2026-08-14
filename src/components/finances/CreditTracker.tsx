@@ -7,6 +7,9 @@ import { CreditPlan } from "./CreditPlan";
 import { toBase64 } from "@/lib/slidesUpload";
 import { CREDIT_UPDATED, announceCreditUpdate } from "@/lib/creditEvents";
 
+// Comfortably inside Vercel's 4.5MB request body cap, with room for JSON.
+const PART_BYTES = 2_500_000;
+
 interface Snapshot {
   report_date: string;
   transunion: number | null; experian: number | null; equifax: number | null;
@@ -48,21 +51,14 @@ export function CreditTracker() {
   // merges into a single dated snapshot, and uploading Equifax tomorrow fills
   // the gap in that same snapshot rather than starting a second one.
   //
-  // HTML files go up together because they are small. PDFs go one per request:
-  // three of them in one body would blow the 4.5MB request limit, and reading
-  // a PDF takes long enough that batching them risks the function timeout.
-  // The first response's date is threaded through the rest as groupDate so
-  // they still land together.
+  // HTML files go up together because they are small. A PDF is staged in
+  // pieces and then read on its own: a real credit report is bigger than the
+  // whole request limit, and reading one takes long enough that batching them
+  // would risk the function timeout. The first response's date threads through
+  // the rest as groupDate so a whole selection still lands together.
   async function upload(files: File[]) {
     if (!files.length) return;
     setBusy(true); setMsg(null);
-
-    const tooBig = files.filter(f => f.size > 3.5 * 1024 * 1024);
-    if (tooBig.length) {
-      setMsg(`Too large to upload: ${tooBig.map(f => f.name).join(", ")}. Save the summary pages only and try again.`);
-      setBusy(false);
-      return;
-    }
 
     const htmlFiles = files.filter(f => !isPdf(f));
     const pdfFiles  = files.filter(isPdf);
@@ -78,12 +74,19 @@ export function CreditTracker() {
         body: JSON.stringify({ ...payload, ...(groupDate ? { groupDate } : {}) }),
       });
       const d = await res.json();
-      if (!res.ok) { failures.push(...names); return; }
+      if (!res.ok) {
+        // The reason is the whole point — "couldn't read it" sends her back
+        // here with nothing to act on.
+        failures.push(...names.map(n => (d?.error ? `${n} (${d.error})` : n)));
+        return;
+      }
       anyOk = true;
       merged = merged || Boolean(d.merged);
       groupDate = groupDate ?? d.reportDate ?? null;
       for (const b of d.covered ?? []) covered.add(b);
-      for (const f of (d.files ?? []).filter((x: { ok: boolean }) => !x.ok)) failures.push(f.file);
+      for (const f of (d.files ?? []).filter((x: { ok: boolean }) => !x.ok)) {
+        failures.push(f.error ? `${f.file} (${f.error})` : f.file);
+      }
     };
 
     try {
@@ -96,9 +99,33 @@ export function CreditTracker() {
 
       for (let i = 0; i < pdfFiles.length; i++) {
         const f = pdfFiles[i];
-        setMsg(`Reading ${f.name}${pdfFiles.length > 1 ? ` (${i + 1} of ${pdfFiles.length})` : ""}…`);
-        const data = toBase64(await f.arrayBuffer());
-        await send({ pdfs: [{ name: f.name, data }] }, [f.name]);
+        const nth = pdfFiles.length > 1 ? ` (${i + 1} of ${pdfFiles.length})` : "";
+        const base64 = toBase64(await f.arrayBuffer());
+
+        // Staged in pieces rather than sent whole. A real credit report is
+        // routinely 3–8MB, which is past Vercel's 4.5MB body limit before
+        // base64 even inflates it by a third — the previous size check just
+        // refused those files outright, which is most of them.
+        const key = `credit${Math.random().toString(36).slice(2, 10)}`;
+        const chunks = Math.ceil(base64.length / PART_BYTES);
+        let staged = true;
+        for (let c = 0; c < chunks; c++) {
+          setMsg(`Uploading ${f.name}${nth} — ${Math.round(((c + 1) / chunks) * 100)}%`);
+          const r = await fetch("/api/material/part", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ key, idx: c, data: base64.slice(c * PART_BYTES, (c + 1) * PART_BYTES) }),
+          });
+          if (!r.ok) {
+            const d = await r.json().catch(() => null);
+            failures.push(`${f.name} (${d?.error ?? `upload failed on piece ${c + 1}`})`);
+            staged = false;
+            break;
+          }
+        }
+        if (!staged) continue;
+
+        setMsg(`Reading ${f.name}${nth}… a full report takes up to a minute.`);
+        await send({ pdfs: [{ name: f.name, partKey: key }] }, [f.name]);
       }
 
       if (!anyOk) {
