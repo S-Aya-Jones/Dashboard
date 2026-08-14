@@ -36,6 +36,9 @@ export async function GET() {
       change,
       priorDate: prior?.report_date ?? null,
       reportDate: latest.report_date,
+      // The raw row as well, so the loan-readiness rules can run client-side
+      // against her stored answers without a second round trip.
+      snapshot: latest,
     });
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 });

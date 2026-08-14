@@ -701,6 +701,12 @@ export interface DashboardData {
   recurringBills?: RecurringBill[];
   budgetLines?: BudgetLine[];
   creditScores?: CreditScoreEntry[];
+  /**
+   * What her credit score is actually for. Grad PLUS closed to new borrowers
+   * on 1 July 2026, so whether she is inside the grandfather window changes
+   * both her borrowing ceiling and whether a score matters at all.
+   */
+  loanProfile?: { grandfathered: "yes" | "no" | "unknown"; programType: "graduate" | "professional" };
   p2pTransfers?: P2PTransfer[];
   accountTransfers?: AccountTransfer[];
   sinkingFunds?: SinkingFund[];
