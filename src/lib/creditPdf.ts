@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { firstText } from "@/lib/aiError";
 import type { Bureau, Parsed } from "@/lib/creditReport";
+import { ACCOUNTS_PROMPT, normaliseAccounts } from "@/lib/creditAccounts";
 
 // Reading a credit report that arrived as a PDF.
 //
@@ -42,7 +43,8 @@ Rules:
 - "bureau" is "tri" only if the report shows all three bureaus side by side. Otherwise name the single bureau whose report this is — the one that produced it, not one merely mentioned in the fine print.
 - For a single-bureau report put its score under that bureau's key and leave the other two null.
 - balances is the total owed across accounts. creditLimit is the total credit limit or total high credit.
-- Strip currency symbols and commas. Numbers only.`;
+- Strip currency symbols and commas. Numbers only.
+${ACCOUNTS_PROMPT}`;
 
 function int(v: unknown): number | null {
   const n = typeof v === "number" ? v : typeof v === "string" ? Number(v.replace(/[^0-9.]/g, "")) : NaN;
@@ -79,11 +81,12 @@ export async function parsePdfReport(base64: string, filename: string): Promise<
     open: null, closed: null, delinquent: null, derogatory: null, collections: null,
     inquiries: null, publicRecords: null, latePayments: null,
     balances: null, payments: null, creditLimit: null,
+    accounts: [],
   };
 
   const msg = await client.messages.create({
     model: "claude-haiku-4-5-20251001",
-    max_tokens: 1000,
+    max_tokens: 4000,
     system: SYSTEM,
     messages: [{
       role: "user",
@@ -146,5 +149,40 @@ export function normalisePdfJson(
     balances: money(parsed.balances),
     payments: money(parsed.monthlyPayments),
     creditLimit: money(parsed.creditLimit),
+    accounts: normaliseAccounts(parsed.accounts),
   };
+}
+
+const ACCOUNTS_SYSTEM = `You read consumer credit reports and list the accounts on them.
+
+Return ONLY JSON, no fences, no commentary: { "accounts": [ ... ] }
+${ACCOUNTS_PROMPT}`;
+
+/**
+ * Accounts out of an HTML export.
+ *
+ * The summary totals on that path stay regex — exact and free. Account tables
+ * differ too much between IdentityIQ, Credit Karma and each bureau's own
+ * export for a pattern to hold, and a plan that can't name the card is the
+ * thing she asked us to fix. So the text goes to the same reader.
+ *
+ * Failure is not fatal: no accounts means the plan falls back to totals.
+ */
+export async function extractAccountsFromText(text: string, filename: string) {
+  if (text.trim().length < 200) return [];
+  try {
+    const msg = await client.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 4000,
+      system: ACCOUNTS_SYSTEM,
+      messages: [{
+        role: "user",
+        // Reports run long; the account tables sit well inside this.
+        content: `Filename: ${filename}\n\n${text.slice(0, 120_000)}`,
+      }],
+    });
+    return normaliseAccounts(parseJson(firstText(msg))?.accounts);
+  } catch {
+    return [];
+  }
 }

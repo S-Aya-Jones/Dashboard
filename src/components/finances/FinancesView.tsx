@@ -5,6 +5,7 @@ import { MoneyGlance } from "./MoneyGlance";
 import { CreditTracker } from "./CreditTracker";
 import { LoanReadiness } from "./LoanReadiness";
 import { CreditSummary } from "./CreditSummary";
+import { CreditMoves } from "./CreditMoves";
 import { usePlaidLink } from "react-plaid-link";
 import { RefreshCw, Unlink, Plus, Trash2, Check, ChevronDown, ChevronUp, RotateCcw, Pencil } from "lucide-react";
 import { DashboardData, PaycheckConfig, SelfCareItem, RecurringBill, P2PTransfer, AccountTransfer, BudgetLine, CreditScoreEntry, BaseBudgetItem, BudgetPlan, BudgetPlanItem } from "@/types/dashboard";
@@ -774,6 +775,10 @@ export function FinancesView({ data, update }: Props) {
             <LoanReadiness
               profile={data.loanProfile}
               onProfile={(loanProfile) => update(d => ({ ...d, loanProfile }))}
+            />
+            <CreditMoves
+              done={data.creditMovesDone ?? []}
+              onDone={(ids) => update(d => ({ ...d, creditMovesDone: ids }))}
             />
             <CreditTracker />
             <CreditCard

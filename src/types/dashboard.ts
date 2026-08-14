@@ -707,6 +707,8 @@ export interface DashboardData {
    * both her borrowing ceiling and whether a score matters at all.
    */
   loanProfile?: { grandfathered: "yes" | "no" | "unknown"; programType: "graduate" | "professional" };
+  /** Credit moves she has ticked off. Ids are derived from the account name. */
+  creditMovesDone?: string[];
   p2pTransfers?: P2PTransfer[];
   accountTransfers?: AccountTransfer[];
   sinkingFunds?: SinkingFund[];

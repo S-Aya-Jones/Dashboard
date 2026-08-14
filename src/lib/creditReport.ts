@@ -11,6 +11,8 @@
 // Only summary figures are read — never account numbers, addresses or
 // anything identifying.
 
+import type { CreditAccount } from "@/lib/creditAccounts";
+
 export type Bureau = "transunion" | "experian" | "equifax";
 
 export interface Parsed {
@@ -24,6 +26,8 @@ export interface Parsed {
   delinquent: number | null; derogatory: number | null; collections: number | null;
   inquiries: number | null; publicRecords: number | null; latePayments: number | null;
   balances: number | null; payments: number | null; creditLimit: number | null;
+  /** Per-account detail. The regex path can't get this; the model path can. */
+  accounts: CreditAccount[];
 }
 
 export function stripHtml(raw: string): string {
@@ -99,6 +103,7 @@ export function parseReport(html: string, filename: string): Parsed {
     open: null, closed: null, delinquent: null, derogatory: null, collections: null,
     inquiries: null, publicRecords: null, latePayments: null,
     balances: null, payments: null, creditLimit: null,
+    accounts: [],
   };
 
   const worst = (v: [number, number, number] | null) => (v ? Math.max(...v) : null);
