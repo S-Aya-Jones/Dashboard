@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
-import { describeAiError } from "@/lib/aiError";
+import { describeAiError, firstText } from "@/lib/aiError";
 import { NewOverride, validate } from "@/lib/scheduleOverrides";
 import { WEEK, DAY_SHORT } from "@/lib/weekPlan";
 
@@ -75,8 +75,7 @@ export async function POST(req: NextRequest) {
       messages: [{ role: "user", content: text.slice(0, 1000) }],
     });
 
-    const raw = msg.content[0]?.type === "text" ? msg.content[0].text : "";
-    const parsed = parseJson(raw);
+    const parsed = parseJson(firstText(msg));
 
     // Never hand the caller something that would fail on write.
     const changes = (parsed.changes ?? []).filter(c => !validate(c));

@@ -706,6 +706,13 @@ export interface DashboardData {
   sinkingFunds?: SinkingFund[];
   affordGoals?: AffordGoal[];
   scheduleBlocks?: ScheduleBlock[];
+  /**
+   * Plan blocks she has deleted, by id. Recorded rather than removed, because
+   * the recurring week is generated from lib/weekPlan.ts on every read — a
+   * deletion that only edited the stored copy would come back on the next
+   * change to the plan.
+   */
+  hiddenPlanBlocks?: string[];
   monthlyIncome?: number;
   baseBudget?: BaseBudgetItem[];
   budgetPlans?: BudgetPlan[];

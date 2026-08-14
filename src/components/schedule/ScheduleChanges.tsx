@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Mic, Send, Loader2, Trash2, Plus, CalendarPlus, X } from "lucide-react";
+import { announceScheduleChange } from "@/lib/useDatedChanges";
 
 // Telling the schedule what changed, without going through anyone.
 //
@@ -106,12 +107,14 @@ export function ScheduleChanges() {
       setProposed(null); setText(""); setShowManual(false);
       setForm(f => ({ ...f, label: "" }));
       await load();
+      announceScheduleChange();
     } finally { setBusy(false); }
   }
 
   async function remove(id: string) {
     await fetch(`/api/schedule/overrides?id=${id}`, { method: "DELETE" });
-    load();
+    await load();
+    announceScheduleChange();
   }
 
   return (

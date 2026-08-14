@@ -9,6 +9,9 @@ import { Button } from "@/components/ui/Button";
 import { id } from "@/lib/utils";
 import { celebrate } from "@/lib/confetti";
 import { TYPE_META, TYPE_ICON, defaultBlocks, resolveBlocks, toMinutes, blocksForDate, formatRange12 } from "@/lib/schedule";
+import { applyChanges, rowsFromBlocks, isoDate, type SchedRow } from "@/lib/dayPlan";
+import { useDatedChanges } from "@/lib/useDatedChanges";
+import { CAT_COLORS } from "@/lib/weekPlan";
 
 interface Props {
   data: DashboardData;
@@ -28,7 +31,10 @@ export function WeekView({ data, update }: Props) {
   const [blockForm, setBlockForm] = useState({ label: "", startTime: "09:00", endTime: "10:00", type: "other" as ScheduleBlock["type"], days: [...WEEKDAYS] });
 
   const days = eachDayOfInterval({ start: weekStart, end: endOfWeek(weekStart, { weekStartsOn: 1 }) });
-  const blocks = resolveBlocks(data.scheduleBlocks);
+  const blocks = resolveBlocks(data.scheduleBlocks, data.hiddenPlanBlocks);
+  // One request for the whole visible week; temporary days render like any other.
+  const changes = useDatedChanges(isoDate(days[0]), isoDate(days[days.length - 1]));
+  const blockType = new Map(blocks.map(b => [b.id, b.type]));
 
   useEffect(() => {
     fetch("/api/google/calendar?days=7")
@@ -66,7 +72,7 @@ export function WeekView({ data, update }: Props) {
     const meta = TYPE_META[blockForm.type];
     update(d => ({
       ...d,
-      scheduleBlocks: [...resolveBlocks(d.scheduleBlocks), {
+      scheduleBlocks: [...resolveBlocks(d.scheduleBlocks, d.hiddenPlanBlocks), {
         id: id(), label: blockForm.label, startTime: blockForm.startTime, endTime: blockForm.endTime,
         days: blockForm.days, type: blockForm.type, color: meta.color,
       }],
@@ -75,8 +81,15 @@ export function WeekView({ data, update }: Props) {
     setShowAddBlock(false);
   };
 
+  // A plan block is generated from lib/weekPlan.ts on every read, so deleting
+  // it from the stored copy would only bring it back on the next change to the
+  // plan. Those are remembered as hidden instead; her own blocks are removed.
   const deleteBlock = (blockId: string) => {
-    update(d => ({ ...d, scheduleBlocks: resolveBlocks(d.scheduleBlocks).filter(b => b.id !== blockId) }));
+    if (blockId.startsWith("plan-")) {
+      update(d => ({ ...d, hiddenPlanBlocks: Array.from(new Set([...(d.hiddenPlanBlocks ?? []), blockId])) }));
+      return;
+    }
+    update(d => ({ ...d, scheduleBlocks: resolveBlocks(d.scheduleBlocks, d.hiddenPlanBlocks).filter(b => b.id !== blockId) }));
   };
 
   const eventsForDay = (day: Date) => calEvents.filter(e => {
@@ -85,7 +98,12 @@ export function WeekView({ data, update }: Props) {
     return format(d, "yyyy-MM-dd") === format(day, "yyyy-MM-dd");
   });
 
-  const blocksForDay = (day: Date) => blocksForDate(blocks, day);
+  const blocksForDay = (day: Date) =>
+    applyChanges(
+      rowsFromBlocks(blocksForDate(blocks, day), () => TYPE_META.other.color, day),
+      changes,
+      isoDate(day),
+    );
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -124,13 +142,13 @@ export function WeekView({ data, update }: Props) {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-3">
           {days.map(day => {
-            const dayBlocks = blocksForDay(day);
+            const dayPlan = blocksForDay(day);
             const dayEvents = eventsForDay(day);
             const today = isToday(day);
             // merge & sort by start time
-            type Row = { kind: "block"; b: ScheduleBlock } | { kind: "event"; e: CalEvent };
+            type Row = { kind: "block"; b: SchedRow } | { kind: "event"; e: CalEvent };
             const rows: { sortKey: number; row: Row }[] = [
-              ...dayBlocks.map(b => ({ sortKey: toMinutes(b.startTime), row: { kind: "block" as const, b } })),
+              ...dayPlan.rows.map(b => ({ sortKey: toMinutes(b.start), row: { kind: "block" as const, b } })),
               ...dayEvents.map(e => ({ sortKey: e.allDay ? -1 : new Date(e.start!).getHours() * 60 + new Date(e.start!).getMinutes(), row: { kind: "event" as const, e } })),
             ].sort((a, b) => a.sortKey - b.sortKey);
 
@@ -138,23 +156,29 @@ export function WeekView({ data, update }: Props) {
               <div key={format(day, "yyyy-MM-dd")} className={`rounded-2xl p-3 transition-shadow ${today ? "ring-2 ring-terracotta/40 bg-white shadow-sm" : "bg-cream-dark"}`}>
                 <p className={`text-xs font-semibold mb-2.5 pb-2 border-b ${today ? "text-terracotta border-terracotta/20" : "text-brown border-cream-darker"}`}>
                   {format(day, "EEE M/d")}
+                  {dayPlan.temporary && (
+                    <span className="ml-1.5 font-bold" style={{ color: CAT_COLORS.study }}>· temporary</span>
+                  )}
                 </p>
                 <div className="space-y-1.5">
                   {rows.length === 0 && <p className="text-[11px] text-sand-dark italic">Nothing scheduled</p>}
                   {rows.map(({ row }, i) => {
                     if (row.kind === "block") {
-                      const meta = TYPE_META[row.b.type];
-                      const Icon = TYPE_ICON[row.b.type];
+                      const type = blockType.get(row.b.key) ?? "other";
+                      const color = row.b.color;
+                      const Icon = TYPE_ICON[type];
                       return (
-                        <div key={`b-${i}`} className="group flex items-start gap-2 text-[11px] px-2 py-1.5 rounded-lg border-l-[3px]" style={{ background: `${meta.color}12`, borderColor: meta.color }}>
-                          <Icon size={11} className="mt-0.5 flex-shrink-0" style={{ color: meta.color }} />
+                        <div key={`b-${i}`} className="group flex items-start gap-2 text-[11px] px-2 py-1.5 rounded-lg border-l-[3px]" style={{ background: `${color}12`, borderColor: color }}>
+                          <Icon size={11} className="mt-0.5 flex-shrink-0" style={{ color }} />
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate" style={{ color: meta.color }}>{row.b.label}</p>
-                            <p className="text-sand-dark">{formatRange12(row.b.startTime, row.b.endTime)}</p>
+                            <p className="font-medium truncate" style={{ color }}>{row.b.label}</p>
+                            <p className="text-sand-dark">{formatRange12(row.b.start, row.b.end)}</p>
                           </div>
-                          <button onClick={() => deleteBlock(row.b.id)} className="opacity-0 group-hover:opacity-100 text-sand hover:text-rose flex-shrink-0">
-                            <Trash2 size={10} />
-                          </button>
+                          {!row.b.temporary && (
+                            <button onClick={() => deleteBlock(row.b.key)} className="opacity-0 group-hover:opacity-100 text-sand hover:text-rose flex-shrink-0">
+                              <Trash2 size={10} />
+                            </button>
+                          )}
                         </div>
                       );
                     }

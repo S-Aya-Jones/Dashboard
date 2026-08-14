@@ -1,7 +1,11 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { ChevronLeft, ChevronRight, RefreshCw, Calendar, Mail } from "lucide-react";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { ChevronLeft, ChevronRight, RefreshCw, Calendar, Mail, Clock } from "lucide-react";
+import { planForDay, CAT_COLORS } from "@/lib/weekPlan";
+import { applyChanges, rowsFromPlan } from "@/lib/dayPlan";
+import { formatRange12 } from "@/lib/schedule";
+import { useDatedChanges } from "@/lib/useDatedChanges";
 
 interface CalEvent {
   id: string; title: string; start: string; end: string | null;
@@ -73,6 +77,15 @@ export function DayScheduleView() {
 
   useEffect(() => { load(date); }, [date, load]);
 
+  // Her own schedule belongs on this grid too. Without it the Day View showed
+  // an empty week to anyone whose Google Calendar wasn't connected, and hid the
+  // temporary week entirely.
+  const changes = useDatedChanges(date, date);
+  const plan = useMemo(() => {
+    const d = new Date(`${date}T12:00:00`);
+    return applyChanges(rowsFromPlan(planForDay(d.getDay()), d), changes, date);
+  }, [date, changes]);
+
   const allDayEvs = [...calEvents.filter(e => e.allDay), ...emailEvents.filter(e => e.allDay)];
   const timedEvs  = [...calEvents.filter(e => !e.allDay), ...emailEvents.filter(e => !e.allDay)]
     .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
@@ -109,6 +122,20 @@ export function DayScheduleView() {
       </div>
 
       {error && <p style={{ color: "#EF4444", marginBottom: "1rem", fontSize: "0.85rem" }}>{error}</p>}
+
+      {plan.temporary && (
+        <div style={{
+          borderRadius: 12, padding: "0.75rem 1rem", marginBottom: "1rem",
+          background: `${CAT_COLORS.study}14`, border: `1.5px solid ${CAT_COLORS.study}55`,
+        }}>
+          <div style={{ fontWeight: 700, fontSize: "0.85rem", color: CAT_COLORS.study }}>
+            Temporary schedule{plan.weekName ? ` — ${plan.weekName}` : ""}
+          </div>
+          {plan.weekWhy && (
+            <div style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginTop: 2 }}>{plan.weekWhy}</div>
+          )}
+        </div>
+      )}
 
       {/* ── Legend ── */}
       <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "1rem", fontSize: "0.75rem" }}>
@@ -149,13 +176,14 @@ export function DayScheduleView() {
             const localH = new Date(ev.start).toLocaleString("en-US", { hour: "numeric", hour12: false, timeZone: "America/Chicago" });
             return parseInt(localH) === h;
           });
+          const planThisHour = plan.rows.filter(r => parseInt(r.start.slice(0, 2), 10) === h);
 
           return (
             <div key={h} style={{
               display: "grid", gridTemplateColumns: "52px 1fr",
               borderBottom: h < 22 ? "1px solid var(--border)" : "none",
               background: isCurrentHour ? "rgba(180,85,47,0.04)" : undefined,
-              minHeight: eventsThisHour.length > 0 ? undefined : 44,
+              minHeight: eventsThisHour.length + planThisHour.length > 0 ? undefined : 44,
             }}>
               <div style={{ padding: "10px 8px 0 8px", fontSize: "0.7rem", fontWeight: 600, color: isCurrentHour ? "var(--purple)" : "var(--text-muted)", textAlign: "right", lineHeight: 1 }}>
                 {hStr}
@@ -170,6 +198,26 @@ export function DayScheduleView() {
                     </span>
                   </div>
                 )}
+                {planThisHour.map(r => (
+                  <div key={r.key} style={{
+                    padding: "0.4rem 0.7rem", borderRadius: 7,
+                    background: `${r.color}14`,
+                    borderLeft: `3px solid ${r.color}`,
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", flexWrap: "wrap" }}>
+                      <Clock size={11} style={{ color: r.color, flexShrink: 0 }} />
+                      <span style={{ fontWeight: 600, fontSize: "0.83rem", color: "var(--text)" }}>{r.label}</span>
+                      {r.temporary && (
+                        <span style={{ fontSize: "0.62rem", fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", color: CAT_COLORS.study }}>
+                          today only
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 2 }}>
+                      {formatRange12(r.start, r.end)}
+                    </div>
+                  </div>
+                ))}
                 {eventsThisHour.map(ev => (
                   <div key={ev.id} style={{
                     padding: "0.4rem 0.7rem", borderRadius: 7,
@@ -203,7 +251,7 @@ export function DayScheduleView() {
           );
         })}
 
-        {timedEvs.length === 0 && allDayEvs.length === 0 && !loading && (
+        {timedEvs.length === 0 && allDayEvs.length === 0 && plan.rows.length === 0 && !loading && (
           <div style={{ padding: "3rem 1.5rem", textAlign: "center" }}>
             <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}></div>
             <div style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>No events found for this day</div>

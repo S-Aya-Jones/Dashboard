@@ -1,18 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { resolveLabel } from "@/lib/weekPlan";
-import { ChevronDown } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   WEEK, CAT_COLORS, CAT_LABELS, DAY_ORDER, DAY_SHORT,
   planMinutes as mins, type Cat,
 } from "@/lib/weekPlan";
+import { applyChanges, rowsFromPlan, isoDate } from "@/lib/dayPlan";
+import { tempWeekFor } from "@/lib/tempWeek";
+import { useDatedChanges } from "@/lib/useDatedChanges";
 
-// The master weekly template, rendered one day at a time.
+// The master weekly template, rendered one day at a time — with whatever is
+// temporary about that particular date laid on top.
 //
 // The plan itself lives in lib/weekPlan.ts so the Today page renders the same
-// schedule this page shows — they used to be two separate lists that had
-// drifted apart.
+// schedule this page shows; the temporary layer lives in lib/tempWeek.ts and
+// in the changes she saves by voice. A day that differs says so, and says when
+// it goes back to normal, so a catch-up week never turns into the new normal
+// by accident.
 
 function fmt(t: string): string {
   const [h, m] = t.split(":").map(Number);
@@ -25,13 +30,34 @@ function chicagoNow(): Date {
   return new Date(new Date().toLocaleString("en-US", { timeZone: "America/Chicago" }));
 }
 
+/** Monday of the week containing `d`. */
+function mondayOf(d: Date): Date {
+  const out = new Date(d);
+  out.setHours(0, 0, 0, 0);
+  out.setDate(out.getDate() - ((out.getDay() + 6) % 7));
+  return out;
+}
+
+function shift(d: Date, days: number): Date {
+  const out = new Date(d);
+  out.setDate(out.getDate() + days);
+  return out;
+}
+
+function longDate(d: Date): string {
+  return d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+}
+
 export function WeekPlanView() {
   const [now, setNow] = useState<Date | null>(null);
+  const [weekStart, setWeekStart] = useState<Date | null>(null);
   const [picked, setPicked] = useState<number | null>(null);
   const [showRules, setShowRules] = useState(false);
 
   useEffect(() => {
-    setNow(chicagoNow());
+    const n = chicagoNow();
+    setNow(n);
+    setWeekStart(mondayOf(n));
     const t = setInterval(() => setNow(chicagoNow()), 60000);
     return () => clearInterval(t);
   }, []);
@@ -41,49 +67,114 @@ export function WeekPlanView() {
 
   // Before the clock resolves on the client, show Monday rather than nothing.
   const day = picked ?? today ?? 1;
-  const isToday = day === today;
-  const plan = WEEK[day];
+
+  // Dates for the week on screen, in Mon–Sun order to match DAY_ORDER.
+  const dates = useMemo(() => {
+    const base = weekStart ?? mondayOf(new Date());
+    return DAY_ORDER.map((dow, i) => ({ dow, date: shift(base, i) }));
+  }, [weekStart]);
+
+  const current = dates.find(d => d.dow === day) ?? dates[0];
+  const dateStr = isoDate(current.date);
+  const isToday = now != null && isoDate(now) === dateStr;
+
+  // One fetch covering the whole visible week rather than one per day.
+  const changes = useDatedChanges(isoDate(dates[0].date), isoDate(dates[6].date));
+
+  const plan = WEEK[current.dow];
+  const merged = useMemo(
+    () => applyChanges(rowsFromPlan(plan.blocks, current.date), changes, dateStr),
+    [plan, changes, dateStr, current.date],
+  );
 
   const currentIdx = isToday
-    ? plan.blocks.findIndex((b) => nowMin >= mins(b.start) && nowMin < mins(b.end))
+    ? merged.rows.findIndex(b => nowMin >= mins(b.start) && nowMin < mins(b.end))
     : -1;
   const nextIdx = isToday
-    ? plan.blocks.findIndex((b) => mins(b.start) > nowMin)
+    ? merged.rows.findIndex(b => mins(b.start) > nowMin)
     : -1;
 
-  const heading = isToday
-    ? now!.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })
-    : plan.name;
+  const week = tempWeekFor(dateStr);
+  const backToNormal = week
+    ? longDate(shift(new Date(`${week.to}T12:00:00`), 1))
+    : null;
+
+  const heading = longDate(current.date);
 
   return (
     <div className="space-y-5">
-      {/* Day picker */}
-      <div className="flex gap-1.5 overflow-x-auto pb-1">
-        {DAY_ORDER.map((d) => {
-          const on = d === day;
-          const isNow = d === today;
-          return (
-            <button
-              key={d}
-              onClick={() => setPicked(d)}
-              className="flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all"
-              style={{
-                background: on ? "var(--text)" : "var(--surface)",
-                color:      on ? "var(--surface)" : "var(--text-muted)",
-                border:     `1.5px solid ${on ? "var(--text)" : "var(--border)"}`,
-              }}
-            >
-              {DAY_SHORT[d]}
-              {isNow && !on && (
-                <span
-                  className="inline-block ml-1.5 rounded-full align-middle"
-                  style={{ width: 5, height: 5, background: "var(--purple)" }}
-                />
-              )}
-            </button>
-          );
-        })}
+      {/* Which week */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => { setWeekStart(w => shift(w ?? mondayOf(new Date()), -7)); }}
+          className="px-2.5 py-2 rounded-full"
+          style={{ background: "var(--surface)", border: "1.5px solid var(--border)", color: "var(--text-muted)" }}
+          aria-label="Previous week"
+        >
+          <ChevronLeft size={15} />
+        </button>
+
+        <div className="flex gap-1.5 overflow-x-auto pb-1 flex-1">
+          {dates.map(({ dow, date }) => {
+            const on = dow === day;
+            const ds = isoDate(date);
+            const isNow = now != null && isoDate(now) === ds;
+            const special = changes.some(c => c.date === ds);
+            return (
+              <button
+                key={dow}
+                onClick={() => setPicked(dow)}
+                className="flex-shrink-0 px-3.5 py-2 rounded-full text-sm font-semibold"
+                style={{
+                  background: on ? "var(--text)" : "var(--surface)",
+                  color:      on ? "var(--surface)" : "var(--text-muted)",
+                  border:     `1.5px solid ${on ? "var(--text)" : "var(--border)"}`,
+                }}
+              >
+                {DAY_SHORT[dow]}{" "}
+                <span style={{ opacity: 0.65, fontWeight: 500 }}>{date.getDate()}</span>
+                {(isNow || special) && !on && (
+                  <span
+                    className="inline-block ml-1.5 rounded-full align-middle"
+                    style={{ width: 5, height: 5, background: special ? CAT_COLORS.study : CAT_COLORS.therapy }}
+                  />
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <button
+          onClick={() => { setWeekStart(w => shift(w ?? mondayOf(new Date()), 7)); }}
+          className="px-2.5 py-2 rounded-full"
+          style={{ background: "var(--surface)", border: "1.5px solid var(--border)", color: "var(--text-muted)" }}
+          aria-label="Next week"
+        >
+          <ChevronRight size={15} />
+        </button>
       </div>
+
+      {/* Why today isn't the usual day */}
+      {merged.temporary && (
+        <div
+          className="rounded-2xl px-5 py-3.5"
+          style={{ background: "rgba(180,85,47,0.08)", border: `1.5px solid ${CAT_COLORS.study}55` }}
+        >
+          <p className="text-sm font-semibold" style={{ color: CAT_COLORS.study }}>
+            Temporary schedule{merged.weekName ? ` — ${merged.weekName}` : ""}
+          </p>
+          {merged.weekWhy && (
+            <p className="text-sm mt-0.5 leading-relaxed" style={{ color: "var(--text-muted)" }}>
+              {merged.weekWhy}
+            </p>
+          )}
+          {backToNormal && (
+            <p className="text-xs mt-1.5" style={{ color: "var(--text-light)" }}>
+              Your normal week is back on {backToNormal}. Nothing here changes it.
+            </p>
+          )}
+        </div>
+      )}
 
       {/* The day itself */}
       <div
@@ -95,28 +186,28 @@ export function WeekPlanView() {
             <h2 className="font-serif text-2xl" style={{ color: "var(--text)" }}>{heading}</h2>
             {isToday && currentIdx >= 0 && (
               <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-                Right now: <span style={{ color: "var(--text)", fontWeight: 600 }}>{resolveLabel(plan.blocks[currentIdx])}</span>
+                Right now: <span style={{ color: "var(--text)", fontWeight: 600 }}>{merged.rows[currentIdx].label}</span>
               </p>
             )}
             {isToday && currentIdx < 0 && nextIdx >= 0 && (
               <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-                Next up at {fmt(plan.blocks[nextIdx].start)}:{" "}
-                <span style={{ color: "var(--text)", fontWeight: 600 }}>{resolveLabel(plan.blocks[nextIdx])}</span>
+                Next up at {fmt(merged.rows[nextIdx].start)}:{" "}
+                <span style={{ color: "var(--text)", fontWeight: 600 }}>{merged.rows[nextIdx].label}</span>
               </p>
             )}
           </div>
-          {plan.sub && (
+          {plan.sub && !merged.temporary && (
             <p className="text-sm mt-0.5" style={{ color: "var(--text-light)" }}>{plan.sub}</p>
           )}
         </div>
 
         <div className="px-4 py-3 md:px-6 md:py-4">
-          {plan.blocks.map((b, i) => {
+          {merged.rows.map((b, i) => {
             const active = i === currentIdx;
             const past   = isToday && nowMin >= mins(b.end);
             return (
               <div
-                key={i}
+                key={b.key}
                 className="flex gap-3 md:gap-4 rounded-xl px-2 md:px-3 py-2.5"
                 style={{
                   background: active ? "rgba(180,85,47,0.07)" : undefined,
@@ -131,16 +222,24 @@ export function WeekPlanView() {
                 </span>
                 <span
                   className="w-1 rounded-full flex-shrink-0 self-stretch"
-                  style={{ background: CAT_COLORS[b.cat] }}
+                  style={{ background: b.color }}
                 />
                 <div className="min-w-0 flex-1">
                   <p
                     className="leading-snug"
                     style={{ color: "var(--text)", fontWeight: active ? 700 : 500 }}
                   >
-                    {resolveLabel(b)}
+                    {b.label}
+                    {b.temporary && (
+                      <span
+                        className="ml-2 text-[10px] font-bold uppercase tracking-wider align-middle px-1.5 py-0.5 rounded-full"
+                        style={{ background: `${CAT_COLORS.study}1f`, color: CAT_COLORS.study }}
+                      >
+                        this week
+                      </span>
+                    )}
                     {active && (
-                      <span className="ml-2 text-xs font-bold" style={{ color: "var(--purple)" }}>now</span>
+                      <span className="ml-2 text-xs font-bold" style={{ color: CAT_COLORS.study }}>now</span>
                     )}
                   </p>
                   {b.note && (
@@ -153,6 +252,23 @@ export function WeekPlanView() {
             );
           })}
         </div>
+
+        {/* What the temporary week took out, so nothing disappears silently */}
+        {merged.cut.length > 0 && (
+          <div className="px-6 py-4" style={{ borderTop: "1px solid var(--border)" }}>
+            <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-light)" }}>
+              Cut from today
+            </p>
+            <ul className="space-y-1">
+              {merged.cut.map((c, i) => (
+                <li key={i} className="text-sm" style={{ color: "var(--text-muted)" }}>
+                  <span style={{ textDecoration: "line-through" }}>{c.label}</span>
+                  {c.note && <span style={{ color: "var(--text-light)" }}> — {c.note}</span>}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
 
       {/* Supporting detail, out of the way until asked for */}
@@ -175,6 +291,10 @@ export function WeekPlanView() {
               Wednesday, CMB and Micro on Tuesday and Thursday. Same-day review is the strongest
               defence against forgetting. Within five days of a quiz or seven of an exam, that
               course takes Block 1 instead.
+            </p>
+            <p className="text-sm leading-relaxed" style={{ color: "var(--text-muted)" }}>
+              The gym sits between getting home and Block 1 — five slots a week so four still
+              happen when a day gets eaten. Forty-five minutes moving, fifteen to shower.
             </p>
             <p className="text-sm leading-relaxed" style={{ color: "var(--text-muted)" }}>
               Exam-week mode: shadowing pauses first, Saturday exposure shrinks to a 30-minute

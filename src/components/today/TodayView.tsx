@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, KeyboardEvent } from "react";
-import { resolveLabel } from "@/lib/weekPlan";
+import { CAT_COLORS } from "@/lib/weekPlan";
 import { format, differenceInDays, parseISO, startOfDay, subDays } from "date-fns";
 import { Plus, Trash2, Check, Brain, Clock, Dumbbell, Stethoscope, Calendar } from "lucide-react";
 import { DashboardData } from "@/types/dashboard";
@@ -12,6 +12,8 @@ import { celebrate } from "@/lib/confetti";
 import { WeatherWidget } from "./WeatherWidget";
 import { HourlyWeatherCard } from "./HourlyWeatherCard";
 import { TYPE_META, TYPE_ICON, resolveBlocks, blocksForDate, formatRange12 } from "@/lib/schedule";
+import { applyChanges, rowsFromBlocks, isoDate } from "@/lib/dayPlan";
+import { useDatedChanges } from "@/lib/useDatedChanges";
 import { whenChip } from "@/lib/whenText";
 
 interface Props {
@@ -45,9 +47,30 @@ export function TodayView({ data, update }: Props) {
 
   const todayTasks = data.tasks.filter((task) => task.date === t);
 
-  const todayBlocks = blocksForDate(resolveBlocks(data.scheduleBlocks), new Date());
-  const timelineRows: { sortKey: number; kind: "block" | "event"; label: string; time: string; color: string; type?: import("@/types/dashboard").ScheduleBlock["type"] }[] = [
-    ...todayBlocks.map(b => ({ sortKey: parseInt(b.startTime.replace(":", "")), kind: "block" as const, label: b.label, time: formatRange12(b.startTime, b.endTime), color: TYPE_META[b.type].color, type: b.type })),
+  // The recurring week, then whatever is temporary about today on top of it —
+  // the same merge the Schedule page does, so the two never disagree.
+  const now = new Date();
+  const dateStr = isoDate(now);
+  const changes = useDatedChanges(dateStr, dateStr);
+  const todayBlocks = blocksForDate(resolveBlocks(data.scheduleBlocks, data.hiddenPlanBlocks), now);
+  const merged = applyChanges(
+    rowsFromBlocks(todayBlocks, () => TYPE_META.other.color, now),
+    changes,
+    dateStr,
+  );
+  const typeById = new Map(todayBlocks.map(b => [b.id, b.type]));
+
+  const timelineRows: { sortKey: number; kind: "block" | "event"; label: string; time: string; color: string; note?: string; temporary?: boolean; type?: import("@/types/dashboard").ScheduleBlock["type"] }[] = [
+    ...merged.rows.map(b => ({
+      sortKey: parseInt(b.start.replace(":", "")),
+      kind: "block" as const,
+      label: b.label,
+      time: formatRange12(b.start, b.end),
+      color: b.color,
+      ...(b.note ? { note: b.note } : {}),
+      ...(b.temporary ? { temporary: true } : {}),
+      type: typeById.get(b.key) ?? "other",
+    })),
     ...dedupeEvents(calEvents).map(e => ({
       sortKey: e.allDay || !e.start ? -1 : new Date(e.start).getHours() * 100 + new Date(e.start).getMinutes(),
       kind: "event" as const, label: e.title,
@@ -100,6 +123,22 @@ export function TodayView({ data, update }: Props) {
       <HourlyWeatherCard />
       {/* Today's Timeline */}
       <Card title="Today's Schedule" subtitle="Your norms + calendar, merged">
+        {merged.temporary && (
+          <div
+            className="rounded-xl px-4 py-3 mb-3"
+            style={{ background: `${CAT_COLORS.study}14`, border: `1.5px solid ${CAT_COLORS.study}55` }}
+          >
+            <p className="text-sm font-semibold" style={{ color: CAT_COLORS.study }}>
+              Temporary schedule{merged.weekName ? ` — ${merged.weekName}` : ""}
+            </p>
+            {merged.weekWhy && (
+              <p className="text-xs mt-0.5 leading-relaxed" style={{ color: "var(--text-muted)" }}>
+                {merged.weekWhy}
+              </p>
+            )}
+          </div>
+        )}
+
         {timelineRows.length === 0 ? (
           <p className="text-sand-dark text-sm">No schedule set — add blocks on the Week page</p>
         ) : (
@@ -118,18 +157,49 @@ export function TodayView({ data, update }: Props) {
                   >
                     <Icon size={15} style={{ color: row.color }} />
                   </div>
-                  <span
-                    className="font-medium flex-1 text-sm leading-snug min-w-0"
-                    style={{ color: "var(--text)" }}
-                  >
-                    {resolveLabel(row)}
-                  </span>
+                  <div className="flex-1 min-w-0">
+                    <span
+                      className="font-medium text-sm leading-snug"
+                      style={{ color: "var(--text)" }}
+                    >
+                      {row.label}
+                      {row.temporary && (
+                        <span
+                          className="ml-2 text-[10px] font-bold uppercase tracking-wider align-middle px-1.5 py-0.5 rounded-full"
+                          style={{ background: `${CAT_COLORS.study}1f`, color: CAT_COLORS.study }}
+                        >
+                          today only
+                        </span>
+                      )}
+                    </span>
+                    {row.note && (
+                      <p className="text-xs mt-0.5 leading-relaxed" style={{ color: "var(--text-muted)" }}>
+                        {row.note}
+                      </p>
+                    )}
+                  </div>
                   <span className="text-xs font-medium text-sand-dark whitespace-nowrap self-start pt-0.5">
                     {row.time}
                   </span>
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {merged.cut.length > 0 && (
+          <div className="mt-3 pt-3" style={{ borderTop: "1px solid var(--border)" }}>
+            <p className="text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: "var(--text-light)" }}>
+              Cut from today
+            </p>
+            <ul className="space-y-1">
+              {merged.cut.map((c, i) => (
+                <li key={i} className="text-xs" style={{ color: "var(--text-muted)" }}>
+                  <span style={{ textDecoration: "line-through" }}>{c.label}</span>
+                  {c.note && <span style={{ color: "var(--text-light)" }}> — {c.note}</span>}
+                </li>
+              ))}
+            </ul>
           </div>
         )}
       </Card>
