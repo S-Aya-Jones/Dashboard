@@ -18,6 +18,8 @@ interface Segment {
   analogy?: string | null;
   teach: string;
   board?: string | null;
+  /** The same idea in the words the exam will use. */
+  examLanguage?: string | null;
   check?: Check;
 }
 
@@ -51,8 +53,23 @@ export function LessonView({ lectureId, course, initial }: Props) {
     setErr(null);
     try {
       const res = await fetch(`/api/lectures/${lectureId}/lesson?part=${part}`, { method: "POST" });
-      const d = await res.json();
-      if (!res.ok) { setErr(d.error ?? "Couldn't build the lesson."); return; }
+
+      // A timed-out function returns Vercel's HTML error page, not JSON, so
+      // res.json() threw and every failure came out as "Couldn't reach the
+      // server" — which was never true and gave her nothing to do about it.
+      const raw = await res.text();
+      let d: { error?: string; done?: boolean; added?: number } = {};
+      try { d = JSON.parse(raw); } catch { /* not JSON — fall through to status */ }
+
+      if (!res.ok) {
+        setErr(
+          d.error ??
+          (res.status === 504 || res.status === 408
+            ? "That part took too long to write. Tap again — it picks up from where it stopped."
+            : `The server returned ${res.status}. Tap again; if it keeps happening the lecture may need re-processing.`),
+        );
+        return;
+      }
 
       // Re-read rather than trusting a local merge — the server is authoritative
       // about what has been written so far.
@@ -60,7 +77,7 @@ export function LessonView({ lectureId, course, initial }: Props) {
       try { setSegments(JSON.parse(fresh.lecture?.lesson ?? "[]")); } catch { /* keep what we have */ }
       if (d.done) setDone(true);
     } catch {
-      setErr("Couldn't reach the server.");
+      setErr("Your connection dropped. Tap again — nothing already written is lost.");
     } finally {
       setBusy(false);
     }
@@ -231,6 +248,16 @@ export function LessonView({ lectureId, course, initial }: Props) {
         <div className="text-[15px] leading-relaxed whitespace-pre-wrap" style={{ color: "var(--text)" }}>
           {seg.teach}
         </div>
+
+        {seg.examLanguage && (
+          <div className="rounded-2xl px-4 py-3 mb-4"
+            style={{ background: "rgba(180,85,47,0.07)", border: "1.5px solid rgba(180,85,47,0.25)" }}>
+            <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: "#B4552F" }}>
+              How it&apos;ll be worded on the test
+            </p>
+            <p className="text-sm leading-relaxed" style={{ color: "var(--text)" }}>{seg.examLanguage}</p>
+          </div>
+        )}
 
         {seg.board && (
           <pre
