@@ -52,7 +52,7 @@ export const WEEK: Record<number, { name: string; sub?: string; blocks: PlanBloc
   1: { name: "Monday", blocks: [
     { start: "06:00", end: "07:00", label: "Up, shower, breakfast, out", cat: "rest", note: "Clothes staged the night before" },
     { start: "07:00", end: "12:00", label: "Work · Biochem 8–10 · Physio 10–12", cat: "work", note: "Capture mode · heights dose at the 10:00 class switch" },
-    { start: "12:00", end: "14:30", label: "Independent Study block · at work", cat: "work", note: "School's own 12–3 study time · heights dose 1:30" },
+    { start: "12:00", end: "14:30", label: "Work — school's study block, but you're working", cat: "work", note: "Not study time. The school schedules it; your job has you. Heights dose 1:30." },
     { start: "14:30", end: "15:10", label: "Extended-route drive home", cat: "exposure", note: "Driving exposure #1 — no time pressure" },
     { start: "15:10", end: "16:10", label: "Gym (1 of 5)", cat: "gym", note: "45 minutes moving, 15 to shower — that's the whole hour. You're already out and dressed for it." },
     { start: "16:10", end: "17:00", label: "Legal — storage unit", cat: "life", note: "Finding and briefing a lawyer · firms answer in the afternoon" },
@@ -64,7 +64,7 @@ export const WEEK: Record<number, { name: string; sub?: string; blocks: PlanBloc
   2: { name: "Tuesday", blocks: [
     { start: "06:00", end: "07:00", label: "Up, shower, breakfast, out", cat: "rest" },
     { start: "07:00", end: "12:00", label: "Work · Micro 8–10 · CMB 10–12", cat: "work", note: "Capture mode · heights dose at the 10:00 class switch" },
-    { start: "12:00", end: "14:30", label: "Independent Study block · at work", cat: "work", note: "School's own 12–3 study time · heights dose 1:30" },
+    { start: "12:00", end: "14:30", label: "Work — school's study block, but you're working", cat: "work", note: "Not study time. The school schedules it; your job has you. Heights dose 1:30." },
     { start: "14:30", end: "15:00", label: "Drive home — direct", cat: "work" },
     { start: "15:00", end: "16:00", label: "Gym (2 of 5)", cat: "gym", note: "45 minutes moving, 15 to shower" },
     { start: "16:00", end: "17:00", label: "Legal — storage unit", cat: "life", note: "Calls, quotes, paperwork" },
@@ -91,7 +91,7 @@ export const WEEK: Record<number, { name: string; sub?: string; blocks: PlanBloc
   4: { name: "Thursday", blocks: [
     { start: "06:00", end: "07:00", label: "Up, shower, breakfast, out", cat: "rest" },
     { start: "07:00", end: "12:00", label: "Work · Micro 8–10 · CMB 10–12", cat: "work", note: "Capture mode · heights dose at the 10:00 class switch" },
-    { start: "12:00", end: "14:30", label: "Independent Study block · at work", cat: "work", note: "School's own 12–3 study time · heights dose 1:30" },
+    { start: "12:00", end: "14:30", label: "Work — school's study block, but you're working", cat: "work", note: "Not study time. The school schedules it; your job has you. Heights dose 1:30." },
     { start: "14:30", end: "15:00", label: "Short exposure drive", cat: "exposure", note: "Driving exposure #2 — 20-min loop on the way home" },
     { start: "15:00", end: "16:00", label: "Gym (3 of 5)", cat: "gym", note: "45 minutes moving, 15 to shower" },
     { start: "16:00", end: "17:00", label: "Legal — storage unit", cat: "life", note: "The longer weekday block — documents and anything needing focus" },
@@ -103,7 +103,7 @@ export const WEEK: Record<number, { name: string; sub?: string; blocks: PlanBloc
   5: { name: "Friday", blocks: [
     { start: "06:00", end: "07:00", label: "Up, shower, breakfast, out", cat: "rest" },
     { start: "07:00", end: "12:00", label: "Work · Friday assessment slot 8–10", cat: "work", note: "Most quizzes, exams and review sessions land here" },
-    { start: "12:00", end: "14:30", label: "Independent Study block · at work", cat: "work", note: "Heights dose 1:30 · the week's weakest subject goes here" },
+    { start: "12:00", end: "14:30", label: "Work — school's study block, but you're working", cat: "work", note: "Not study time. Heights dose 1:30." },
     { start: "15:00", end: "16:00", label: "Rap Session", cat: "study", note: "Every Friday of the term — the one class that isn't a lecture" },
     { start: "16:00", end: "17:00", label: "Gym (4 of 5)", cat: "gym", note: "45 minutes moving, 15 to shower — straight into the evening" },
     { start: "17:00", end: "17:45", label: "Flex — flashcards, admin, breathe", cat: "rest", note: "Budget check lands here on paydays · bills tab is already sorted" },

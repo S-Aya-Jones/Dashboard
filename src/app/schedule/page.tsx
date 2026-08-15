@@ -5,6 +5,7 @@ import { ScheduleChanges } from "@/components/schedule/ScheduleChanges";
 import { Sidebar } from "@/components/nav/Sidebar";
 import { DayScheduleView } from "@/components/schedule/DayScheduleView";
 import { WeekPlanView } from "@/components/schedule/WeekPlanView";
+import { NextAssessments } from "@/components/schedule/NextAssessments";
 
 export default function Page() {
   const [tab, setTab] = useState<"plan" | "day">("plan");
@@ -43,6 +44,10 @@ export default function Page() {
             thing she came here to do when something has moved. */}
         <div style={{ marginBottom: "1.5rem" }}>
           <ScheduleChanges />
+        </div>
+
+        <div style={{ marginBottom: "1.5rem" }}>
+          <NextAssessments />
         </div>
 
         {tab === "plan" ? <WeekPlanView /> : <DayScheduleView />}
