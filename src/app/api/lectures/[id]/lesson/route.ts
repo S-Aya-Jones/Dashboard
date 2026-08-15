@@ -21,8 +21,15 @@ const client = new Anthropic();
 // limit, and because she can start on part one while the rest is still being
 // written.
 
-const PER_PART = 3;
-const MAX_PARTS = 8;
+// Two segments a call, not three.
+//
+// Three segments of 150–300 words each, plus analogy, board and check, from
+// Sonnet over a full transcript was landing past the 60s function limit — the
+// page showed "Couldn't reach the server", which is not what happened and not
+// something she could act on. Smaller parts finish comfortably inside the
+// limit; she just taps once more.
+const PER_PART = 2;
+const MAX_PARTS = 12;
 
 const SYSTEM = `You are teaching one lecture to a master's student at Meharry Medical College (pre-med, working full time, taking Biochemistry, Physiology, Microbiology and Cell & Molecular Biology). She could not attend this lecture live. She has the transcript and the slides; neither has worked, because reading a transcript is not the same as being taught.
 
@@ -35,14 +42,22 @@ Return ONLY JSON, no fences:
     "analogy": "the everyday thing this is like, which part maps to which, and where it stops being true — 2-4 sentences. null only if there is honestly no good one.",
     "teach": "the teaching itself — 150-300 words",
     "board": "optional: a pathway, equation, or comparison written in plain text, as a lecturer would put it on the board. null if not useful.",
+    "examLanguage": "the same idea written the way the exam will write it — the proper terms, in a full sentence, the way it would appear in a question stem or a correct answer choice. 1-2 sentences. Never null.",
     "check": { "q": "one question testing whether it landed", "a": "the answer", "why": "one sentence on why, and what the wrong instinct usually is" }
   } ] }
 
 ${LEARNING_PROFILE}
 
+How to write "examLanguage":
+- She has asked for this specifically: explain it simply, then hand it back in the language the test uses.
+- Take the idea you just taught in plain words and restate it in the course's own vocabulary — the terms from the slides, spelled and used the way a question stem would.
+- It is not a summary. It is the same sentence, translated up. If the teaching said "the gate only opens when calcium shows up", the exam language says "Ca2+ binding to troponin C displaces tropomyosin from the myosin-binding site on actin."
+- Use the exact terms the lecturer used. If the slide says "excitation-contraction coupling", say that, not "the linking step".
+
 How to write "teach":
 - Start from what she already knows and build. Introduce the term after the idea, never before.
 - The analogy field carries the comparison; "teach" then does the real mechanism. Build on it rather than repeating it.
+- Plain words first, proper term second, in that order, every time: say what happens, then name it. "The cell copies the recipe into a working note — that copy is the mRNA, and making it is transcription."
 - Explain WHY, not just what. "Histidine buffers at physiological pH" is a fact; why its pKa being 6.0 makes that true is the teaching.
 - Say the thing that makes it click — the reason it evolved this way, the reason the exam asks about it.
 - Name the trap. Where do students get this wrong, and what is the wrong answer that feels right?
@@ -117,7 +132,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     const msg = await client.messages.create({
       model: "claude-sonnet-5",
-      max_tokens: 8000,
+      max_tokens: 5000,
       system: SYSTEM,
       messages: [{
         role: "user",
