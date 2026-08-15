@@ -779,6 +779,8 @@ export function FinancesView({ data, update }: Props) {
             <CreditMoves
               done={data.creditMovesDone ?? []}
               onDone={(ids) => update(d => ({ ...d, creditMovesDone: ids }))}
+              sender={data.mailingAddress}
+              onSender={(mailingAddress) => update(d => ({ ...d, mailingAddress }))}
             />
             <CreditTracker />
             <CreditCard

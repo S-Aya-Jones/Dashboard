@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 import { CreditCard, ShieldAlert, Phone, RefreshCw, CheckCircle2, Circle, ChevronDown, Target } from "lucide-react";
 import type { ActionPlan, Move, MoveAction } from "@/lib/creditActionPlan";
 import { CREDIT_UPDATED } from "@/lib/creditEvents";
+import { LetterSheet } from "./LetterSheet";
+import type { CreditAccount } from "@/lib/creditAccounts";
+import type { Sender } from "@/lib/creditLetters";
+import { FileText } from "lucide-react";
 
 // The plan, named down to the account: pay this, here's what's hurting, do
 // this, check this, and where your score should land.
@@ -14,6 +18,8 @@ import { CREDIT_UPDATED } from "@/lib/creditEvents";
 interface Props {
   done: string[];
   onDone: (ids: string[]) => void;
+  sender?: Sender;
+  onSender: (s: Sender) => void;
 }
 
 const ICON: Record<MoveAction, typeof CreditCard> = {
@@ -29,9 +35,10 @@ const IMPACT: Record<Move["impact"], { label: string; color: string }> = {
 
 const money = (n: number) => `$${Math.round(n).toLocaleString()}`;
 
-export function CreditMoves({ done, onDone }: Props) {
+export function CreditMoves({ done, onDone, sender, onSender }: Props) {
   const [plan, setPlan] = useState<ActionPlan | null>(null);
   const [open, setOpen] = useState<string | null>(null);
+  const [letterFor, setLetterFor] = useState<CreditAccount | null>(null);
 
   useEffect(() => {
     const load = () => {
@@ -190,6 +197,31 @@ export function CreditMoves({ done, onDone }: Props) {
                     </ol>
                   </div>
 
+                  {m.math?.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: "var(--text-light)" }}>
+                        Where these numbers come from
+                      </p>
+                      <div className="rounded-lg px-2.5 py-2 space-y-0.5" style={{ background: "var(--surface)" }}>
+                        {m.math.map((line, j) => (
+                          <p key={j} className="text-[11px] leading-relaxed tabular-nums" style={{ color: "var(--text-muted)" }}>
+                            {line}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {m.ref && (m.action === "dispute" || m.action === "call") && (
+                    <button
+                      onClick={() => setLetterFor(m.ref!)}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold"
+                      style={{ background: "#B4552F", color: "#fff" }}
+                    >
+                      <FileText size={13} /> Write the letter for me
+                    </button>
+                  )}
+
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: "var(--text-light)" }}>
                       Check it worked
@@ -205,6 +237,15 @@ export function CreditMoves({ done, onDone }: Props) {
           );
         })}
       </div>
+
+      {letterFor && (
+        <LetterSheet
+          account={letterFor}
+          sender={sender}
+          onSender={onSender}
+          onClose={() => setLetterFor(null)}
+        />
+      )}
     </div>
   );
 }
