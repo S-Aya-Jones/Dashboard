@@ -7,91 +7,12 @@ import {
 } from "lucide-react";
 import { Flashcard, FlashcardReviewLog, DashboardData } from "@/types/dashboard";
 import { id } from "@/lib/utils";
-import { format, addDays, parseISO } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { parseApkgInBrowser } from "@/lib/ankiParser";
+import { schedule as milesDown, previewInterval, MD } from "@/lib/srs";
 
-// ── Miles Down / Anki SM-2 Algorithm ────────────────────────────────────────
-// Learning steps: 1m 10m | Graduating: 1d | Easy: 4d
-// Ease: 2.5 start | Hard: ×1.2 −15% ease | Easy bonus: ×1.3 +15% ease
-// Lapse: relearn 10m, new interval = 1d, ease −20%
-
-const MD = {
-  learnSteps:    [1, 10],
-  relearnSteps:  [10],
-  graduateInt:   1,
-  easyInt:       4,
-  startEase:     2.5,
-  hardMult:      1.2,
-  easyBonus:     1.3,
-  intMod:        1.0,
-  newIntMult:    0.0,
-  maxInt:        36500,
-};
-
-function minutesFromNow(mins: number): string {
-  return new Date(Date.now() + mins * 60_000).toISOString();
-}
-
-function milesDown(card: Flashcard, rating: 0 | 1 | 2 | 3): Partial<Flashcard> {
-  const now = new Date();
-  const ef  = card.easeFactor ?? MD.startEase;
-
-  if (card.state === "new" || card.state === "learning") {
-    if (rating === 0) {
-      return { state: "learning", learningStep: 0, nextReview: minutesFromNow(MD.learnSteps[0]), lastReview: now.toISOString() };
-    }
-    if (rating === 1) {
-      const step = MD.learnSteps[card.learningStep] ?? MD.learnSteps[MD.learnSteps.length - 1];
-      return { state: "learning", learningStep: card.learningStep, nextReview: minutesFromNow(step), lastReview: now.toISOString() };
-    }
-    if (rating === 3) {
-      return { state: "review", interval: MD.easyInt, learningStep: 0, repetitions: 1, easeFactor: Math.min(3.0, ef + 0.15), nextReview: format(addDays(now, MD.easyInt), "yyyy-MM-dd"), lastReview: now.toISOString() };
-    }
-    const next = card.learningStep + 1;
-    if (next >= MD.learnSteps.length) {
-      return { state: "review", interval: MD.graduateInt, learningStep: 0, repetitions: 1, nextReview: format(addDays(now, MD.graduateInt), "yyyy-MM-dd"), lastReview: now.toISOString() };
-    }
-    return { state: "learning", learningStep: next, nextReview: minutesFromNow(MD.learnSteps[next]), lastReview: now.toISOString() };
-  }
-
-  if (card.state === "relearning") {
-    if (rating === 0) {
-      return { state: "relearning", learningStep: 0, nextReview: minutesFromNow(MD.relearnSteps[0]), lastReview: now.toISOString() };
-    }
-    const newInt = Math.max(1, Math.round(card.interval * MD.newIntMult) || 1);
-    return { state: "review", interval: newInt, learningStep: 0, repetitions: card.repetitions + 1, nextReview: format(addDays(now, newInt), "yyyy-MM-dd"), lastReview: now.toISOString() };
-  }
-
-  // Review state
-  if (rating === 0) {
-    const newInt = Math.max(1, Math.round(card.interval * MD.newIntMult) || 1);
-    return { state: "relearning", learningStep: 0, interval: newInt, lapses: (card.lapses ?? 0) + 1, easeFactor: Math.max(1.3, ef - 0.2), nextReview: minutesFromNow(MD.relearnSteps[0]), lastReview: now.toISOString() };
-  }
-  if (rating === 1) {
-    const newInt = Math.min(MD.maxInt, Math.max(card.interval + 1, Math.round(card.interval * MD.hardMult * MD.intMod)));
-    return { state: "review", interval: newInt, easeFactor: Math.max(1.3, ef - 0.15), repetitions: card.repetitions + 1, nextReview: format(addDays(now, newInt), "yyyy-MM-dd"), lastReview: now.toISOString() };
-  }
-  if (rating === 2) {
-    const newInt = Math.min(MD.maxInt, Math.max(card.interval + 1, Math.round(card.interval * ef * MD.intMod)));
-    return { state: "review", interval: newInt, repetitions: card.repetitions + 1, nextReview: format(addDays(now, newInt), "yyyy-MM-dd"), lastReview: now.toISOString() };
-  }
-  const newInt = Math.min(MD.maxInt, Math.max(card.interval + 1, Math.round(card.interval * ef * MD.easyBonus * MD.intMod)));
-  return { state: "review", interval: newInt, easeFactor: Math.min(3.0, ef + 0.15), repetitions: card.repetitions + 1, nextReview: format(addDays(now, newInt), "yyyy-MM-dd"), lastReview: now.toISOString() };
-}
-
-function previewInterval(card: Flashcard, rating: 0 | 1 | 2 | 3): string {
-  const updated = milesDown(card, rating);
-  if (updated.state === "learning" || updated.state === "relearning") {
-    const ms  = new Date(updated.nextReview as string).getTime() - Date.now();
-    const min = Math.round(ms / 60_000);
-    return min < 60 ? `${min}m` : `${Math.round(min / 60)}h`;
-  }
-  const days = updated.interval ?? 1;
-  if (days < 7)   return `${days}d`;
-  if (days < 30)  return `${Math.round(days / 7)}w`;
-  if (days < 365) return `${Math.round(days / 30)}mo`;
-  return `${Math.round(days / 365)}y`;
-}
+// The scheduler lives in lib/srs.ts now — one implementation, shared with
+// the course flashcards, so the two can't drift apart.
 
 function getToday(): string {
   return new Date().toISOString().slice(0, 10);
