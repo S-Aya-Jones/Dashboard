@@ -31,6 +31,10 @@ export interface Move {
   steps: string[];
   /** How she knows it landed. */
   check: string;
+  /** Where every number in this move came from, shown as arithmetic. */
+  math: string[];
+  /** The account itself, when there is one — the letters are built from it. */
+  ref?: CreditAccount;
   impact: "large" | "medium" | "small";
   /** Estimated score points. Wide, and never presented as a promise. */
   estPoints: [number, number];
@@ -93,6 +97,7 @@ export function buildActionPlan(
   accounts: CreditAccount[],
 ): ActionPlan {
   const moves: Move[] = [];
+  const from = snapshot?.report_date ? `your ${snapshot.report_date} report` : "your report";
 
   const scores = snapshot
     ? [snapshot.transunion, snapshot.experian, snapshot.equifax].filter(
@@ -155,16 +160,29 @@ export function buildActionPlan(
     .map(c => ({ ...c, toThirty: Math.max(0, Math.round((c.a.balance ?? 0) - (c.a.limit ?? 0) * 0.29)) }))
     .sort((x, y) => x.toThirty - y.toThirty)[0];
 
+  // Which card to clear first, in her hands rather than in the abstract: the
+  // one that buys the most score per dollar.
+  const best = [...payable].sort((x, y) => weightOf(y) / y.pay - weightOf(x) / x.pay)[0];
+
   payable.forEach((c) => {
     const share = weightOf(c);
     const lo = Math.round(utilPoints[0] * share);
     const hi = Math.round(utilPoints[1] * share);
     const isCheapest = cheapest && c.a.name === cheapest.a.name && payable.length > 1;
+    const isBest = best && c.a.name === best.a.name && payable.length > 1;
 
     moves.push({
       id: `pay-${c.a.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
       action: "pay",
-      title: `Pay ${c.a.name} down to ${money(c.target)}`,
+      title: `${isBest ? "First card to pay: " : "Pay "}${c.a.name} down to ${money(c.target)}`,
+      ref: c.a,
+      math: [
+        `Balance now: ${money(c.a.balance ?? 0)} · Limit: ${money(c.a.limit ?? 0)}`,
+        `${money(c.a.balance ?? 0)} ÷ ${money(c.a.limit ?? 0)} = ${c.util}% used on this card`,
+        `Target is 9% of the limit: ${money(c.a.limit ?? 0)} × 0.09 = ${money(c.target)}`,
+        `So the payment is ${money(c.a.balance ?? 0)} − ${money(c.target)} = ${money(c.pay)}`,
+        `All from ${from}.`,
+      ],
       account: c.a.name,
       amount: c.pay,
       hurting: `${c.a.name} is at ${c.util}% of its ${money(c.a.limit ?? 0)} limit — ${money(c.a.balance ?? 0)} owed. Per-card utilisation is scored as well as your overall figure, so a single maxed card drags you down even if the others are clean.`,
@@ -190,6 +208,13 @@ export function buildActionPlan(
       action: "pay",
       title: `Pay down ${money(totalToPay)} across your cards`,
       amount: totalToPay,
+      math: [
+        `Owed across your cards: ${money(snapshot?.balances ?? 0)}`,
+        `Total credit limit: ${money(snapshot?.credit_limit ?? 0)}`,
+        `${money(snapshot?.balances ?? 0)} ÷ ${money(snapshot?.credit_limit ?? 0)} = ${overallUtil}% used`,
+        `Target is 9%: ${money(snapshot?.credit_limit ?? 0)} × 0.09 = ${money(Math.round((snapshot?.credit_limit ?? 0) * TARGET_UTIL))}`,
+        `So the paydown is ${money(totalToPay)}. All from ${from}.`,
+      ],
       hurting: `Your cards are at ${overallUtil}% of your total limit. That's 30% of your score and the fastest part of it to change.`,
       steps: [
         `${money(totalToPay)} total gets you under 9% overall.`,
@@ -215,6 +240,14 @@ export function buildActionPlan(
       action: "dispute",
       title: `Challenge ${a.name}${a.balance ? ` — ${money(a.balance)}` : ""}`,
       account: a.name,
+      ref: a,
+      math: [
+        `Reported by: ${a.name}`,
+        `Balance claimed: ${a.balance !== null ? money(a.balance) : "not shown on the report"}`,
+        `Status: ${a.status}${a.openedYear ? ` · opened ${a.openedYear}` : ""}`,
+        a.address ? `Their address on your report: ${a.address}` : "No mailing address printed on your report for them.",
+        `All from ${from}.`,
+      ],
       ...(a.balance !== null ? { amount: a.balance } : {}),
       hurting: `A ${a.status === "chargeoff" ? "charge-off" : "collection"}${a.openedYear ? ` from ${a.openedYear}` : ""}. Payment history is 35% of your score — the largest single factor — and this is also the exact kind of entry the federal loan credit check looks for.`,
       steps: [
@@ -237,6 +270,11 @@ export function buildActionPlan(
       id: "dispute-unnamed",
       action: "dispute",
       title: `Challenge the ${unnamed} mark${unnamed === 1 ? "" : "s"} on your report`,
+      math: [
+        `Collections on file: ${snapshot?.collections ?? 0}`,
+        `Derogatory marks: ${snapshot?.derogatory ?? 0}`,
+        `Your report didn't list them by name, so the count is all we have. From ${from}.`,
+      ],
       hurting: `Your report shows ${snapshot?.collections ?? 0} in collections and ${snapshot?.derogatory ?? 0} derogatory marks. That's the 35% factor, and it's what a lender's credit check keys on.`,
       steps: [
         "Open the report and write down each collector's name and the amount.",
@@ -264,6 +302,14 @@ export function buildActionPlan(
         : `Bring every late account current`,
       ...(pastDueTotal > 0 ? { amount: pastDueTotal } : {}),
       ...(named ? { account: named } : {}),
+      ...(pastDue[0] ? { ref: pastDue[0] } : {}),
+      math: pastDue.length
+        ? [
+            ...pastDue.map(a => `${a.name}: ${a.pastDue ? `${money(a.pastDue)} past due` : "marked late"}`),
+            pastDueTotal > 0 ? `Total to bring current: ${money(pastDueTotal)}` : "",
+            `All from ${from}.`,
+          ].filter(Boolean)
+        : [`Your report shows ${snapshot?.delinquent ?? 0} delinquent account(s) but didn't name them. From ${from}.`],
       hurting: `${pastDue.length || snapshot?.delinquent} account${(pastDue.length || snapshot?.delinquent) === 1 ? " is" : "s are"} marked late. An account that is *currently* late keeps hurting every month it stays that way — this stops the bleeding before anything else helps.`,
       steps: [
         "Pay the past-due amount first, before any extra toward balances.",
@@ -282,6 +328,7 @@ export function buildActionPlan(
     id: "autopay",
     action: "autopay",
     title: "Put every minimum payment on autopay",
+    math: ["Nothing to calculate — this one is insurance, not arithmetic."],
     hurting: "Nothing yet — this is the one that stops you undoing the rest. One 30-day late during your program can cost more than everything above gains.",
     steps: [
       "Every account, minimum payment only, from the account your paycheck lands in.",
@@ -298,6 +345,7 @@ export function buildActionPlan(
     id: "recheck",
     action: "check",
     title: `Re-pull all three reports around ${inDays(45)}`,
+    math: [`45 days from today, which is the outside edge of the dispute window.`],
     hurting: "Not knowing whether any of this worked. Without a before and after you're guessing.",
     steps: [
       "annualcreditreport.com is free and gives you all three.",

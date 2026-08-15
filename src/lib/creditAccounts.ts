@@ -22,6 +22,13 @@ export interface CreditAccount {
   /** Amount currently past due, if the report says. */
   pastDue: number | null;
   openedYear: number | null;
+  /**
+   * The creditor's mailing address as printed on the report. Reports list it
+   * for every account, which is far more reliable than looking a collection
+   * agency up on the internet — the same agency operates from several
+   * addresses and only one of them is the one on your file.
+   */
+  address: string | null;
 }
 
 /** The account block appended to the extraction prompt for PDFs and HTML alike. */
@@ -36,7 +43,8 @@ Also return every open account listed, as "accounts":
     "limit": number|null,
     "status": "current" | "late" | "collection" | "chargeoff" | "closed" | "unknown",
     "pastDue": number|null,
-    "openedYear": number|null
+    "openedYear": number|null,
+    "address": "full mailing address as printed, one line, or null"
   }
 ]
 
@@ -45,6 +53,7 @@ Account rules:
 - "limit" is the credit limit or high credit for a revolving card. Instalment loans have no limit — use null, not the original loan amount.
 - "kind" is "card" for anything revolving, "collection" for a collection agency account, "loan" for instalment debt, "other" if unclear.
 - NEVER include account numbers, even partial ones.
+- "address" is the creditor's mailing address exactly as printed on the report — street or PO box, city, state, ZIP. Null if the report doesn't show one. Never invent or complete an address.
 - Omit accounts you cannot name. An account with no creditor name is useless.
 - If the document has no account detail, return an empty array.`;
 
@@ -84,6 +93,9 @@ export function normaliseAccounts(raw: unknown): CreditAccount[] {
       limit: kind === "card" ? money(r.limit) : null,
       status,
       pastDue: money(r.pastDue),
+      address: typeof r.address === "string" && r.address.trim().length > 5
+        ? r.address.trim().replace(/\s+/g, " ").slice(0, 200)
+        : null,
       openedYear: year !== null && year >= 1950 && year <= new Date().getFullYear() ? Math.round(year) : null,
     });
 

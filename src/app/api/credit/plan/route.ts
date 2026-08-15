@@ -30,7 +30,7 @@ export async function GET() {
     let accounts: CreditAccount[] = [];
     try {
       const rows = await sql`
-        SELECT name, kind, status, balance, credit_limit, past_due, opened_year
+        SELECT name, kind, status, balance, credit_limit, past_due, opened_year, address
         FROM credit_accounts WHERE report_date = ${latest.report_date}
       `;
       accounts = rows.map(r => ({
@@ -41,6 +41,7 @@ export async function GET() {
         limit: r.credit_limit === null ? null : Number(r.credit_limit),
         pastDue: r.past_due === null ? null : Number(r.past_due),
         openedYear: r.opened_year === null ? null : Number(r.opened_year),
+        address: (r.address as string) ?? null,
       }));
     } catch { /* table may not exist on an older database */ }
 

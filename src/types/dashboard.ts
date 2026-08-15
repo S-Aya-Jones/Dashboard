@@ -709,6 +709,8 @@ export interface DashboardData {
   loanProfile?: { grandfathered: "yes" | "no" | "unknown"; programType: "graduate" | "professional" };
   /** Credit moves she has ticked off. Ids are derived from the account name. */
   creditMovesDone?: string[];
+  /** Return address for printed dispute and validation letters. */
+  mailingAddress?: { name: string; street: string; city: string; state: string; zip: string };
   p2pTransfers?: P2PTransfer[];
   accountTransfers?: AccountTransfer[];
   sinkingFunds?: SinkingFund[];

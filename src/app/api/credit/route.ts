@@ -65,10 +65,12 @@ async function ensureTable() {
       status      TEXT NOT NULL,
       balance     NUMERIC, credit_limit NUMERIC, past_due NUMERIC,
       opened_year INTEGER,
+      address     TEXT,
       created_at  TIMESTAMPTZ DEFAULT NOW()
     )
   `;
   await sql`CREATE INDEX IF NOT EXISTS credit_accounts_date ON credit_accounts (report_date)`;
+  await sql`ALTER TABLE credit_accounts ADD COLUMN IF NOT EXISTS address TEXT`;
 }
 
 /** Worst case across whatever reported it — the honest number to track. */
@@ -234,7 +236,8 @@ export async function POST(req: NextRequest) {
         const key = a.name.toLowerCase();
         const seen = byName.get(key);
         const detail = (x: CreditAccount) =>
-          Number(x.balance !== null) + Number(x.limit !== null) + Number(x.status !== "unknown");
+          Number(x.balance !== null) + Number(x.limit !== null) +
+          Number(x.status !== "unknown") + Number(x.address !== null);
         if (!seen || detail(a) > detail(seen)) byName.set(key, a);
       }
     }
@@ -243,9 +246,9 @@ export async function POST(req: NextRequest) {
     for (const a of accounts) {
       await sql`DELETE FROM credit_accounts WHERE report_date = ${reportDate} AND lower(name) = ${a.name.toLowerCase()}`;
       await sql`
-        INSERT INTO credit_accounts (report_date, name, kind, status, balance, credit_limit, past_due, opened_year)
+        INSERT INTO credit_accounts (report_date, name, kind, status, balance, credit_limit, past_due, opened_year, address)
         VALUES (${reportDate}, ${a.name}, ${a.kind}, ${a.status},
-                ${a.balance}, ${a.limit}, ${a.pastDue}, ${a.openedYear})
+                ${a.balance}, ${a.limit}, ${a.pastDue}, ${a.openedYear}, ${a.address})
       `;
     }
 
