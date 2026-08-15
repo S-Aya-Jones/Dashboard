@@ -79,13 +79,32 @@ export function SpendingView() {
       </div>
     );
   }
+  // A bare "$0" is the least useful thing this page could say, because zero has
+  // four different causes and only one of them means she didn't spend anything.
   if (!report.txnCount) {
+    const raw = txns?.length ?? 0;
+    const transfers = (txns ?? []).filter(t => t.isInternalTransfer).length;
+    const income = (txns ?? []).filter(t => t.category === "INCOME").length;
+    const outside = raw - transfers - income;
     return (
       <div className="rounded-2xl p-6" style={{ background: "var(--surface)", border: "1.5px solid var(--border)" }}>
-        <p className="text-sm" style={{ color: "var(--text)" }}>No spending in the last {days} days.</p>
-        <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
-          If that doesn&apos;t sound right, your bank connection may need refreshing on the Flow tab.
+        <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>Nothing to show for the last {days} days.</p>
+        <p className="text-xs mt-2 leading-relaxed" style={{ color: "var(--text-muted)" }}>
+          {raw === 0
+            ? "Your bank returned no transactions at all. That's a connection problem, not a spending one — reconnect on the Flow tab."
+            : outside === 0
+            ? `All ${raw} transactions your bank returned are transfers or income, so there's no spending to chart. That usually means the spending account isn't connected — only the one you move money between.`
+            : `Your bank returned ${raw} transactions, but none inside this window. The feed only goes back 90 days, and the most recent one is older than that.`}
         </p>
+        <div className="flex gap-2 mt-3 flex-wrap">
+          {RANGES.filter(r => r.days !== days).map(r => (
+            <button key={r.days} onClick={() => setDays(r.days)}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold"
+              style={{ background: "var(--bg)", color: "var(--text)", border: "1px solid var(--border)" }}>
+              Try {r.label}
+            </button>
+          ))}
+        </div>
       </div>
     );
   }
@@ -122,6 +141,15 @@ export function SpendingView() {
           Spent in the last {days} days
         </p>
         <p className="font-serif text-4xl mt-1" style={{ color: "var(--text)" }}>{exact(report.total)}</p>
+
+        {report.refunds > 0 ? (
+          <div className="flex items-baseline gap-2 flex-wrap mt-1 text-sm tabular-nums">
+            <span style={{ color: "var(--text-muted)" }}>{exact(report.gross)} went out</span>
+            <span style={{ color: "#0F8A55", fontWeight: 600 }}>− {exact(report.refunds)} came back</span>
+            <span style={{ color: "var(--text-muted)" }}>= {exact(report.total)} actually spent</span>
+          </div>
+        ) : null}
+
         <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>
           {exact(report.dailyAverage)} a day · {exact(report.recurringTotal)} of it is standing commitments,
           {" "}{exact(report.oneOffTotal)} is week-to-week choices
@@ -188,7 +216,9 @@ export function SpendingView() {
       {/* Month over month — one series, so no legend; the title names it */}
       <div className="rounded-2xl p-5" style={{ background: "var(--surface)", border: "1.5px solid var(--border)" }}>
         <h3 className="section-title mb-1">Spending by month</h3>
-        <p className="text-xs mb-4" style={{ color: "var(--text-muted)" }}>Last six months, everything except transfers</p>
+        <p className="text-xs mb-4" style={{ color: "var(--text-muted)" }}>
+          {report.months.length} month{report.months.length === 1 ? "" : "s"} — as far back as your bank feed goes
+        </p>
         {/* Bar heights are pixels, not percentages.
             As percentages inside a flex column that also holds two labels, every
             bar over about 60% was shrunk to the same leftover space — Jul at
