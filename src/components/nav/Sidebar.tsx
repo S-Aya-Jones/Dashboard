@@ -6,7 +6,7 @@ import {
   Sun, Calendar, Brain, BookOpen,
   Sparkles, DollarSign,
   ChevronLeft, ChevronRight, Dumbbell, Gem, UtensilsCrossed,
-  LayoutGrid, MoreHorizontal, X, Zap, Shield, Bell, Mail, Clock, Mic, ListChecks, GraduationCap, Users, HeartHandshake, CircleCheck, Scissors, FolderOpen
+  LayoutGrid, MoreHorizontal, X, Zap, Shield, Bell, Mail, Clock, Mic, ListChecks, GraduationCap, Users, HeartHandshake, CircleCheck, Scissors, FolderOpen, Layers,
 } from "lucide-react";
 import { useState } from "react";
 import { SaveIndicator } from "@/components/ui/SaveIndicator";
@@ -38,6 +38,7 @@ const mobileMain = [
   { href: "/",          label: "Today",    icon: Sun },
   { href: "/schedule",  label: "Schedule", icon: Clock },
   { href: "/lectures",  label: "Lectures", icon: Mic },
+  { href: "/review",    label: "Review",   icon: Layers },
   { href: "/tutor",     label: "Tutor",    icon: GraduationCap },
   { href: "/exposure",  label: "Exposure", icon: Brain },
 ];

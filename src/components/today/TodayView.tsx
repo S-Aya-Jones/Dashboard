@@ -15,6 +15,7 @@ import { TYPE_META, TYPE_ICON, resolveBlocks, blocksForDate, formatRange12 } fro
 import { applyChanges, rowsFromBlocks, isoDate } from "@/lib/dayPlan";
 import { useDatedChanges } from "@/lib/useDatedChanges";
 import { whenChip } from "@/lib/whenText";
+import { ReviewCallout } from "@/components/review/ReviewSession";
 
 interface Props {
   data: DashboardData;
@@ -121,6 +122,10 @@ export function TodayView({ data, update }: Props) {
       </div>
 
       <HourlyWeatherCard />
+
+      {/* Cards waiting. Only appears when something is actually due. */}
+      <ReviewCallout />
+
       {/* Today's Timeline */}
       <Card title="Today's Schedule" subtitle="Your norms + calendar, merged">
         {merged.temporary && (
