@@ -48,7 +48,12 @@ export interface MonthPoint {
 export interface SpendingReport {
   from: string;
   to: string;
+  /** What actually left the account, refunds already taken off. */
   total: number;
+  /** Before refunds. */
+  gross: number;
+  /** Money that came back — returns, reversals, cancelled charges. */
+  refunds: number;
   dailyAverage: number;
   categories: CategorySlice[];
   merchants: MerchantRow[];
@@ -61,11 +66,25 @@ export interface SpendingReport {
   growing: CategorySlice[];
   shrinking: CategorySlice[];
   txnCount: number;
+  /**
+   * What was left out and why.
+   *
+   * Every exclusion here is a judgement the code made on her behalf, and if any
+   * of them is wrong the total is wrong in a way that looks like "I spent less
+   * than I thought". So they are counted, totalled and listable rather than
+   * silently dropped.
+   */
+  excluded: {
+    transfers: { count: number; total: number; examples: string[] };
+    income: { count: number; total: number };
+    outsideWindow: number;
+  };
 }
 
 /** Plaid's SCREAMING_SNAKE categories, said the way a person would. */
 const LABELS: Record<string, string> = {
-  FOOD_AND_DRINK: "Food & drink",
+  FOOD_AND_DRINK: "Eating out",
+  GROCERIES: "Groceries",
   GENERAL_MERCHANDISE: "Shopping",
   TRANSPORTATION: "Transport",
   TRAVEL: "Travel",
@@ -145,7 +164,16 @@ export function buildReport(all: Txn[], days = 30, now: Date = new Date()): Spen
   const inPrior  = spend.filter(t => t.date >= priorFrom && t.date < from);
 
   const sum = (rows: Txn[]) => rows.reduce((s, t) => s + t.amount, 0);
-  const total = Math.max(0, sum(inPeriod));
+
+  // Gross, refunds and net kept apart rather than silently merged.
+  //
+  // A returned $80 coat is not $80 of spending, so it has to come off the
+  // total — but if it only ever comes off, an $800 month with $300 of returns
+  // reads as a $500 month and the fact that $800 left the account first
+  // disappears. Both numbers are true and they answer different questions.
+  const gross   = inPeriod.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
+  const refunds = inPeriod.filter(t => t.amount < 0).reduce((s, t) => s - t.amount, 0);
+  const total   = Math.max(0, gross - refunds);
 
   // ── By category, against the same window before it ──
   const byCat = new Map<string, Txn[]>();
@@ -206,15 +234,28 @@ export function buildReport(all: Txn[], days = 30, now: Date = new Date()): Spen
   const recurring = merchants.filter(m => recurringNames.has(m.name));
   const recurringTotal = recurring.reduce((s, m) => s + m.total, 0);
 
-  // ── Month by month, last six ──
+  // ── Month by month ──
+  //
+  // Only as many months as the feed actually holds. Plaid is asked for 90 days,
+  // so a fixed six-month axis would always end in three empty columns and read
+  // as "you spent nothing in April" rather than "we don't have April".
   const byMonth = new Map<string, number>();
   for (const t of spend) {
     if (t.amount <= 0) continue;
     const m = t.date.slice(0, 7);
     byMonth.set(m, (byMonth.get(m) ?? 0) + t.amount);
   }
-  const months: MonthPoint[] = Array.from({ length: 6 }, (_, i) => {
-    const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+  const earliest = spend.reduce((min, t) => (t.date < min ? t.date : min), ymd(now));
+  const monthsBack = Math.min(
+    6,
+    Math.max(
+      1,
+      (now.getFullYear() - Number(earliest.slice(0, 4))) * 12 +
+        (now.getMonth() + 1 - Number(earliest.slice(5, 7))) + 1,
+    ),
+  );
+  const months: MonthPoint[] = Array.from({ length: monthsBack }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - (monthsBack - 1 - i), 1);
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
     return {
       month: key,
@@ -225,8 +266,24 @@ export function buildReport(all: Txn[], days = 30, now: Date = new Date()): Spen
 
   const movers = categories.filter(c => c.changePct !== null && Math.abs(c.total - c.prior) >= 20);
 
+  const windowAll = all.filter(t => t.date >= from && t.date <= to);
+  const excludedTransfers = windowAll.filter(t => t.isInternalTransfer);
+  const excludedIncome = windowAll.filter(t => !t.isInternalTransfer && t.category === "INCOME");
+
   return {
-    from, to, total,
+    from, to, total, gross, refunds,
+    excluded: {
+      transfers: {
+        count: excludedTransfers.length,
+        total: excludedTransfers.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0),
+        examples: Array.from(new Set(excludedTransfers.map(t => normaliseMerchant(t.name)))).slice(0, 8),
+      },
+      income: {
+        count: excludedIncome.length,
+        total: excludedIncome.reduce((s, t) => s + Math.abs(t.amount), 0),
+      },
+      outsideWindow: all.length - windowAll.length,
+    },
     dailyAverage: total / days,
     categories,
     merchants,
