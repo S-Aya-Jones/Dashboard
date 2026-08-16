@@ -131,7 +131,7 @@ export function SpendingView() {
           </button>
         ))}
         <span className="text-xs ml-auto" style={{ color: "var(--text-light)" }}>
-          {report.txnCount} purchases · transfers and income excluded
+          {report.txnCount} purchases counted
         </span>
       </div>
 
@@ -313,6 +313,51 @@ export function SpendingView() {
             );
           })}
         </div>
+      </div>
+
+      {/* What was left out.
+          If this total looks too low, the answer is almost always in here —
+          a real purchase caught by the transfer matcher, or a card that isn't
+          connected at all. Hiding the exclusions makes that undiagnosable. */}
+      <div className="rounded-2xl p-5" style={{ background: "var(--surface)", border: "1.5px solid var(--border)" }}>
+        <h3 className="section-title mb-1">Doesn&apos;t this look low?</h3>
+        <p className="text-xs mb-3 leading-relaxed" style={{ color: "var(--text-muted)" }}>
+          Here is everything left out of the {exact(report.total)} above, so you can check whether
+          it should have been.
+        </p>
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2 rounded-lg px-3 py-2" style={{ background: "var(--bg)" }}>
+            <span className="text-sm flex-1" style={{ color: "var(--text)" }}>
+              Counted as moving money between your own accounts
+            </span>
+            <span className="text-sm font-semibold tabular-nums" style={{ color: "var(--text)" }}>
+              {exact(report.excluded.transfers.total)}
+            </span>
+            <span className="text-[11px] tabular-nums w-8 text-right" style={{ color: "var(--text-light)" }}>
+              ×{report.excluded.transfers.count}
+            </span>
+          </div>
+          {report.excluded.transfers.examples.length > 0 && (
+            <p className="text-[11px] leading-relaxed px-3" style={{ color: "var(--text-light)" }}>
+              {report.excluded.transfers.examples.join(" · ")}
+              {" — if any of those are real purchases, tell me and I'll stop excluding them."}
+            </p>
+          )}
+          <div className="flex items-center gap-2 rounded-lg px-3 py-2" style={{ background: "var(--bg)" }}>
+            <span className="text-sm flex-1" style={{ color: "var(--text)" }}>Money coming in</span>
+            <span className="text-sm font-semibold tabular-nums" style={{ color: "var(--text)" }}>
+              {exact(report.excluded.income.total)}
+            </span>
+            <span className="text-[11px] tabular-nums w-8 text-right" style={{ color: "var(--text-light)" }}>
+              ×{report.excluded.income.count}
+            </span>
+          </div>
+        </div>
+        <p className="text-[11px] mt-3 leading-relaxed" style={{ color: "var(--text-light)" }}>
+          Only the accounts you&apos;ve connected are here. If you paid for something on a card the
+          dashboard doesn&apos;t know about, it can&apos;t see it — connect that card on the Flow tab.
+          The bank feed also only reaches back 90 days.
+        </p>
       </div>
 
       {/* The table — every category, exact, for anything the charts round off */}

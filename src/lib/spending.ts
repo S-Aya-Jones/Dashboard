@@ -66,6 +66,19 @@ export interface SpendingReport {
   growing: CategorySlice[];
   shrinking: CategorySlice[];
   txnCount: number;
+  /**
+   * What was left out and why.
+   *
+   * Every exclusion here is a judgement the code made on her behalf, and if any
+   * of them is wrong the total is wrong in a way that looks like "I spent less
+   * than I thought". So they are counted, totalled and listable rather than
+   * silently dropped.
+   */
+  excluded: {
+    transfers: { count: number; total: number; examples: string[] };
+    income: { count: number; total: number };
+    outsideWindow: number;
+  };
 }
 
 /** Plaid's SCREAMING_SNAKE categories, said the way a person would. */
@@ -253,8 +266,24 @@ export function buildReport(all: Txn[], days = 30, now: Date = new Date()): Spen
 
   const movers = categories.filter(c => c.changePct !== null && Math.abs(c.total - c.prior) >= 20);
 
+  const windowAll = all.filter(t => t.date >= from && t.date <= to);
+  const excludedTransfers = windowAll.filter(t => t.isInternalTransfer);
+  const excludedIncome = windowAll.filter(t => !t.isInternalTransfer && t.category === "INCOME");
+
   return {
     from, to, total, gross, refunds,
+    excluded: {
+      transfers: {
+        count: excludedTransfers.length,
+        total: excludedTransfers.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0),
+        examples: Array.from(new Set(excludedTransfers.map(t => normaliseMerchant(t.name)))).slice(0, 8),
+      },
+      income: {
+        count: excludedIncome.length,
+        total: excludedIncome.reduce((s, t) => s + Math.abs(t.amount), 0),
+      },
+      outsideWindow: all.length - windowAll.length,
+    },
     dailyAverage: total / days,
     categories,
     merchants,
