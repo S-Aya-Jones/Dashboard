@@ -6,6 +6,9 @@ import { DashboardData } from "@/types/dashboard";
 import { Card } from "@/components/ui/Card";
 import { StepRing } from "./StepRing";
 import { routineSteps, waitLabel, routineMinutes, ruleWarnings, CORE_RULES } from "@/lib/skincareSteps";
+import { ProductPhoto } from "./ProductPhoto";
+import { encouragement } from "@/lib/dentalRoutine";
+import { Volume2, VolumeX } from "lucide-react";
 
 interface Props {
   data: DashboardData;
@@ -29,6 +32,22 @@ export function RoutineSteps({ data, update }: Props) {
   const photoInput = useRef<HTMLInputElement>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [voice, setVoice] = useState(false);
+
+  // Reading a step with wet hands and a serum dropper in one of them is the
+  // problem this solves. Off by default — a phone that starts talking
+  // unprompted is worse than one that stays quiet.
+  const say = (text: string) => {
+    if (!voice || typeof window === "undefined" || !window.speechSynthesis) return;
+    try {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = 0.98;
+      window.speechSynthesis.speak(u);
+    } catch { /* voice is a nicety, never a dependency */ }
+  };
+
+  useEffect(() => () => { if (typeof window !== "undefined") window.speechSynthesis?.cancel(); }, []);
 
   const steps = routineSteps(data.skincareProducts ?? [], which);
   const total = routineMinutes(steps);
@@ -58,6 +77,20 @@ export function RoutineSteps({ data, update }: Props) {
     const w = nowDone && waitSec > 0 ? waitSec : 0;
     setWaitLeft(w);
     setWaitTotal(w);
+
+    // Ticking a step reads out the next one, which is the moment she actually
+    // needs it — hands wet, dropper in one of them.
+    if (nowDone) {
+      const idx = steps.findIndex(x => x.product.id === id);
+      const next = steps.slice(idx + 1).find(x => !done[x.product.id]);
+      if (w > 0 && next) {
+        say(`Wait ${waitSec} seconds, then ${next.product.name}.`);
+      } else if (next) {
+        say(`${next.product.name}. ${next.howTo ?? ""}`.slice(0, 220));
+      } else {
+        say("That's the routine. Done.");
+      }
+    }
   }
 
   async function attachPhoto(file: File) {
@@ -138,6 +171,13 @@ export function RoutineSteps({ data, update }: Props) {
               <Icon size={11} /> {label}
             </button>
           ))}
+          <button onClick={() => setVoice(v => !v)}
+            aria-label={voice ? "Stop reading steps aloud" : "Read steps aloud"}
+            title={voice ? "Stop reading steps aloud" : "Read steps aloud"}
+            className="px-2 py-1 rounded-lg"
+            style={{ color: voice ? "var(--text)" : "var(--text-light)", border: "1px solid var(--border)" }}>
+            {voice ? <Volume2 size={12} /> : <VolumeX size={12} />}
+          </button>
         </div>
       </div>
 
@@ -206,10 +246,16 @@ export function RoutineSteps({ data, update }: Props) {
                       color: "var(--text-light)",
                     }}
                   >
-                    {s.product.mediaId
+                    {s.product.mediaId ? (
+                      // Her own photo always wins — it's the bottle actually on
+                      // her shelf, in the lighting she'll see it in.
                       // eslint-disable-next-line @next/next/no-img-element
-                      ? <img src={`/api/media/${s.product.mediaId}`} alt="" className="w-full h-full object-cover" />
-                      : <Camera size={14} />}
+                      <img src={`/api/media/${s.product.mediaId}`} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      // Otherwise look it up, so the shelf isn't a wall of
+                      // camera icons until she photographs seven bottles.
+                      <ProductPhoto name={s.product.name} brand={s.product.brand} size={44} />
+                    )}
                   </button>
                   <button
                     onClick={() => tick(s.product.id, s.waitAfterSec)}
@@ -266,6 +312,16 @@ export function RoutineSteps({ data, update }: Props) {
               </div>
             );
           })}
+
+          {doneCount === steps.length && steps.length > 0 && (
+            <div className="rounded-xl px-4 py-3 text-center"
+              style={{ background: "rgba(63,111,94,0.08)", border: "1px solid rgba(63,111,94,0.3)" }}>
+              <p className="text-sm font-semibold" style={{ color: "#3F6F5E" }}>Routine done</p>
+              <p className="text-xs mt-1 leading-relaxed" style={{ color: "var(--text-muted)" }}>
+                {encouragement("skincare", 0, which)}
+              </p>
+            </div>
+          )}
 
           {doneCount > 0 && (
             <button onClick={() => reset()} className="text-xs inline-flex items-center gap-1.5 underline"

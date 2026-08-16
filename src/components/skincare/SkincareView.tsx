@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { RoutineSteps } from "./RoutineSteps";
+import { DentalRoutine } from "./DentalRoutine";
 import { format, parseISO } from "date-fns";
 import { Plus, Trash2, Sparkles, Camera, ChevronDown, ChevronUp, RefreshCw, Send, ChevronRight, Image as ImageIcon, Clock, Check } from "lucide-react";
 import { DashboardData, SkincareProduct, BeautyAnalysisEntry } from "@/types/dashboard";
@@ -984,6 +985,12 @@ export function SkincareView({ data, update }: Props) {
 
       {/* The routine she actually follows, before anything that analyses her. */}
       <RoutineSteps data={data} update={update} />
+
+      {/* Teeth, because "my dental care could be better" is the same
+          sequencing problem the skincare routine already solves. */}
+      <div style={{ marginTop: "1rem" }}>
+        <DentalRoutine />
+      </div>
 
       {/* Beauty Analysis */}
       {analysis && photo ? (
