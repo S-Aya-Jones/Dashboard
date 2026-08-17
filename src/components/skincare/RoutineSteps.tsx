@@ -7,6 +7,8 @@ import { Card } from "@/components/ui/Card";
 import { StepRing } from "./StepRing";
 import { routineSteps, waitLabel, routineMinutes, ruleWarnings, CORE_RULES } from "@/lib/skincareSteps";
 import { ProductPhoto } from "./ProductPhoto";
+import { SkincareSession } from "./SkincareSession";
+import { Play } from "lucide-react";
 import { encouragement } from "@/lib/dentalRoutine";
 import { Volume2, VolumeX } from "lucide-react";
 
@@ -33,6 +35,7 @@ export function RoutineSteps({ data, update }: Props) {
   const [editing, setEditing] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const [voice, setVoice] = useState(false);
+  const [session, setSession] = useState(false);
 
   // Reading a step with wet hands and a serum dropper in one of them is the
   // problem this solves. Off by default — a phone that starts talking
@@ -180,6 +183,22 @@ export function RoutineSteps({ data, update }: Props) {
           </button>
         </div>
       </div>
+
+      {/* The way in. The checklist below is for glancing at; this is for
+          actually doing it with wet hands at 8pm. */}
+      {steps.length > 0 && (
+        <button
+          onClick={() => setSession(true)}
+          className="w-full py-4 rounded-2xl text-base font-bold inline-flex items-center justify-center gap-2 mb-3"
+          style={{ background: "#3F6F5E", color: "#fff" }}
+        >
+          <Play size={17} /> Start my {which === "am" ? "morning" : which === "pm" ? "evening" : "peel night"} routine
+        </button>
+      )}
+
+      {session && (
+        <SkincareSession data={data} which={which} onClose={() => setSession(false)} />
+      )}
 
       <p className="text-xs mb-3" style={{ color: "var(--text-light)" }}>
         {steps.length} steps · about {total} minutes{doneCount ? ` · ${doneCount} done` : ""}
