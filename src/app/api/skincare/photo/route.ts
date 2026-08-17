@@ -15,6 +15,14 @@ export const maxDuration = 20;
 
 const SEARCH = "https://world.openbeautyfacts.org/cgi/search.pl";
 
+/** Words that describe a category rather than name a product. */
+const GENERIC = new Set([
+  "cleanser", "cleansing", "toner", "tonic", "serum", "essence", "moisturizer",
+  "moisturiser", "cream", "lotion", "balm", "oil", "gel", "mask", "peel",
+  "sunscreen", "spf", "mist", "spray", "wash", "scrub", "treatment", "the",
+  "and", "for", "with",
+]);
+
 interface OBFProduct {
   product_name?: string;
   brands?: string;
@@ -55,6 +63,19 @@ export async function GET(req: NextRequest) {
   const name = req.nextUrl.searchParams.get("name")?.trim() ?? "";
   const brand = req.nextUrl.searchParams.get("brand")?.trim() || undefined;
   if (!name) return NextResponse.json({ error: "name required" }, { status: 400 });
+
+  // A generic one-word step name — "Cleanser", "Toner", "Moisturizer" — matches
+  // every cleanser in the database at 100%, because the one word she typed is
+  // in all of them. That would put a stranger's bottle on her shelf and it
+  // would look authoritative. A product needs either a brand or enough words to
+  // actually identify itself.
+  const distinct = name
+    .toLowerCase()
+    .split(/[^a-z0-9+]+/)
+    .filter(w => w.length > 2 && !GENERIC.has(w));
+  if (!brand && distinct.length < 2) {
+    return NextResponse.json({ image: null, reason: "name is too generic to match safely" });
+  }
 
   try {
     const url = `${SEARCH}?search_terms=${encodeURIComponent(queryFor(name, brand))}` +

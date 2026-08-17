@@ -72,9 +72,28 @@ export function ProductPhoto({ name, brand, size = 48 }: Props) {
     );
   }
 
+  // No photo found. At 44px a faint droplet is fine; at 148px — the hero slot in
+  // routine mode — an almost-empty rounded square just reads as broken, so the
+  // placeholder carries the product's initial and looks deliberate.
+  const initial = name.trim().charAt(0).toUpperCase() || "?";
+  const big = size >= 96;
+
   return (
     <div style={box} title={tried ? "No photo found for this one" : "Looking…"}>
-      <Droplet size={Math.round(size * 0.4)} style={{ color: "var(--text-light)", opacity: tried ? 0.5 : 0.25 }} />
+      {big ? (
+        <div style={{ textAlign: "center", opacity: tried ? 1 : 0.4 }}>
+          <div style={{
+            fontFamily: "var(--font-serif, Georgia, serif)",
+            fontSize: Math.round(size * 0.34),
+            lineHeight: 1,
+            color: "var(--text-muted)",
+          }}>{initial}</div>
+          <Droplet size={Math.round(size * 0.13)}
+            style={{ color: "var(--text-light)", marginTop: size * 0.06 }} />
+        </div>
+      ) : (
+        <Droplet size={Math.round(size * 0.4)} style={{ color: "var(--text-light)", opacity: tried ? 0.5 : 0.25 }} />
+      )}
     </div>
   );
 }
