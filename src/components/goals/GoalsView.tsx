@@ -24,12 +24,12 @@ interface Props {
 }
 
 const CATEGORIES = [
-  { key: "medical-school" as const, label: "Medical School", icon: "🩺", color: "#DA667B" },
-  { key: "health-mental" as const, label: "Health & Mental Health", icon: "🧠", color: "#8A9E87" },
-  { key: "career" as const, label: "Career", icon: "💼", color: "#71816D" },
-  { key: "personal" as const, label: "Personal", icon: "🌸", color: "#C99A5C" },
-  { key: "financial" as const, label: "Financial", icon: "💚", color: "#FFFFFF" },
-  { key: "spiritual" as const, label: "Spiritual", icon: "🙏", color: "rgba(255,255,255,0.3)" },
+  { key: "medical-school" as const, label: "Medical School", color: "#DA667B" },
+  { key: "health-mental" as const, label: "Health & Mental Health", color: "#8A9E87" },
+  { key: "career" as const, label: "Career", color: "#71816D" },
+  { key: "personal" as const, label: "Personal", color: "#C99A5C" },
+  { key: "financial" as const, label: "Financial", color: "#B4552F" },
+  { key: "spiritual" as const, label: "Spiritual", color: "#E0A44A" },
 ];
 
 const CURRENT_QUARTER = "Q2-2026";
@@ -120,13 +120,13 @@ export function GoalsView({ data, update }: Props) {
         </Card>
       )}
 
-      {CATEGORIES.map(({ key, label, icon, color }) => {
+      {CATEGORIES.map(({ key, label, color }) => {
         const catGoals = goals.filter((g) => g.category === key);
         if (catGoals.length === 0) return null;
         return (
           <Card key={key}>
             <div className="flex items-center gap-2 mb-3">
-              <span className="text-lg">{icon}</span>
+              <span className="inline-block rounded-full flex-shrink-0" style={{ width: 8, height: 8, background: color }} />
               <h3 className="font-serif text-lg text-brown">{label}</h3>
             </div>
             <div className="space-y-2">
@@ -148,7 +148,7 @@ export function GoalsView({ data, update }: Props) {
                       className={`w-5 h-5 mt-0.5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${goal.done ? "border-transparent" : "border-sand hover:border-terracotta"}`}
                       style={goal.done ? { background: color, borderColor: color } : {}}
                     >
-                      {goal.done && <Check size={11} className="text-white" />}
+                      {goal.done && <Check size={11} />}
                     </button>
                     <div className="flex-1">
                       <p className={`text-sm ${goal.done ? "line-through text-sand-dark" : "text-brown"}`}>{goal.text}</p>
@@ -211,7 +211,7 @@ export function GoalsView({ data, update }: Props) {
                   onClick={() => setForm({ ...form, category: cat.key })}
                   className={`flex items-center gap-2 p-2.5 rounded-xl text-sm border transition-all text-left ${form.category === cat.key ? "border-terracotta bg-terracotta/10" : "border-sand hover:border-sand-dark"}`}
                 >
-                  <span>{cat.icon}</span>
+                  <span className="inline-block rounded-full flex-shrink-0" style={{ width: 7, height: 7, background: cat.color }} />
                   <span className="text-brown text-xs">{cat.label}</span>
                 </button>
               ))}

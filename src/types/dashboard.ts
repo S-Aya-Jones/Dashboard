@@ -137,11 +137,22 @@ export interface SkincareProduct {
   id: string;
   name: string;
   brand?: string;
-  routine: "am" | "pm" | "both";
+  /** "weekly" is the one peel night, which cannot share a night with an active. */
+  routine: "am" | "pm" | "both" | "weekly";
   order: number;
   isTesting: boolean;
   startDate?: string;
   notes?: string;
+  /** What to actually do at this step — a list of names isn't a routine. */
+  howTo?: string;
+  /** Seconds to wait before the next step, where waiting matters. */
+  waitAfterSec?: number;
+  /** e.g. "every night", "Mon/Wed/Fri" — retinoids aren't nightly at first. */
+  frequency?: string;
+  /** Marks a step as the active treatment, which the peel night excludes. */
+  isActive?: boolean;
+  /** Photo of the actual bottle, stored in the media table not the blob. */
+  mediaId?: string;
 }
 
 export interface SkinCheckIn {
@@ -197,9 +208,147 @@ export interface MonthlyFinance {
   notes?: string;
 }
 
+export interface PaycheckConfig {
+  takeHomePerCheck: number;
+  savingsPercent: number;   // 0–100
+  nextPayday: string;       // YYYY-MM-DD
+  employer?: string;           // e.g. "HCA Healthcare"
+  projectedTakeHome?: number;  // user's manually-set expected amount
+}
+
+export interface BudgetLine {
+  id: string;
+  label: string;
+  amountPerCheck: number;
+  category: "transfer" | "housing" | "food" | "transport" | "savings" | "utilities" | "other";
+  toAccount?: string;  // e.g. "Bank of America"
+  color?: string;
+  isDetected?: boolean;
+}
+
+export interface BaseBudgetItem {
+  id: string;
+  category: string;
+  emoji: string;
+  monthlyLimit: number;
+}
+
+export interface BudgetPlanItem {
+  id: string;
+  category: string;
+  emoji: string;
+  plannedMonthly: number;
+  notes?: string;
+}
+
+export interface BudgetPlan {
+  id: string;
+  name: string;
+  createdAt: string;
+  monthlyIncome: number;
+  items: BudgetPlanItem[];
+}
+
+export interface CreditScoreEntry {
+  id: string;
+  date: string;       // YYYY-MM-DD
+  score: number;      // 300–850
+  source: string;     // "Credit Karma", "Chase", "Experian", etc.
+  notes?: string;
+}
+
+export interface SelfCareItem {
+  id: string;
+  name: string;
+  emoji: string;
+  cost: number;             // cost per appointment
+  frequencyWeeks: number;   // every N weeks
+  frequencyLabel?: string;  // human-readable label e.g. "Monthly", "Quarterly"
+  lastDone?: string;        // YYYY-MM-DD
+  color?: string;
+  priority?: number;        // 0 = highest priority; controls tie-breaking in scheduling
+}
+
+export interface RecurringBill {
+  id: string;
+  name: string;
+  amount: number;
+  dayOfMonth: number;       // 1–31
+  lastPaidDate?: string;    // YYYY-MM-DD — if >= current payday, bill is paid this period
+}
+
+export interface ScheduleBlock {
+  id: string;
+  label: string;
+  startTime: string;        // HH:MM 24h
+  endTime: string;          // HH:MM 24h
+  days: number[];           // 0=Sun .. 6=Sat, which days this block recurs on
+  type: "work" | "walk" | "mcat" | "exposure" | "meal" | "sleep" | "personal" | "other";
+  color?: string;
+  notes?: string;
+  /** Subjects this block cycles through, one per ISO week. */
+  rotation?: string[];
+}
+
+export interface P2PTransfer {
+  id: string;
+  date: string;             // YYYY-MM-DD
+  person: string;
+  amount: number;
+  direction: "sent" | "received";
+  platform: "zelle" | "venmo" | "cashapp" | "cash" | "other";
+  note?: string;
+}
+
+export interface AccountTransfer {
+  id: string;
+  date: string;             // YYYY-MM-DD
+  fromAccount: string;
+  toAccount: string;
+  amount: number;
+  purpose?: string;         // e.g. "savings", "self-care fund"
+}
+
+export interface SinkingFund {
+  id: string;
+  name: string;
+  targetAmount: number;    // total cost of the thing
+  frequencyMonths: number; // 3 = quarterly, 6 = semi-annual, 12 = yearly
+  saved: number;           // amount saved so far
+  color?: string;
+  notes?: string;
+}
+
+export interface AffordGoal {
+  id: string;
+  name: string;
+  price: number;
+  savedSoFar: number;
+  createdAt: string;
+}
+
 export interface BudgetCategory {
   category: string; // Plaid category key e.g. FOOD_AND_DRINK
   monthlyLimit: number;
+}
+
+/**
+ * Someone she wants to stay in touch with on purpose rather than when it
+ * occurs to her. ConnectionLog records that a call happened; this records that
+ * one is due, which is the half that can actually prompt her.
+ */
+export interface Person {
+  id: string;
+  name: string;
+  relationship: string;
+  /** MM-DD, or YYYY-MM-DD when the year is known. */
+  birthday?: string;
+  /** Call at least this often. Omitted means no cadence, birthday only. */
+  cadenceDays?: number;
+  /** YYYY-MM-DD of the last contact — the clock this cadence runs from. */
+  lastContact?: string;
+  phone?: string;
+  notes?: string;
 }
 
 export interface ConnectionLog {
@@ -262,6 +411,9 @@ export interface MealEntry {
   tags: string[];
   notes?: string;
   createdAt: string;
+  calories?: number;
+  protein?: number; // grams
+  aiDescription?: string;
 }
 
 export interface RecipeIngredient {
@@ -383,11 +535,110 @@ export interface PushSubscriptionData {
 
 export interface SmsData {
   phoneNumber: string;
-  telegramChatId?: string; // auto-captured when user first messages the bot
+  telegramChatId?: string;
+  telegramBotUsername?: string;
   enabled: boolean;
   messages: SmsMessage[];
   reminders: SmsReminder[];
   pushSubscription?: PushSubscriptionData;
+}
+
+export interface MCATQuestion {
+  id: string;
+  subject: string;
+  topic: string;
+  difficulty: "easy" | "medium" | "hard";
+  stem: string;
+  choices: { letter: string; text: string }[];
+  correctLetter: string;
+  explanation: string;
+  createdAt: string;
+  folder?: string;
+}
+
+export interface MCATQuizAttempt {
+  questionId: string;
+  selectedLetter: string | null;
+  correct: boolean;
+  flagged: boolean;
+  timeSpentSeconds: number;
+}
+
+export interface MCATQuizSession {
+  id: string;
+  startedAt: string;
+  completedAt?: string;
+  mode: "tutor" | "timed";
+  timeLimitMinutes?: number;
+  questionIds: string[];
+  attempts: MCATQuizAttempt[];
+  subjects: string[];
+  topics: string[];
+}
+
+export interface Flashcard {
+  id: string;
+  front: string;
+  back: string;
+  subject?: string;
+  topic?: string;
+  tags: string[];
+  deck: string;
+  createdAt: string;
+  // Anki SM-2 / Miles Down compatible fields
+  state: "new" | "learning" | "review" | "relearning";
+  interval: number;       // days (review state) or ignored (learning state)
+  easeFactor: number;     // default 2.5 (250%)
+  repetitions: number;    // successful consecutive reviews
+  lapses: number;         // times failed as a review card
+  learningStep: number;   // current index in learning/relearning steps array
+  nextReview: string;     // ISO timestamp for learning/relearning; YYYY-MM-DD for review
+  lastReview?: string;    // ISO timestamp of last rating
+}
+
+export interface FlashcardReviewLog {
+  cardId: string;
+  date: string;
+  rating: 0 | 1 | 2 | 3;  // Again=0, Hard=1, Good=2, Easy=3
+  responseTimeMs: number;
+}
+
+export interface StudyTimerLog {
+  id: string;
+  date: string;           // YYYY-MM-DD
+  subject: string;
+  topic?: string;
+  durationSeconds: number;
+  startedAt: string;      // ISO
+}
+
+export interface DiagnosticSectionResult {
+  name: string;
+  questionIds: string[];
+  attempts: MCATQuizAttempt[];
+  timeLimitMinutes: number;
+  startedAt?: string;
+  completedAt?: string;
+  scaledScore?: number;   // 118–132
+}
+
+export interface DiagnosticSession {
+  id: string;
+  startedAt: string;
+  completedAt?: string;
+  sections: DiagnosticSectionResult[];
+  totalScore?: number;    // 472–528
+}
+
+export interface BeautyAnalysisEntry {
+  id: string;
+  date: string;
+  photoThumb: string;
+  skinScore: number;
+  overallRating: number;
+  apparentAge: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  analysis: any;
 }
 
 export interface DashboardData {
@@ -412,6 +663,14 @@ export interface DashboardData {
   practiceTests: PracticeTest[];
   mcatResources: MCATResource[];
   mcatTestDate?: string;
+  mcatQuestions?: MCATQuestion[];
+  mcatQuizSessions?: MCATQuizSession[];
+  flashcards?: Flashcard[];
+  flashcardReviews?: FlashcardReviewLog[];
+  studyTimerLogs?: StudyTimerLog[];
+  diagnosticSessions?: DiagnosticSession[];
+  ankiSettings?: { newPerDay: number; reviewPerDay: number };
+  ankiDailyCount?: { date: string; newSeen: number; reviewSeen: number };
 
   // School
   classes: ClassEntry[];
@@ -428,6 +687,7 @@ export interface DashboardData {
   // Skincare
   skincareProducts: SkincareProduct[];
   skinCheckIns: SkinCheckIn[];
+  beautyAnalyses?: BeautyAnalysisEntry[];
 
   // Finances
   creditCards: CreditCard[];
@@ -435,8 +695,42 @@ export interface DashboardData {
   monthlyFinances: MonthlyFinance[];
   budgetCategories: BudgetCategory[];
   financesConfig: FinancesConfig;
+  paycheckConfig?: PaycheckConfig;
+  paycheckPlans?: Record<string, { overrides: Record<string, number>; savingsOverride?: number; incomeOverride?: number; oneTimeItems: { id: string; label: string; amount: number; category: string }[]; checkIns?: Record<string, { checkedAt: string; actualAmount?: number }> }>;
+  selfCareItems?: SelfCareItem[];
+  recurringBills?: RecurringBill[];
+  budgetLines?: BudgetLine[];
+  creditScores?: CreditScoreEntry[];
+  /**
+   * What her credit score is actually for. Grad PLUS closed to new borrowers
+   * on 1 July 2026, so whether she is inside the grandfather window changes
+   * both her borrowing ceiling and whether a score matters at all.
+   */
+  loanProfile?: { grandfathered: "yes" | "no" | "unknown"; programType: "graduate" | "professional" };
+  /** Credit moves she has ticked off. Ids are derived from the account name. */
+  creditMovesDone?: string[];
+  /** Quiz and exam results, keyed to lib/assessments ids. */
+  assessmentScores?: Array<{ id: string; earned: number; outOf: number }>;
+  /** Return address for printed dispute and validation letters. */
+  mailingAddress?: { name: string; street: string; city: string; state: string; zip: string };
+  p2pTransfers?: P2PTransfer[];
+  accountTransfers?: AccountTransfer[];
+  sinkingFunds?: SinkingFund[];
+  affordGoals?: AffordGoal[];
+  scheduleBlocks?: ScheduleBlock[];
+  /**
+   * Plan blocks she has deleted, by id. Recorded rather than removed, because
+   * the recurring week is generated from lib/weekPlan.ts on every read — a
+   * deletion that only edited the stored copy would come back on the next
+   * change to the plan.
+   */
+  hiddenPlanBlocks?: string[];
+  monthlyIncome?: number;
+  baseBudget?: BaseBudgetItem[];
+  budgetPlans?: BudgetPlan[];
 
   // Connections
+  people: Person[];
   connectionLogs: ConnectionLog[];
 
   // Wins
@@ -465,6 +759,32 @@ export interface DashboardData {
 
   // SMS / Texting
   sms?: SmsData;
+
+  // 75 Hard
+  seventyFiveHard?: SeventyFiveHardData;
+}
+
+export interface SeventyFiveHardDayLog {
+  date: string; // YYYY-MM-DD
+  workout: boolean;
+  steps: boolean;
+  water: boolean; // 64oz
+  mcat: boolean;  // 90 min
+  progressPhoto: boolean;
+  exposureTherapy: boolean;
+  diet: boolean;
+  notes?: string;
+  failed?: boolean;
+  progressPhotoUrl?: string;
+  weightPhotoUrl?: string;
+}
+
+export interface SeventyFiveHardData {
+  startDate: string; // YYYY-MM-DD (Thursday)
+  currentDay: number; // 1-75
+  active: boolean;
+  completedAt?: string;
+  logs: SeventyFiveHardDayLog[];
 }
 
 // ── Workout ────────────────────────────────────────────────────────────────
@@ -507,11 +827,73 @@ export interface BodyWeightEntry {
   weight: number; // lbs
 }
 
+export interface ExercisePR {
+  exerciseId: string;
+  exerciseName: string;
+  maxWeight: number; // heaviest weight lifted
+  reps: number; // reps at that weight
+  achievedDate: string; // YYYY-MM-DD
+}
+
+export interface BodyScanPhoto {
+  id: string;
+  date: string; // YYYY-MM-DD
+  timestamp: string; // ISO datetime
+  angle: "front" | "back" | "left" | "right" | "all"; // angle or "all" if multiple
+  /** Set only on photos not yet moved into the media table. */
+  photoData?: string;
+  /** Where the photo actually lives — served from /api/media/{id}. */
+  mediaId?: string;
+  height?: number; // inches or cm (user's height when photo taken)
+  weight?: number; // lbs or kg (optional weight at time of photo)
+  analysis?: {
+    bodyFat: { low: number; high: number; category?: string; note?: string };
+    compositionScore: number;
+    potentialScore?: number;
+    honestAssessment?: string;
+    strengths?: string[];
+    areas?: string[];
+    roadmap?: {
+      thirtyDay?: { focus: string; expectedChange: string; actions: string[] };
+      ninetyDay?: { focus: string; expectedChange: string; actions: string[] };
+      sixMonth?: { focus: string; expectedChange: string; actions: string[] };
+    };
+  };
+}
+
+export interface FormCheckPhoto {
+  id: string;
+  date: string; // YYYY-MM-DD
+  timestamp: string; // ISO datetime
+  exerciseName: string;
+  exerciseId: string;
+  /** Set only on photos not yet moved into the media table. */
+  photoData?: string;
+  /** Where the photo actually lives — served from /api/media/{id}. */
+  mediaId?: string;
+  formScore?: number; // 0-100
+  corrections?: string[];
+}
+
+export interface AvatarVideoUrl {
+  exerciseId: string;
+  exerciseName: string;
+  videoUrl: string; // HeyGen video URL
+  generatedAt: string; // ISO datetime
+  avatarPrompt?: string; // The prompt used to generate this video
+}
+
 export interface WorkoutData {
   sessionLogs: WorkoutSessionLog[];
   walkingLogs: WalkingLog[];
   measurements: MeasurementEntry[];
   bodyWeight: BodyWeightEntry[];
+  personalRecords?: ExercisePR[]; // PR tracking per exercise
+  bodyScanPhotos?: BodyScanPhoto[]; // Body scan photo history for progress tracking
+  formCheckPhotos?: FormCheckPhoto[]; // Form check photo history
+  avatarVideoUrls?: AvatarVideoUrl[]; // HeyGen avatar video URLs for exercises
+  lastAPTCheckDate?: string; // YYYY-MM-DD
+  lastMeasurementReminder?: string; // YYYY-MM-DD
   goalWeight?: number;
   programStartDate?: string; // YYYY-MM-DD
 }
@@ -524,14 +906,14 @@ export const defaultDashboardData = (): DashboardData => ({
   exposureLog: [],
   drivingLog: [],
   habits: [
-    { id: "h1", name: "Morning Prayer", icon: "🙏", color: "#DA667B", section: "devotional", weeklyGoal: 7, order: 0 },
-    { id: "h2", name: "Bible Study", icon: "📖", color: "#71816D", section: "devotional", weeklyGoal: 5, order: 1 },
-    { id: "h3", name: "Morning Walk", icon: "🚶🏾‍♀️", color: "#71816D", section: "daily", weeklyGoal: 5, order: 2 },
-    { id: "h4", name: "Skincare AM", icon: "✨", color: "#8A9E87", section: "daily", weeklyGoal: 7, order: 3 },
-    { id: "h5", name: "Skincare PM", icon: "🌙", color: "#342A21", section: "daily", weeklyGoal: 7, order: 4 },
-    { id: "h6", name: "Study / MCAT", icon: "📚", color: "#71816D", section: "daily", weeklyGoal: 5, order: 5 },
-    { id: "h7", name: "Drink Water", icon: "💧", color: "#C9B79C", section: "daily", weeklyGoal: 7, order: 6 },
-    { id: "h8", name: "No Phone First Hour", icon: "📵", color: "#DA667B", section: "daily", weeklyGoal: 5, order: 7 },
+    { id: "h1", name: "Morning Prayer", icon: "", color: "#DA667B", section: "devotional", weeklyGoal: 7, order: 0 },
+    { id: "h2", name: "Bible Study", icon: "", color: "#71816D", section: "devotional", weeklyGoal: 5, order: 1 },
+    { id: "h3", name: "Morning Walk", icon: "", color: "#71816D", section: "daily", weeklyGoal: 5, order: 2 },
+    { id: "h4", name: "Skincare AM", icon: "", color: "#8A9E87", section: "daily", weeklyGoal: 7, order: 3 },
+    { id: "h5", name: "Skincare PM", icon: "", color: "#342A21", section: "daily", weeklyGoal: 7, order: 4 },
+    { id: "h6", name: "Study / MCAT", icon: "", color: "#71816D", section: "daily", weeklyGoal: 5, order: 5 },
+    { id: "h7", name: "Drink Water", icon: "", color: "#C9B79C", section: "daily", weeklyGoal: 7, order: 6 },
+    { id: "h8", name: "No Phone First Hour", icon: "", color: "#DA667B", section: "daily", weeklyGoal: 5, order: 7 },
   ],
   habitLogs: [],
   weeklyIntentions: [],
@@ -579,6 +961,7 @@ export const defaultDashboardData = (): DashboardData => ({
       { nameContains: "ymca",           category: "PERSONAL_CARE"  },
     ],
   },
+  people: [],
   connectionLogs: [],
   wins: [],
   goals: [],
@@ -592,7 +975,7 @@ export const defaultDashboardData = (): DashboardData => ({
     enabled: false,
     messages: [],
     reminders: [
-      { id: "sms-r1", label: "Workout Reminder", message: "Time to train! 💪 Reply DONE when you finish, or SKIP for a rest day.", time: "09:00", enabled: true, days: [0,1,2,3,4] },
+      { id: "sms-r1", label: "Workout Reminder", message: "Time to train! Reply DONE when you finish, or SKIP for a rest day.", time: "09:00", enabled: true, days: [0,1,2,3,4] },
       { id: "sms-r2", label: "Evening Check-in", message: "Quick check-in! Reply with: weight in lbs (e.g. 130lbs) or steps (e.g. 8500 steps). How'd today go?", time: "20:00", enabled: false, days: [] },
       { id: "sms-r3", label: "Motivation Boost", message: "You're building something incredible. One rep at a time. See you in the gym today?", time: "07:30", enabled: false, days: [0,2,4] },
     ],

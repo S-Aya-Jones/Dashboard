@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import webpush from "web-push";
 import { loadData } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 const vapidConfigured =
   process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY &&
   process.env.VAPID_PRIVATE_KEY &&

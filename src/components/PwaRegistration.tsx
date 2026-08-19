@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useNotificationCheck } from "@/hooks/useNotificationCheck";
 
 export function PwaRegistration() {
   useEffect(() => {
@@ -8,6 +9,9 @@ export function PwaRegistration() {
       navigator.serviceWorker.register("/sw.js").catch(() => {});
     }
   }, []);
+
+  useNotificationCheck();
+
   return null;
 }
 
