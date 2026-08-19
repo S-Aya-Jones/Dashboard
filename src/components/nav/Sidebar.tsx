@@ -39,6 +39,7 @@ const mobileMain = [
   { href: "/schedule",  label: "Schedule", icon: Clock },
   { href: "/lectures",  label: "Lectures", icon: Mic },
   { href: "/review",    label: "Review",   icon: Layers },
+  { href: "/school",    label: "Grades",   icon: GraduationCap },
   { href: "/tutor",     label: "Tutor",    icon: GraduationCap },
   { href: "/exposure",  label: "Exposure", icon: Brain },
 ];
@@ -49,7 +50,7 @@ interface SidebarProps {
 
 function isActive(pathname: string, href: string) {
   return pathname === href
-    || (href === "/mcat"    && ["/school", "/shadowing"].includes(pathname))
+    || (href === "/mcat"    && ["/shadowing"].includes(pathname))
     || (href === "/fitness" && pathname === "/workout");
 }
 
