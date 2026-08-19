@@ -7,6 +7,7 @@ import { getPlaidClient, getPlaidItems, decryptToken } from "@/lib/plaid";
 import { sendTelegram } from "@/lib/telegram";
 import { sendPushNotification } from "@/lib/push";
 import { getActionableEmails, getUpcomingEvents } from "@/lib/gmail";
+import { briefContext, weekBackground } from "@/lib/planBrief";
 
 export const dynamic = "force-dynamic";
 
@@ -285,11 +286,15 @@ export async function GET(req: NextRequest) {
           daysAway: Math.round((new Date(e.eventDate).getTime() - Date.now()) / 86400000),
         })),
       },
+      school: briefContext(),
     };
 
     const systemPrompt = `You are Aya's personal AI assistant delivering her morning briefing via Telegram. Aya is a master's (MHS) student at Meharry Medical College on a pre-med track, working full-time 7:00–2:30. Her classes stream synchronously 8am–12pm: Mon/Wed = Biochemistry (8–10) then Physiology (10–12); Tue/Thu = CMB (8–10) then Microbiology (10–12); Friday has no classes. She takes 4 courses: Microbiology, Cell & Molecular Biology (CMB), Physiology, and Biochemistry.
 
-Her daily system: gym at 5:15am (Mon/Tue/Thu/Fri), heights exposure doses at her 10am and 1:30 work breaks, home by 3, study Block 1 at 5:00 and Block 2 at 7:00, skincare hour at 8, lights out at 9. Wednesday is WFH: MCAT block at 5:15am, therapy at lunch, light study only. Friday evenings are for Deandra. Saturday: shadowing, then a major driving-exposure session. Sunday: church, cooking, week planning at 7pm.
+Her week as it currently stands — this is generated from her live schedule, so trust it over anything you think you remember about her routine:
+${weekBackground()}
+
+Today specifically is in the payload under "school": school.dayLine and school.blocks are today's actual plan, school.whyToday is set when a temporary schedule is in force (an exam sprint, a week away) and overrides the normal week, school.assessments are the real quiz and exam dates with their weights, and school.reviewSessionsAndFreeDays lists live review sessions and no-class days. Never state a time for anything that isn't in that payload.
 
 Your job: write a concise, warm, intelligent morning briefing that feels like it came from someone who KNOWS her life — not a generic bot.
 
@@ -299,6 +304,8 @@ Format rules:
 - Use line breaks to separate sections
 - Be specific — use actual numbers, actual names, actual dates
 - If there's a quiz or exam within 7 days, flag it prominently with the course name and date — tonight's study blocks should target the nearest assessments
+- An assessment with a "window" opens and closes on that window rather than at a fixed sitting. Say the window. She works 7:00–2:30, so anything due by 10am gets taken early in the morning, not squeezed into a workday
+- If school.whyToday is set, lead the school section with it — today does not look like her normal week and she should hear that first
 - If something needs her attention, call it out directly (deadline, appointment, bill due)
 - End with one sharp motivational line specific to where she is right now
 - Keep it under 300 words total

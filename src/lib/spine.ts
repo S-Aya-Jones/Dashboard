@@ -5,12 +5,12 @@ import {
   advanceReminder,
   formatTimeOfDay,
 } from "@/lib/telegram";
-import { getUpcomingEvents } from "@/lib/gmail";
 import { sendSms, smsAlsoEnabled } from "@/lib/sms";
 import { dueNotifications, markNotified, upsertObligation } from "@/lib/obligations";
 import { loadData } from "@/lib/db";
 import { whatIsDue, dueLine } from "@/lib/people";
 import { unnotifiedUpdates, markUpdatesNotified, updateDigest } from "@/lib/schoolUpdates";
+import { dayLine, blockCues, whyToday, upcomingAssessments, say } from "@/lib/planBrief";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // The notification spine: every scheduled ping in Aya's day, fired by
@@ -81,39 +81,46 @@ export interface Assessment {
   title: string;
   date: Date;
   daysOut: number;
+  weightPct?: number;
+  /** Set when the assessment opens and closes on a window rather than a sitting. */
+  window?: { opens: string; due: string };
 }
 
+/**
+ * The term's quizzes and exams, from the typed syllabus data.
+ *
+ * This used to read her inbox for events tagged `course-`, which meant the
+ * texts only knew what an email happened to have said. The 8/19 announcement
+ * moved two Exam 1s by two days and turned both into overnight windows, and
+ * nothing in the extraction pipeline noticed — she'd have been told the wrong
+ * morning. ASSESSMENTS is the same source the Grades and Schedule pages use.
+ */
 export async function getCourseAssessments(daysAhead = 45): Promise<Assessment[]> {
-  const events = await getUpcomingEvents(daysAhead).catch(() => []);
   const today = chicagoDateStr();
-  return events
-    .filter(e => (e.emailId ?? "").startsWith("course-"))
-    .map(e => {
-      const date = new Date(e.eventDate);
-      const evDay = chicagoDateStr(new Date(date.toLocaleString("en-US", { timeZone: TZ })));
-      const daysOut = Math.round(
-        (new Date(evDay + "T00:00:00").getTime() - new Date(today + "T00:00:00").getTime()) / 86400000
-      );
-      return {
-        course: e.sourceSender || e.title.split("—")[0].trim(),
-        title: e.title,
-        date,
-        daysOut,
-      };
-    })
-    .sort((a, b) => a.date.getTime() - b.date.getTime());
+  return upcomingAssessments(today, daysAhead).map(a => ({
+    course: a.course,
+    title: `${a.short} ${a.kind === "exam" ? "Exam" : "Quiz"} ${a.number}`,
+    date: new Date(`${a.date}T${a.time || "08:00"}:00`),
+    daysOut: a.daysOut,
+    weightPct: a.weightPct,
+    ...(a.window ? { window: a.window } : {}),
+  }));
 }
 
 function fmtAssessment(a: Assessment): string {
-  const dateStr = a.date.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: TZ });
+  const dateStr = a.date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   const when =
     a.daysOut === 0 ? "TODAY" :
     a.daysOut === 1 ? "tomorrow" :
-    a.daysOut <= 6  ? a.date.toLocaleDateString("en-US", { weekday: "long", timeZone: TZ }) :
+    a.daysOut <= 6  ? a.date.toLocaleDateString("en-US", { weekday: "long" }) :
     dateStr;
+  const at = a.window
+    ? ` · window ${say(a.window.opens)}–${say(a.window.due)}`
+    : "";
+  const worth = a.weightPct ? ` · ${a.weightPct}%` : "";
   return a.daysOut <= 1
-    ? `${a.title} — ${when} (${dateStr})`
-    : `${a.title} — ${when}`;
+    ? `${a.title} — ${when} (${dateStr})${at}${worth}`
+    : `${a.title} — ${when}${at}${worth}`;
 }
 
 // Tonight's Block 1/2: the two distinct courses with the nearest assessments.
@@ -216,19 +223,19 @@ function buildStudyBlocksMsg(assessments: Assessment[], dow: number): string {
   return msg;
 }
 
-function buildLeaveWorkMsg(dow: number): string {
-  switch (dow) {
-    case 1:
-      return "2:25 — wrap it up. Today's drive home is the EXTENDED route (driving exposure #1 this week). Take it slow, you've got nothing until 5. Home ~3:20 — free afternoon: flashcards, admin, breathe. Block 1 at 5:00.";
-    case 2:
-      return "2:25 — head home, direct route. Free afternoon: flashcards, admin, decompress. Block 1 hits at 5:00.";
-    case 4:
-      return "2:25 — head home. Free afternoon til 4:30, then the short neighborhood exposure drive (#2 this week) — 20 minutes, then Block 1 at 5:00.";
-    case 5:
-      return "2:25 — Friday. Rap Session at 3. If it's payday: 30-min budget check after (bills tab is already sorted), then whichever course felt worst this week. Deandra at 6. Enjoy it — you earned it.";
-    default:
-      return "2:25 — head home. Free afternoon, Block 1 at 5:00.";
-  }
+/**
+ * The 2:25 "wrap it up" text.
+ *
+ * The afternoon is read off today's actual plan rather than described from
+ * memory — the gym moved off 5am and into this stretch, and a message that
+ * still promised a free afternoon would be sending her home to nothing.
+ */
+function buildLeaveWorkMsg(_dow: number): string {
+  const day = chicagoDateStr();
+  const after = blockCues(day).filter(([t]) => slotMinutes(t) >= 14 * 60 + 30);
+  if (!after.length) return "2:25 — head home. Nothing on the board this afternoon; take it.";
+  const line = after.map(([t, label]) => `${say(t)} ${label}`).join(" → ");
+  return `2:25 — wrap it up. From here: ${line}.`;
 }
 
 function buildWeekPlanMsg(assessments: Assessment[]): string {
@@ -240,26 +247,19 @@ function buildWeekPlanMsg(assessments: Assessment[]): string {
   msg +=
     "\n\nChecklist:" +
     "\n• Meals cooked for Mon–Wed?" +
-    "\n• Gym bag + clothes staged for 5am?" +
+    "\n• Gym bag in the car for the week? It's afternoons now — Mon, Tue, Thu, Fri, Sat." +
     "\n• Exposure homework from your therapist scheduled?" +
     "\n• Anything due that isn't on the board? Add it now." +
     "\n\nThen skincare at 8. The week is already won or lost right here.";
   return msg;
 }
 
-const DAY_TEMPLATES: Record<number, string> = {
-  0: "Sunday: study 7–8:30 → church → family → groceries → cook (Mon–Wed) → study 5–6:30 → week planning at 7.",
-  1: "Monday: gym 5:15 → work · Biochem 8–10 · Physio 10–12 → extended-route drive home → Block 1 at 5, Block 2 at 7.",
-  2: "Tuesday: gym 5:15 → work · Micro 8–10 · CMB 10–12 → Block 1 at 5, Block 2 at 7.",
-  3: "Wednesday (WFH): MCAT 5:15–6:45 → WFH · Biochem 8–10 · Physio 10–12 → therapy at lunch → cook at 3 → light review only.",
-  4: "Thursday: gym 5:15 → work · Micro 8–10 · CMB 10–12 → 4:30 short exposure drive → Block 1 at 5, Block 2 at 7.",
-  5: "Friday: gym 5:15 → work (no classes!) → budget check if payday → Deandra tonight.",
-  6: "Saturday: shadowing 7:30–11:30 → major driving exposure 12:30 → cleaning → open evening.",
-};
-
-function buildFallbackMorning(assessments: Assessment[], dow: number): string {
+function buildFallbackMorning(assessments: Assessment[], _dow: number): string {
+  const day = chicagoDateStr();
   const soon = assessments.filter(a => a.daysOut >= 0 && a.daysOut <= 7);
-  let msg = `Good morning Aya — ${DAY_TEMPLATES[dow] ?? "let's get it."}`;
+  let msg = `Good morning Aya — ${dayLine(day)}`;
+  const why = whyToday(day);
+  if (why) msg += `\n\n${why}`;
   if (soon.length) {
     msg += "\n\nComing up:\n" + soon.slice(0, 5).map(a => `• ${fmtAssessment(a)}`).join("\n");
   }
@@ -270,7 +270,7 @@ function buildFallbackMorning(assessments: Assessment[], dow: number): string {
 const SKINCARE_MSG =
   "7:55 — study blocks are done. Skincare hour starts now: " +
   "phone on the charger, call your boo while you do your routine, " +
-  "gym bag + clothes laid out for the morning. Lights out at 9.";
+  "clothes laid out for the morning. Lights out at 9.";
 
 // ─── Slot table ──────────────────────────────────────────────────────────────
 
@@ -499,16 +499,12 @@ export interface DispatchResult {
   urgentCheck: string;
 }
 
-// Her weekly template, so today's blocks can warn 30 minutes ahead
-const DAY_BLOCKS: Record<number, Array<[string, string]>> = {
-  1: [["05:15", "Gym"], ["15:20", "Legal — storage unit"], ["17:00", "Block 1 — Biochemistry"], ["19:00", "Block 2 — Physiology"], ["20:00", "Skincare hour"]],
-  2: [["05:15", "Gym"], ["15:00", "Legal — storage unit"], ["17:00", "Block 1 — Microbiology"], ["19:00", "Block 2 — CMB"], ["20:00", "Skincare hour"]],
-  3: [["05:15", "MCAT block"], ["11:00", "Therapy"], ["13:00", "Office hours"], ["15:00", "Cook Thu/Fri meals"], ["17:00", "Light review"], ["20:00", "Skincare hour"]],
-  4: [["05:15", "Gym"], ["14:30", "Legal — storage unit"], ["16:30", "Short exposure drive"], ["17:00", "Block 1 — Microbiology"], ["19:00", "Block 2 — CMB"], ["20:00", "Skincare hour"]],
-  5: [["05:15", "Gym"], ["15:30", "Weakest subject"], ["18:00", "Deandra time"]],
-  6: [["07:30", "Shadowing"], ["12:30", "Major driving exposure"], ["14:30", "Legal — storage unit"], ["15:30", "Cleaning reset"]],
-  0: [["07:00", "Long study"], ["09:00", "Church"], ["10:00", "Therapy (Therapist B)"], ["14:00", "Groceries"], ["15:00", "Cook Mon–Wed"], ["19:00", "Week planning"]],
-};
+// Today's blocks, so a nudge can land 30 minutes ahead of one.
+//
+// Derived, not typed. This was a second hardcoded copy of the week and it went
+// stale the moment the gym moved off 5am — her phone kept saying "gym in 30
+// minutes" at a quarter to five. It now comes from the same place the schedule
+// pages read, temporary weeks included, so an exam morning nudges for the exam.
 
 export async function runDispatch(origin: string): Promise<DispatchResult> {
   await ensureCronRuns();
@@ -532,17 +528,13 @@ export async function runDispatch(origin: string): Promise<DispatchResult> {
 
   // 1a. 30-minute warning before each block on today's template
   if (nowMin >= 5 * 60 && nowMin <= 21 * 60) {
-    for (const [hhmm, label] of DAY_BLOCKS[dow] ?? []) {
+    for (const [hhmm, label] of blockCues(day)) {
       const start = slotMinutes(hhmm);
       const warnAt = start - 30;
       if (nowMin < warnAt || nowMin > warnAt + 6) continue;
       const key = `warn-${hhmm}`;
       if (!(await claimSlot(key, day, label))) continue;
-      const t12 = (() => {
-        const [h, m] = hhmm.split(":").map(Number);
-        return `${h % 12 || 12}:${m.toString().padStart(2, "0")}${h >= 12 ? "pm" : "am"}`;
-      })();
-      await notify(`30 minutes — ${label} at ${t12}.`);
+      await notify(`30 minutes — ${label} at ${say(hhmm)}.`);
       fired.push(key);
     }
   }

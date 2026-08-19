@@ -1,15 +1,17 @@
 import { NextResponse } from "next/server";
 import { getAuthedClient } from "@/lib/google";
 import { google, calendar_v3 } from "googleapis";
+import { WEEK, type PlanBlock, type Cat } from "@/lib/weekPlan";
 
 export const dynamic = "force-dynamic";
 
-// One-shot seeder for the weekly life template. Idempotent: skips any series
-// whose title already exists as an upcoming event on the target calendar.
-// GET or POST /api/schedule/seed
+// Pushes the weekly life template into Google Calendar. Safe to re-run: it
+// creates what's missing, deletes duplicates from earlier runs, and patches a
+// series whose title or time has since moved. GET or POST /api/schedule/seed
 //
 // Calendars are matched by name (Gym → "Gym", Study → "Study"), else primary.
-// Anchor dates are the week of Aug 4–10, 2026 — recurrences run forward.
+// The template is generated from weekPlan.ts, so this endpoint is how a change
+// there reaches her phone's calendar.
 
 interface Series {
   cal: "gym" | "study" | "classes" | "primary";
@@ -23,48 +25,64 @@ interface Series {
   remindMin?: number;  // popup minutes (default 5)
 }
 
-const TEMPLATE: Series[] = [
-  { cal: "gym", summary: "Gym", desc: "Bag packed the night before. Home 6:10, shower, work at 7.", anchor: "2026-08-06", start: "05:15", end: "06:10", rrule: "RRULE:FREQ=WEEKLY;BYDAY=MO,TU,TH,FR" },
-
-  // Actual class meeting times (synchronous, streamed at work) — Fall 2026
+// The four class meetings, from the registrar. These are the only series not
+// derived from the week plan: weekPlan.ts folds them into one "Work · Biochem
+// 8–10 · Physio 10–12" block, because that is the block she actually lives,
+// but her calendar wants them as four named courses.
+const CLASSES: Series[] = [
   { cal: "classes", summary: "Biochemistry (GMHS 707-01)", desc: "Capture mode: flag confusion, make flashcards.", anchor: "2026-08-05", start: "08:00", end: "10:00", rrule: "RRULE:FREQ=WEEKLY;BYDAY=MO,WE;UNTIL=20261218T235959Z" },
   { cal: "classes", summary: "Physiology (GMHS 709-01)", desc: "Capture mode: flag confusion, make flashcards.", anchor: "2026-08-05", start: "10:00", end: "12:00", rrule: "RRULE:FREQ=WEEKLY;BYDAY=MO,WE;UNTIL=20261218T235959Z" },
   { cal: "classes", summary: "CMB (GMHS 710-01)", desc: "Capture mode: flag confusion, make flashcards.", anchor: "2026-08-06", start: "08:00", end: "10:00", rrule: "RRULE:FREQ=WEEKLY;BYDAY=TU,TH;UNTIL=20261218T235959Z" },
   { cal: "classes", summary: "Microbiology (GMHS 706-1)", desc: "Capture mode: flag confusion, make flashcards.", anchor: "2026-08-06", start: "10:00", end: "12:00", rrule: "RRULE:FREQ=WEEKLY;BYDAY=TU,TH;UNTIL=20261218T235959Z" },
-
-  { cal: "study", summary: "Study Block 1 — nearest assessment, questions first", desc: "10 practice questions COLD, then study the misses. The 4:55pm Telegram ping names tonight's course.", anchor: "2026-08-04", start: "17:00", end: "18:30", rrule: "RRULE:FREQ=WEEKLY;BYDAY=MO,TU,TH" },
-  { cal: "study", summary: "Study Block 2 — second course + error log", desc: "Second-nearest course. Every miss goes in the error log — that's the exam study guide.", anchor: "2026-08-04", start: "19:00", end: "20:00", rrule: "RRULE:FREQ=WEEKLY;BYDAY=MO,TU,TH" },
-  { cal: "study", summary: "MCAT Block (WFH morning)", desc: "Freshest 90 min of the week. Exam weeks: this stays, everything else MCAT pauses.", anchor: "2026-08-05", start: "05:15", end: "06:45", rrule: "RRULE:FREQ=WEEKLY;BYDAY=WE" },
-  { cal: "study", summary: "Light review — post-therapy, no new material", desc: "Flashcards, lecture rewatch, organize notes.", anchor: "2026-08-05", start: "17:00", end: "18:30", rrule: "RRULE:FREQ=WEEKLY;BYDAY=WE" },
-  { cal: "study", summary: "Friday light study", desc: "Wrap the week's loose ends before Deandra time.", anchor: "2026-08-07", start: "15:30", end: "17:00", rrule: "RRULE:FREQ=WEEKLY;BYDAY=FR" },
-  { cal: "study", summary: "Sunday long study", desc: "Fresh brain before church. Exam weeks: error-log territory.", anchor: "2026-08-09", start: "07:00", end: "08:30", rrule: "RRULE:FREQ=WEEKLY;BYDAY=SU" },
-  { cal: "study", summary: "Sunday study — error log review", desc: "Run the week's missed questions. Sets up Monday's Block 1.", anchor: "2026-08-09", start: "17:00", end: "18:30", rrule: "RRULE:FREQ=WEEKLY;BYDAY=SU" },
-
-  { cal: "primary", summary: "Extended-route drive home (exposure #1)", desc: "The harder way home. Nothing scheduled until 5 — no time pressure.", anchor: "2026-08-10", start: "14:30", end: "15:20", rrule: "RRULE:FREQ=WEEKLY;BYDAY=MO" },
-  { cal: "primary", summary: "Short exposure drive (#2)", desc: "20-minute neighborhood loop before Block 1.", anchor: "2026-08-06", start: "16:30", end: "17:00", rrule: "RRULE:FREQ=WEEKLY;BYDAY=TH" },
-  { cal: "primary", summary: "Major driving exposure", desc: "The dedicated weekly session, fresh off Saturday therapy. Boyfriend rides passenger on visit weekends, then repeat solo. Never the night before an assessment.", anchor: "2026-08-08", start: "12:30", end: "14:00", rrule: "RRULE:FREQ=WEEKLY;BYDAY=SA", remindMin: 30 },
-  { cal: "primary", summary: "Therapy", desc: "Wednesday 11am — anchored to the WFH no-driving day. Overlaps Physiology, catch the recording after.", anchor: "2026-08-05", start: "11:00", end: "12:00", rrule: "RRULE:FREQ=WEEKLY;BYDAY=WE", remindMin: 30 },
-  // Therapist B moves off Saturdays. The 22nd is the last Saturday session;
-  // the weekly Sunday slot starts the following week (she is away in between).
-  { cal: "primary", summary: "Therapy — final Saturday session", desc: "Last one on a Saturday. From the 30th this moves to Sundays at 10.", anchor: "2026-08-22", start: "10:00", end: "11:00", rrule: "", remindMin: 30 },
-  { cal: "primary", summary: "Therapy (Sunday)", desc: "Weekly, one hour. NOTE: this overlaps the 9–12 church block — confirm which gives way.", anchor: "2026-08-30", start: "10:00", end: "11:00", rrule: "RRULE:FREQ=WEEKLY;BYDAY=SU", remindMin: 30 },
-
-  // The storage-unit matter. Four hours a week, mostly in lunch breaks, because
-  // that is the only recurring hour that is hers and is not already spoken for.
-  { cal: "primary", summary: "Legal — storage unit", desc: "Finding and briefing an affordable lawyer. Calls go here: firms answer at lunch.", anchor: "2026-08-10", start: "12:00", end: "12:45", rrule: "RRULE:FREQ=WEEKLY;BYDAY=MO,TU,TH,FR", remindMin: 10 },
-  { cal: "primary", summary: "Legal — storage unit (longer block)", desc: "The hour for paperwork, quotes and anything that needs more than a phone call.", anchor: "2026-08-07", start: "16:00", end: "17:00", rrule: "RRULE:FREQ=WEEKLY;BYDAY=FR", remindMin: 10 },
-
-  { cal: "primary", summary: "Hospital shadowing", desc: "Primary weekly slot. Exam weeks: this pauses first.", anchor: "2026-08-08", start: "07:30", end: "11:30", rrule: "RRULE:FREQ=WEEKLY;BYDAY=SA", remindMin: 30 },
-  { cal: "primary", summary: "Cleaning reset", desc: "Full house reset so the week starts clean.", anchor: "2026-08-08", start: "15:30", end: "17:00", rrule: "RRULE:FREQ=WEEKLY;BYDAY=SA" },
-  { cal: "primary", summary: "Cook — Thu/Fri meals", desc: "During class streaming on the WFH day.", anchor: "2026-08-05", start: "15:00", end: "17:00", rrule: "RRULE:FREQ=WEEKLY;BYDAY=WE" },
-  { cal: "primary", summary: "Groceries", desc: "Feeds the Sunday cook.", anchor: "2026-08-09", start: "14:00", end: "15:00", rrule: "RRULE:FREQ=WEEKLY;BYDAY=SU" },
-  { cal: "primary", summary: "Cook — Mon–Wed meals", desc: "Lecture recordings playing while you cook.", anchor: "2026-08-09", start: "15:00", end: "17:00", rrule: "RRULE:FREQ=WEEKLY;BYDAY=SU" },
-  { cal: "primary", summary: "Week planning", desc: "20 minutes with the Deadlines tab. Assign every study block. Check if exam-week mode activates.", anchor: "2026-08-09", start: "19:00", end: "19:30", rrule: "RRULE:FREQ=WEEKLY;BYDAY=SU" },
-  { cal: "primary", summary: "Skincare + wind-down", desc: "Phone on the charger. Call him while you do your routine. Gym bag staged. Lights out at 9.", anchor: "2026-08-04", start: "20:00", end: "21:00", rrule: "RRULE:FREQ=DAILY" },
-  { cal: "primary", summary: "Deandra time", desc: "Protected. The week's one late night — bed by 10:30.", anchor: "2026-08-07", start: "18:00", end: "21:00", rrule: "RRULE:FREQ=WEEKLY;BYDAY=FR" },
-  { cal: "primary", summary: "Church", desc: "Adjust to actual service time.", anchor: "2026-08-09", start: "09:00", end: "12:00", rrule: "RRULE:FREQ=WEEKLY;BYDAY=SU", remindMin: 30 },
-  { cal: "primary", summary: "Budget check (payday)", desc: "30 minutes off the bills tab. Biweekly — shift the anchor if payday differs.", anchor: "2026-08-07", start: "15:00", end: "15:30", rrule: "RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=FR" },
 ];
+
+const BYDAY = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
+
+function calFor(cat: Cat): Series["cal"] {
+  if (cat === "gym") return "gym";
+  if (cat === "study") return "study";
+  return "primary";
+}
+
+/** Monday of the week containing `from`, as YYYY-MM-DD. */
+function weekAnchor(from: string, dow: number): string {
+  const d = new Date(`${from}T12:00:00`);
+  d.setDate(d.getDate() + ((dow - d.getDay() + 7) % 7));
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * The weekly template, generated from the same week plan the app renders.
+ *
+ * This used to be a third hand-typed copy of her week, and it drifted: it was
+ * still seeding a 5:15am gym and a lunchtime legal block months after both
+ * moved. Blocks that repeat at the same time on several days collapse into one
+ * BYDAY rule, which is what a calendar wants anyway.
+ */
+function buildTemplate(anchorFrom = "2026-08-24"): Series[] {
+  const byShape = new Map<string, { block: PlanBlock; days: number[] }>();
+  for (const dow of [1, 2, 3, 4, 5, 6, 0]) {
+    for (const b of WEEK[dow]?.blocks ?? []) {
+      if (b.rotation) continue;   // a label that changes weekly can't be one series
+      const key = `${b.label}|${b.start}|${b.end}`;
+      const hit = byShape.get(key);
+      if (hit) hit.days.push(dow);
+      else byShape.set(key, { block: b, days: [dow] });
+    }
+  }
+  return Array.from(byShape.values()).map(({ block, days }) => ({
+    cal: calFor(block.cat),
+    summary: block.label,
+    desc: block.note ?? "",
+    anchor: weekAnchor(anchorFrom, days[0]),
+    start: block.start,
+    end: block.end,
+    rrule: `RRULE:FREQ=WEEKLY;BYDAY=${days.map(d => BYDAY[d]).join(",")}`,
+    remindMin: block.cat === "therapy" || block.cat === "people" ? 30 : 5,
+  }));
+}
+
+const TEMPLATE: Series[] = [...CLASSES, ...buildTemplate()];
 
 async function resolveCalendars(calendar: calendar_v3.Calendar) {
   const map: Record<string, string> = { gym: "primary", study: "primary", classes: "primary", primary: "primary" };
@@ -78,6 +96,16 @@ async function resolveCalendars(calendar: calendar_v3.Calendar) {
     }
   } catch { /* fall back to primary for everything */ }
   return map;
+}
+
+/** A recurring series already on the calendar, as far as we need to know it. */
+interface SeriesRow {
+  id: string;
+  created: string;
+  summary: string;
+  start: string;
+  end: string;
+  rrule: string;
 }
 
 // Titles used to carry emoji. Matching on the exact string would treat
@@ -96,8 +124,8 @@ function normalise(summary: string): string {
 async function listSeriesBySummary(
   calendar: calendar_v3.Calendar,
   calId: string,
-): Promise<Map<string, Array<{ id: string; created: string; summary: string }>>> {
-  const map = new Map<string, Array<{ id: string; created: string; summary: string }>>();
+): Promise<Map<string, SeriesRow[]>> {
+  const map = new Map<string, SeriesRow[]>();
   try {
     const resp = await calendar.events.list({
       calendarId: calId,
@@ -110,7 +138,14 @@ async function listSeriesBySummary(
       if (!e.id || !e.summary) continue;
       const key = normalise(e.summary);
       const list = map.get(key) ?? [];
-      list.push({ id: e.id, created: e.created ?? "", summary: e.summary });
+      list.push({
+        id: e.id,
+        created: e.created ?? "",
+        summary: e.summary,
+        start: (e.start?.dateTime ?? "").slice(11, 16),
+        end: (e.end?.dateTime ?? "").slice(11, 16),
+        rrule: (e.recurrence ?? []).find(r => r.startsWith("RRULE")) ?? "",
+      });
       map.set(key, list);
     }
   } catch { /* treat as empty */ }
@@ -133,7 +168,7 @@ async function seed() {
 
   // One listing per distinct calendar, then dedupe + exact-match skip
   const templateSummaries = new Set(TEMPLATE.map(s => normalise(s.summary)));
-  const byCal = new Map<string, Map<string, Array<{ id: string; created: string; summary: string }>>>();
+  const byCal = new Map<string, Map<string, SeriesRow[]>>();
   for (const calId of Array.from(new Set(Object.values(cals)))) {
     byCal.set(calId, await listSeriesBySummary(calendar, calId));
   }
@@ -153,22 +188,30 @@ async function seed() {
     }
   }
 
-  // Retitle the survivors that still carry emoji, so the calendar reads the
-  // same way the app does.
-  const cleanTitle = new Map(TEMPLATE.map(s => [normalise(s.summary), s.summary]));
+  // Bring the survivors into line: strip the emoji titles carried over from an
+  // older version, and — because this is now generated from the week plan
+  // rather than hand-typed — move any series whose time has since changed.
+  // Matching only on title used to mean a renamed-nothing, moved-everything
+  // block (the gym off 5am, legal out of lunch) was skipped as "already there".
+  const wanted = new Map(TEMPLATE.map(s => [normalise(s.summary), s]));
   for (const [calId, seriesMap] of Array.from(byCal.entries())) {
     for (const [key, entries] of Array.from(seriesMap.entries())) {
-      const want = cleanTitle.get(key);
+      const want = wanted.get(key);
       if (!want) continue;
       for (const e of entries) {
-        if (e.summary === want) continue;
+        const patch: calendar_v3.Schema$Event = {};
+        if (e.summary !== want.summary) patch.summary = want.summary;
+        if (e.start && e.start !== want.start) {
+          patch.start = { dateTime: `${want.anchor}T${want.start}:00`, timeZone: "America/Chicago" };
+          patch.end   = { dateTime: `${want.anchor}T${want.end}:00`,   timeZone: "America/Chicago" };
+        } else if (e.end && e.end !== want.end) {
+          patch.end = { dateTime: `${want.anchor}T${want.end}:00`, timeZone: "America/Chicago" };
+        }
+        if (want.rrule && e.rrule && e.rrule !== want.rrule) patch.recurrence = [want.rrule];
+        if (!Object.keys(patch).length) continue;
         try {
-          await calendar.events.patch({
-            calendarId: calId,
-            eventId: e.id,
-            requestBody: { summary: want },
-          });
-          renamed.push(want);
+          await calendar.events.patch({ calendarId: calId, eventId: e.id, requestBody: patch });
+          renamed.push(want.summary);
         } catch { /* leave it as-is */ }
       }
     }

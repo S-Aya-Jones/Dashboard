@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { loadData } from "@/lib/db";
 import { sendTelegram } from "@/lib/telegram";
 import { sendPushNotification } from "@/lib/push";
+import { chicagoDay, dayLine, blockCues, say } from "@/lib/planBrief";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +43,9 @@ export async function GET(req: NextRequest) {
         exposureTherapy: todayLog?.exposureTherapy ?? false,
       },
       workEnds: "2:30pm",
+      restOfToday: blockCues(chicagoDay())
+        .filter(([t]) => Number(t.slice(0, 2)) >= 15)
+        .map(([t, label]) => `${say(t)} ${label}`),
     };
 
     const msg = await client.messages.create({
@@ -53,6 +57,7 @@ Write a SHORT check-in (under 100 words) covering:
 - What she's knocked out already vs what's left today on 75 Hard
 - A specific nudge on the most important missing item
 - If steps look low, remind her to walk now while she has afternoon energy
+- context.restOfToday is what is actually scheduled from 3pm on. Do not tell her to do something at a time that collides with it, and do not invent a free afternoon she does not have
 
 Plain text only — no emojis, no bullets, no markdown. Warm, direct, like a friend texting her.
 Start with "4pm check-in —"`,
