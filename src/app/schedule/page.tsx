@@ -6,6 +6,7 @@ import { Sidebar } from "@/components/nav/Sidebar";
 import { DayScheduleView } from "@/components/schedule/DayScheduleView";
 import { WeekPlanView } from "@/components/schedule/WeekPlanView";
 import { NextAssessments } from "@/components/schedule/NextAssessments";
+import { SemesterWeekPanel } from "@/components/schedule/SemesterWeek";
 
 export default function Page() {
   const [tab, setTab] = useState<"plan" | "day">("plan");
@@ -46,7 +47,8 @@ export default function Page() {
           <ScheduleChanges />
         </div>
 
-        <div style={{ marginBottom: "1.5rem" }}>
+        <div style={{ marginBottom: "1.5rem" }} className="space-y-4">
+          <SemesterWeekPanel />
           <NextAssessments />
         </div>
 
