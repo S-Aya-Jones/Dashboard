@@ -88,7 +88,7 @@ export async function ensureExposureTables() {
 const SEED_DRIVING = [
   ["Sit in the parked car, engine off, 5 minutes", "Keys in hand. Just sit and breathe.", 15],
   ["Drive around the block, daylight, no passengers", "One loop. Home before you can talk yourself out.", 25],
-  ["Drive to the gym at 5:15am", "Empty roads — the easiest real drive of your week.", 30],
+  ["Drive to the gym on a Saturday afternoon", "Roads you know, no clock on you — the easiest real drive of your week.", 30],
   ["Drive a familiar 15-minute route, surface streets", "The extended way home on Mondays.", 40],
   ["Drive somewhere new using only surface streets", "Navigation on, no highway, no bridge.", 50],
   ["Drive in moderate traffic, surface streets", "Rush hour on roads you know.", 60],

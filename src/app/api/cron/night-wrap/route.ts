@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { loadData } from "@/lib/db";
 import { sendTelegram } from "@/lib/telegram";
 import { sendPushNotification } from "@/lib/push";
+import { dayLine, whyToday, upcomingAssessments, fmtAssessment } from "@/lib/planBrief";
 
 export const dynamic = "force-dynamic";
 
@@ -46,6 +47,9 @@ export async function GET(req: NextRequest) {
       latestWeight: latestWeight?.weight,
       tomorrowDayOfWeek: tomorrowDow,
       mcatTestDate: data.mcatTestDate,
+      tomorrowPlan: dayLine(tomorrow),
+      tomorrowIsDifferent: whyToday(tomorrow),
+      nextAssessments: upcomingAssessments(tomorrow, 10).slice(0, 3).map(fmtAssessment),
     };
 
     const msg = await client.messages.create({
@@ -56,7 +60,7 @@ export async function GET(req: NextRequest) {
 Write a SHORT wrap-up (under 100 words):
 - If day is complete: celebrate briefly, remind her to get good sleep for tomorrow
 - If incomplete: be honest about what's missing, ask if she can still get it done before midnight
-- End with one prep note for tomorrow (what to prioritize first thing)
+- End with one prep note for tomorrow, taken from context.tomorrowPlan and context.nextAssessments. If context.tomorrowIsDifferent is set, say so — tomorrow is not her normal day
 
 Plain text only — no emojis, no bullets, no markdown. Warm and real.
 Start with "Night wrap —"`,

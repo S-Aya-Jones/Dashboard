@@ -5,6 +5,7 @@ import { getUpcomingEvents, getStoredEmails } from "@/lib/gmail";
 import { getAuthedClient } from "@/lib/google";
 import { google } from "googleapis";
 import { loadData } from "@/lib/db";
+import { chicagoDay, briefContext, weekBackground } from "@/lib/planBrief";
 
 export const dynamic = "force-dynamic";
 
@@ -90,6 +91,7 @@ export async function GET(req: NextRequest) {
       billsDue: bills.map(e => ({ subject: e.subject, from: e.senderName || e.senderEmail })),
       actionNeeded: actionItems.map(e => ({ subject: e.subject, from: e.senderName })),
       mcatTestDate: (data as Record<string, unknown>).mcatTestDate,
+      school: briefContext(chicagoDay()),
     };
 
     const msg = await client.messages.create({
@@ -99,9 +101,15 @@ export async function GET(req: NextRequest) {
 
 Aya is a pre-med student doing 75 Hard, managing school deadlines, health appointments, and finances. She needs a clear picture of the week ahead so she can front-load and protect her energy.
 
+Her week as it currently stands — generated from her live schedule, so trust it over anything you remember about her routine:
+${weekBackground()}
+
+The payload's "school" key carries the real term calendar: school.semesterWeek says which of the fourteen weeks this is, what it is for, and whether the plan flags it as a pressure point; school.assessments are the actual quiz and exam dates with weights and windows; school.reviewSessionsAndFreeDays lists live review sessions and no-class days; school.whyToday is set when a temporary schedule is in force. Never state a date or time that is not in there.
+
 Write a warm, intelligent weekly preview (under 250 words):
 - Start with "Week ahead —" and name the specific dates
-- Give an honest read: is this a heavy week or a light one, and why
+- Give an honest read: is this a heavy week or a light one, and why. school.semesterWeek.pressurePoint is the plan's own verdict — use it
+- Name any live review session and any no-class day. The reviews are the closest thing to being told what is on the exam, and a no-class day inside a heavy week is a full prep day, not a day off
 - List what actually matters this week: school deadlines, appointments, bills, action items — with specific days/times
 - Suggest ONE strategic focus (e.g., "get the Biochem assignment done Tuesday so Thursday isn't a crisis")
 - End with a short encouragement specific to where she is in 75 Hard

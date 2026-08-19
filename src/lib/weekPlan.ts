@@ -59,7 +59,7 @@ export const WEEK: Record<number, { name: string; sub?: string; blocks: PlanBloc
     { start: "17:00", end: "18:30", label: "Block 1 — nearest assessment", cat: "study", note: "First 15 min is the Micro deck, every single day. Then 15 skim · 35 retrieval cold · 15 error log." },
     { start: "18:30", end: "19:00", label: "Dinner (Sunday-cooked)", cat: "life" },
     { start: "19:00", end: "20:00", label: "Block 2 — next course up", cat: "study", note: "Where today's new lectures get debriefed. Every miss goes in the error log." },
-    { start: "20:00", end: "21:00", label: "Skincare hour + call him", cat: "rest", note: "Gym bag staged · lights out at 9" },
+    { start: "20:00", end: "21:00", label: "Skincare hour + call him", cat: "rest", note: "Clothes staged · lights out at 9" },
   ]},
   2: { name: "Tuesday", blocks: [
     { start: "06:00", end: "07:00", label: "Up, shower, breakfast, out", cat: "rest" },
