@@ -10,6 +10,17 @@ import { ASSESSMENTS, type Assessment } from "@/lib/assessments";
 //   Exam 1 15% · Exam 2 25% · Exam 3 25% · five quizzes 25% (5% each)
 //   Assignments 5% · Attendance and professionalism 5%
 //
+// The 8/19/26 programme email changed the arithmetic underneath all of that.
+// Any Quiz 1 at or below 11/15 is replaced by the student's average across
+// Quizzes 2 to 5 — and all four of hers qualify. So Quiz 1 no longer scores
+// itself; the Q2–Q5 average fills its 5% as well as its own 20%.
+//
+// Two consequences worth stating in code, because both change behaviour:
+//   · the whole 25% quiz category now rides on Q2–Q5, which makes each of
+//     those four quizzes worth about 6.25% rather than 5%
+//   · a Quiz 1 score that has been replaced is history, not a grade, so it is
+//     kept and shown but excluded from every total
+//
 // Nothing here is estimated. Given the scores entered, the average needed on
 // everything remaining is exact.
 
@@ -19,6 +30,18 @@ export const WEIGHTS = {
   assignments: 5,
   attendance: 5,
 };
+
+/** At or below this on Quiz 1 and the grade gets replaced. 11/15 = 73.33%. */
+export const REPLACEMENT_THRESHOLD_PCT = (11 / 15) * 100;
+
+/** Quiz 1's weight rides on the Q2–Q5 average too, once replaced. */
+export const EFFECTIVE_QUIZ_WEIGHT = 6.25;
+
+export function quizOneReplaced(scores: Score[], short: Assessment["short"]): boolean {
+  const q1 = scores.find(s => s.id === `${short.toLowerCase()}-quiz-1`);
+  if (!q1 || q1.outOf <= 0) return false;
+  return (q1.earned / q1.outOf) * 100 <= REPLACEMENT_THRESHOLD_PCT + 1e-9;
+}
 
 /** The grade boundaries, from the syllabi. */
 export const BANDS: Array<[number, string]> = [
@@ -54,6 +77,8 @@ export interface CourseGrade {
   upcoming: Assessment[];
   /** True when even 100% on everything left can't reach an A. */
   aStillPossible: boolean;
+  /** Quiz 1 qualified for replacement, so it no longer counts. */
+  quizOneReplaced: boolean;
 }
 
 function weightOf(a: Assessment): number {
@@ -80,7 +105,13 @@ export function courseGrade(
   let lost = 0;
   const graded: CourseGrade["graded"] = [];
 
+  // Quiz 1 stops being a grade once it qualifies for replacement. It keeps its
+  // row on the page — it is still what happened — but it contributes nothing,
+  // and its 5% moves into the pool the Q2–Q5 average will fill.
+  const replaced = quizOneReplaced(scores, short);
+
   for (const a of mine) {
+    if (replaced && a.kind === "quiz" && a.number === 1) continue;
     const s = byId.get(a.id);
     if (!s || s.outOf <= 0) continue;
     const pct = Math.max(0, Math.min(1, s.earned / s.outOf));
@@ -94,6 +125,8 @@ export function courseGrade(
   if (assumeFullSoftPoints) banked += soft;
 
   const assessedWeight = graded.reduce((s, g) => s + g.weight, 0);
+  // A replaced Quiz 1 leaves its 5% in "remaining" rather than "assessed",
+  // which is exactly right: the Q2–Q5 average is what will fill it.
   const remaining = 100 - assessedWeight - (assumeFullSoftPoints ? soft : 0);
 
   const neededFor: Record<string, number | null> = {};
@@ -115,6 +148,7 @@ export function courseGrade(
   return {
     course: mine[0]?.course ?? "Biochemistry",
     short,
+    quizOneReplaced: replaced,
     banked,
     lost,
     remaining,
@@ -156,6 +190,12 @@ export const QUIZ_1: Score[] = [
  * 94% in a memorisation-heavy course after a 33% is a different problem.
  */
 export function verdict(g: CourseGrade): { text: string; tone: "good" | "warn" | "hard" } {
+  if (g.quizOneReplaced && g.graded.length === 0) {
+    return {
+      text: `Quiz 1 is being replaced by your Quiz 2–5 average, so nothing is on the board yet. ${(g.neededFor.A ?? 0).toFixed(1)}% from here is the A.`,
+      tone: "good",
+    };
+  }
   if (!g.aStillPossible) {
     return { text: "An A is no longer reachable. Protect the B+ and move the hours elsewhere.", tone: "hard" };
   }
