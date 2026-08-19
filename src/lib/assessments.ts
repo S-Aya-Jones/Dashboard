@@ -12,6 +12,14 @@
 // assessments cluster. Aug 24, 25 and 31 and Sep 1 are four assessments in
 // nine days across four courses, and none of them are in the same course.
 //
+// Updated against the 8/19/26 programme email and the official MHS class
+// schedule of the same date. Two exams moved and both got a window rather than
+// a fixed hour:
+//   Biochemistry Exam 1  Mon 8/24 8am  ->  Wed 8/26, midnight to 10am
+//   Cell & Molecular 1   Tue 8/25 8am  ->  Thu 8/27, midnight to 10am
+// Physiology 8/31 and Microbiology 9/1 did not move, so the four Exam 1s are
+// now inside five business days instead of nine.
+//
 // All four syllabi say the same thing about changes — dates move by email and
 // Blackboard is the authority. So this is a planning calendar, not a source of
 // truth, and it says so wherever it surfaces.
@@ -28,8 +36,10 @@ export interface Assessment {
   number: number;
   /** YYYY-MM-DD */
   date: string;
-  /** HH:MM, 24h. */
+  /** HH:MM, 24h. For a windowed assessment this is when the window opens. */
   time: string;
+  /** Set when the assessment is open across a window rather than sat at an hour. */
+  window?: { opens: string; due: string };
   /** Share of the final grade, where the syllabus states it. */
   weightPct: number;
   topics: string[];
@@ -41,22 +51,24 @@ const EXAM_WEIGHT = [15, 25, 25];
 function a(
   course: Assessment["course"], short: Assessment["short"],
   kind: AssessmentKind, number: number, date: string, time: string, topics: string[],
+  window?: { opens: string; due: string },
 ): Assessment {
   return {
     id: `${short.toLowerCase()}-${kind}-${number}`,
     course, short, kind, number, date, time,
     weightPct: kind === "quiz" ? 5 : EXAM_WEIGHT[number - 1] ?? 25,
     topics,
+    ...(window ? { window } : {}),
   };
 }
 
 export const ASSESSMENTS: Assessment[] = [
   // ── Biochemistry (GMHS-707) ──
   a("Biochemistry", "Biochem", "quiz", 1, "2026-08-14", "08:00", ["Water, ionization, buffers"]),
-  a("Biochemistry", "Biochem", "exam", 1, "2026-08-24", "08:00", [
+  a("Biochemistry", "Biochem", "exam", 1, "2026-08-26", "00:00", [
     "Water, ionization and buffers", "Cellular organization", "Amino acids",
     "Protein structure, separation and purification", "Enzymes I",
-  ]),
+  ], { opens: "00:00", due: "10:00" }),
   a("Biochemistry", "Biochem", "quiz", 2, "2026-09-11", "08:00", ["Enzymes II", "Basic concepts of metabolism"]),
   a("Biochemistry", "Biochem", "quiz", 3, "2026-09-25", "08:00", ["TCA cycle", "Oxidative phosphorylation"]),
   a("Biochemistry", "Biochem", "exam", 2, "2026-10-12", "08:00", ["Enzymes II through oxidative phosphorylation"]),
@@ -82,10 +94,10 @@ export const ASSESSMENTS: Assessment[] = [
     "Eukaryotic cell structure", "Cell culture, cell lines and stem cells",
     "Cell communication I and II",
   ]),
-  a("Cell & Molecular Bio", "CMB", "exam", 1, "2026-08-25", "08:00", [
+  a("Cell & Molecular Bio", "CMB", "exam", 1, "2026-08-27", "00:00", [
     "Eukaryotic cell structure", "Cell culture, cell lines and stem cells",
     "Cell communication I and II", "Eukaryotic cell cycle", "Cell cycle disruption — cancer",
-  ]),
+  ], { opens: "00:00", due: "10:00" }),
   a("Cell & Molecular Bio", "CMB", "quiz", 2, "2026-09-04", "08:00", ["DNA structure and function", "Chromatin and genome structure", "DNA replication"]),
   a("Cell & Molecular Bio", "CMB", "quiz", 3, "2026-09-18", "08:00", ["DNA mutation, repair and recombination", "RNA structure, transcription and translation"]),
   a("Cell & Molecular Bio", "CMB", "exam", 2, "2026-09-22", "08:00", ["DNA structure through epigenetic and post-transcriptional regulation"]),
@@ -108,6 +120,43 @@ export const ASSESSMENTS: Assessment[] = [
   a("Microbiology", "Micro", "quiz", 5, "2026-11-11", "13:00", ["General properties of viruses", "RNA and DNA viruses"]),
   a("Microbiology", "Micro", "exam", 3, "2026-11-18", "08:00", ["Staphylococcus and Streptococcus onward, including mycology and virology"]),
 ];
+
+/**
+ * Live review sessions and the days with no class.
+ *
+ * Not assessments, so they carry no weight — but the plan is blunt that the
+ * reviews are the closest thing to being told what is on the exam, and missing
+ * one to study alone is a bad trade. The free days matter for the opposite
+ * reason: Convocation lands the day before Micro Exam 2 in the worst week of
+ * the term, so it is a full prep day, not a day off.
+ */
+export interface CalendarEvent {
+  id: string;
+  date: string;
+  time: string;
+  title: string;
+  kind: "review" | "free";
+  note?: string;
+}
+
+export const CALENDAR: CalendarEvent[] = [
+  { id: "rev-cmb-e1",     date: "2026-08-21", time: "08:00", kind: "review", title: "CMB Exam 1 review", note: "Attend live." },
+  { id: "rev-physio-e1",  date: "2026-08-27", time: "10:00", kind: "review", title: "Physiology Exam 1 review", note: "Attend live — same day as your CMB exam window." },
+  { id: "rev-micro-e1",   date: "2026-08-28", time: "09:00", kind: "review", title: "Microbiology Exam 1 review", note: "Attend live." },
+  { id: "free-labor",     date: "2026-09-07", time: "09:00", kind: "free",   title: "Labor Day — no class", note: "A full study day. Protect it." },
+  { id: "rev-cmb-e2",     date: "2026-09-18", time: "10:00", kind: "review", title: "CMB Exam 2 review", note: "Straight after Quiz 3 that morning." },
+  { id: "free-research",  date: "2026-09-23", time: "09:00", kind: "free",   title: "Student Research Day — no class", note: "A full study day." },
+  { id: "rev-micro-e2",   date: "2026-10-01", time: "09:00", kind: "review", title: "Microbiology Exam 2 review", note: "Attend live." },
+  { id: "free-convo",     date: "2026-10-05", time: "09:00", kind: "free",   title: "Convocation — no class", note: "The day before Micro Exam 2, in the hardest week of the term. Full prep day, not a day off." },
+  { id: "rev-e2-both",    date: "2026-10-08", time: "09:00", kind: "review", title: "Biochem AND Physiology Exam 2 reviews", note: "Both. Attend both." },
+  { id: "rev-cmb-e3",     date: "2026-11-03", time: "09:00", kind: "review", title: "CMB Exam 3 review", note: "Attend live." },
+  { id: "rev-e3-both",    date: "2026-11-13", time: "09:00", kind: "review", title: "Biochem AND Micro Exam 3 reviews", note: "Both." },
+  { id: "rev-physio-e3",  date: "2026-11-19", time: "09:00", kind: "review", title: "Physiology Exam 3 review", note: "Attend live." },
+];
+
+export function calendarOn(date: string): CalendarEvent[] {
+  return CALENDAR.filter(c => c.date === date);
+}
 
 /** Everything still to come, soonest first. */
 export function upcoming(from: Date = new Date(), limit = 6): Assessment[] {

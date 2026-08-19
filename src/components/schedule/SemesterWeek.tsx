@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Flag, ChevronDown } from "lucide-react";
+import { Flag, ChevronDown, Video, Sun } from "lucide-react";
 import { weekFor, nextCheckpoint, assessmentsIn, WEEKLY_HOURS, WEEKLY_TOTAL, BLOCK_FORMAT } from "@/lib/semesterPlan";
+import { CALENDAR } from "@/lib/assessments";
 import { CAT_COLORS } from "@/lib/weekPlan";
 import { isoDate } from "@/lib/dayPlan";
 
@@ -23,6 +24,7 @@ export function SemesterWeekPanel() {
   if (!w) return null;
 
   const assessments = assessmentsIn(w);
+  const events = CALENDAR.filter(c => c.date >= w.from && c.date <= w.to && c.date >= today);
 
   return (
     <div className="rounded-2xl p-4 md:p-5"
@@ -66,6 +68,27 @@ export function SemesterWeekPanel() {
       <p className="text-xs mt-2 leading-relaxed" style={{ color: "var(--text-muted)" }}>
         <strong style={{ color: "var(--text)" }}>Get ahead on:</strong> {w.getAhead}
       </p>
+
+      {events.length > 0 && (
+        <div className="mt-3 rounded-xl px-3 py-2.5 space-y-1.5" style={{ background: "var(--bg)" }}>
+          {events.map(e => (
+            <div key={e.id} className="flex gap-2">
+              {e.kind === "review"
+                ? <Video size={12} className="flex-shrink-0 mt-0.5" style={{ color: "#2E6FBF" }} />
+                : <Sun size={12} className="flex-shrink-0 mt-0.5" style={{ color: "#C97A52" }} />}
+              <div className="min-w-0">
+                <span className="text-xs font-semibold" style={{ color: "var(--text)" }}>
+                  {new Date(`${e.date}T12:00:00`).toLocaleDateString("en-US", { weekday: "short" })}
+                  {e.kind === "review" ? ` ${e.time} · ` : " · "}{e.title}
+                </span>
+                {e.note && (
+                  <p className="text-[11px] leading-relaxed" style={{ color: "var(--text-muted)" }}>{e.note}</p>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {cp && (
         <div className="mt-3 rounded-xl px-3 py-2.5" style={{ background: "var(--bg)" }}>

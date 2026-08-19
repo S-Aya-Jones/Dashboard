@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { Check, AlertTriangle, TrendingUp } from "lucide-react";
 import type { DashboardData } from "@/types/dashboard";
 import { ASSESSMENTS } from "@/lib/assessments";
-import { allCourseGrades, verdict, letterFor, QUIZ_1, type Score } from "@/lib/grades";
+import { allCourseGrades, verdict, letterFor, QUIZ_1, EFFECTIVE_QUIZ_WEIGHT, type Score } from "@/lib/grades";
 
 // Where the A actually stands, today.
 //
@@ -35,6 +35,7 @@ export function GradesView({ data, update }: Props) {
   const [outOf, setOutOf] = useState("");
 
   const grades = useMemo(() => allCourseGrades(scores), [scores]);
+  const replacedCourses = grades.filter(g => g.quizOneReplaced).map(g => g.short);
 
   const save = (id: string) => {
     const e = parseFloat(earned);
@@ -60,6 +61,21 @@ export function GradesView({ data, update }: Props) {
           Every score you enter moves these numbers. Assignments and attendance are counted as full
           marks — that&apos;s 10 free points per course and the cheapest insurance there is.
         </p>
+
+        {replacedCourses.length > 0 && (
+          <div className="mt-3 rounded-xl px-3 py-2.5" style={{ background: "var(--bg)", borderLeft: "3px solid #0F8A55" }}>
+            <p className="text-xs font-semibold" style={{ color: "#0F8A55" }}>
+              Quiz 1 is off the board in {replacedCourses.length === 4 ? "all four courses" : replacedCourses.join(", ")}
+            </p>
+            <p className="text-[11px] mt-1 leading-relaxed" style={{ color: "var(--text-muted)" }}>
+              The 8/19 announcement replaces any Quiz 1 at or below 11/15 with the Quiz 2–5 average.
+              Yours all qualify, so Quiz 1 is dropped from the arithmetic below and the four remaining
+              quizzes carry {EFFECTIVE_QUIZ_WEIGHT}% each instead of 5%. The Micro 5/15 is gone.
+              Worth one email to Dr. Nayyar or Brandon Battle to confirm it&apos;s the higher of the two —
+              CMB landed exactly on 11/15.
+            </p>
+          </div>
+        )}
       </div>
 
       {grades.map(g => {
@@ -107,17 +123,21 @@ export function GradesView({ data, update }: Props) {
                 const s = scores.find(x => x.id === a.id);
                 const pct = s && s.outOf > 0 ? (s.earned / s.outOf) * 100 : null;
                 const isEditing = editing === a.id;
+                const dropped = g.quizOneReplaced && a.kind === "quiz" && a.number === 1;
+                const weight = g.quizOneReplaced && a.kind === "quiz" && a.number !== 1
+                  ? EFFECTIVE_QUIZ_WEIGHT : a.weightPct;
                 return (
                   <div key={a.id} className="flex items-center gap-2 rounded-lg px-2.5 py-1.5"
-                    style={{ background: pct !== null ? "var(--bg)" : undefined }}>
-                    <span className="text-xs w-24 flex-shrink-0" style={{ color: "var(--text)" }}>
+                    style={{ background: pct !== null && !dropped ? "var(--bg)" : undefined, opacity: dropped ? 0.55 : 1 }}>
+                    <span className="text-xs w-24 flex-shrink-0"
+                      style={{ color: "var(--text)", textDecoration: dropped ? "line-through" : undefined }}>
                       {a.kind === "exam" ? "Exam" : "Quiz"} {a.number}
                     </span>
                     <span className="text-[11px] tabular-nums w-16 flex-shrink-0" style={{ color: "var(--text-light)" }}>
                       {new Date(`${a.date}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                     </span>
                     <span className="text-[11px] w-8 flex-shrink-0 tabular-nums" style={{ color: "var(--text-light)" }}>
-                      {a.weightPct}%
+                      {dropped ? "—" : `${weight % 1 === 0 ? weight : weight.toFixed(2)}%`}
                     </span>
 
                     {isEditing ? (
@@ -139,8 +159,11 @@ export function GradesView({ data, update }: Props) {
                     ) : pct !== null ? (
                       <>
                         <span className="text-sm font-semibold tabular-nums flex-1"
-                          style={{ color: pct >= 90 ? "#0F8A55" : pct >= 80 ? "#C97A52" : "#C0503C" }}>
-                          {s!.earned}/{s!.outOf} · {pct.toFixed(0)}%
+                          style={{ color: dropped ? "var(--text-light)" : pct >= 90 ? "#0F8A55" : pct >= 80 ? "#C97A52" : "#C0503C" }}>
+                          {s!.earned}/{s!.outOf}
+                          {dropped
+                            ? <span className="font-normal not-italic"> · replaced by your Quiz 2–5 average</span>
+                            : ` · ${pct.toFixed(0)}%`}
                         </span>
                         <button onClick={() => { setEditing(a.id); setEarned(String(s!.earned)); setOutOf(String(s!.outOf)); }}
                           className="text-[11px] underline" style={{ color: "var(--text-light)" }}>edit</button>

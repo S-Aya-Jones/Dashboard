@@ -46,175 +46,175 @@ function cut(date: string, label: string, note?: string): DatedChange {
   return { id: `${date}-${label}-cut`, date, kind: "cancel", label, startTime: null, endTime: null, note: note ?? null };
 }
 
-// ── The catch-up week ──────────────────────────────────────────────────────
+// ── The Exam 1 sprint, Aug 19 to Sep 1 ────────────────────────────────────
 //
-// Second week of the MHS program, started late, roughly sixteen lectures
-// behind. Built from her own plan, then corrected against the four syllabi —
-// which named the courses she had left blank and, more importantly, showed two
-// assessments her plan didn't know about:
+// Supersedes the catch-up week. The 8/19/26 programme email changed two things
+// that matter more than anything in the old plan:
 //
-//   Mon Aug 17  1pm   CMB Quiz 1              5%
-//   Wed Aug 19  1pm   Micro Quiz 1            5%
-//   Mon Aug 24  8am   Biochemistry Exam 1    15%   <- not in her plan
-//   Tue Aug 25  8am   CMB Exam 1             15%   <- not in her plan
-//   Mon Aug 31  8am   Physiology Exam 1      15%
-//   Tue Sep  1  8am   Microbiology Exam 1    15%
+//   Every Quiz 1 at or below 11/15 is replaced by the Quiz 2–5 average, and
+//   all four of hers qualify. The Micro 5/15 that made that course a coin flip
+//   is simply gone.
 //
-// Her plan ended on the 21st with the two quizzes handled. That would have run
-// straight into a 15% Biochem exam with three of its four lectures unstudied,
-// so the week now runs through the 25th and starts Biochem on the Monday night.
+//   Biochem Exam 1 moved Mon 8/24 -> Wed 8/26, CMB Exam 1 Tue 8/25 -> Thu 8/27,
+//   both now a midnight-to-10am window rather than an 8am sitting. Physio 8/31
+//   and Micro 9/1 did not move.
 //
-// The sequencing rule underneath it: new concepts in the first two blocks of a
-// day, retrieval and drilling in the last. Hour nine is fine for testing
-// yourself and bad for meeting RyR1 for the first time.
+// Net: two more prep days on the front, and four Exam 1s inside five business
+// days instead of nine. Prep time gained, recovery time lost — so this is
+// written as one continuous push rather than two separate weeks.
+//
+// The windowed exams are placed at 6am so a normal workday still fits. That is
+// the one early start in here, it is twice, and it is the reason the change
+// helps at all.
 
-const CATCH_UP: DatedChange[] = [
-  // ── Friday Aug 14 — three hours, plus cooking and laundry ──
-  cut("2026-08-14", "Gym"),
-  cut("2026-08-14", "Flex —"),
-  cut("2026-08-14", "Deandra time", "Your own plan runs to 8 tonight — move her to Sunday evening."),
-  add("2026-08-14", "16:00", "16:30", "Inventory — every lecture you're behind on", "study",
-    "Four columns, sixteen lines. Mark which lectures each quiz and exam covers. This is the whole weekend's map."),
-  add("2026-08-14", "16:30", "17:00", "Gather materials into one folder", "study",
-    "Slides, study guides, practice tests, the group-chat Quizlet. Once, so you never hunt again this weekend."),
-  add("2026-08-14", "17:00", "18:30", "CMB — lecture 1, full loop", "study",
-    "Eukaryotic cell structure. Read for shape, close it, rebuild out loud, then test cold."),
-  add("2026-08-14", "18:30", "19:00", "Dinner — and start a load of laundry", "life"),
-  add("2026-08-14", "19:00", "20:00", "CMB — lecture 2, first pass only", "study",
-    "Cell culture, cell lines and stem cells. Shape and main chain, no drilling yet."),
-  add("2026-08-14", "20:00", "21:15", "Cook the weekend's meals + fold laundry", "life",
-    "Lecture recordings playing. Cooking now is what buys Saturday and Sunday back."),
-  add("2026-08-14", "21:15", "21:45", "Skincare, bed", "rest", "Seven hours minimum. Saturday is nine hours long."),
-
-  // ── Saturday Aug 15 — nine hours ──
-  cut("2026-08-15", "Hospital shadowing", "Shadowing pauses first in a catch-up week."),
-  cut("2026-08-15", "Major driving exposure", "Never the weekend before an assessment."),
-  cut("2026-08-15", "Legal — storage unit"),
-  cut("2026-08-15", "Cleaning reset"),
-  cut("2026-08-15", "Gym"),
-  cut("2026-08-15", "Open —"),
-  cut("2026-08-15", "Up + breakfast"),
-  cut("2026-08-15", "Lunch"),
-  cut("2026-08-15", "Skincare, bed"),
-  add("2026-08-15", "07:30", "08:30", "Up, breakfast, at the desk by 8:30", "rest"),
-  add("2026-08-15", "08:30", "11:00", "CMB — finish lecture 2, then lecture 3", "study",
-    "Cell communication I. New material, highest load, freshest hours."),
-  add("2026-08-15", "11:00", "11:45", "Break — food, off screens", "rest"),
-  add("2026-08-15", "11:45", "13:45", "CMB — lecture 4", "study", "Cell communication II. New material, high load."),
-  add("2026-08-15", "13:45", "14:30", "Break — walk if you can", "rest"),
-  add("2026-08-15", "14:30", "16:30", "Micro — lecture 1", "study", "Bacterial cytology I. New material, high load."),
-  add("2026-08-15", "16:30", "17:15", "Break", "rest"),
-  add("2026-08-15", "17:15", "18:30", "Cold retrieval — all four CMB lectures", "study",
-    "No notes. Monday's quiz is exactly these four."),
-  add("2026-08-15", "18:30", "19:15", "Dinner", "life"),
-  add("2026-08-15", "19:15", "21:00", "Physiology — troponin, tropomyosin, M line, the NMJ", "study",
-    "Physio Exam 1 is Aug 31 and covers all of this. Review-shaped, so it's fine this late."),
-
-  // ── Sunday Aug 16 — eight hours ──
-  cut("2026-08-16", "Long study"),
-  cut("2026-08-16", "Groceries"),
-  cut("2026-08-16", "Cook Mon–Wed meals", "You cooked Friday night."),
-  cut("2026-08-16", "Study — error log review"),
-  cut("2026-08-16", "Week planning"),
-  cut("2026-08-16", "Dinner"),
-  cut("2026-08-16", "Skincare hour"),
-  cut("2026-08-16", "Therapy", "Sunday therapy starts Aug 30 — the 22nd is the last Saturday session."),
-  add("2026-08-16", "08:30", "09:30", "Cold retrieval — CMB. Produces the fix list.", "study",
-    "Church is 9–12. If you go, this and the patch below move to 12:30 and 1:30, and lunch moves to 4."),
-  add("2026-08-16", "09:30", "10:30", "Patch only the CMB misses", "study", "Ignore what already works. The fix list is the whole agenda."),
-  add("2026-08-16", "10:30", "11:00", "Break", "rest"),
-  add("2026-08-16", "11:00", "13:00", "Micro — lectures 2 and 3", "study", "Bacterial cytology II, bacterial physiology I."),
-  add("2026-08-16", "13:00", "14:00", "Lunch and a real break", "life"),
-  add("2026-08-16", "14:00", "16:00", "Micro — lectures 4 and 5", "study", "Bacterial physiology II, antimicrobial agents. That closes Wednesday's quiz."),
-  add("2026-08-16", "16:00", "16:45", "Break", "rest"),
-  add("2026-08-16", "16:45", "18:30", "Physiology — excitation-contraction coupling", "study",
-    "T-tubules, DHPR, the triad, RyR1 releases and SERCA stores, calcium binds troponin C, the cross-bridge cycle, relaxation, malignant hyperthermia."),
-  add("2026-08-16", "18:30", "19:15", "Dinner", "life"),
-  add("2026-08-16", "19:15", "20:15", "Second cold retrieval — CMB", "study",
-    "The highest-value hour of the weekend. Spaced retrieval sixteen hours before the quiz beats new coverage almost every time."),
-  add("2026-08-16", "20:15", "21:00", "Skincare, bed", "rest", "Tonight's sleep is part of tomorrow's quiz."),
-
-  // ── Mon Aug 17 — CMB Quiz 1, 1pm ──
-  add("2026-08-17", "13:00", "13:45", "CMB Quiz 1", "study", "5% of the grade. Four lectures: cell structure, cell culture, cell communication I and II."),
-  cut("2026-08-17", "Block 1 — Biochemistry"),
-  cut("2026-08-17", "Block 2 — Physiology"),
-  add("2026-08-17", "17:00", "18:30", "Micro — cold retrieval, then patch", "study",
-    "Quiz behind you. Wednesday's Micro quiz is the next thing standing."),
-  add("2026-08-17", "19:00", "20:00", "Biochem — lecture 2, amino acid ionization", "study",
-    "Biochem Exam 1 is one week today and worth 15%. Starting it tonight is what stops next weekend being this weekend again."),
-
-  // ── Tue Aug 18 ──
-  cut("2026-08-18", "Block 1 — Microbiology"),
-  cut("2026-08-18", "Block 2 — Cell & Molecular Bio"),
-  add("2026-08-18", "17:00", "18:30", "Micro — second retrieval and patch", "study", "Second pass on the fix list. Tomorrow is the quiz."),
-  add("2026-08-18", "19:00", "20:00", "Biochem — lecture 3, protein structure", "study",
-    "Peptide bonds, phi and psi, the four levels, collagen and scurvy, misfolding, prions."),
-
-  // ── Wed Aug 19 — Micro Quiz 1, 1pm ──
-  add("2026-08-19", "13:00", "13:45", "Micro Quiz 1", "study", "5%. Bacterial cytology I and II, physiology I and II, antimicrobial agents."),
-  cut("2026-08-19", "Light review"),
+const SPRINT: DatedChange[] = [
+  // ── Wed Aug 19 — the announcement lands, Micro Quiz 1 is done ──
   cut("2026-08-19", "MCAT"),
-  add("2026-08-19", "17:00", "18:30", "Biochem — lecture 3, the separation half", "study",
-    "Ion exchange, size exclusion, affinity, SDS-PAGE, native PAGE, IEF, 2D, Edman, mass spec, X-ray vs NMR."),
-  add("2026-08-19", "19:00", "20:00", "Biochem — lecture 4, Enzymes I, first pass", "study", "Both quizzes are behind you. Everything now points at Monday."),
+  cut("2026-08-19", "Light review"),
+  add("2026-08-19", "17:00", "18:30", "Biochem — rework every missed Quiz 1 question", "study",
+    "Start the error log with them. Then water, ionization, buffers, and pH vs pKa maths cold."),
+  add("2026-08-19", "19:00", "20:00", "Micro deck — bacterial cytology I and II", "study",
+    "The deck starts tonight. 15 minutes a day from here is the single thing that decides Micro."),
+  add("2026-08-19", "21:00", "21:20", "Watch the Biochem Exam 1 review recording", "study",
+    "It ran at 9 this morning. The reviews are the closest thing to being told what's on the exam."),
 
   // ── Thu Aug 20 ──
-  cut("2026-08-20", "Block 1 — Microbiology"),
-  cut("2026-08-20", "Block 2 — Cell & Molecular Bio"),
-  add("2026-08-20", "17:00", "18:30", "Biochem — Enzymes I, full loop", "study",
-    "Catalysts, active site, cofactors, apo vs holo, the six EC classes, transition state, binding energy, induced fit, the four mechanisms, chymotrypsin, isozymes, ribozymes."),
-  add("2026-08-20", "19:00", "20:00", "Biochem — cold retrieval across lectures 1–4", "study", "Four days out. This is the pass that finds what's missing."),
+  cut("2026-08-20", "Block 1 — nearest assessment"),
+  cut("2026-08-20", "Block 2 — next course up"),
+  add("2026-08-20", "17:00", "18:30", "Biochem — cellular organisation, amino acids, then proteins", "study",
+    "Structure, separation, purification. Ionization and pI calculation are the part that was never covered."),
+  add("2026-08-20", "19:00", "20:00", "CMB — rework missed Quiz 1 questions, start the error log", "study"),
 
-  // ── Fri Aug 21 ──
+  // ── Fri Aug 21 — CMB review live at 8, off after 7 ──
   cut("2026-08-21", "Flex —"),
   cut("2026-08-21", "Gym"),
-  add("2026-08-21", "16:00", "17:30", "Biochem — patch the fix list", "study", "Only the misses from last night. Nothing that already works."),
-  add("2026-08-21", "18:00", "21:00", "Deandra time", "people", "Take it. Saturday and Sunday are both long."),
+  add("2026-08-21", "08:00", "09:00", "CMB Exam 1 review — attend live", "study",
+    "Live, not the recording. Missing a review to study alone is a bad trade."),
+  add("2026-08-21", "16:00", "17:30", "Biochem — Enzymes I and II", "study",
+    "Kinetics plots and inhibition types are the highest-yield material on this exam."),
 
-  // ── Sat Aug 22 — last Saturday therapy, and the Biochem push ──
-  cut("2026-08-22", "Hospital shadowing", "Exam week — shadowing pauses first."),
-  cut("2026-08-22", "Major driving exposure", "Never the weekend before an assessment."),
+  // ── Sat Aug 22 — last Saturday therapy ──
+  cut("2026-08-22", "Hospital shadowing", "Shadowing pauses first in an exam sprint."),
+  cut("2026-08-22", "Major driving exposure"),
   cut("2026-08-22", "Legal — storage unit"),
+  cut("2026-08-22", "THE BIG BLOCK"),
+  cut("2026-08-22", "Lunch"),
+  cut("2026-08-22", "Short exposure drive"),
+  cut("2026-08-22", "Gym"),
   add("2026-08-22", "10:00", "11:00", "Therapy — last Saturday session", "therapy",
     "From the 30th this moves to Sundays at 10, where it collides with church."),
-  add("2026-08-22", "11:30", "13:30", "Biochem — full cold retrieval, lectures 1–4", "study", "Two days out. No notes."),
-  add("2026-08-22", "14:00", "16:00", "Biochem — patch, then practice questions", "study", "Questions first, then study only what you missed."),
-  add("2026-08-22", "16:30", "18:00", "CMB — Exam 1 material, first sweep", "study",
-    "CMB Exam 1 is Tuesday. It's the four quiz lectures plus the cell cycle and cancer."),
+  add("2026-08-22", "11:30", "15:00", "Biochem — full closed-note self test, all five topics", "study",
+    "Cold, then patch only the misses. This is the block that turns the week into a grade."),
+  add("2026-08-22", "15:30", "18:00", "CMB — cell structure, cell culture and stem cells, signalling I and II", "study"),
 
   // ── Sun Aug 23 ──
-  cut("2026-08-23", "Groceries"),
   cut("2026-08-23", "Long study"),
-  add("2026-08-23", "07:30", "09:00", "Biochem — final pass before church", "study", "Fresh brain. Error log only."),
-  add("2026-08-23", "14:00", "16:00", "CMB — cell cycle and cancer", "study", "The two lectures that are on the exam but weren't on the quiz."),
-  add("2026-08-23", "17:00", "18:30", "Biochem — last cold retrieval", "study", "Fifteen hours out. This is the highest-value block of the day."),
-  add("2026-08-23", "19:15", "20:15", "CMB — cold retrieval", "study", "Sets up Tuesday while Monday is still fresh."),
+  cut("2026-08-23", "Groceries"),
+  cut("2026-08-23", "Error log — all four courses"),
+  cut("2026-08-23", "Weekly reset"),
+  cut("2026-08-23", "Cook Mon–Wed meals"),
+  add("2026-08-23", "07:30", "08:45", "Biochem — error log, then a second self test on enzymes only", "study",
+    "Fresh brain before church. Only the enzymes."),
+  add("2026-08-23", "14:00", "16:30", "CMB — cell cycle, cell cycle disruption and cancer", "study",
+    "The two lectures that are on the exam but were never on the quiz."),
+  add("2026-08-23", "19:30", "20:00", "Weekly reset — confirm BOTH exams are downloadable", "study",
+    "A missed download window is an automatic zero however prepared you are. Check both now, not Tuesday night."),
 
-  // ── Mon Aug 24 — Biochemistry Exam 1, 8am ──
-  add("2026-08-24", "08:00", "10:00", "Biochemistry Exam 1", "study", "15% of the grade. Lectures 1–4."),
-  cut("2026-08-24", "Block 1 — Biochemistry"),
-  cut("2026-08-24", "Block 2 — Physiology"),
-  cut("2026-08-24", "Gym"),
-  add("2026-08-24", "17:00", "18:30", "CMB — patch the fix list", "study", "One exam down. CMB Exam 1 is tomorrow at 8."),
-  add("2026-08-24", "19:00", "20:00", "CMB — final cold retrieval", "study", "Then stop. Sleep is the rest of the revision."),
+  // ── Mon Aug 24 ──
+  cut("2026-08-24", "Block 1 — nearest assessment"),
+  cut("2026-08-24", "Block 2 — next course up"),
+  add("2026-08-24", "10:00", "11:00", "Micro — Microbial Variation lecture", "work", "During work. Capture mode."),
+  add("2026-08-24", "17:00", "18:30", "Biochem — final full self test", "study",
+    "Anything under 90 goes straight on the log for tomorrow."),
+  add("2026-08-24", "19:00", "20:00", "CMB — full self test across all six topics", "study"),
 
-  // ── Tue Aug 25 — CMB Exam 1, 8am, and back to normal ──
-  add("2026-08-25", "08:00", "10:00", "Cell & Molecular Bio Exam 1", "study", "15%. Cell structure through cell cycle disruption."),
-  cut("2026-08-25", "Block 1 — Microbiology"),
-  cut("2026-08-25", "Block 2 — Cell & Molecular Bio"),
-  add("2026-08-25", "17:00", "18:30", "Physiology — cardiac and blood", "study",
-    "Physio Exam 1 is Aug 31. Hemostasis, vWF and GPIb vs GPIIb/IIIa, the coagulation cascade (10 → 2 → 1 → 13), albumin and oncotic pressure, left vs right heart failure. Classmates flagged coagulation as the hardest piece."),
-  add("2026-08-25", "19:00", "20:00", "Free — two exams in two days", "rest", "Deliberately empty. Take it."),
+  // ── Tue Aug 25 — the night before ──
+  cut("2026-08-25", "Block 1 — nearest assessment"),
+  cut("2026-08-25", "Block 2 — next course up"),
+  cut("2026-08-25", "Gym"),
+  add("2026-08-25", "17:00", "18:00", "Biochem — error log only. Stop by 8.", "study", "Nothing new tonight."),
+  add("2026-08-25", "18:00", "18:30", "CMB — patch the misses only, light", "study"),
+  add("2026-08-25", "21:00", "21:20", "Tech check", "rest",
+    "Webcam, mic, bandwidth, Examplify login. A dead feed means no points, however well you know it."),
+
+  // ── Wed Aug 26 — BIOCHEM EXAM 1, window midnight to 10am ──
+  add("2026-08-26", "06:00", "08:00", "BIOCHEMISTRY EXAM 1 — sit it early in the window", "study",
+    "15% of the grade. The window is midnight to 10am — sitting it at 6 still leaves you a normal workday."),
+  cut("2026-08-26", "Light review"),
+  cut("2026-08-26", "Up, breakfast, at your desk", "Exam window opens at midnight — you\u2019re up for it."),
+  cut("2026-08-26", "MCAT"),
+  cut("2026-08-26", "WFH ·"),
+  add("2026-08-26", "08:00", "11:00", "WFH — desk from 8 · Biochem 8–10 · Physio from 10", "work",
+    "You’re home. The exam runs until 8, then you’re at your desk as normal."),
+  add("2026-08-26", "10:00", "11:00", "CMB — DNA Structure lecture", "work", "During work."),
+  add("2026-08-26", "17:00", "18:30", "CMB — final full review", "study", "Then stop by 8. Nothing new."),
+
+  // ── Thu Aug 27 — CMB EXAM 1, and the Physio review ──
+  add("2026-08-27", "06:00", "08:00", "CELL & MOLECULAR EXAM 1 — sit it early in the window", "study", "15%. Midnight to 10am."),
+  cut("2026-08-27", "Block 1 — nearest assessment"),
+  cut("2026-08-27", "Block 2 — next course up"),
+  cut("2026-08-27", "Gym"),
+  cut("2026-08-27", "Up, shower, breakfast, out", "Exam window opens at midnight — you\u2019re up for it."),
+  cut("2026-08-27", "Work · Micro"),
+  add("2026-08-27", "08:30", "12:00", "Work — late start, in at 8:30", "work",
+    "Ask for it this week, not that morning. Two hours, once, for a 15% exam."),
+  add("2026-08-27", "10:00", "11:00", "Physiology Exam 1 review — attend live", "study", "Even on exam morning. This one is worth it."),
+  add("2026-08-27", "13:00", "14:00", "Micro — Genetic Exchange lecture", "work",
+    "Moved from 8am to 1pm and it collides with your exam morning. You are still responsible for it — catch the recording."),
+  add("2026-08-27", "19:00", "20:00", "Physio — rework missed Quiz 1 questions", "study", "Rest until the evening. Then start."),
+
+  // ── Fri Aug 28 ──
+  cut("2026-08-28", "Flex —"),
+  cut("2026-08-28", "Gym"),
+  add("2026-08-28", "09:00", "10:00", "Microbiology Exam 1 review — attend live", "study"),
+  add("2026-08-28", "16:00", "17:30", "Physio — fluid homeostasis and membrane transport", "study"),
+  add("2026-08-28", "17:30", "18:00", "Micro — antimicrobial agents", "study"),
+
+  // ── Sat Aug 29 ──
+  cut("2026-08-29", "Hospital shadowing"),
+  cut("2026-08-29", "Major driving exposure"),
+  cut("2026-08-29", "THE BIG BLOCK"),
+  cut("2026-08-29", "Lunch"),
+  cut("2026-08-29", "Gym"),
+  cut("2026-08-29", "Short exposure drive"),
+  add("2026-08-29", "09:00", "12:00", "Physio — NMJ and muscle, then heart, blood and circulation", "study"),
+  add("2026-08-29", "13:00", "16:00", "Micro — bacterial physiology I and II, gene regulation, microbial variation", "study"),
+
+  // ── Sun Aug 30 — Sunday therapy starts, and it clashes with church ──
+  cut("2026-08-30", "Long study"),
+  cut("2026-08-30", "Groceries"),
+  cut("2026-08-30", "Error log — all four courses"),
+  cut("2026-08-30", "Weekly reset"),
+  cut("2026-08-30", "Cook Mon–Wed meals"),
+  add("2026-08-30", "07:30", "08:45", "Physio — full closed-notes self test, all four topics", "study", "Then patch the misses."),
+  add("2026-08-30", "14:00", "16:30", "Micro — genetic exchange, then deck review of all 16 lectures", "study",
+    "Every lecture the exam covers, through the deck. This is what the deck was started for."),
+  add("2026-08-30", "19:30", "20:00", "Confirm both exams downloaded. Tech check.", "study"),
+
+  // ── Mon Aug 31 — PHYSIO EXAM 1 ──
+  add("2026-08-31", "08:00", "10:00", "PHYSIOLOGY EXAM 1", "study", "15%. Fixed 8am start — this one did not move."),
+  cut("2026-08-31", "Block 1 — nearest assessment"),
+  cut("2026-08-31", "Gym"),
+  cut("2026-08-31", "Block 2 — next course up"),
+  add("2026-08-31", "17:00", "18:30", "Micro — full self test across all eight exam topics", "study", "Then patch. Tomorrow is the last one."),
+  add("2026-08-31", "19:00", "20:00", "Micro — patch the misses", "study"),
+
+  // ── Tue Sep 1 — MICRO EXAM 1, then stop ──
+  add("2026-09-01", "08:00", "10:00", "MICROBIOLOGY EXAM 1", "study", "15%. The last of the four."),
+  cut("2026-09-01", "Block 1 — nearest assessment"),
+  cut("2026-09-01", "Block 2 — next course up"),
+  add("2026-09-01", "17:00", "18:30", "Done. Take the evening.", "rest",
+    "Four exams in five business days. CMB Quiz 2 is Friday, so pre-load DNA topics Wednesday and Thursday — but not tonight."),
 ];
 
 export const TEMP_WEEKS: TempWeek[] = [
   {
-    id: "catch-up-aug-2026",
-    name: "Catch-up week",
-    why: "Sixteen lectures behind. CMB quiz Monday, Micro quiz Wednesday, then Biochem and CMB exams on the 24th and 25th. Everything cuttable is cut.",
-    from: "2026-08-14",
-    to: "2026-08-25",
-    changes: CATCH_UP,
+    id: "exam-1-sprint-2026",
+    name: "Exam 1 sprint",
+    why: "Four Exam 1s in five business days — Biochem 8/26, CMB 8/27, Physio 8/31, Micro 9/1. Everything cuttable is cut until it\u2019s over.",
+    from: "2026-08-19",
+    to: "2026-09-01",
+    changes: SPRINT,
   },
 ];
 
