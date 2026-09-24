@@ -46,175 +46,68 @@ function cut(date: string, label: string, note?: string): DatedChange {
   return { id: `${date}-${label}-cut`, date, kind: "cancel", label, startTime: null, endTime: null, note: note ?? null };
 }
 
-// ── The Exam 1 sprint, Aug 19 to Sep 1 ────────────────────────────────────
+// ── Recovery, Sep 24 to Oct 6 ─────────────────────────────────────────────
 //
-// Supersedes the catch-up week. The 8/19/26 programme email changed two things
-// that matter more than anything in the old plan:
+// From the break plan: "Rest, sleep, food, therapy, short walks. Nothing
+// scheduled beyond the cleanup list. Physical recovery is the job."
 //
-//   Every Quiz 1 at or below 11/15 is replaced by the Quiz 2–5 average, and
-//   all four of hers qualify. The Micro 5/15 that made that course a coin flip
-//   is simply gone.
-//
-//   Biochem Exam 1 moved Mon 8/24 -> Wed 8/26, CMB Exam 1 Tue 8/25 -> Thu 8/27,
-//   both now a midnight-to-10am window rather than an 8am sitting. Physio 8/31
-//   and Micro 9/1 did not move.
-//
-// Net: two more prep days on the front, and four Exam 1s inside five business
-// days instead of nine. Prep time gained, recovery time lost — so this is
-// written as one continuous push rather than two separate weeks.
-//
-// The windowed exams are placed at 6am so a normal workday still fits. That is
-// the one early start in here, it is twice, and it is the reason the change
-// helps at all.
+// So this strips the Oct-7 week back to work, therapy, food, sleep and the
+// journal, and puts a walk where the workout would be. It is written as a
+// temporary week rather than as the normal one because it expires by itself on
+// October 7 — which is the only way a rest fortnight doesn't quietly become the
+// new baseline, and the only way the real plan starts on time without her
+// having to remember to switch it on.
 
-const SPRINT: DatedChange[] = [
-  // ── Wed Aug 19 — the announcement lands, Micro Quiz 1 is done ──
-  cut("2026-08-19", "MCAT"),
-  cut("2026-08-19", "Light review"),
-  add("2026-08-19", "17:00", "18:30", "Biochem — rework every missed Quiz 1 question", "study",
-    "Start the error log with them. Then water, ionization, buffers, and pH vs pKa maths cold."),
-  add("2026-08-19", "19:00", "20:00", "Micro deck — bacterial cytology I and II", "study",
-    "The deck starts tonight. 15 minutes a day from here is the single thing that decides Micro."),
-  add("2026-08-19", "21:00", "21:20", "Watch the Biochem Exam 1 review recording", "study",
-    "It ran at 9 this morning. The reviews are the closest thing to being told what's on the exam."),
+const RECOVERY: DatedChange[] = (() => {
+  const out: DatedChange[] = [];
+  const from = new Date("2026-09-24T12:00:00");
+  const to = new Date("2026-10-06T12:00:00");
 
-  // ── Thu Aug 20 ──
-  cut("2026-08-20", "Block 1 — nearest assessment"),
-  cut("2026-08-20", "Block 2 — next course up"),
-  add("2026-08-20", "17:00", "18:30", "Biochem — cellular organisation, amino acids, then proteins", "study",
-    "Structure, separation, purification. Ionization and pI calculation are the part that was never covered."),
-  add("2026-08-20", "19:00", "20:00", "CMB — rework missed Quiz 1 questions, start the error log", "study"),
+  for (let d = new Date(from); d <= to; d.setDate(d.getDate() + 1)) {
+    const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const dow = d.getDay();
 
-  // ── Fri Aug 21 — CMB review live at 8, off after 7 ──
-  cut("2026-08-21", "Flex —"),
-  cut("2026-08-21", "Gym"),
-  add("2026-08-21", "08:00", "09:00", "CMB Exam 1 review — attend live", "study",
-    "Live, not the recording. Missing a review to study alone is a bad trade."),
-  add("2026-08-21", "16:00", "17:30", "Biochem — Enzymes I and II", "study",
-    "Kinetics plots and inhibition types are the highest-yield material on this exam."),
+    // Everything the plan says to stop doing for a fortnight.
+    out.push(cut(date, "Bio and gen chem foundations", "Not this fortnight. Recovery is the job."));
+    out.push(cut(date, "Job search", "Starts October 7."));
+    out.push(cut(date, "Ladder workout", "Walks instead until the 7th."));
+    out.push(cut(date, "Driving exposure", "Exposures restart October 7."));
+    out.push(cut(date, "Shadowing", "From November."));
+    out.push(cut(date, "Cleaning reset"));
 
-  // ── Sat Aug 22 — last Saturday therapy ──
-  cut("2026-08-22", "Hospital shadowing", "Shadowing pauses first in an exam sprint."),
-  cut("2026-08-22", "Major driving exposure"),
-  cut("2026-08-22", "Legal — storage unit"),
-  cut("2026-08-22", "THE BIG BLOCK"),
-  cut("2026-08-22", "Lunch"),
-  cut("2026-08-22", "Short exposure drive"),
-  cut("2026-08-22", "Gym"),
-  add("2026-08-22", "10:00", "11:00", "Therapy — last Saturday session", "therapy",
-    "From the 30th this moves to Sundays at 10, where it collides with church."),
-  add("2026-08-22", "11:30", "15:00", "Biochem — full closed-note self test, all five topics", "study",
-    "Cold, then patch only the misses. This is the block that turns the week into a grade."),
-  add("2026-08-22", "15:30", "18:00", "CMB — cell structure, cell culture and stem cells, signalling I and II", "study"),
+    // Weekdays: a walk after work, then nothing asked of her.
+    if (dow >= 1 && dow <= 5) {
+      out.push(add(date, "15:00", "15:30", "Short walk", "gym", "Outside, no pace, no distance. That's the whole thing."));
+      // Friday hands over to Deandra at six, so the empty stretch ends there.
+      out.push(add(date, "15:30", dow === 5 ? "18:00" : "18:30", "Nothing scheduled", "rest",
+        "On purpose. Sleep, food, sitting down all count."));
+    }
+    if (dow === 6) {
+      out.push(add(date, "09:00", "09:30", "Short walk", "gym"));
+      out.push(add(date, "13:00", "18:00", "Nothing scheduled", "rest", "The whole afternoon. Don't fill it."));
+    }
+  }
 
-  // ── Sun Aug 23 ──
-  cut("2026-08-23", "Long study"),
-  cut("2026-08-23", "Groceries"),
-  cut("2026-08-23", "Error log — all four courses"),
-  cut("2026-08-23", "Weekly reset"),
-  cut("2026-08-23", "Cook Mon–Wed meals"),
-  add("2026-08-23", "07:30", "08:45", "Biochem — error log, then a second self test on enzymes only", "study",
-    "Fresh brain before church. Only the enzymes."),
-  add("2026-08-23", "14:00", "16:30", "CMB — cell cycle, cell cycle disruption and cancer", "study",
-    "The two lectures that are on the exam but were never on the quiz."),
-  add("2026-08-23", "19:30", "20:00", "Weekly reset — confirm BOTH exams are downloadable", "study",
-    "A missed download window is an automatic zero however prepared you are. Check both now, not Tuesday night."),
+  // The dated things that do have to happen.
+  out.push(add("2026-10-02", "14:35", "14:55", "PAY THE ELECTRIC — $341", "life",
+    "Same day the short check lands. This one is not optional."));
+  out.push(add("2026-09-26", "10:00", "11:30", "Cleanup list — the calls", "life",
+    "GoodRx (855) 449-0865, 8am\u20137pm CT. Then HBO Max, ChatGPT, YMCA. Ask YMCA about notice period and last charge date."));
+  out.push(add("2026-09-27", "17:00", "18:00", "Open the new savings account", "life",
+    "Not linked to the joint account. Set the $792 transfer for the 16th."));
 
-  // ── Mon Aug 24 ──
-  cut("2026-08-24", "Block 1 — nearest assessment"),
-  cut("2026-08-24", "Block 2 — next course up"),
-  add("2026-08-24", "10:00", "11:00", "Micro — Microbial Variation lecture", "work", "During work. Capture mode."),
-  add("2026-08-24", "17:00", "18:30", "Biochem — final full self test", "study",
-    "Anything under 90 goes straight on the log for tomorrow."),
-  add("2026-08-24", "19:00", "20:00", "CMB — full self test across all six topics", "study"),
+  return out;
+})();
 
-  // ── Tue Aug 25 — the night before ──
-  cut("2026-08-25", "Block 1 — nearest assessment"),
-  cut("2026-08-25", "Block 2 — next course up"),
-  cut("2026-08-25", "Gym"),
-  add("2026-08-25", "17:00", "18:00", "Biochem — error log only. Stop by 8.", "study", "Nothing new tonight."),
-  add("2026-08-25", "18:00", "18:30", "CMB — patch the misses only, light", "study"),
-  add("2026-08-25", "21:00", "21:20", "Tech check", "rest",
-    "Webcam, mic, bandwidth, Examplify login. A dead feed means no points, however well you know it."),
-
-  // ── Wed Aug 26 — BIOCHEM EXAM 1, window midnight to 10am ──
-  add("2026-08-26", "06:00", "08:00", "BIOCHEMISTRY EXAM 1 — sit it early in the window", "study",
-    "15% of the grade. The window is midnight to 10am — sitting it at 6 still leaves you a normal workday."),
-  cut("2026-08-26", "Light review"),
-  cut("2026-08-26", "Up, breakfast, at your desk", "Exam window opens at midnight — you\u2019re up for it."),
-  cut("2026-08-26", "MCAT"),
-  cut("2026-08-26", "WFH ·"),
-  add("2026-08-26", "08:00", "11:00", "WFH — desk from 8 · Biochem 8–10 · Physio from 10", "work",
-    "You’re home. The exam runs until 8, then you’re at your desk as normal."),
-  add("2026-08-26", "10:00", "11:00", "CMB — DNA Structure lecture", "work", "During work."),
-  add("2026-08-26", "17:00", "18:30", "CMB — final full review", "study", "Then stop by 8. Nothing new."),
-
-  // ── Thu Aug 27 — CMB EXAM 1, and the Physio review ──
-  add("2026-08-27", "06:00", "08:00", "CELL & MOLECULAR EXAM 1 — sit it early in the window", "study", "15%. Midnight to 10am."),
-  cut("2026-08-27", "Block 1 — nearest assessment"),
-  cut("2026-08-27", "Block 2 — next course up"),
-  cut("2026-08-27", "Gym"),
-  cut("2026-08-27", "Up, shower, breakfast, out", "Exam window opens at midnight — you\u2019re up for it."),
-  cut("2026-08-27", "Work · Micro"),
-  add("2026-08-27", "08:30", "12:00", "Work — late start, in at 8:30", "work",
-    "Ask for it this week, not that morning. Two hours, once, for a 15% exam."),
-  add("2026-08-27", "10:00", "11:00", "Physiology Exam 1 review — attend live", "study", "Even on exam morning. This one is worth it."),
-  add("2026-08-27", "13:00", "14:00", "Micro — Genetic Exchange lecture", "work",
-    "Moved from 8am to 1pm and it collides with your exam morning. You are still responsible for it — catch the recording."),
-  add("2026-08-27", "19:00", "20:00", "Physio — rework missed Quiz 1 questions", "study", "Rest until the evening. Then start."),
-
-  // ── Fri Aug 28 ──
-  cut("2026-08-28", "Flex —"),
-  cut("2026-08-28", "Gym"),
-  add("2026-08-28", "09:00", "10:00", "Microbiology Exam 1 review — attend live", "study"),
-  add("2026-08-28", "16:00", "17:30", "Physio — fluid homeostasis and membrane transport", "study"),
-  add("2026-08-28", "17:30", "18:00", "Micro — antimicrobial agents", "study"),
-
-  // ── Sat Aug 29 ──
-  cut("2026-08-29", "Hospital shadowing"),
-  cut("2026-08-29", "Major driving exposure"),
-  cut("2026-08-29", "THE BIG BLOCK"),
-  cut("2026-08-29", "Lunch"),
-  cut("2026-08-29", "Gym"),
-  cut("2026-08-29", "Short exposure drive"),
-  add("2026-08-29", "09:00", "12:00", "Physio — NMJ and muscle, then heart, blood and circulation", "study"),
-  add("2026-08-29", "13:00", "16:00", "Micro — bacterial physiology I and II, gene regulation, microbial variation", "study"),
-
-  // ── Sun Aug 30 — Sunday therapy starts, and it clashes with church ──
-  cut("2026-08-30", "Long study"),
-  cut("2026-08-30", "Groceries"),
-  cut("2026-08-30", "Error log — all four courses"),
-  cut("2026-08-30", "Weekly reset"),
-  cut("2026-08-30", "Cook Mon–Wed meals"),
-  add("2026-08-30", "07:30", "08:45", "Physio — full closed-notes self test, all four topics", "study", "Then patch the misses."),
-  add("2026-08-30", "14:00", "16:30", "Micro — genetic exchange, then deck review of all 16 lectures", "study",
-    "Every lecture the exam covers, through the deck. This is what the deck was started for."),
-  add("2026-08-30", "19:30", "20:00", "Confirm both exams downloaded. Tech check.", "study"),
-
-  // ── Mon Aug 31 — PHYSIO EXAM 1 ──
-  add("2026-08-31", "08:00", "10:00", "PHYSIOLOGY EXAM 1", "study", "15%. Fixed 8am start — this one did not move."),
-  cut("2026-08-31", "Block 1 — nearest assessment"),
-  cut("2026-08-31", "Gym"),
-  cut("2026-08-31", "Block 2 — next course up"),
-  add("2026-08-31", "17:00", "18:30", "Micro — full self test across all eight exam topics", "study", "Then patch. Tomorrow is the last one."),
-  add("2026-08-31", "19:00", "20:00", "Micro — patch the misses", "study"),
-
-  // ── Tue Sep 1 — MICRO EXAM 1, then stop ──
-  add("2026-09-01", "08:00", "10:00", "MICROBIOLOGY EXAM 1", "study", "15%. The last of the four."),
-  cut("2026-09-01", "Block 1 — nearest assessment"),
-  cut("2026-09-01", "Block 2 — next course up"),
-  add("2026-09-01", "17:00", "18:30", "Done. Take the evening.", "rest",
-    "Four exams in five business days. CMB Quiz 2 is Friday, so pre-load DNA topics Wednesday and Thursday — but not tonight."),
-];
 
 export const TEMP_WEEKS: TempWeek[] = [
   {
-    id: "exam-1-sprint-2026",
-    name: "Exam 1 sprint",
-    why: "Four Exam 1s in five business days — Biochem 8/26, CMB 8/27, Physio 8/31, Micro 9/1. Everything cuttable is cut until it\u2019s over.",
-    from: "2026-08-19",
-    to: "2026-09-01",
-    changes: SPRINT,
+    id: "recovery-2026",
+    name: "Recovery",
+    why: "Rest, sleep, food, therapy, short walks. Nothing scheduled beyond the cleanup list — physical recovery is the job until October 7.",
+    from: "2026-09-24",
+    to: "2026-10-06",
+    changes: RECOVERY,
   },
 ];
 

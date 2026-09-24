@@ -48,7 +48,7 @@ export function DashboardShell({ children }: Props) {
 
   return (
     <div className="flex min-h-screen" style={{ background: "var(--bg)" }}>
-      <Sidebar saving={saving} />
+      <Sidebar saving={saving} paused={data.pausedModules} hasPaused />
       <main className="flex-1 overflow-x-hidden pb-44 md:pb-8">
         <div className="max-w-5xl mx-auto px-4 md:px-6 py-4 md:py-8">
           {/* When the database can't be read, the screen is showing blank

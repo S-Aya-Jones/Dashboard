@@ -39,7 +39,32 @@ export function strikes(cancelLabel: string, blockLabel: string): boolean {
   const a = cancelLabel.trim().toLowerCase();
   const b = blockLabel.trim().toLowerCase();
   if (!a) return false;
-  return b.includes(a) || a.includes(b);
+  return containsWords(b, a) || containsWords(a, b);
+}
+
+/**
+ * Does `haystack` contain `needle` on whole-word boundaries?
+ *
+ * This used to be a plain substring test, which quietly matched inside words:
+ * cancelling "Ladder workout" also struck "Work", because "workout" contains
+ * "work" — so a recovery fortnight that cut the gym also deleted her job from
+ * the schedule. The same trap was live for anything she cancelled by voice.
+ *
+ * Written without lookbehind so it still runs on older Safari.
+ */
+function containsWords(haystack: string, needle: string): boolean {
+  if (!needle) return false;
+  const isWord = (c: string | undefined) => !!c && /[a-z0-9]/.test(c);
+  let from = 0;
+  for (;;) {
+    const at = haystack.indexOf(needle, from);
+    if (at < 0) return false;
+    const before = haystack[at - 1];
+    const after = haystack[at + needle.length];
+    // A boundary is the string's edge, or any non-alphanumeric character.
+    if (!isWord(before) && !isWord(after)) return true;
+    from = at + 1;
+  }
 }
 
 /**
