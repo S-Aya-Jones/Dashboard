@@ -1,8 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { PwaRegistration } from "@/components/PwaRegistration";
-import { VoiceButton } from "@/components/VoiceButton";
-import { TutorDock } from "@/components/tutor/TutorDock";
+import { FloatingDocks } from "@/components/FloatingDocks";
 import { PreviewBanner } from "@/components/ui/PreviewBanner";
 import { GoogleStatusBanner } from "@/components/ui/GoogleStatusBanner";
 
@@ -34,8 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <PreviewBanner />
         <GoogleStatusBanner />
         {children}
-        <VoiceButton />
-        <TutorDock />
+        <FloatingDocks />
       </body>
     </html>
   );

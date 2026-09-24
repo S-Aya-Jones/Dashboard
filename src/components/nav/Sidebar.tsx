@@ -7,45 +7,37 @@ import {
   Sparkles, DollarSign,
   ChevronLeft, ChevronRight, Dumbbell, Gem, UtensilsCrossed,
   LayoutGrid, MoreHorizontal, X, Zap, Shield, Bell, Mail, Clock, Mic, ListChecks, GraduationCap, Users, HeartHandshake, CircleCheck, Scissors, FolderOpen, Layers,
+  NotebookPen, Stethoscope, SlidersHorizontal, Flag, type LucideIcon,
 } from "lucide-react";
+import { visibleModules, pausedModules } from "@/lib/modules";
+import { usePausedModules } from "@/hooks/usePausedModules";
 import { useState } from "react";
 import { SaveIndicator } from "@/components/ui/SaveIndicator";
 
-const navItems = [
-  { href: "/",             label: "Today",            icon: Sun },
-  { href: "/schedule",     label: "Schedule",         icon: Clock },
-  { href: "/habits",       label: "Habits",           icon: CircleCheck },
-  { href: "/catch-up",     label: "Catch-up week",    icon: Scissors },
-  { href: "/lectures",     label: "Lecture Studio",   icon: Mic },
-  { href: "/qbank",        label: "Question Bank",    icon: ListChecks },
-  { href: "/exposure",     label: "Exposure",         icon: Brain },
-  { href: "/school-inbox", label: "School Inbox",     icon: Mail },
-  { href: "/tutor",        label: "Tutor",            icon: GraduationCap },
-  { href: "/material",     label: "Shared material",  icon: FolderOpen },
-  { href: "/partners",     label: "Study Partners",   icon: Users },
-  { href: "/connections",  label: "People",           icon: HeartHandshake },
-  { href: "/mcat",         label: "Med School",       icon: BookOpen },
-  { href: "/finances",     label: "Finances",         icon: DollarSign },
-  { href: "/reminders",    label: "Telegram",         icon: Bell },
-  { href: "/felt-safety",  label: "Felt Safety",      icon: Shield },
-  { href: "/fitness",      label: "Fitness",          icon: Dumbbell },
-  { href: "/skincare",     label: "Skincare",         icon: Sparkles },
-  { href: "/nutrition",    label: "Food",             icon: UtensilsCrossed },
-  { href: "/vision",       label: "Vision",           icon: Gem },
-];
+// Icons live here rather than in lib/modules.ts, which has to stay importable
+// from server code. The registry names them; this resolves them.
+const ICONS: Record<string, LucideIcon> = {
+  Sun, Clock, NotebookPen, CircleCheck, DollarSign, Brain, Shield, Dumbbell,
+  Sparkles, UtensilsCrossed, Mic, Layers, ListChecks, GraduationCap, Mail,
+  FolderOpen, Users, BookOpen, Scissors, Stethoscope, HeartHandshake, Bell, Gem, Flag,
+};
 
-const mobileMain = [
-  { href: "/",          label: "Today",    icon: Sun },
-  { href: "/schedule",  label: "Schedule", icon: Clock },
-  { href: "/lectures",  label: "Lectures", icon: Mic },
-  { href: "/review",    label: "Review",   icon: Layers },
-  { href: "/school",    label: "Grades",   icon: GraduationCap },
-  { href: "/tutor",     label: "Tutor",    icon: GraduationCap },
-  { href: "/exposure",  label: "Exposure", icon: Brain },
-];
+const iconFor = (name: string): LucideIcon => ICONS[name] ?? LayoutGrid;
+
+// The five that get a permanent slot on the phone's bottom bar. Anything paused
+// drops out and the next unpaused one moves up, so the bar is never a row of
+// dead ends — everything else is behind More.
+const MOBILE_PRIORITY = ["/", "/schedule", "/journal", "/break", "/finances", "/habits", "/fitness"];
 
 interface SidebarProps {
   saving?: boolean;
+  /** Routes she has put away. Undefined means "never touched", not "none". */
+  paused?: string[];
+  /**
+   * Whether the caller is supplying `paused` at all. Needed because undefined
+   * is itself a meaningful value, so it can't double as "nothing was passed".
+   */
+  hasPaused?: boolean;
 }
 
 function isActive(pathname: string, href: string) {
@@ -54,10 +46,20 @@ function isActive(pathname: string, href: string) {
     || (href === "/fitness" && pathname === "/workout");
 }
 
-export function Sidebar({ saving = false }: SidebarProps) {
+export function Sidebar({ saving = false, paused, hasPaused = false }: SidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(true);
   const [moreOpen, setMoreOpen] = useState(false);
+
+  // Pages that mount the sidebar outside DashboardShell pass nothing, so it
+  // asks for the list itself rather than showing stale defaults on half the app.
+  const effectivePaused = usePausedModules(paused, hasPaused);
+  const navItems = visibleModules(effectivePaused).map(m => ({ ...m, icon: iconFor(m.icon) }));
+  const pausedCount = pausedModules(effectivePaused).length;
+  const mobileMain = MOBILE_PRIORITY
+    .filter(h => navItems.some(m => m.href === h))
+    .slice(0, 5)
+    .map(h => navItems.find(m => m.href === h)!);
 
   return (
     <>
@@ -138,9 +140,23 @@ export function Sidebar({ saving = false }: SidebarProps) {
         </nav>
 
         {!collapsed && (
-          <div className="px-4 pb-6">
+          <div className="px-4 pb-6 space-y-3">
+            <Link href="/modules"
+              className="flex items-center gap-2 text-[11px] rounded-lg px-2 py-1.5 transition-colors"
+              style={{ color: "var(--text-light)" }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "var(--bg)"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}>
+              <SlidersHorizontal size={13} className="flex-shrink-0" />
+              {pausedCount > 0 ? `${pausedCount} paused` : "Sections"}
+            </Link>
             <SaveIndicator saving={saving} />
           </div>
+        )}
+        {collapsed && (
+          <Link href="/modules" title={pausedCount > 0 ? `${pausedCount} sections paused` : "Sections"}
+            className="mx-auto mb-5 p-1.5 rounded-lg" style={{ color: "var(--text-light)" }}>
+            <SlidersHorizontal size={15} />
+          </Link>
         )}
       </aside>
 
@@ -204,6 +220,12 @@ export function Sidebar({ saving = false }: SidebarProps) {
                 );
               })}
             </div>
+            <Link href="/modules" onClick={() => setMoreOpen(false)}
+              className="mt-4 flex items-center justify-center gap-2 py-2.5 rounded-2xl text-xs font-semibold"
+              style={{ background: "var(--bg)", color: "var(--text-muted)" }}>
+              <SlidersHorizontal size={14} />
+              {pausedCount > 0 ? `${pausedCount} sections paused` : "Choose sections"}
+            </Link>
             {saving && <div className="mt-4"><SaveIndicator saving={saving} /></div>}
           </div>
         </div>

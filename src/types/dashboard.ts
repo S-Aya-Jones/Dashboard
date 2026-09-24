@@ -641,6 +641,29 @@ export interface BeautyAnalysisEntry {
   analysis: any;
 }
 
+export interface JournalEntry {
+  id: string;
+  /** YYYY-MM-DD, local. What she'd call the day it belongs to. */
+  date: string;
+  /** Full ISO timestamp, for ordering within a day. */
+  createdAt: string;
+  updatedAt?: string;
+  /** The prompt she answered, if she picked one. */
+  prompt?: string;
+  body: string;
+  /** How it got in — so a dictated entry can be shown as spoken. */
+  source: "typed" | "spoken";
+  /** One word for how the day felt. Optional on purpose. */
+  mood?: string;
+  /** Themes from the break plan. Drives which prompt comes up next. */
+  tags?: string[];
+  /**
+   * Prayer entries use the same flow and the same storage, but carry no prompt
+   * and are listed apart. Being honest with God isn't a journalling exercise.
+   */
+  kind?: "journal" | "prayer";
+}
+
 export interface DashboardData {
   userId: string;
   updatedAt: string;
@@ -711,6 +734,21 @@ export interface DashboardData {
   creditMovesDone?: string[];
   /** Quiz and exam results, keyed to lib/assessments ids. */
   assessmentScores?: Array<{ id: string; earned: number; outOf: number }>;
+
+  /**
+   * Sidebar sections she has put away, by route.
+   *
+   * Undefined means she has never touched the switches, so lib/modules.ts
+   * applies its defaults. An empty array means she deliberately turned
+   * everything back on, which is a different thing and must survive a reload.
+   */
+  pausedModules?: string[];
+
+  /** Journal entries, newest first. Text or dictated, same shape either way. */
+  journal?: JournalEntry[];
+
+  /** Ticked items from the break plan's cleanup list and open questions. */
+  breakTasksDone?: string[];
   /** Return address for printed dispute and validation letters. */
   mailingAddress?: { name: string; street: string; city: string; state: string; zip: string };
   p2pTransfers?: P2PTransfer[];

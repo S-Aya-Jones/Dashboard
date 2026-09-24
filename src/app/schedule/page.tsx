@@ -7,9 +7,15 @@ import { DayScheduleView } from "@/components/schedule/DayScheduleView";
 import { WeekPlanView } from "@/components/schedule/WeekPlanView";
 import { NextAssessments } from "@/components/schedule/NextAssessments";
 import { SemesterWeekPanel } from "@/components/schedule/SemesterWeek";
+import { usePausedModules } from "@/hooks/usePausedModules";
+import { pausedSet } from "@/lib/modules";
 
 export default function Page() {
   const [tab, setTab] = useState<"plan" | "day">("plan");
+  // The semester panel and the assessment countdown are the term machine. With
+  // School paused they'd still have been the first thing on the page — "Week 6
+  // of 14, PRESSURE POINT" above a week that has no classes in it.
+  const schoolPaused = pausedSet(usePausedModules()).has("/school");
 
   return (
     <div className="flex min-h-screen" style={{ background: "var(--bg)" }}>
@@ -47,10 +53,12 @@ export default function Page() {
           <ScheduleChanges />
         </div>
 
-        <div style={{ marginBottom: "1.5rem" }} className="space-y-4">
-          <SemesterWeekPanel />
-          <NextAssessments />
-        </div>
+        {!schoolPaused && (
+          <div style={{ marginBottom: "1.5rem" }} className="space-y-4">
+            <SemesterWeekPanel />
+            <NextAssessments />
+          </div>
+        )}
 
         {tab === "plan" ? <WeekPlanView /> : <DayScheduleView />}
       </main>

@@ -6,6 +6,7 @@ import { CreditTracker } from "./CreditTracker";
 import { LoanReadiness } from "./LoanReadiness";
 import { CreditSummary } from "./CreditSummary";
 import { CreditMoves } from "./CreditMoves";
+import { PaycheckPlan } from "@/components/finances/PaycheckPlan";
 import { SpendingView } from "./SpendingView";
 import { usePlaidLink } from "react-plaid-link";
 import { RefreshCw, Unlink, Plus, Trash2, Check, ChevronDown, ChevronUp, RotateCcw, Pencil } from "lucide-react";
@@ -577,7 +578,7 @@ function PlaidConnectButton({ onConnected }: { onConnected: () => void }) {
 interface Props { data: DashboardData; update: (fn: (d: DashboardData) => DashboardData) => void; }
 
 export function FinancesView({ data, update }: Props) {
-  const [tab, setTab]                       = useState<"health"|"flow"|"spending"|"credit"|"debt">("flow");
+  const [tab, setTab]                       = useState<"paycheck"|"health"|"flow"|"spending"|"credit"|"debt">("paycheck");
   const [checkOffset, setCheckOffset]       = useState(0); // 0=this check, 1=next check, etc.
   const [toast, setToast]                   = useState<string | null>(null);
   const [insights, setInsights]             = useState<InsightsData | null>(null);
@@ -679,16 +680,36 @@ export function FinancesView({ data, update }: Props) {
   const p2pTransfers    = data.p2pTransfers ?? [];
   const accountTransfers = data.accountTransfers ?? [];
 
+  // The paycheck plan is fixed by hand rather than derived from Plaid, so it
+  // stands on its own. Leaving the setup wizard as the only thing here would
+  // have hidden the plan entirely on an account that never finished setup.
   if (!pc) {
     return (
-      <SetupFlow
-        insights={insights}
-        insightsLoading={insightsLoading}
-        onDone={(config, items, newBills) => update(d => ({
-          ...d, paycheckConfig: config, selfCareItems: items, recurringBills: newBills,
-          budgetCategories: [], sinkingFunds: [], affordGoals: [],
-        }))}
-      />
+      <div style={{ background: BG, minHeight: "100%" }} className="px-4 md:px-5 py-5 md:py-8 space-y-5">
+        <div>
+          <p className="text-xs font-semibold mb-1" style={{ color: LIME, letterSpacing: "0.1em" }}>FINANCES</p>
+          <h1 className="font-serif text-3xl" style={{ color: "var(--text)" }}>Your paycheck plan</h1>
+        </div>
+
+        <PaycheckPlan />
+
+        <div className="rounded-2xl p-4" style={{ background: "var(--surface)", border: `1.5px solid ${BORDER}` }}>
+          <h2 className="font-serif text-lg" style={{ color: "var(--text)" }}>Connect it to the real numbers</h2>
+          <p className="text-xs mt-1" style={{ color: MUTED }}>
+            Everything above is the plan as written. Finishing setup links it to your actual
+            transactions, which is what fills in Flow, Spending and Credit.
+          </p>
+        </div>
+
+        <SetupFlow
+          insights={insights}
+          insightsLoading={insightsLoading}
+          onDone={(config, items, newBills) => update(d => ({
+            ...d, paycheckConfig: config, selfCareItems: items, recurringBills: newBills,
+            budgetCategories: [], sinkingFunds: [], affordGoals: [],
+          }))}
+        />
+      </div>
     );
   }
 
@@ -698,7 +719,7 @@ export function FinancesView({ data, update }: Props) {
   const savingsAlerts = computeSavingsAlerts(yearPlan);
   const health        = calcHealthGrade(pc, liabilities, data.creditScores ?? [], budgetLines);
 
-  const TAB_LABELS: Record<typeof tab, string> = { health: "Health", flow: "Flow", spending: "Spending", credit: "Credit", debt: "Debt" };
+  const TAB_LABELS: Record<typeof tab, string> = { paycheck: "Paycheck", health: "Health", flow: "Flow", spending: "Spending", credit: "Credit", debt: "Debt" };
 
   return (
     <div style={{ background: BG, minHeight: "100%" }}>
@@ -731,16 +752,22 @@ export function FinancesView({ data, update }: Props) {
             </div>
           </div>
         </div>
-        <div className="flex gap-1 rounded-xl p-1" style={{ background: "rgba(180,85,47,0.05)", border: `1px solid ${BORDER}` }}>
-          {(["health","flow","spending","credit","debt"] as const).map(k => (
+        <div className="flex gap-1 rounded-xl p-1 overflow-x-auto" style={{ background: "rgba(180,85,47,0.05)", border: `1px solid ${BORDER}` }}>
+          {(["paycheck","health","flow","spending","credit","debt"] as const).map(k => (
             <button key={k} onClick={() => setTab(k)}
-              className="flex-1 py-2 md:py-1.5 rounded-lg text-xs font-semibold transition-all"
+              className="flex-1 py-2 md:py-1.5 px-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap"
               style={tab === k ? { background: LIME, color: "#fff"} : { color: MUTED }}>
               {TAB_LABELS[k]}
             </button>
           ))}
         </div>
       </div>
+
+      {tab === "paycheck" && (
+        <div className="px-4 md:px-5 pb-6">
+          <PaycheckPlan />
+        </div>
+      )}
 
       {/* Insights banner */}
       {showBanner && insights?.selfCare && tab === "flow" && (
