@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Phone, HelpCircle, Flag } from "lucide-react";
+import { Check, Phone, HelpCircle, Flag, Scale, AlertTriangle } from "lucide-react";
 import type { DashboardData } from "@/types/dashboard";
-import { TIMELINE, CLEANUP, OPEN_ITEMS, currentPhase, type Task } from "@/lib/breakPlan";
+import { TIMELINE, CLEANUP, OPEN_ITEMS, STORAGE_CASE, currentPhase, daysUntil, type Task } from "@/lib/breakPlan";
 
 // The break, on one page.
 //
@@ -21,6 +21,7 @@ const KIND_COLOR: Record<string, string> = {
   money: "#0F8A55",
   checkpoint: "#E0A44A",
   school: "#2E6FBF",
+  legal: "#C0503C",
 };
 
 function isoDate(d = new Date()) {
@@ -96,6 +97,69 @@ export function BreakPlanView({ data, update }: Props) {
           <p className="text-sm mt-1.5 leading-relaxed" style={{ color: "var(--text-muted)" }}>{phase.detail}</p>
         </div>
       )}
+
+      {/* ── The storage case ── */}
+      <div className="rounded-2xl p-5" style={{ background: "var(--surface)", border: "1.5px solid rgba(192,80,60,0.4)" }}>
+        <div className="flex items-center gap-2 mb-1">
+          <Scale size={15} style={{ color: "#C0503C" }} />
+          <h3 className="section-title">The storage case</h3>
+          <span className="ml-auto text-[11px]" style={{ color: "var(--text-light)" }}>
+            {STORAGE_CASE.facility} · about ${STORAGE_CASE.approxValue.toLocaleString("en-US")}
+          </span>
+        </div>
+
+        <p className="text-sm leading-relaxed" style={{ color: "var(--text)" }}>{STORAGE_CASE.filter}</p>
+        <p className="text-xs mt-1.5" style={{ color: "var(--text-muted)" }}>{STORAGE_CASE.target}</p>
+
+        {/* The clock */}
+        <div className="mt-3 space-y-1.5">
+          {STORAGE_CASE.claims.map(c => {
+            const left = c.expires ? daysUntil(c.expires, today) : null;
+            return (
+              <div key={c.name} className="rounded-xl px-3 py-2.5" style={{ background: "var(--bg)" }}>
+                <div className="flex items-baseline gap-2 flex-wrap">
+                  <span className="text-xs font-bold" style={{ color: "var(--text)" }}>{c.name}</span>
+                  {left !== null && (
+                    <span className="text-xs font-bold tabular-nums" style={{ color: left < 180 ? "#C0503C" : "#C97A52" }}>
+                      about {Math.round(left / 30)} months left
+                    </span>
+                  )}
+                  {c.approximate && (
+                    <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded"
+                      style={{ background: "rgba(192,80,60,0.1)", color: "#C0503C" }}>
+                      unconfirmed
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] mt-0.5 leading-relaxed" style={{ color: "var(--text-muted)" }}>{c.note}</p>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-3 flex items-start gap-2 rounded-xl px-3 py-2.5" style={{ background: "rgba(192,80,60,0.07)" }}>
+          <AlertTriangle size={13} className="flex-shrink-0 mt-0.5" style={{ color: "#C0503C" }} />
+          <p className="text-[11px] leading-relaxed" style={{ color: "var(--text)" }}>
+            Both dates are estimates from your own notes, not from a lawyer. The first thing you get
+            confirmed in writing by whoever you retain is <strong>when each claim actually runs out</strong>.
+            Everything else on this page can slip a week. This can&apos;t.
+          </p>
+        </div>
+
+        {/* Callbacks */}
+        <p className="text-[10px] font-bold uppercase tracking-wider mt-4 mb-1.5" style={{ color: "var(--text-light)" }}>
+          Callbacks — tick when you&apos;ve spoken to them
+        </p>
+        {list(STORAGE_CASE.contacts.map(c => ({
+          id: `atty-${c.id}`,
+          text: c.name,
+          detail: "Ask about the arbitration clause first.",
+        })))}
+        <p className="text-[11px] mt-2" style={{ color: "var(--text-muted)" }}>
+          {STORAGE_CASE.contacts.filter(c => done.has(`atty-${c.id}`)).length} of {STORAGE_CASE.contacts.length} spoken to
+          {" · "}target is three to five consults before you choose.
+        </p>
+      </div>
 
       {/* ── The cleanup ── */}
       <div className="rounded-2xl p-5" style={{ background: "var(--surface)", border: "1.5px solid var(--border)" }}>

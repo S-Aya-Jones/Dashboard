@@ -14,13 +14,15 @@ export interface Phase {
   /** A single date, for the ones that are an event rather than a stretch. */
   on?: string;
   title: string;
-  kind: "focus" | "money" | "checkpoint" | "school";
+  kind: "focus" | "money" | "checkpoint" | "school" | "legal";
   detail: string;
 }
 
 export const TIMELINE: Phase[] = [
   { id: "recover", from: "2026-09-24", to: "2026-10-06", kind: "focus", title: "Recover",
     detail: "Rest, sleep, food, therapy, short walks. Nothing scheduled beyond the cleanup list. Physical recovery is the job." },
+  { id: "storage", from: "2026-09-28", to: "2026-10-04", kind: "legal", title: "Storage case",
+    detail: "Find attorneys who handle consumer arbitration and property tort — negligent bailment, conversion. Three to five consult calls. Pick one. Confirm the Consumer Protection Act deadline with whoever you retain." },
   { id: "electric", from: "2026-10-02", on: "2026-10-02", kind: "money", title: "Short check lands",
     detail: "Pay the $341 electric catch-up the same day." },
   { id: "phobia", from: "2026-10-07", to: "2026-12-31", kind: "focus", title: "Phobia and foundations",
@@ -65,8 +67,8 @@ export const CLEANUP: Task[] = [
 
 /** The questions. Nothing downstream gets decided until these have answers. */
 export const OPEN_ITEMS: Task[] = [
-  { id: "lawyer", text: "Lawyer: pick a date to review the situation and get it on the calendar",
-    detail: "A date, not an intention. It's been the open item longest." },
+  { id: "storage-counsel", text: "Storage case: get an attorney who will take on the arbitration clause",
+    detail: "Chase the callbacks — John Day, Perry Craft, Lafferty, Aubrey Givens. The arbitration clause is the filter: not every firm will touch one." },
   { id: "carnote", text: "Find where the $510 car note is actually paid from",
     detail: "Not visible in Bank of America, Capital One or Cash App. Until it's found, the budget has a hole in it." },
   { id: "minimums", text: "Get the Capital One and Discover balances and minimums",
@@ -74,6 +76,44 @@ export const OPEN_ITEMS: Task[] = [
   { id: "erickson", text: "Erickson: whether he can stay the weekend of Sept 26–27",
     detail: "His answer is the data." },
 ];
+
+/**
+ * The storage case.
+ *
+ * Separated out because it is the only thing in this plan with a clock on it
+ * that someone else set. Everything else can slip a week; a limitation period
+ * cannot.
+ *
+ * The dates here are the plan's own wording — "likely", "about", "confirm with
+ * counsel" — and they are carried through deliberately rather than hardened
+ * into something that reads like legal advice. An approximate deadline she
+ * knows is approximate is useful. One she thinks is exact is dangerous.
+ */
+export const STORAGE_CASE = {
+  facility: "SROA, Goodlettsville",
+  approxValue: 79000,
+  claims: [
+    { name: "Consumer Protection Act", note: "Likely expires around March 2027 — roughly one year. This is the one with the clock on it.", expires: "2027-03-01", approximate: true },
+    { name: "Property tort", note: "Negligent bailment and conversion. Runs longer than the CPA claim, but confirm how much longer with counsel.", expires: null, approximate: true },
+  ],
+  /** What makes this hard to place, and the thing to lead every call with. */
+  filter: "The contract has an arbitration clause. Not every firm will take one on — ask in the first minute, not the last.",
+  contacts: [
+    { id: "john-day",      name: "John Day" },
+    { id: "perry-craft",   name: "Perry Craft" },
+    { id: "lafferty",      name: "Lafferty" },
+    { id: "aubrey-givens", name: "Aubrey Givens" },
+  ],
+  target: "Three to five consult calls, then pick one.",
+};
+
+/** Days until a claim runs out, or null when there is no date to count to. */
+export function daysUntil(dateStr: string, from: string): number | null {
+  if (!dateStr) return null;
+  return Math.round(
+    (new Date(`${dateStr}T00:00:00`).getTime() - new Date(`${from}T00:00:00`).getTime()) / 86400000,
+  );
+}
 
 export function phaseOn(date: string): Phase | null {
   return TIMELINE.find(p => {

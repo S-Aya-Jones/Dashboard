@@ -75,12 +75,24 @@ const RECOVERY: DatedChange[] = (() => {
     out.push(cut(date, "Shadowing", "From November."));
     out.push(cut(date, "Cleaning reset"));
 
+    // Sep 28 to Oct 2 is the storage-case week, sitting inside the recovery
+    // fortnight on purpose: it is phone calls, not effort, and it is the one
+    // thing here with someone else's clock on it. Firms answer in the
+    // afternoon and she is off at 2:30.
+    const storageWeek = date >= "2026-09-28" && date <= "2026-10-02";
+
     // Weekdays: a walk after work, then nothing asked of her.
     if (dow >= 1 && dow <= 5) {
       out.push(add(date, "15:00", "15:30", "Short walk", "gym", "Outside, no pace, no distance. That's the whole thing."));
+      if (storageWeek) {
+        out.push(add(date, "15:30", "16:15", "STORAGE CASE — attorney consult calls", "life",
+          "Day, Craft, Lafferty, Givens. Lead with the arbitration clause — it's the filter. Three to five consults, then pick one."));
+      }
       // Friday hands over to Deandra at six, so the empty stretch ends there.
-      out.push(add(date, "15:30", dow === 5 ? "18:00" : "18:30", "Nothing scheduled", "rest",
-        "On purpose. Sleep, food, sitting down all count."));
+      out.push(add(date, storageWeek ? "16:15" : "15:30", dow === 5 ? "18:00" : "18:30", "Nothing scheduled", "rest",
+        storageWeek
+          ? "Still recovery. The calls are the only thing asked of you today."
+          : "On purpose. Sleep, food, sitting down all count."));
     }
     if (dow === 6) {
       out.push(add(date, "09:00", "09:30", "Short walk", "gym"));
