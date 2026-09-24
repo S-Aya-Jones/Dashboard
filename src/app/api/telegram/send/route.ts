@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(req: NextRequest) {
   const { message, chatId } = await req.json();
   const token = process.env.TELEGRAM_BOT_TOKEN;

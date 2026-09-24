@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getPlaidClient, getPlaidItems, decryptToken } from "@/lib/plaid";
 
+export const dynamic = "force-dynamic";
+
 // 5-min server-side cache
 const cache = new Map<string, { data: unknown; expiry: number }>();
 const TTL   = 5 * 60 * 1000;

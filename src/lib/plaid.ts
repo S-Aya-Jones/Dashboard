@@ -1,6 +1,6 @@
 import { Configuration, PlaidApi, PlaidEnvironments } from "plaid";
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "crypto";
-import { neon } from "@neondatabase/serverless";
+import { neonClient } from "@/lib/neon";
 
 // ── Plaid client ─────────────────────────────────────────────────────────────
 
@@ -49,7 +49,7 @@ export function decryptToken(encrypted: string): string {
 function getDb() {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL is not set");
-  return neon(url);
+  return neonClient(url);
 }
 
 async function ensurePlaidTable() {

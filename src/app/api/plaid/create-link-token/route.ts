@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getPlaidClient } from "@/lib/plaid";
 import { CountryCode, Products } from "plaid";
 
+export const dynamic = "force-dynamic";
+
 export async function POST() {
   try {
     const client = getPlaidClient();

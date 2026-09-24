@@ -8,6 +8,8 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { today as todayStr, id } from "@/lib/utils";
+import { dateLabel } from "@/lib/whenText";
+import { PeopleSection } from "./PeopleSection";
 
 interface Props {
   data: DashboardData;
@@ -55,6 +57,10 @@ export function ConnectionsView({ data, update }: Props) {
         </Button>
       </div>
 
+      {/* Who is due a call and whose birthday is coming. The log below records
+          what already happened; this is the half that can prompt her. */}
+      <PeopleSection data={data} update={update} />
+
       {nudges.length > 0 && (
         <Card>
           <div className="flex items-center gap-2 mb-3">
@@ -66,7 +72,7 @@ export function ConnectionsView({ data, update }: Props) {
               <div key={person} className="flex items-center gap-2 text-sm">
                 <Heart size={12} className="text-rose" />
                 <span className="text-brown">{person}</span>
-                <span className="text-sand-dark">— {differenceInDays(new Date(), parseISO(date))} days since you connected</span>
+                <span className="text-sand-dark">— last connected {dateLabel(parseISO(date))}</span>
               </div>
             ))}
           </div>
