@@ -492,6 +492,8 @@ function slotMinutes(time: string): number {
 }
 
 export interface DispatchResult {
+  /** True when the tick returned without opening a database connection. */
+  skipped?: boolean;
   chicagoTime: string;
   fired: string[];
   remindersSent: number;
@@ -506,24 +508,87 @@ export interface DispatchResult {
 // minutes" at a quarter to five. It now comes from the same place the schedule
 // pages read, temporary weeks included, so an exam morning nudges for the exam.
 
-export async function runDispatch(origin: string): Promise<DispatchResult> {
-  await ensureCronRuns();
+// ─── Staying off the database ────────────────────────────────────────────────
+//
+// Neon charges for the hours the database is awake, and puts it to sleep after
+// about five minutes with nothing to do. An external pinger hits this endpoint
+// every five minutes, so the only way it ever sleeps is if most of those pings
+// never touch the database at all.
+//
+// They didn't. Every tick used to run CREATE TABLE IF NOT EXISTS, write a
+// heartbeat row and run a DELETE before deciding whether anything was due. And
+// worse: a slot with graceMin 150 kept claimSlot() — a write — firing every
+// five minutes for two and a half hours after the message had already gone out.
+// Across the twelve slots that is 1,405 minutes of open window a day, which is
+// the entire day. The database never got five consecutive quiet minutes, so it
+// was billed for all 730 hours of the month and ran out in the first week.
+//
+// Now: a tick touches the database only when it has a specific reason to.
 
+/** Minutes past midnight, Chicago. */
+const ACTIVE_FROM = 5 * 60 + 30;
+const ACTIVE_TO = 22 * 60;
+
+/** How often to look for user reminders and obligations, which have no fixed time. */
+const SWEEP_EVERY_MIN = 30;
+
+/** The precise window in which a slot fires, as opposed to its catch-up grace. */
+const EXACT_WINDOW_MIN = 6;
+
+/**
+ * Is this one of the ticks that may talk to the database?
+ *
+ * Three reasons qualify: a slot is at its exact minute, a block nudge is at
+ * its exact minute, or it is a sweep tick during waking hours. Everything else
+ * returns without a single query, which is what lets the compute go to sleep.
+ *
+ * The long grace windows still work — they are checked on sweep ticks, which
+ * is catch-up enough for a pinger that has gone quiet for half an hour.
+ */
+function shouldTouchDb(day: string, dow: number, nowMin: number): { touch: boolean; sweep: boolean } {
+  for (const slot of SLOTS) {
+    if (!slot.days.includes(dow)) continue;
+    const s = slotMinutes(slot.time);
+    if (nowMin >= s && nowMin <= s + EXACT_WINDOW_MIN) return { touch: true, sweep: false };
+  }
+
+  if (nowMin >= 5 * 60 && nowMin <= 21 * 60) {
+    for (const [hhmm] of blockCues(day)) {
+      const warnAt = slotMinutes(hhmm) - 30;
+      if (nowMin >= warnAt && nowMin <= warnAt + EXACT_WINDOW_MIN) return { touch: true, sweep: false };
+    }
+  }
+
+  const sweep = nowMin >= ACTIVE_FROM && nowMin <= ACTIVE_TO && nowMin % SWEEP_EVERY_MIN < 5;
+  return { touch: sweep, sweep };
+}
+
+export async function runDispatch(origin: string): Promise<DispatchResult> {
   const now = chicagoNow();
   const dow = now.getDay();
   const day = chicagoDateStr(now);
   const nowMin = minutesOfDay(now);
   const fired: string[] = [];
 
-  // Heartbeat: proves the external pinger is alive even when no slot is due.
-  // The delete clears leftover rows from the (removed) cache-forensics tests.
-  {
+  const { touch, sweep } = shouldTouchDb(day, dow, nowMin);
+  if (!touch) {
+    // The common case, and the whole point: no connection is opened.
+    return {
+      skipped: true, chicagoTime: `${day} ${now.toTimeString().slice(0, 5)}`,
+      fired: [], remindersSent: 0, urgentCheck: "skipped",
+    };
+  }
+
+  await ensureCronRuns();
+
+  // Heartbeat, on sweeps only — it exists to prove the pinger is alive, and
+  // twice an hour proves that just as well as twelve times.
+  if (sweep) {
     const sql = db();
     await sql`
       INSERT INTO cron_runs (slot, day, detail) VALUES ('heartbeat', ${day}, 'ping')
       ON CONFLICT (slot, day) DO UPDATE SET sent_at = NOW()
     `;
-    await sql`DELETE FROM cron_runs WHERE slot LIKE 'cachetest%'`;
   }
 
   // 1a. 30-minute warning before each block on today's template
@@ -531,7 +596,7 @@ export async function runDispatch(origin: string): Promise<DispatchResult> {
     for (const [hhmm, label] of blockCues(day)) {
       const start = slotMinutes(hhmm);
       const warnAt = start - 30;
-      if (nowMin < warnAt || nowMin > warnAt + 6) continue;
+      if (nowMin < warnAt || nowMin > warnAt + EXACT_WINDOW_MIN) continue;
       const key = `warn-${hhmm}`;
       if (!(await claimSlot(key, day, label))) continue;
       await notify(`30 minutes — ${label} at ${say(hhmm)}.`);
@@ -539,11 +604,15 @@ export async function runDispatch(origin: string): Promise<DispatchResult> {
     }
   }
 
-  // 1. Time-of-day slots
+  // 1. Time-of-day slots. The exact minute always runs; the long grace window
+  //    is catch-up and is only consulted on a sweep, so a slot that already
+  //    fired stops costing a write every five minutes for the next two hours.
   for (const slot of SLOTS) {
     if (!slot.days.includes(dow)) continue;
     const sMin = slotMinutes(slot.time);
-    if (nowMin < sMin || nowMin > sMin + slot.graceMin) continue;
+    const exact = nowMin >= sMin && nowMin <= sMin + EXACT_WINDOW_MIN;
+    const catchUp = sweep && nowMin > sMin && nowMin <= sMin + slot.graceMin;
+    if (!exact && !catchUp) continue;
     if (!(await claimSlot(slot.key, day, "claimed"))) continue;
     try {
       const detail = await slot.run({ origin, dow });
@@ -559,7 +628,7 @@ export async function runDispatch(origin: string): Promise<DispatchResult> {
   // 2. The obligation engine — anything crossing a lead threshold. Runs on
   //    every dispatch but stays quiet outside waking hours.
   let obligationsSent = 0;
-  if (nowMin >= 7 * 60 && nowMin <= 21 * 60) {
+  if (sweep && nowMin >= 7 * 60 && nowMin <= 21 * 60) {
     try {
       const due = await dueNotifications();
       for (const d of due.slice(0, 4)) {   // never dump a wall of alerts
@@ -572,7 +641,7 @@ export async function runDispatch(origin: string): Promise<DispatchResult> {
 
   // 2b. Due user reminders — minute-precision now instead of a 9am daily sweep
   let remindersSent = 0;
-  try {
+  if (sweep) try {
     const due = await getDueReminders();
     for (const r of due) {
       const timeStr = formatTimeOfDay(r.timeOfDay);
