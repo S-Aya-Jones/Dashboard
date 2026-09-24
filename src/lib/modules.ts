@@ -1,9 +1,9 @@
 // What's on the sidebar, and what's been put away.
 //
-// September 2026: she's taking a break from school. Eleven of the twenty
-// sections existed only to serve a semester — lecture processing, the question
-// bank, grades, study partners, the MCAT. Leaving them on the sidebar makes the
-// app feel like a list of things she isn't doing.
+// September 2026: she's taking a break from school. Fourteen of the twenty-two
+// sections went away — the ones that only ever served a semester, plus Habits,
+// Fitness and Food, which she went through one by one and called not relevant.
+// Leaving them up makes the app a list of things she isn't doing.
 //
 // So they pause rather than disappear. Every page still works, every row is
 // still in the database, and turning one back on is a switch on /modules. When
@@ -30,7 +30,7 @@ export const MODULES: ModuleDef[] = [
   { href: "/schedule",     label: "Schedule",        icon: "Clock",          group: "daily" },
   { href: "/journal",      label: "Journal",         icon: "NotebookPen",    group: "daily" },
   { href: "/break",        label: "The break",       icon: "Flag",           group: "daily" },
-  { href: "/habits",       label: "Habits",          icon: "CircleCheck",    group: "daily" },
+  { href: "/habits",       label: "Habits",          icon: "CircleCheck",    group: "daily",  pausedByDefault: true, note: "75 Hard and the habit grid. Every log is kept." },
 
   // ── Money ──
   { href: "/finances",     label: "Finances",        icon: "DollarSign",     group: "money" },
@@ -38,9 +38,9 @@ export const MODULES: ModuleDef[] = [
   // ── Body and head ──
   { href: "/exposure",     label: "Exposure",        icon: "Brain",          group: "health" },
   { href: "/felt-safety",  label: "Felt Safety",     icon: "Shield",         group: "health" },
-  { href: "/fitness",      label: "Fitness",         icon: "Dumbbell",       group: "health" },
+  { href: "/fitness",      label: "Fitness",         icon: "Dumbbell",       group: "health", pausedByDefault: true, note: "Ladder lives in the schedule now. Your weight and workout history stay here." },
   { href: "/skincare",     label: "Skincare",        icon: "Sparkles",       group: "health" },
-  { href: "/nutrition",    label: "Food",            icon: "UtensilsCrossed", group: "health" },
+  { href: "/nutrition",    label: "Food",            icon: "UtensilsCrossed", group: "health", pausedByDefault: true },
 
   // ── School. All paused for the break. ──
   { href: "/lectures",     label: "Lecture Studio",  icon: "Mic",            group: "school", pausedByDefault: true, note: "Your processed lectures are all still here." },
