@@ -156,6 +156,20 @@ export async function verifyTwilio(sid: string, token: string): Promise<{ ok: bo
   }
 }
 
+/**
+ * Send to one specific number.
+ *
+ * sendSms() below always targets the configured USER_PHONE_NUMBER, which is
+ * right for Aya's own notifications and useless for anyone else. Subscriber
+ * mail — the confirmation, STOP and HELP replies — has to reach the number
+ * that actually wrote in.
+ */
+export async function sendSmsTo(phone: string, message: string): Promise<boolean> {
+  const digits = phone.replace(/\D/g, "").replace(/^1/, "");
+  if (digits.length !== 10) return false;
+  return sendViaTwilio(message.replace(/<[^>]+>/g, "").slice(0, 1200), digits);
+}
+
 export async function sendSms(message: string): Promise<boolean> {
   const user = process.env.GMAIL_USER;
   const pass = process.env.GMAIL_APP_PASSWORD;
