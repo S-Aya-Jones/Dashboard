@@ -110,8 +110,9 @@ export default function PrivacyPage() {
               the account holder consents to receive these messages.
             </p>
             <ul>
-              <li>Message frequency: up to 2 messages per day</li>
+              <li>Message frequency: recurring, up to 2 messages per day</li>
               <li>Standard message and data rates may apply</li>
+              <li>Subscribing is voluntary and is not required to create an account or use the Application</li>
               <li>Reply <strong>STOP</strong> at any time to opt out of messages</li>
               <li>Reply <strong>HELP</strong> for assistance</li>
             </ul>

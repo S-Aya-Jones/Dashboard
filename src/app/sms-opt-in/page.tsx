@@ -22,8 +22,24 @@ export default function SmsOptInPage() {
             SMS Notifications
           </h1>
           <p style={{ fontSize: "0.85rem", color: "#6B5D53", margin: 0 }}>
-            Automated daily wellness &amp; fitness reminders
+            Automated daily wellness &amp; schedule reminders
           </p>
+        </div>
+
+        {/* Optional, said first and said plainly. A reviewer reading this page
+            top to bottom must not be able to mistake it for a gate. */}
+        <div style={{ background: "rgba(63,111,94,0.08)", border: "1px solid rgba(63,111,94,0.25)", borderRadius: "12px", padding: "1rem 1.25rem", marginBottom: "1.25rem" }}>
+          <p style={{ fontSize: "0.9rem", fontWeight: 600, color: "#2F5547", margin: "0 0 0.35rem" }}>
+            Text messages are completely optional.
+          </p>
+          <p style={{ fontSize: "0.82rem", lineHeight: 1.6, color: "#3F6F5E", margin: "0 0 0.75rem" }}>
+            You do not need to subscribe to create an account, sign in, or use any part of
+            Aya&apos;s Dashboard. Every notification sent by text is also shown inside the app.
+            Subscribing only adds a second way to receive them.
+          </p>
+          <Link href="/" style={{ display: "inline-block", fontSize: "0.85rem", fontWeight: 600, color: "#3F6F5E", textDecoration: "underline" }}>
+            Continue without text messages →
+          </Link>
         </div>
 
         {/* Business info card */}
@@ -59,8 +75,9 @@ export default function SmsOptInPage() {
           {/* Message examples */}
           <div style={{ background: "#F7F2EC", borderRadius: "10px", padding: "1rem", marginBottom: "1.25rem", border: "1px solid rgba(180,85,47,0.1)" }}>
             <p style={{ fontSize: "0.75rem", fontWeight: 600, color: "#B4552F", margin: "0 0 0.5rem" }}>Example messages:</p>
-            <p style={{ fontSize: "0.8rem", color: "#1C1613", fontStyle: "italic", margin: "0 0 0.35rem" }}>&ldquo;Aya&apos;s Dashboard: Good morning! Today&apos;s workout: Upper Body Push. Yesterday: 4/5 habits done, 7.5 hrs sleep. Reply STOP to opt out.&rdquo;</p>
-            <p style={{ fontSize: "0.8rem", color: "#1C1613", fontStyle: "italic", margin: 0 }}>&ldquo;Aya&apos;s Dashboard: Habit check-in time! How are your goals going today? Reply STOP to unsubscribe or HELP for commands.&rdquo;</p>
+            <p style={{ fontSize: "0.8rem", color: "#1C1613", fontStyle: "italic", margin: "0 0 0.35rem" }}>&ldquo;Aya&apos;s Dashboard: Good morning. Today: work 7&ndash;2:30, therapy 11am, foundations 4pm, journal 7pm. Reply STOP to opt out.&rdquo;</p>
+            <p style={{ fontSize: "0.8rem", color: "#1C1613", fontStyle: "italic", margin: "0 0 0.35rem" }}>&ldquo;Aya&apos;s Dashboard: 30 minutes &ndash; Ladder workout at 3pm. Reply STOP to opt out.&rdquo;</p>
+            <p style={{ fontSize: "0.8rem", color: "#1C1613", fontStyle: "italic", margin: 0 }}>&ldquo;Aya&apos;s Dashboard: Reminder you set &ndash; pay the electric bill today. Reply HELP for help, STOP to cancel.&rdquo;</p>
           </div>
 
           {/* Interactive opt-in form */}
@@ -69,7 +86,7 @@ export default function SmsOptInPage() {
           {/* Required CTIA disclosures */}
           <div style={{ fontSize: "0.78rem", lineHeight: 1.8, color: "#6B5D53", borderTop: "1px solid rgba(180,85,47,0.12)", paddingTop: "1rem", display: "grid", gap: "0.35rem" }}>
             <p style={{ margin: 0 }}><strong style={{ color: "#1C1613" }}>Program Name:</strong> Aya&apos;s Dashboard — Personal Wellness Reminders</p>
-            <p style={{ margin: 0 }}><strong style={{ color: "#1C1613" }}>Message Frequency:</strong> Up to 2 messages per day.</p>
+            <p style={{ margin: 0 }}><strong style={{ color: "#1C1613" }}>Message Frequency:</strong> Recurring, up to 2 messages per day.</p>
             <p style={{ margin: 0 }}><strong style={{ color: "#1C1613" }}>Msg &amp; Data Rates May Apply.</strong> Rates depend on your mobile carrier plan.</p>
             <p style={{ margin: 0 }}><strong style={{ color: "#1C1613" }}>To Stop:</strong> Reply <strong>STOP</strong> to cancel all messages at any time.</p>
             <p style={{ margin: 0 }}><strong style={{ color: "#1C1613" }}>For Help:</strong> Reply <strong>HELP</strong> or email <a href="mailto:shaniquaayajones@gmail.com" style={{ color: "#B4552F", textDecoration: "none" }}>shaniquaayajones@gmail.com</a>.</p>
