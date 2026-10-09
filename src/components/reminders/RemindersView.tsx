@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Bell, Plus, Trash2, Check, X, MessageSquare, RefreshCw, BookOpen, Calendar } from "lucide-react";
 import { TextSettings } from "@/components/settings/TextSettings";
+import { SmsSubscribers } from "@/components/settings/SmsSubscribers";
 import { ScheduleImport } from "@/components/school/ScheduleImport";
 
 interface Reminder {
@@ -525,6 +526,7 @@ export function RemindersView() {
 
       <div style={{ marginTop: "1.5rem" }}>
         <TextSettings />
+        <SmsSubscribers />
       </div>
     </div>
   );

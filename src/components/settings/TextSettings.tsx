@@ -157,8 +157,10 @@ export function TextSettings() {
             <p className="text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>
               Twilio is more reliable than the carrier gateway and actually reports
               whether a message arrived. US carriers only accept it once your A2P
-              10DLC campaign is approved — that review is judged on the consent page
-              at <span style={{ color: "var(--text)" }}>/sms-opt-in</span>.
+              10DLC campaign is approved — that review is judged on the{" "}
+              <a href="/sms-opt-in" style={{ color: "var(--purple)", fontWeight: 600 }}>consent page</a>,
+              and on Twilio&apos;s inbound webhook pointing at{" "}
+              <span style={{ color: "var(--text)" }}>/api/sms/inbound</span> so STOP and HELP are answered.
             </p>
             <input type="text" value={sid} onChange={(e) => setSid(e.target.value)}
               placeholder={status.twilio ? "Account SID — already set" : "Account SID (AC…)"} />
