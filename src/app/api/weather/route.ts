@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 const OPEN_METEO =
   "https://api.open-meteo.com/v1/forecast" +
   "?latitude=36.1627&longitude=-86.7816" +

@@ -4,12 +4,14 @@ export const runtime = "edge";
 export const size = { width: 180, height: 180 };
 export const contentType = "image/png";
 
+// Matches icon.tsx. iOS rounds the corners itself and never masks further, so
+// the letter can sit slightly larger here than in the maskable version.
 export default function AppleIcon() {
   return new ImageResponse(
     (
       <div
         style={{
-          background: "#141414",
+          background: "#B4552F",
           width: "100%",
           height: "100%",
           display: "flex",
@@ -17,31 +19,18 @@ export default function AppleIcon() {
           justifyContent: "center",
         }}
       >
-        <div
+        <span
           style={{
-            width: 126,
-            height: 126,
-            borderRadius: "50%",
-            background: "rgba(200,255,0,0.07)",
-            border: "2px solid rgba(200,255,0,0.18)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
+            fontSize: 112,
+            fontWeight: 500,
+            color: "#FAF6F1",
+            lineHeight: 1,
+            fontFamily: "Georgia, serif",
+            marginTop: -7,
           }}
         >
-          <span
-            style={{
-              fontSize: 78,
-              fontWeight: 800,
-              color: "#C8FF00",
-              lineHeight: 1,
-              letterSpacing: "-4px",
-              fontFamily: "serif",
-            }}
-          >
-            A
-          </span>
-        </div>
+          A
+        </span>
       </div>
     ),
     { ...size },

@@ -11,12 +11,12 @@ interface HourlyData {
   };
 }
 
-function uvInfo(uv: number): { label: string; bg: string; fg: string; icon: string; advice: string } {
+function uvInfo(uv: number): { label: string; bg: string; fg: string; advice: string } {
   const u = Math.round(uv);
-  if (u <= 2)  return { label: `UV ${u}`, bg: "#e6f4ea", fg: "#2d6a4f", icon: "✓",  advice: "Safe to walk" };
-  if (u <= 5)  return { label: `UV ${u}`, bg: "#fff8e1", fg: "#b45309", icon: "🧴", advice: "Wear SPF" };
-  if (u <= 7)  return { label: `UV ${u}`, bg: "#fff0e0", fg: "#c2410c", icon: "⚠️", advice: "Limit time" };
-  return            { label: `UV ${u}`, bg: "#fde8e8", fg: "#b91c1c", icon: "🔥", advice: "Stay inside" };
+  if (u <= 2)  return { label: `UV ${u}`, bg: "#e6f4ea", fg: "#2d6a4f", advice: "Safe to walk" };
+  if (u <= 5)  return { label: `UV ${u}`, bg: "#fff8e1", fg: "#b45309", advice: "Wear SPF" };
+  if (u <= 7)  return { label: `UV ${u}`, bg: "#fff0e0", fg: "#c2410c", advice: "Limit time" };
+  return            { label: `UV ${u}`, bg: "#fde8e8", fg: "#b91c1c", advice: "Stay inside" };
 }
 
 function fmtHour(h: number) {
@@ -98,10 +98,6 @@ export function HourlyWeatherCard() {
                   style={{ background: uv.bg, color: uv.fg }}
                 >
                   {uv.label}
-                </span>
-
-                <span className="text-sm leading-none" title={uv.advice}>
-                  {uv.icon}
                 </span>
 
                 <span className="text-[10px] text-sand-dark text-center leading-tight">

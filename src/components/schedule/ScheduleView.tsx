@@ -67,7 +67,7 @@ export function ScheduleView({ data, update }: Props) {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="font-serif text-4xl text-brown">School & Schedule</h1>
-          <p className="text-sand-dark mt-1">Meharry MHS → Medical School → Dermatology 🩺</p>
+          <p className="text-sand-dark mt-1">Meharry MHS → Medical School → Dermatology</p>
         </div>
         <div className="flex gap-2 flex-wrap">
           <Button variant="secondary" size="sm" onClick={() => setLorOpen(true)}>+ Letter of Rec</Button>
@@ -103,7 +103,7 @@ export function ScheduleView({ data, update }: Props) {
             <div key={m.id} className="flex items-start gap-3 group">
               <button
                 onClick={() => toggleMilestone(m.id)}
-                className={`w-5 h-5 mt-0.5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${m.done ? "bg-sage border-sage text-white" : "border-sand hover:border-terracotta"}`}
+                className={`w-5 h-5 mt-0.5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${m.done ? "bg-sage border-sage" : "border-sand hover:border-terracotta"}`}
               >
                 {m.done && <Check size={11} />}
               </button>
@@ -124,7 +124,7 @@ export function ScheduleView({ data, update }: Props) {
       {/* Letters of Rec */}
       <Card title="Letters of Recommendation">
         {data.lettersOfRec.length === 0 ? (
-          <p className="text-sand-dark text-sm">No letters tracked yet. Add them when you start asking! 📬</p>
+          <p className="text-sand-dark text-sm">No letters tracked yet. Add them when you start asking!</p>
         ) : (
           <div className="space-y-3 mt-2">
             {data.lettersOfRec.map((lor) => (

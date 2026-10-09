@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getPlaidClient, getPlaidItems, decryptToken, deletePlaidItem } from "@/lib/plaid";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(req: Request) {
   try {
     const { itemId } = await req.json();
