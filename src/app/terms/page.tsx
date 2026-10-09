@@ -85,41 +85,47 @@ export default function TermsPage() {
 
           <Section title="SMS Messaging Terms">
             <p>
-              The account holder may register their own phone number to receive automated
-              SMS messages from this Application. By entering their phone number and
-              enabling SMS features, the account holder agrees to the following:
+              Subscribers may register a mobile number at{" "}
+              <a href="/sms-opt-in" style={{ color: "#B4552F", fontWeight: 600 }}>/sms-opt-in</a>{" "}
+              to receive recurring automated SMS messages from this Application. Subscribing
+              is entirely voluntary and is <strong>not required to create an account, to sign
+              in, or to use any part of the Application</strong> — every message sent by SMS
+              is also shown inside the app. By entering a mobile number and ticking the
+              consent box, a subscriber agrees to the following:
             </p>
             <ul>
               <li>
-                <strong>Message content:</strong> Automated daily productivity briefings,
-                including task summaries, habit progress, and other personal dashboard data
+                <strong>Message content:</strong> Automated schedule reminders, a daily
+                summary, reminders the subscriber has set in the Application, and
+                accountability updates. No marketing or promotional content is sent
               </li>
               <li>
-                <strong>Message frequency:</strong> Up to 2 messages per day
+                <strong>Message frequency:</strong> Recurring, up to 2 messages per day
               </li>
               <li>
                 <strong>Message and data rates:</strong> Standard message and data rates
-                from the account holder&apos;s mobile carrier may apply
+                from the subscriber&apos;s mobile carrier may apply
               </li>
               <li>
-                <strong>Opt-out:</strong> The account holder may opt out at any time by
-                replying <strong>STOP</strong> to any message. No further messages will be
-                sent after an opt-out is received
+                <strong>Opt-out:</strong> A subscriber may opt out at any time by replying{" "}
+                <strong>STOP</strong> to any message. The opt-out is recorded against that
+                number immediately and independently of any other subscriber, and no further
+                messages are sent to it
               </li>
               <li>
-                <strong>Help:</strong> The account holder may reply <strong>HELP</strong>{" "}
-                at any time to receive assistance information
+                <strong>Help:</strong> A subscriber may reply <strong>HELP</strong> at any
+                time to receive assistance information
               </li>
               <li>
-                <strong>Cancellation:</strong> The account holder may also cancel SMS
-                delivery at any time by removing their phone number from the Application
-                settings
+                <strong>Cancellation:</strong> A subscriber may also cancel SMS delivery at
+                any time by replying <strong>START</strong> to resubscribe or by contacting
+                support at the address below
               </li>
             </ul>
             <p>
-              Phone numbers used for SMS are never shared with third parties or used for
-              any purpose other than delivering these personal productivity messages to the
-              account holder.
+              Phone numbers used for SMS are never shared with third parties and are never
+              used for any purpose other than delivering the messages described above to the
+              subscriber who consented to them.
             </p>
           </Section>
 

@@ -65,7 +65,7 @@ export function SmsOptInForm() {
           {confirmationSent
             ? <>A confirmation text is on its way to <strong style={{ color: "#1C1613" }}>{number}</strong>.</>
             : <>Your consent is recorded. The confirmation text couldn&apos;t be sent just now — messaging may not be live yet.</>}
-          {from ? <> Messages come from <strong style={{ color: "#1C1613" }}>{from}</strong>, up to 2 per day.</> : <> Up to 2 messages per day.</>}
+          {from ? <> Recurring messages come from <strong style={{ color: "#1C1613" }}>{from}</strong>, up to 2 per day.</> : <> Recurring, up to 2 messages per day.</>}
           {" "}Reply <strong style={{ color: "#1C1613" }}>STOP</strong> at any time to cancel.
         </p>
       </div>
@@ -107,13 +107,18 @@ export function SmsOptInForm() {
           style={{ marginTop: "3px", flexShrink: 0, width: 16, height: 16, accentColor: "#B4552F", cursor: "pointer" }}
         />
         <label htmlFor="consent" style={{ fontSize: "0.85rem", lineHeight: 1.6, color: "#1C1613", cursor: "pointer" }}>
-          Yes, I consent to receive automated text messages from Aya&apos;s Dashboard
-          (operated by Shaniqua Jones): schedule reminders, a daily summary, reminders
-          set in the app, and accountability updates. I understand I will receive up to{" "}
-          <strong>2 messages per day</strong>. Msg &amp; data rates may apply.
-          Reply STOP to cancel, HELP for help.{" "}
-          <strong>Consent is not a condition of using the application</strong> — every
-          notification is also shown in the app.
+          Yes, I agree to receive <strong>recurring automated SMS messages</strong> from
+          Aya&apos;s Dashboard (operated by Shaniqua Jones): schedule reminders, a daily
+          summary, reminders I set in the app, and accountability updates. I understand
+          this is <strong>up to 2 messages per day</strong> and that{" "}
+          <strong>message and data rates may apply</strong>. I can reply STOP at any time
+          to cancel, or HELP for help.{" "}
+          <strong>Consent is not required to create an account or to use any part of the
+          application.</strong>{" "}
+          See the{" "}
+          <a href="/terms" style={{ color: "#B4552F", fontWeight: 600 }}>Terms of Service</a>
+          {" "}and{" "}
+          <a href="/privacy" style={{ color: "#B4552F", fontWeight: 600 }}>Privacy Policy</a>.
         </label>
       </div>
 
@@ -141,6 +146,12 @@ export function SmsOptInForm() {
       >
         {state === "saving" ? "Subscribing…" : "Subscribe"}
       </button>
+
+      <p style={{ textAlign: "center", fontSize: "0.82rem", color: "#6B5D53", margin: "0 0 1.25rem" }}>
+        Don&apos;t want texts?{" "}
+        <a href="/" style={{ color: "#3F6F5E", fontWeight: 600 }}>Continue to the app without subscribing</a>
+        {" "}— nothing is withheld.
+      </p>
     </>
   );
 }
