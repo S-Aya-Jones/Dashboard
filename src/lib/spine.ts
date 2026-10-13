@@ -814,8 +814,10 @@ export async function getSpineHealth() {
     `;
     const todayRows = await sql`SELECT slot FROM cron_runs WHERE day = ${day}`;
     const firedToday = new Set(todayRows.map(r => r.slot as string));
+    // Retired and school slots are excluded: a health page that lists nine
+    // texts which cannot fire is worse than one that lists none of them.
     todaySlots = SLOTS
-      .filter(s => s.days.includes(now.getDay()))
+      .filter(s => s.days.includes(now.getDay()) && !s.retired && !s.schoolOnly)
       .map(s => ({ slot: s.key, time: s.time, fired: firedToday.has(s.key) }));
     const rem = await sql`SELECT COUNT(*) AS cnt FROM reminders WHERE active = true`;
     activeReminders = Number(rem[0]?.cnt ?? 0);
