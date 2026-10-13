@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAppKey, setAppKey, clearAppKey } from "@/lib/appkeys";
-import { sendSms, smsStatus, verifyTwilio, CARRIERS } from "@/lib/sms";
+import { sendSms, smsStatus, verifyTwilio, CARRIERS, lastTwilioFailure, lastSendUsedFallback } from "@/lib/sms";
 
 export const dynamic = "force-dynamic";
 
@@ -53,15 +53,31 @@ export async function POST(req: NextRequest) {
         );
       }
       const ok = await sendSms("Test from your dashboard. If this landed, texts are working.");
+      const twilioError = lastTwilioFailure();
+
+      // A send that only worked because it fell back is not a working setup.
+      // It arrives from her own number rather than the Twilio one, truncates at
+      // 300 characters, drops emoji, and reports nothing — and until this said
+      // so, a silent fallback was indistinguishable from success.
+      if (ok && lastSendUsedFallback()) {
+        return NextResponse.json({
+          ok: true,
+          via: "carrier-gateway",
+          warning: "Sent, but through the email-to-carrier gateway, not Twilio — that's why it came from your own number.",
+          twilioError: twilioError ?? "Twilio didn't say why.",
+        });
+      }
+
       if (!ok) {
         return NextResponse.json(
-          { error: status.twilio
-              ? "Twilio rejected it. If the A2P campaign isn't approved yet, US carriers will refuse the traffic."
-              : "The gateway rejected it. Check the carrier is right." },
+          { error: twilioError
+              ?? (status.twilio
+                ? "Twilio rejected it. If the A2P campaign isn't approved yet, US carriers will refuse the traffic."
+                : "The gateway rejected it. Check the carrier is right.") },
           { status: 502 }
         );
       }
-      return NextResponse.json({ ok: true, sent: true, ...(await smsStatus()) });
+      return NextResponse.json({ ok: true, sent: true, via: "twilio", ...(await smsStatus()) });
     }
 
     return NextResponse.json({ ok: true, ...(await smsStatus()) });

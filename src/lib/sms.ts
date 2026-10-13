@@ -65,6 +65,28 @@ function publicBase(): string | null {
   return null;
 }
 
+/**
+ * Why the last Twilio send failed.
+ *
+ * Module scope rather than a return value because sendSms() is called from a
+ * dozen places that only care whether a message went out. The test button and
+ * the status endpoint do care, and until now there was nothing for them to
+ * read: a Twilio rejection and a missing Twilio account looked exactly alike,
+ * and the carrier-gateway fallback then delivered the message from her own
+ * number so even the symptom was invisible.
+ */
+let lastTwilioError: string | null = null;
+
+export function lastTwilioFailure(): string | null {
+  return lastTwilioError;
+}
+
+/** True when the last send fell back to the carrier gateway. */
+let usedFallback = false;
+export function lastSendUsedFallback(): boolean {
+  return usedFallback;
+}
+
 async function sendViaTwilio(body: string, to: string): Promise<boolean> {
   const sid   = await setting("TWILIO_ACCOUNT_SID", process.env.TWILIO_ACCOUNT_SID ?? "");
   const token = await setting("TWILIO_AUTH_TOKEN", process.env.TWILIO_AUTH_TOKEN ?? "");
@@ -88,14 +110,29 @@ async function sendViaTwilio(body: string, to: string): Promise<boolean> {
       cache: "no-store",
       body: params,
     });
-    if (!res.ok) return false;
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok) {
+      lastTwilioError = data?.message
+        ? `Twilio ${res.status}: ${data.message}${data.code ? ` (code ${data.code})` : ""}`
+        : `Twilio replied ${res.status}.`;
+      return false;
+    }
 
     // Some rejections are synchronous and land here rather than in the callback.
-    const data = await res.json().catch(() => null);
-    if (data?.error_code) return false;
-    if (data?.status === "failed" || data?.status === "undelivered") return false;
+    if (data?.error_code) {
+      lastTwilioError = `Twilio error ${data.error_code}: ${data.error_message ?? "no detail given"}`;
+      return false;
+    }
+    if (data?.status === "failed" || data?.status === "undelivered") {
+      lastTwilioError = `Twilio returned status "${data.status}".`;
+      return false;
+    }
+
+    lastTwilioError = null;
     return true;
-  } catch {
+  } catch (e) {
+    lastTwilioError = `Couldn't reach Twilio: ${String(e).slice(0, 160)}`;
     return false;
   }
 }
@@ -183,9 +220,13 @@ export async function sendSms(message: string): Promise<boolean> {
   // Twilio first when it's set up; it's the one that actually reports back.
   // It segments long messages and handles unicode, so it gets the real text —
   // the stripping below is a carrier-gateway limitation, not a general one.
-  if (await sendViaTwilio(message.replace(/<[^>]+>/g, "").slice(0, 1200), digits)) return true;
+  if (await sendViaTwilio(message.replace(/<[^>]+>/g, "").slice(0, 1200), digits)) {
+    usedFallback = false;
+    return true;
+  }
 
   if (!user || !pass) return false;
+  usedFallback = true;
 
   // Carrier gateways truncate hard and drop non-ASCII.
   const body = stripEmojis(message).slice(0, 300);
