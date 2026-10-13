@@ -285,12 +285,35 @@ interface Slot {
   days: number[];          // Chicago day-of-week (0=Sun)
   time: string;            // "HH:MM" Chicago
   graceMin: number;        // fire if now is within [time, time+grace]
+  /** Skipped entirely while the School section is paused. */
+  schoolOnly?: boolean;
   run: (ctx: SlotCtx) => Promise<string>;  // returns detail for cron_runs
 }
 
 interface SlotCtx {
   origin: string;
   dow: number;
+}
+
+/**
+ * Whether school notifications should go out at all.
+ *
+ * Pausing a section took it off the sidebar and did nothing to the texts, so
+ * she carried on getting "your quiz opens at midnight" and a 7am sweep of the
+ * school inbox through a break from school. A slot that belongs to a paused
+ * section must not send.
+ */
+async function schoolPaused(): Promise<boolean> {
+  try {
+    const data = await loadData();
+    const paused = data.pausedModules;
+    // Undefined means she has never touched the switches, and School is paused
+    // by default — which is exactly the state she is in.
+    if (!paused) return true;
+    return paused.includes("/school") || paused.includes("/school-inbox");
+  } catch {
+    return true;   // when in doubt, say less
+  }
 }
 
 export const SLOTS: Slot[] = [
@@ -327,6 +350,7 @@ export const SLOTS: Slot[] = [
   },
   {
     key: "read-school-mail",
+    schoolOnly: true,
     days: [0, 1, 2, 3, 4, 5, 6],
     time: "07:10",
     graceMin: 180,
@@ -391,6 +415,7 @@ export const SLOTS: Slot[] = [
   },
   {
     key: "study-blocks",
+    schoolOnly: true,
     days: [0, 1, 2, 3, 4],  // Sun–Thu (Fri = Deandra, Sat = open)
     time: "16:55",
     graceMin: 90,
@@ -468,6 +493,7 @@ export const SLOTS: Slot[] = [
     // The whole point: she's asleep by 9 most nights, so the reminder has to
     // reach her at the moment it opens, not before she went down.
     key: "quiz-opens",
+    schoolOnly: true,
     days: [0, 1, 2, 3, 4, 5, 6],
     time: "23:50",
     graceMin: 25,
@@ -613,8 +639,11 @@ export async function runDispatch(origin: string): Promise<DispatchResult> {
   // 1. Time-of-day slots. The exact minute always runs; the long grace window
   //    is catch-up and is only consulted on a sweep, so a slot that already
   //    fired stops costing a write every five minutes for the next two hours.
+  const noSchool = await schoolPaused();
+
   for (const slot of SLOTS) {
     if (!slot.days.includes(dow)) continue;
+    if (slot.schoolOnly && noSchool) continue;
     const sMin = slotMinutes(slot.time);
     const exact = nowMin >= sMin && nowMin <= sMin + EXACT_WINDOW_MIN;
     const catchUp = sweep && nowMin > sMin && nowMin <= sMin + slot.graceMin;
