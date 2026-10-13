@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { firstText } from "@/lib/aiError";
 import Anthropic from "@anthropic-ai/sdk";
 import { loadData } from "@/lib/db";
-import { sendTelegram } from "@/lib/telegram";
+import { sendSms } from "@/lib/sms";
 import { sendPushNotification } from "@/lib/push";
 
 export const dynamic = "force-dynamic";
@@ -58,7 +58,7 @@ Start with "6pm —"`,
 
     const text = firstText(msg) || "6pm — check your 75 Hard progress for today before the night gets away from you.";
 
-    await sendTelegram(text);
+    await sendSms(text);
 
     const phone = process.env.USER_PHONE_NUMBER ?? "6156811609";
     const sms = data.sms ?? { phoneNumber: phone, enabled: true, messages: [], reminders: [] };

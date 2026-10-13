@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   getDueReminders,
   advanceReminder,
-  sendTelegram,
   formatTimeOfDay,
 } from "@/lib/telegram";
+import { sendSms } from "@/lib/sms";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
     const text = r.body
       ? `<b>${r.title}</b>\n${r.body}\n\n<i>${timeStr} reminder</i>`
       : `<b>${r.title}</b>\n\n<i>${timeStr} reminder</i>`;
-    await sendTelegram(text);
+    await sendSms(text);
     await advanceReminder(r);
     sent++;
   }

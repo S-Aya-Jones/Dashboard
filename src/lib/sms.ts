@@ -34,6 +34,33 @@ async function setting(name: string, fallback = ""): Promise<string> {
 }
 
 /** Everything the settings screen needs, with no secrets in it. */
+/**
+ * Plain-English state of texting, for the one line at the top of settings.
+ *
+ * Every piece of this was previously knowable only by reading three fields and
+ * knowing that a send which "worked" might have gone out through a fallback
+ * from the wrong number. One sentence instead.
+ */
+export async function smsSummary(): Promise<{ working: boolean; line: string; detail: string | null }> {
+  const st = await smsStatus();
+  const from = await setting("TWILIO_PHONE_NUMBER", process.env.TWILIO_PHONE_NUMBER ?? "");
+  const d = from.replace(/\D/g, "").replace(/^1/, "");
+  const pretty = d.length === 10 ? `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}` : from || "not set";
+
+  if (!st.enabled) return { working: false, line: "Texts are OFF.", detail: "Switch them on below." };
+  if (!from) return { working: false, line: "Texts are OFF.", detail: "No Twilio number saved." };
+  if (!st.twilio) return { working: false, line: "Texts are OFF.", detail: "Twilio credentials are missing." };
+  if (!st.phoneHint) return { working: false, line: "Texts are OFF.", detail: "No number to send them to." };
+
+  return {
+    working: true,
+    line: `Texts are ON, from ${pretty}.`,
+    detail: lastTwilioError
+      ? `Last send failed — ${lastTwilioError}`
+      : null,
+  };
+}
+
 export async function smsStatus() {
   const phone   = await setting("USER_PHONE_NUMBER");
   const carrier = (await setting("SMS_CARRIER", "tmobile")).toLowerCase();

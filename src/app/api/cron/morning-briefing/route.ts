@@ -4,7 +4,7 @@ import { loadData } from "@/lib/db";
 import { getAuthedClient } from "@/lib/google";
 import { google } from "googleapis";
 import { getPlaidClient, getPlaidItems, decryptToken } from "@/lib/plaid";
-import { sendTelegram } from "@/lib/telegram";
+import { sendSms } from "@/lib/sms";
 import { sendPushNotification } from "@/lib/push";
 import { getActionableEmails, getUpcomingEvents } from "@/lib/gmail";
 import { briefContext, weekBackground } from "@/lib/planBrief";
@@ -323,7 +323,7 @@ Tone: warm, direct, like a brilliant friend who has full context on her life. No
     const briefing = msg.content[0].type === "text" ? msg.content[0].text : "Good morning Aya! Your morning briefing had a hiccup — check your dashboard.";
 
     // Send via Telegram
-    await sendTelegram(briefing);
+    await sendSms(briefing);
 
     // Save to SMS log for dashboard history
     const phone = process.env.USER_PHONE_NUMBER ?? "6156811609";

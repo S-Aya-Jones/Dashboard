@@ -1,6 +1,5 @@
 import { neonClient } from "@/lib/neon";
 import {
-  sendTelegram,
   getDueReminders,
   advanceReminder,
   formatTimeOfDay,
@@ -24,11 +23,18 @@ const TZ = "America/Chicago";
 // Telegram always; a plain-text copy by SMS too when texting is switched on.
 // The switch now lives in the app rather than only in a Vercel env var, so it
 // can be flipped without a redeploy.
+/**
+ * Deliver one message.
+ *
+ * Text only. Telegram used to go out alongside every SMS, which meant two
+ * copies of everything and no way to tell which channel had actually worked —
+ * a text that silently failed looked fine because the Telegram arrived.
+ *
+ * The HTML stripping stays: these strings carry <b> tags from when Telegram
+ * rendered them, and a text message shows the tags rather than the bold.
+ */
 async function notify(text: string): Promise<void> {
-  await sendTelegram(text);
-  if (await smsAlsoEnabled().catch(() => false)) {
-    await sendSms(text.replace(/<[^>]+>/g, "")).catch(() => false);
-  }
+  await sendSms(text.replace(/<[^>]+>/g, "")).catch(() => false);
 }
 
 function db() {
@@ -648,7 +654,7 @@ export async function runDispatch(origin: string): Promise<DispatchResult> {
       const text = r.body
         ? `<b>${r.title}</b>\n${r.body}\n\n<i>${timeStr} reminder</i>`
         : `<b>${r.title}</b>\n\n<i>${timeStr} reminder</i>`;
-      await sendTelegram(text);
+      await notify(text);
       await advanceReminder(r);
       remindersSent++;
     }

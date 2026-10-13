@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { loadData } from "@/lib/db";
-import { sendTelegram } from "@/lib/telegram";
+import { sendSms } from "@/lib/sms";
 import { sendPushNotification } from "@/lib/push";
 import { dayLine, whyToday, upcomingAssessments, fmtAssessment } from "@/lib/planBrief";
 
@@ -69,7 +69,7 @@ Start with "Night wrap —"`,
 
     const text = msg.content[0].type === "text" ? msg.content[0].text : "Night wrap — log today's progress on your dashboard before you sleep.";
 
-    await sendTelegram(text);
+    await sendSms(text);
 
     const phone = process.env.USER_PHONE_NUMBER ?? "6156811609";
     const sms = data.sms ?? { phoneNumber: phone, enabled: true, messages: [], reminders: [] };

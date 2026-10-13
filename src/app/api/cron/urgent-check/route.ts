@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { firstText } from "@/lib/aiError";
 import Anthropic from "@anthropic-ai/sdk";
-import { sendTelegram } from "@/lib/telegram";
+import { sendSms } from "@/lib/sms";
 import {
   getUnnotifiedUrgentEvents,
   markEventNotified,
@@ -41,7 +41,7 @@ export async function GET(_req: NextRequest) {
       const diffMin = Math.round((new Date(ev.eventDate).getTime() - Date.now()) / 60000);
       const source = ev.sourceSender || ev.sourceSubject || "";
       const msg = `Starting in ${diffMin} min — ${ev.title}${source ? `\n\n${timeStr} · ${source}` : `\n\n${timeStr}`}`;
-      await sendTelegram(msg);
+      await sendSms(msg);
       await markEvent1hNotified(ev.id);
     }
 
@@ -107,7 +107,7 @@ Start with "Heads up —"`,
 
     const text = firstText(msg) || "Heads up — check your dashboard for urgent items.";
 
-    await sendTelegram(text);
+    await sendSms(text);
 
     // Mark all as notified
     for (const ev of urgentEvents) await markEventNotified(ev.id);
