@@ -3,6 +3,8 @@ import {
   keywordOf, optOut, subscribe, findByPhone, normalisePhone,
   STOP_MSG, HELP_MSG, CONFIRM_MSG,
 } from "@/lib/smsSubscribers";
+import { parseReply, logEntry, setPlanItem, stepsReply } from "@/lib/habitTexts";
+import { chicagoDay } from "@/lib/planBrief";
 
 export const dynamic = "force-dynamic";
 
@@ -53,8 +55,46 @@ export async function POST(req: NextRequest) {
         return twiml(HELP_MSG);
 
       default:
-        // Anything else is a person talking to a robot. Say nothing rather than
-        // send an unsolicited message to a number that didn't ask for one.
+        break;
+    }
+
+    // Not a keyword, so it may be a habit log. Order matters: STOP and HELP are
+    // checked first above, because a reply must never be swallowed by the
+    // logger when it was meant to stop messages.
+    const parsed = parseReply(body);
+    const today = chicagoDay();
+
+    switch (parsed?.kind) {
+      case "steps":
+        await logEntry(today, parsed);
+        return twiml(stepsReply(parsed.steps));
+
+      case "drive":
+        await logEntry(today, parsed);
+        return twiml(`Logged: before ${parsed.before}, peak ${parsed.peak}, after ${parsed.after}.`);
+
+      case "study":
+        await logEntry(today, parsed);
+        return twiml(
+          `Logged: ${parsed.minutes} min${parsed.quiz ? `, quiz ${parsed.quiz}` : ""}.`,
+        );
+
+      case "skip":
+        await logEntry(today, parsed);
+        return twiml(`Skipped, noted: ${parsed.reason}`);
+
+      case "plan": {
+        if (!parsed.items.length) {
+          return twiml('Couldn\'t read that plan. One line each, like "tue drive: Murfreesboro loop https://... 40"');
+        }
+        for (const item of parsed.items) await setPlanItem(item);
+        const days = parsed.items.map(i => `${i.day} ${i.kind}`).join(", ");
+        return twiml(`Plan updated: ${days}.`);
+      }
+
+      default:
+        // A person talking to a robot. Say nothing rather than send an
+        // unsolicited message to a number that didn't ask for one.
         return twiml(null);
     }
   } catch {
