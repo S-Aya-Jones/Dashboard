@@ -57,7 +57,7 @@ export const MODULES: ModuleDef[] = [
 
   // ── The rest ──
   { href: "/connections",  label: "People",          icon: "HeartHandshake", group: "other" },
-  { href: "/reminders",    label: "Telegram",        icon: "Bell",           group: "other" },
+  { href: "/reminders",    label: "Texts",           icon: "Bell",           group: "other" },
   { href: "/vision",       label: "Vision",          icon: "Gem",            group: "other" },
 ];
 

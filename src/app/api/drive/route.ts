@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neonClient } from "@/lib/neon";
 import { logSession } from "@/lib/exposure";
-import { sendTelegram } from "@/lib/telegram";
+import { sendSms } from "@/lib/sms";
 
 export const dynamic = "force-dynamic";
 
@@ -131,7 +131,7 @@ export async function POST(req: NextRequest) {
       const summary = turnedBack
         ? `Turned back after ${minutes} min${miles !== null ? `, ${miles} mi out` : ""}. That's data, not failure — open the app and rate it while it's fresh.`
         : `Drive logged: ${minutes} min${miles !== null ? `, ${miles} mi` : ""}. Rate your fear in the app while you still remember the peak.`;
-      await sendTelegram(summary).catch(() => {});
+      await sendSms(summary).catch(() => {});
 
       return NextResponse.json({ ok: true, minutes, miles, turnedBack });
     }

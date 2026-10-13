@@ -272,7 +272,7 @@ export function RemindersView() {
     <div>
       {/* Header */}
       <div style={{ marginBottom: "1.25rem" }}>
-        <h1 style={{ margin: "0 0 0.25rem", fontFamily: "Georgia, serif", fontSize: "1.4rem", color: "var(--text)" }}>Telegram</h1>
+        <h1 style={{ margin: "0 0 0.25rem", fontFamily: "Georgia, serif", fontSize: "1.4rem", color: "var(--text)" }}>Texts</h1>
         <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--text-muted)" }}>Two-way bot · @AyaDashboardbot</p>
       </div>
 
@@ -392,7 +392,7 @@ export function RemindersView() {
         <div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.75rem" }}>
             <p style={{ margin: 0, fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.08em", color: "var(--text-muted)", textTransform: "uppercase" }}>
-              Inbound from Telegram
+              Replies you've sent
             </p>
             <button onClick={() => loadLogs()} style={{ display: "flex", alignItems: "center", gap: "0.3rem", padding: "0.3rem 0.6rem", background: "transparent", border: "1px solid var(--border)", borderRadius: 8, color: "var(--text-muted)", fontSize: "0.75rem", cursor: "pointer" }}>
               <RefreshCw size={12} style={{ animation: refreshing ? "spin 0.8s linear infinite" : "none" }} /> Refresh
@@ -404,7 +404,7 @@ export function RemindersView() {
               <MessageSquare size={32} style={{ color: "var(--text-muted)", opacity: 0.3, marginBottom: "0.75rem" }} />
               <p style={{ margin: "0 0 0.35rem", fontWeight: 600, color: "var(--text)", fontSize: "0.9rem" }}>No messages yet</p>
               <p style={{ margin: "0 0 1rem", fontSize: "0.82rem", color: "var(--text-muted)", lineHeight: 1.6 }}>
-                Open Telegram, message <strong>@AyaDashboardbot</strong>, and send anything.<br />
+                Text your dashboard number and your reply shows up here.<br />
                 It will appear here once the webhook is connected.
               </p>
               <div style={{ display: "inline-block", padding: "0.5rem 1rem", background: "rgba(180,85,47,0.08)", borderRadius: 8, fontSize: "0.78rem", color: "var(--purple)", fontFamily: "monospace" }}>
@@ -518,7 +518,7 @@ export function RemindersView() {
             <div style={{ textAlign: "center", padding: "3rem 1rem", color: "var(--text-muted)" }}>
               <Bell size={32} style={{ opacity: 0.3, marginBottom: "0.75rem" }} />
               <p style={{ margin: 0, fontSize: "0.9rem" }}>No reminders yet.</p>
-              <p style={{ margin: "0.25rem 0 0", fontSize: "0.82rem" }}>Add one here or send /remind in Telegram.</p>
+              <p style={{ margin: "0.25rem 0 0", fontSize: "0.82rem" }}>Add one here and it'll text you at the time you set.</p>
             </div>
           )}
         </div>

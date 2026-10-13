@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
-import { sendTelegram } from "@/lib/telegram";
+import { sendSms } from "@/lib/sms";
 import { getUpcomingEvents, getStoredEmails } from "@/lib/gmail";
 import { getAuthedClient } from "@/lib/google";
 import { google } from "googleapis";
@@ -121,7 +121,7 @@ Be specific and real — she needs to feel like you actually know what's on her 
 
     const text = msg.content[0].type === "text" ? msg.content[0].text : "Week ahead — check your dashboard for the full picture this week.";
 
-    await sendTelegram(text);
+    await sendSms(text);
 
     // Log to SMS history
     const { loadData: ld, saveData } = await import("@/lib/db");

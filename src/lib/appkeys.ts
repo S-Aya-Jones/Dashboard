@@ -19,17 +19,29 @@ async function ensureTable() {
 
 // Keys pasted into the app UI live here so no Vercel env editing or redeploy
 // is needed. Env vars still win when present.
+/**
+ * A setting's value: what was saved in the app, else the environment variable.
+ *
+ * The order used to be the other way round, and it made the settings screen a
+ * lie. TWILIO_PHONE_NUMBER was set in Vercel to an old toll-free number, so
+ * saving the real 10DLC number wrote it to the database and then every read
+ * returned the environment value anyway. The UI said "Twilio saved", the number
+ * never changed, and every send was refused by Twilio and quietly delivered by
+ * the carrier gateway instead — which is why texts arrived from her own number.
+ *
+ * An environment variable is a sensible default for a fresh deploy. It must not
+ * outrank something a person deliberately typed into the app.
+ */
 export async function getAppKey(name: string): Promise<string | null> {
-  const envValue = process.env[name];
-  if (envValue) return envValue;
   try {
     await ensureTable();
     const sql = db();
     const rows = await sql`SELECT value FROM app_keys WHERE name = ${name}`;
-    return rows.length ? (rows[0].value as string) : null;
+    if (rows.length && rows[0].value) return rows[0].value as string;
   } catch {
-    return null;
+    // Fall through to the environment, which is better than nothing.
   }
+  return process.env[name] ?? null;
 }
 
 export async function setAppKey(name: string, value: string): Promise<void> {

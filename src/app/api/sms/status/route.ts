@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { sendViaCarrier, twilioCredentials } from "@/lib/sms";
-import { sendTelegram } from "@/lib/telegram";
 
 export const dynamic = "force-dynamic";
 
@@ -64,7 +63,10 @@ export async function POST(req: NextRequest) {
 
   if (body) await sendViaCarrier(body);
 
-  await sendTelegram(
+  // Deliberately the carrier gateway and not sendSms(): this fires because a
+  // Twilio send just failed, so telling her about it over Twilio would fail the
+  // same way and she would hear nothing at all.
+  await sendViaCarrier(
     blocked
       ? "That text didn't go out — Twilio blocked it because the A2P campaign isn't approved yet (error 30034). Sent it through the carrier gateway instead."
       : `A text failed to deliver${code ? ` (Twilio error ${code})` : ""}. Sent it through the carrier gateway instead.`

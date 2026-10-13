@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { loadData } from "@/lib/db";
-import { sendTelegram } from "@/lib/telegram";
+import { sendSms } from "@/lib/sms";
 import { sendPushNotification } from "@/lib/push";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
       "phone on the charger, call your boo while you do your routine, " +
       "gym bag + clothes laid out for the morning. Lights out at 9.";
 
-    await sendTelegram(text);
+    await sendSms(text);
 
     const data = await loadData();
     await sendPushNotification(data, "Skincare Hour", text);

@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react";
 import { MessageSquare, Check, Loader2 } from "lucide-react";
 
-// Telegram can't forward to SMS, and iOS Shortcuts can't trigger on a
-// third-party app's notifications — so there is no way to route Telegram into
-// Messages from the phone. What works instead is the dashboard sending both:
-// Telegram as it always has, plus a plain-text copy through the carrier's
-// email-to-SMS gateway. No Twilio account, no A2P campaign.
+// Texting, and whether it is actually working.
+//
+// Everything the app sends goes out as a text. Twilio carries it when the A2P
+// campaign is approved and the number is right; a carrier email gateway is the
+// fallback, which delivers from the wrong number and truncates, so a send that
+// only worked because of the fallback is reported as a failure here rather than
+// as success.
 
 const CARRIER_LABELS: Record<string, string> = {
   tmobile: "T-Mobile",
@@ -25,6 +27,7 @@ interface Status {
   enabled: boolean;
   carrier: string;
   mailReady: boolean;
+  summary?: { working: boolean; line: string; detail: string | null };
   twilio: boolean;
   provider: "twilio" | "carrier" | null;
   phoneHint: string | null;
@@ -50,6 +53,8 @@ export function TextSettings() {
       .catch(() => {});
   }, []);
 
+  const summary = status?.summary;
+
   async function post(body: Record<string, unknown>, okMsg?: string) {
     setBusy(true);
     setErr(null);
@@ -63,7 +68,11 @@ export function TextSettings() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "That didn't work");
       setStatus((s) => ({ ...(s as Status), ...data }));
-      if (okMsg) setMsg(okMsg);
+      if (data.via === "carrier-gateway") {
+        setErr(`${data.warning} ${data.twilioError ?? ""}`.trim());
+      } else if (data.via === "twilio") {
+        setMsg("Sent through Twilio — check your phone.");
+      } else if (okMsg) setMsg(okMsg);
       if (body.phone) setPhone("");
     } catch (e) {
       setErr(e instanceof Error ? e.message : "That didn't work");
@@ -86,8 +95,7 @@ export function TextSettings() {
           <MessageSquare size={16} style={{ color: "var(--purple)" }} /> Send it as a text too
         </p>
         <p className="text-sm mt-1.5 leading-relaxed" style={{ color: "var(--text-muted)" }}>
-          Every notification goes to Telegram first — that copy is always kept. Switch
-          this on and it lands in Messages too.
+          Every notification is sent as a text to your phone.
         </p>
         <p className="text-xs mt-1.5" style={{ color: status.provider ? "var(--green)" : "var(--text-light)" }}>
           {status.provider === "twilio"
@@ -130,6 +138,23 @@ export function TextSettings() {
         </select>
       </div>
 
+      {summary && (
+        <div className="rounded-xl px-3.5 py-3 mb-3"
+          style={{
+            background: summary.working ? "rgba(15,138,85,0.08)" : "rgba(192,80,60,0.08)",
+            border: `1.5px solid ${summary.working ? "rgba(15,138,85,0.35)" : "rgba(192,80,60,0.35)"}`,
+          }}>
+          <p className="text-sm font-bold" style={{ color: summary.working ? "#0F8A55" : "#C0503C" }}>
+            {summary.line}
+          </p>
+          {summary.detail && (
+            <p className="text-xs mt-0.5 leading-relaxed" style={{ color: "var(--text-muted)" }}>
+              {summary.detail}
+            </p>
+          )}
+        </div>
+      )}
+
       <div className="flex items-center gap-3 flex-wrap">
         <button
           onClick={() => post({ test: true }, "Sent — it should land in a few seconds.")}
@@ -140,11 +165,6 @@ export function TextSettings() {
           {busy ? <Loader2 size={13} className="animate-spin" /> : null}
           Send me a test text
         </button>
-        {status.ready && (
-          <span className="text-xs flex items-center gap-1.5" style={{ color: "var(--green)" }}>
-            <Check size={12} /> Ready
-          </span>
-        )}
       </div>
 
       <div style={{ borderTop: "1px solid var(--border)", paddingTop: "1rem" }}>

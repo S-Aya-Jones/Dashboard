@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { loadData } from "@/lib/db";
-import { sendTelegram } from "@/lib/telegram";
+import { sendSms } from "@/lib/sms";
 import { sendPushNotification } from "@/lib/push";
 import { chicagoDay, dayLine, blockCues, say } from "@/lib/planBrief";
 
@@ -66,7 +66,7 @@ Start with "4pm check-in —"`,
 
     const text = msg.content[0].type === "text" ? msg.content[0].text : "4pm check-in — how are you doing on your 75 Hard goals today?";
 
-    await sendTelegram(text);
+    await sendSms(text);
 
     const phone = process.env.USER_PHONE_NUMBER ?? "6156811609";
     const sms = data.sms ?? { phoneNumber: phone, enabled: true, messages: [], reminders: [] };

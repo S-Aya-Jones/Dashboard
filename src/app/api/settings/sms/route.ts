@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAppKey, setAppKey, clearAppKey } from "@/lib/appkeys";
-import { sendSms, smsStatus, verifyTwilio, CARRIERS, lastTwilioFailure, lastSendUsedFallback } from "@/lib/sms";
+import { sendSms, smsStatus, smsSummary, verifyTwilio, CARRIERS, lastTwilioFailure, lastSendUsedFallback } from "@/lib/sms";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  return NextResponse.json({ ...(await smsStatus()), carriers: Object.keys(CARRIERS) });
+  return NextResponse.json({ ...(await smsStatus()), summary: await smsSummary(), carriers: Object.keys(CARRIERS) });
 }
 
 export async function POST(req: NextRequest) {
