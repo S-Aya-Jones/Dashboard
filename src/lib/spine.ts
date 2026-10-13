@@ -10,6 +10,10 @@ import { loadData } from "@/lib/db";
 import { whatIsDue, dueLine } from "@/lib/people";
 import { unnotifiedUpdates, markUpdatesNotified, updateDigest } from "@/lib/schoolUpdates";
 import { dayLine, blockCues, whyToday, upcomingAssessments, say } from "@/lib/planBrief";
+import {
+  morningWeekday, MIDMORNING, saturdayMorning, sundayMorning,
+  SUNDAY_WRAP, eveningText, weeklySummary, wholePlan,
+} from "@/lib/habitTexts";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // The notification spine: every scheduled ping in Aya's day, fired by
@@ -287,6 +291,12 @@ interface Slot {
   graceMin: number;        // fire if now is within [time, time+grace]
   /** Skipped entirely while the School section is paused. */
   schoolOnly?: boolean;
+  /**
+   * Superseded by the habit text system. Kept in the table rather than deleted
+   * so switching one back on is a single word, and so the list still shows what
+   * the day used to look like.
+   */
+  retired?: boolean;
   run: (ctx: SlotCtx) => Promise<string>;  // returns detail for cron_runs
 }
 
@@ -317,8 +327,81 @@ async function schoolPaused(): Promise<boolean> {
 }
 
 export const SLOTS: Slot[] = [
+  // ── The habit texts ──
+  {
+    key: "habit-morning",
+    days: [1, 2, 3, 4, 5],
+    time: "07:45",
+    graceMin: 60,
+    run: async () => {
+      await notify(morningWeekday(chicagoDateStr(), await wholePlan()));
+      return "sent";
+    },
+  },
+  {
+    key: "habit-midmorning",
+    days: [1, 2, 3, 4, 5],
+    time: "10:45",
+    graceMin: 60,
+    run: async () => {
+      await notify(MIDMORNING);
+      return "sent";
+    },
+  },
+  {
+    key: "habit-saturday",
+    days: [6],
+    time: "09:00",
+    graceMin: 90,
+    run: async () => {
+      await notify(saturdayMorning(await wholePlan()));
+      return "sent";
+    },
+  },
+  {
+    key: "habit-sunday-drive",
+    days: [0],
+    time: "09:00",
+    graceMin: 90,
+    run: async () => {
+      await notify(sundayMorning(await wholePlan()));
+      return "sent";
+    },
+  },
+  {
+    key: "habit-weekly-summary",
+    days: [0],
+    time: "16:30",
+    graceMin: 60,
+    run: async () => {
+      await notify(await weeklySummary(chicagoDateStr()));
+      return "sent";
+    },
+  },
+  {
+    key: "habit-sunday-wrap",
+    days: [0],
+    time: "17:00",
+    graceMin: 60,
+    run: async () => {
+      await notify(SUNDAY_WRAP);
+      return "sent";
+    },
+  },
+  {
+    key: "habit-evening",
+    days: [0, 1, 2, 3, 4, 5, 6],
+    time: "19:00",
+    graceMin: 90,
+    run: async () => {
+      await notify(eveningText(chicagoDateStr()));
+      return "sent";
+    },
+  },
+
   {
     key: "morning-briefing",
+    retired: true,
     days: [1, 2, 3, 4, 5],
     time: "06:50",
     graceMin: 150,
@@ -339,6 +422,7 @@ export const SLOTS: Slot[] = [
   },
   {
     key: "morning-weekend",
+    retired: true,
     days: [0, 6],
     time: "07:00",
     graceMin: 150,
@@ -374,6 +458,7 @@ export const SLOTS: Slot[] = [
     // Birthdays and overdue calls. Late morning on purpose: a reminder to ring
     // her grandma is useless at 6:50am and useless again after 9pm.
     key: "people-checkin",
+    retired: true,
     days: [0, 1, 2, 3, 4, 5, 6],
     time: "11:00",
     graceMin: 240,
@@ -394,6 +479,7 @@ export const SLOTS: Slot[] = [
   },
   {
     key: "money-watch",
+    retired: true,
     days: [0, 1, 2, 3, 4, 5, 6],
     time: "09:00",
     graceMin: 180,
@@ -405,6 +491,7 @@ export const SLOTS: Slot[] = [
   },
   {
     key: "leave-work",
+    retired: true,
     days: [1, 2, 4, 5],  // not Wed (WFH), not weekends
     time: "14:25",
     graceMin: 60,
@@ -427,6 +514,7 @@ export const SLOTS: Slot[] = [
   },
   {
     key: "exposure-saturday",
+    retired: true,
     days: [6],
     time: "11:45",
     graceMin: 90,
@@ -443,6 +531,7 @@ export const SLOTS: Slot[] = [
   },
   {
     key: "exposure-checkin",
+    retired: true,
     days: [0],
     time: "18:00",
     graceMin: 90,
@@ -458,6 +547,7 @@ export const SLOTS: Slot[] = [
   },
   {
     key: "week-plan",
+    retired: true,
     days: [0],
     time: "19:00",
     graceMin: 90,
@@ -469,6 +559,7 @@ export const SLOTS: Slot[] = [
   },
   {
     key: "skincare",
+    retired: true,
     days: [0, 1, 2, 3, 4, 5, 6],
     time: "19:55",
     graceMin: 60,
@@ -570,25 +661,18 @@ const EXACT_WINDOW_MIN = 6;
 /**
  * Is this one of the ticks that may talk to the database?
  *
- * Three reasons qualify: a slot is at its exact minute, a block nudge is at
- * its exact minute, or it is a sweep tick during waking hours. Everything else
- * returns without a single query, which is what lets the compute go to sleep.
+ * Two reasons qualify: a slot is at its exact minute, or it is a sweep tick
+ * during waking hours. Everything else returns without a single query, which is
+ * what lets the compute go to sleep.
  *
  * The long grace windows still work — they are checked on sweep ticks, which
  * is catch-up enough for a pinger that has gone quiet for half an hour.
  */
-function shouldTouchDb(day: string, dow: number, nowMin: number): { touch: boolean; sweep: boolean } {
+function shouldTouchDb(dow: number, nowMin: number): { touch: boolean; sweep: boolean } {
   for (const slot of SLOTS) {
     if (!slot.days.includes(dow)) continue;
     const s = slotMinutes(slot.time);
     if (nowMin >= s && nowMin <= s + EXACT_WINDOW_MIN) return { touch: true, sweep: false };
-  }
-
-  if (nowMin >= 5 * 60 && nowMin <= 21 * 60) {
-    for (const [hhmm] of blockCues(day)) {
-      const warnAt = slotMinutes(hhmm) - 30;
-      if (nowMin >= warnAt && nowMin <= warnAt + EXACT_WINDOW_MIN) return { touch: true, sweep: false };
-    }
   }
 
   const sweep = nowMin >= ACTIVE_FROM && nowMin <= ACTIVE_TO && nowMin % SWEEP_EVERY_MIN < 5;
@@ -602,7 +686,7 @@ export async function runDispatch(origin: string): Promise<DispatchResult> {
   const nowMin = minutesOfDay(now);
   const fired: string[] = [];
 
-  const { touch, sweep } = shouldTouchDb(day, dow, nowMin);
+  const { touch, sweep } = shouldTouchDb(dow, nowMin);
   if (!touch) {
     // The common case, and the whole point: no connection is opened.
     return {
@@ -623,19 +707,6 @@ export async function runDispatch(origin: string): Promise<DispatchResult> {
     `;
   }
 
-  // 1a. 30-minute warning before each block on today's template
-  if (nowMin >= 5 * 60 && nowMin <= 21 * 60) {
-    for (const [hhmm, label] of blockCues(day)) {
-      const start = slotMinutes(hhmm);
-      const warnAt = start - 30;
-      if (nowMin < warnAt || nowMin > warnAt + EXACT_WINDOW_MIN) continue;
-      const key = `warn-${hhmm}`;
-      if (!(await claimSlot(key, day, label))) continue;
-      await notify(`30 minutes — ${label} at ${say(hhmm)}.`);
-      fired.push(key);
-    }
-  }
-
   // 1. Time-of-day slots. The exact minute always runs; the long grace window
   //    is catch-up and is only consulted on a sweep, so a slot that already
   //    fired stops costing a write every five minutes for the next two hours.
@@ -643,6 +714,7 @@ export async function runDispatch(origin: string): Promise<DispatchResult> {
 
   for (const slot of SLOTS) {
     if (!slot.days.includes(dow)) continue;
+    if (slot.retired) continue;
     if (slot.schoolOnly && noSchool) continue;
     const sMin = slotMinutes(slot.time);
     const exact = nowMin >= sMin && nowMin <= sMin + EXACT_WINDOW_MIN;
