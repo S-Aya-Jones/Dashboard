@@ -1,5 +1,5 @@
 import nodemailer from "nodemailer";
-import { getAppKey } from "@/lib/appkeys";
+import { getAppKey, setAppKey } from "@/lib/appkeys";
 
 // Two ways to put a text on her phone, tried in order.
 //
@@ -52,12 +52,23 @@ export async function smsSummary(): Promise<{ working: boolean; line: string; de
   if (!st.twilio) return { working: false, line: "Texts are OFF.", detail: "Twilio credentials are missing." };
   if (!st.phoneHint) return { working: false, line: "Texts are OFF.", detail: "No number to send them to." };
 
+  // Read from storage rather than module scope: the instance that hit the
+  // failure is long gone by the time this page is opened.
+  const last = await lastSendOutcome();
+  let detail: string | null = null;
+  if (last?.via === "carrier-gateway") {
+    const when = new Date(last.at).toLocaleString("en-US", { timeZone: "America/Chicago", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+    detail = `Last text (${when}) went via the carrier gateway, not Twilio — that's why it came from your own number. ${last.detail ?? "Twilio gave no reason."}`;
+  } else if (last?.via === "failed") {
+    detail = `Last send failed. ${last.detail ?? ""}`.trim();
+  }
+
   return {
-    working: true,
-    line: `Texts are ON, from ${pretty}.`,
-    detail: lastTwilioError
-      ? `Last send failed — ${lastTwilioError}`
-      : null,
+    working: last?.via !== "carrier-gateway",
+    line: last?.via === "carrier-gateway"
+      ? "Texts are going out, but not through Twilio."
+      : `Texts are ON, from ${pretty}.`,
+    detail,
   };
 }
 
@@ -106,6 +117,34 @@ let lastTwilioError: string | null = null;
 
 export function lastTwilioFailure(): string | null {
   return lastTwilioError;
+}
+
+/**
+ * The same thing, written down.
+ *
+ * Module scope only survives inside one serverless instance, so a failure at
+ * 7pm was invisible by the time anyone asked at midnight — which is exactly
+ * when it gets asked. The last outcome is stored so it can be read from any
+ * instance, later, by someone trying to work out why a text came from the
+ * wrong number.
+ */
+async function recordOutcome(via: "twilio" | "carrier-gateway" | "failed", detail: string | null) {
+  try {
+    await setAppKey("SMS_LAST_OUTCOME", JSON.stringify({
+      via, detail, at: new Date().toISOString(),
+    }));
+  } catch { /* never fail a send over its own bookkeeping */ }
+}
+
+export interface LastOutcome { via: string; detail: string | null; at: string }
+
+export async function lastSendOutcome(): Promise<LastOutcome | null> {
+  try {
+    const raw = await getAppKey("SMS_LAST_OUTCOME");
+    return raw ? (JSON.parse(raw) as LastOutcome) : null;
+  } catch {
+    return null;
+  }
 }
 
 /** True when the last send fell back to the carrier gateway. */
@@ -249,11 +288,16 @@ export async function sendSms(message: string): Promise<boolean> {
   // the stripping below is a carrier-gateway limitation, not a general one.
   if (await sendViaTwilio(message.replace(/<[^>]+>/g, "").slice(0, 1200), digits)) {
     usedFallback = false;
+    await recordOutcome("twilio", null);
     return true;
   }
 
-  if (!user || !pass) return false;
+  if (!user || !pass) {
+    await recordOutcome("failed", lastTwilioError);
+    return false;
+  }
   usedFallback = true;
+  await recordOutcome("carrier-gateway", lastTwilioError);
 
   // Carrier gateways truncate hard and drop non-ASCII.
   const body = stripEmojis(message).slice(0, 300);
