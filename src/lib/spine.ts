@@ -247,12 +247,22 @@ function buildStudyBlocksMsg(assessments: Assessment[], dow: number): string {
  * memory — the gym moved off 5am and into this stretch, and a message that
  * still promised a free afternoon would be sending her home to nothing.
  */
-function buildLeaveWorkMsg(_dow: number): string {
+/**
+ * The end of the working day, sent before the end of the working day.
+ *
+ * It used to go at 2:25 for a day that finishes at 2:30, which left five
+ * minutes and no room at all — on a day she got away early it arrived after she
+ * had already gone. 2:05 gives her the afternoon while she can still do
+ * something about it.
+ *
+ * The wording avoids "head home" on days she is already there.
+ */
+function buildLeaveWorkMsg(): string {
   const day = chicagoDateStr();
   const after = blockCues(day).filter(([t]) => slotMinutes(t) >= 14 * 60 + 30);
-  if (!after.length) return "2:25 — head home. Nothing on the board this afternoon; take it.";
+  if (!after.length) return "2:05 — nearly done. Nothing on the board this afternoon; take it.";
   const line = after.map(([t, label]) => `${say(t)} ${label}`).join(" → ");
-  return `2:25 — wrap it up. From here: ${line}.`;
+  return `2:05 — start wrapping up. From here: ${line}.`;
 }
 
 function buildWeekPlanMsg(assessments: Assessment[]): string {
@@ -534,12 +544,14 @@ export const SLOTS: Slot[] = [
   },
   {
     key: "leave-work",
-    retired: true,
-    days: [1, 2, 4, 5],  // not Wed (WFH), not weekends
-    time: "14:25",
-    graceMin: 60,
-    run: async ({ dow }) => {
-      await notify(buildLeaveWorkMsg(dow));
+    days: [1, 2, 3, 4, 5],
+    time: "14:05",
+    // Short on purpose. This one exists to reach her before she leaves, so a
+    // catch-up that fires at three o'clock is not a catch-up, it is a message
+    // about an afternoon that already started without it.
+    graceMin: 20,
+    run: async () => {
+      await notify(buildLeaveWorkMsg());
       return "sent";
     },
   },
