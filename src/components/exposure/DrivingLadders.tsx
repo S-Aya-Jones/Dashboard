@@ -19,8 +19,9 @@ interface Rung {
   complete: boolean; current: boolean; link: string | null;
 }
 interface TrackView { track: string; rungs: Rung[]; doneCount: number; current: Rung | null }
-interface Place { key: string; label: string; address: string }
-interface Payload { places: Place[]; tracks: TrackView[] }
+interface Place { key: string; label: string; address: string; kind: "anchor" | "destination" }
+interface Dest { key: string; label: string; easy: string; harder: string }
+interface Payload { places: Place[]; destinations: Dest[]; tracks: TrackView[] }
 
 const TRACK_META: Record<string, { label: string; icon: typeof Car; colour: string }> = {
   driving: { label: "Driving",  icon: Car,      colour: "#B4552F" },
@@ -33,6 +34,8 @@ export function DrivingLadders() {
   const [open, setOpen] = useState<string>("driving");
   const [home, setHome] = useState("");
   const [work, setWork] = useState("");
+  const [destName, setDestName] = useState("");
+  const [destAddr, setDestAddr] = useState("");
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(() => {
@@ -85,6 +88,64 @@ export function DrivingLadders() {
             style={{ background: "var(--text)", color: "var(--surface)" }}>
             Save
           </button>
+        </div>
+      )}
+
+      {/* Somewhere to go, and the two ways to get there */}
+      {saved.home && (
+        <div className="rounded-2xl p-5" style={{ background: "var(--surface)", border: "1.5px solid var(--border)" }}>
+          <h3 className="section-title mb-1">Places worth driving to</h3>
+          <p className="text-xs mb-3 leading-relaxed" style={{ color: "var(--text-muted)" }}>
+            The mall, a cinema, coffee across town. Each one gets two routes — the one that
+            avoids interstates, and the one that doesn&apos;t. The gap between them is the ladder.
+          </p>
+
+          {(data.destinations ?? []).length > 0 && (
+            <div className="space-y-1.5 mb-3">
+              {data.destinations.map(d => (
+                <div key={d.key} className="rounded-xl px-3 py-2.5" style={{ background: "var(--bg)" }}>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-sm font-semibold" style={{ color: "var(--text)" }}>{d.label}</span>
+                    <button onClick={() => post({ removeKey: d.key })}
+                      className="ml-auto text-[11px]" style={{ color: "var(--text-light)" }}>remove</button>
+                  </div>
+                  <div className="flex gap-3 mt-1.5 flex-wrap">
+                    <a href={d.easy} target="_blank" rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold" style={{ color: "#3F6F5E" }}>
+                      No interstates <ExternalLink size={10} />
+                    </a>
+                    <a href={d.harder} target="_blank" rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold" style={{ color: "#C0562A" }}>
+                      Fastest route <ExternalLink size={10} />
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex gap-2 flex-wrap">
+            <input value={destName} onChange={e => setDestName(e.target.value)} placeholder="Name, e.g. the mall"
+              className="flex-1 min-w-[8rem] text-sm px-3 py-2 rounded-xl"
+              style={{ background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)" }} />
+            <input value={destAddr} onChange={e => setDestAddr(e.target.value)} placeholder="Address or place name"
+              className="flex-1 min-w-[10rem] text-sm px-3 py-2 rounded-xl"
+              style={{ background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)" }} />
+            <button
+              onClick={async () => {
+                if (!destName.trim() || !destAddr.trim()) return;
+                await post({ place: {
+                  key: `dest-${Date.now()}`, label: destName.trim(),
+                  address: destAddr.trim(), kind: "destination",
+                } });
+                setDestName(""); setDestAddr("");
+              }}
+              disabled={saving || !destName.trim() || !destAddr.trim()}
+              className="px-4 py-2 rounded-xl text-sm font-bold disabled:opacity-40"
+              style={{ background: "var(--text)", color: "var(--surface)" }}>
+              Add
+            </button>
+          </div>
         </div>
       )}
 

@@ -365,7 +365,9 @@ export const SLOTS: Slot[] = [
     time: "09:00",
     graceMin: 90,
     run: async () => {
-      await notify(sundayMorning(await wholePlan()));
+      const text = sundayMorning(await wholePlan());
+      if (!text) return "nothing planned";
+      await notify(text);
       return "sent";
     },
   },

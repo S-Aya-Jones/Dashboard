@@ -1,4 +1,5 @@
 import { neonClient } from "@/lib/neon";
+import { microExposureFor } from "@/lib/driving";
 
 // The habit text system.
 //
@@ -16,7 +17,7 @@ export type Day = typeof DAYS[number];
 
 /** Which days carry a study block, and which carry a drive. From her spec. */
 export const STUDY_DAYS: Day[] = ["mon", "wed", "sat"];
-export const DRIVE_DAYS: Day[] = ["tue", "thu", "sun"];
+export const DRIVE_DAYS: Day[] = ["tue", "thu", "sat"];
 
 export const STEP_GOAL = 20000;
 /** Steps per minute on the treadmill, for the "how much longer" reply. */
@@ -150,6 +151,8 @@ export function morningWeekday(dateStr: string, plan: PlanItem[], topic?: string
   }
   if (day === "thu") lines.push("Send Kasey your weekly update.");
 
+  lines.push(microExposureFor(dateStr));
+
   return lines.join("\n");
 }
 
@@ -157,14 +160,29 @@ export const MIDMORNING = "Lift or walk, 30 min.";
 
 export function saturdayMorning(plan: PlanItem[], topic?: string | null): string {
   const p = pick(plan, "sat", "study");
+  const drive = pick(plan, "sat", "drive");
   const lines = ["Morning walk, 45 min."];
+
+  // The Saturday drive is the one that is meant to be worth doing — somewhere
+  // she wants to go, not a lap of the block. Weekdays carry the small stuff.
+  if (drive) {
+    const mins = drive.minutes ? `, about ${drive.minutes} min` : "";
+    lines.push(`Drive out to ${drive.detail}${mins}.${drive.link ? ` ${drive.link}` : ""} Rate your anxiety before you start.`);
+  }
   if (topic) lines.push(`Study 10:00 to 11:30: ${topic}${p?.location ? ` at ${p.location}` : ""}.`);
   return lines.join(" ");
 }
 
-export function sundayMorning(plan: PlanItem[]): string {
+/**
+ * Sunday.
+ *
+ * The big drive moved to Saturday, so this only speaks if she has actually
+ * planned something. Two long drives in one weekend is a plan that gets
+ * abandoned in week two, and a text insisting on one she did not plan is noise.
+ */
+export function sundayMorning(plan: PlanItem[]): string | null {
   const p = pick(plan, "sun", "drive");
-  if (!p) return "Drive today. Rate your anxiety before you start.";
+  if (!p) return null;
   const mins = p.minutes ? `, about ${p.minutes} min` : "";
   return `Drive today: ${p.detail}${mins}.${p.link ? ` ${p.link}` : ""} Rate your anxiety before you start.`;
 }
