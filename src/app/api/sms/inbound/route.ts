@@ -5,6 +5,7 @@ import {
 } from "@/lib/smsSubscribers";
 import { parseReply, logEntry, setPlanItem, stepsReply } from "@/lib/habitTexts";
 import { chicagoDay } from "@/lib/planBrief";
+import { nextTopic, markDone, passed } from "@/lib/studyTopics";
 
 export const dynamic = "force-dynamic";
 
@@ -73,11 +74,30 @@ export async function POST(req: NextRequest) {
         await logEntry(today, parsed);
         return twiml(`Logged: before ${parsed.before}, peak ${parsed.peak}, after ${parsed.after}.`);
 
-      case "study":
+      case "study": {
         await logEntry(today, parsed);
+
+        // The topic only closes on a score. Below 5/6 it stays open and comes
+        // back in the next study text, which is the point of ordering them —
+        // moving on from a topic she got four out of six on would bury the gap.
+        const current = await nextTopic();
+        if (!current) {
+          return twiml(`Logged: ${parsed.minutes} min. All topics are done.`);
+        }
+        if (passed(parsed.quiz)) {
+          await markDone(current.index, parsed.quiz);
+          const after = await nextTopic();
+          return twiml(
+            `Logged: ${parsed.minutes} min, quiz ${parsed.quiz}. ` +
+            `"${current.title}" is done.` +
+            (after ? ` Next: ${after.title}.` : " That's all eighteen."),
+          );
+        }
         return twiml(
-          `Logged: ${parsed.minutes} min${parsed.quiz ? `, quiz ${parsed.quiz}` : ""}.`,
+          `Logged: ${parsed.minutes} min${parsed.quiz ? `, quiz ${parsed.quiz}` : ""}. ` +
+          `Staying on "${current.title}" — it closes at 5/6.`,
         );
+      }
 
       case "skip":
         await logEntry(today, parsed);

@@ -14,6 +14,7 @@ import {
   morningWeekday, MIDMORNING, saturdayMorning, sundayMorning,
   SUNDAY_WRAP, eveningText, weeklySummary, wholePlan,
 } from "@/lib/habitTexts";
+import { nextTopic } from "@/lib/studyTopics";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // The notification spine: every scheduled ping in Aya's day, fired by
@@ -334,7 +335,7 @@ export const SLOTS: Slot[] = [
     time: "07:45",
     graceMin: 60,
     run: async () => {
-      await notify(morningWeekday(chicagoDateStr(), await wholePlan()));
+      await notify(morningWeekday(chicagoDateStr(), await wholePlan(), (await nextTopic())?.title ?? null));
       return "sent";
     },
   },
@@ -354,7 +355,7 @@ export const SLOTS: Slot[] = [
     time: "09:00",
     graceMin: 90,
     run: async () => {
-      await notify(saturdayMorning(await wholePlan()));
+      await notify(saturdayMorning(await wholePlan(), (await nextTopic())?.title ?? null));
       return "sent";
     },
   },
