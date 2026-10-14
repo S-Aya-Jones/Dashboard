@@ -7,7 +7,7 @@ import { parseReply, logEntry, setPlanItem, stepsReply } from "@/lib/habitTexts"
 import { chicagoDay } from "@/lib/planBrief";
 import { nextTopic, markDone, passed } from "@/lib/studyTopics";
 import { aiReply } from "@/lib/aiText";
-import { runCommand } from "@/lib/textActions";
+import { runCommand, maybeReview, maybeDecline } from "@/lib/textActions";
 import { HELP_TEXT } from "@/lib/textCommands";
 import { findByPhone as subscriberByPhone } from "@/lib/smsSubscribers";
 
@@ -134,6 +134,18 @@ export async function POST(req: NextRequest) {
         // rejected — a sentence she meant someone to read must never bounce.
         const done = await runCommand(body);
         if (done) return twiml(done);
+
+        // If the Sunday reset is still waiting on an answer, this is it. After
+        // the commands, so that texting "drive" on a Sunday evening still asks
+        // where to drive instead of being filed as a week in review.
+        const review = await maybeReview(body);
+        if (review) return twiml(review);
+
+        // "I don't think I can do this today" — move it rather than discuss
+        // it. Only fires when something is actually on today; otherwise it
+        // falls through and gets answered like any other sentence.
+        const moved = await maybeDecline(body);
+        if (moved) return twiml(moved);
 
         const answer = await aiReply(body);
         return twiml(answer ?? HELP_TEXT);

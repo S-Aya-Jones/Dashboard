@@ -28,7 +28,24 @@ export type Command =
   | { kind: "options" }
   | { kind: "reset" }
   | { kind: "status" }
+  | { kind: "move"; what: "drive" | "study"; from: Day | null; to: Day }
   | null;
+
+export type Day = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
+
+const DAY_WORDS: Record<string, Day> = {
+  mon: "mon", monday: "mon",
+  tue: "tue", tues: "tue", tuesday: "tue",
+  wed: "wed", weds: "wed", wednesday: "wed",
+  thu: "thu", thur: "thu", thurs: "thu", thursday: "thu",
+  fri: "fri", friday: "fri",
+  sat: "sat", saturday: "sat",
+  sun: "sun", sunday: "sun",
+};
+
+export function dayWord(w: string): Day | null {
+  return DAY_WORDS[w.trim().toLowerCase().replace(/[^a-z]/g, "")] ?? null;
+}
 
 /** Leading word, lowercased, and the rest untouched. */
 function split(body: string): { head: string; rest: string } {
@@ -102,6 +119,24 @@ export function parseCommand(body: string): Command {
       return null;
     }
 
+    case "move":
+    case "push": {
+      // "move drive to saturday", "push thursday drive to sat". The thing being
+      // moved and the day it lands on; the day it came from is optional because
+      // nine times out of ten it is today.
+      const words = rest.split(/\s+/).filter(Boolean);
+      const what = words.find(w => /^(drive|study)$/i.test(w))?.toLowerCase() as "drive" | "study" | undefined;
+      if (!what) return null;
+
+      const toIdx = words.findIndex(w => /^to$/i.test(w));
+      const to = toIdx >= 0 ? dayWord(words.slice(toIdx + 1).join("")) : null;
+      if (!to) return null;
+
+      // A day named before "to" is the one it is moving off.
+      const before = toIdx > 0 ? words.slice(0, toIdx).map(dayWord).find(Boolean) ?? null : null;
+      return { kind: "move", what, from: before, to };
+    }
+
     case "crossed":
       return rest ? { kind: "droveBridge", label: rest } : null;
 
@@ -111,6 +146,37 @@ export function parseCommand(body: string): Command {
     default:
       return null;
   }
+}
+
+// "I don't think I can do this today."
+//
+// Her words, and the thing she actually wants to be able to say — not "move
+// drive to saturday". The command form stays because it is exact; this is for
+// the sentence she will really send, at 7:50 in the morning, in the car park.
+//
+// Deliberately narrow. It only fires when something is actually planned for
+// today, so the worst case is a sentence reaching the assistant instead, which
+// is where it would have gone anyway. The reverse mistake — quietly wiping a
+// drive off the plan because she texted "can't believe I did that today" — is
+// the one worth engineering against, which is what PAST rules out.
+const DECLINE = /\b(can'?t|can ?not|won'?t be able|not going to make|not gonna make|don'?t think i can|too much today|need to skip|have to skip|gotta skip|skipping)\b/i;
+const TODAY = /\b(today|tonight|this (one|morning|afternoon|evening)|it)\b/i;
+const PAST = /\b(did|done|drove|crossed|finished|went|made it|managed)\b/i;
+
+/**
+ * Read a message as backing out of today's plan.
+ *
+ * `what` is null when she didn't name it — the caller resolves that from what
+ * is actually on today, because on most days only one thing is.
+ */
+export function parseDecline(body: string): { what: "drive" | "study" | null } | null {
+  const t = String(body ?? "").trim();
+  if (!t || t.endsWith("?")) return null;
+  if (!DECLINE.test(t) || !TODAY.test(t)) return null;
+  if (PAST.test(t)) return null;
+
+  const what = /\bdriv/i.test(t) ? "drive" : /\bstud/i.test(t) ? "study" : null;
+  return { what };
 }
 
 /** What the Sunday reset asks, in one message she can answer in one reply. */
@@ -138,4 +204,5 @@ export const HELP_TEXT =
   "add bridge <name>, done before\n" +
   "set home <address>\n" +
   "status — where everything stands\n" +
+  "move drive to saturday — shifts it\n" +
   "Or just ask me something.";

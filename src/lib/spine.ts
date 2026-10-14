@@ -12,10 +12,12 @@ import { unnotifiedUpdates, markUpdatesNotified, updateDigest } from "@/lib/scho
 import { dayLine, blockCues, whyToday, upcomingAssessments, say } from "@/lib/planBrief";
 import {
   morningWeekday, MIDMORNING, saturdayMorning, sundayMorning,
-  SUNDAY_WRAP, eveningText, weeklySummary, wholePlan,
+  eveningText, weeklySummary, wholePlan,
 } from "@/lib/habitTexts";
 import { nextTopic } from "@/lib/studyTopics";
 import { composeMorning } from "@/lib/morningText";
+import { RESET_PROMPT } from "@/lib/textCommands";
+import { openResetWindow } from "@/lib/weeklyReset";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // The notification spine: every scheduled ping in Aya's day, fired by
@@ -396,7 +398,11 @@ export const SLOTS: Slot[] = [
     time: "17:00",
     graceMin: 60,
     run: async () => {
-      await notify(SUNDAY_WRAP);
+      // The four questions, and a window opened for the answer. Whatever she
+      // texts back in the next few hours is read as the review rather than as
+      // a question for the assistant.
+      await openResetWindow();
+      await notify(RESET_PROMPT);
       return "sent";
     },
   },

@@ -187,8 +187,6 @@ export function sundayMorning(plan: PlanItem[]): string | null {
   return `Drive today: ${p.detail}${mins}.${p.link ? ` ${p.link}` : ""} Rate your anxiety before you start.`;
 }
 
-export const SUNDAY_WRAP = "Weekly wrap-up time.";
-
 export function eveningText(dateStr: string): string {
   const day = dayOf(dateStr);
   const lines = ["Shower, skincare, then a slow treadmill walk while it absorbs. Reply with your steps."];
@@ -407,4 +405,12 @@ export function renderSummary(start: string, end: string, logs: LogRow[], plan: 
   else for (const s of skips) out.push(`  ${fmt(s.date)} ${s.reason}`);
 
   return out.join("\n");
+}
+
+
+/** Remove one day's plan entry. Used when something is moved to another day. */
+export async function clearPlanItem(day: Day, kind: "study" | "drive"): Promise<void> {
+  await ensureHabitTables();
+  const sql = db();
+  await sql`DELETE FROM habit_plan WHERE day = ${day} AND kind = ${kind}`;
 }
