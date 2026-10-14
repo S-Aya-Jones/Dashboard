@@ -4,6 +4,8 @@ import { useEffect, useState, useCallback } from "react";
 import { Bell, Plus, Trash2, Check, X, MessageSquare, RefreshCw, BookOpen, Calendar } from "lucide-react";
 import { TextSettings } from "@/components/settings/TextSettings";
 import { SmsSubscribers } from "@/components/settings/SmsSubscribers";
+import { usePausedModules } from "@/hooks/usePausedModules";
+import { pausedSet } from "@/lib/modules";
 import { ScheduleImport } from "@/components/school/ScheduleImport";
 
 interface Reminder {
@@ -150,7 +152,11 @@ const BLANK: FormState = { title: "", body: "", scheduleType: "daily", hour: "7"
 const ALL_MINUTES = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, "0"));
 
 export function RemindersView() {
-  const [tab,          setTab]          = useState<"deadlines" | "messages" | "reminders">("deadlines");
+  // The Deadlines tab is the course schedule: syllabus upload, exam sync, and
+  // every quiz for the term. It follows the School pause like the texts do —
+  // a page listing Microbiology Quiz 3 is not what this is for right now.
+  const schoolPaused = pausedSet(usePausedModules()).has("/school");
+  const [tab, setTab] = useState<"deadlines" | "messages" | "reminders">("messages");
   const [reminders,    setReminders]    = useState<Reminder[]>([]);
   const [logs,         setLogs]         = useState<InboundLog[]>([]);
   const [events,       setEvents]       = useState<UpcomingEvent[]>([]);
@@ -273,13 +279,15 @@ export function RemindersView() {
       {/* Header */}
       <div style={{ marginBottom: "1.25rem" }}>
         <h1 style={{ margin: "0 0 0.25rem", fontFamily: "Georgia, serif", fontSize: "1.4rem", color: "var(--text)" }}>Texts</h1>
-        <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--text-muted)" }}>Two-way bot · @AyaDashboardbot</p>
+        <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--text-muted)" }}>
+          Reply to any text and it logs here
+        </p>
       </div>
 
       {/* Tabs */}
       <div style={{ display: "flex", gap: "0.25rem", marginBottom: "1.25rem", background: "var(--bg)", borderRadius: 12, padding: "0.25rem" }}>
         {([
-          { key: "deadlines", label: "Deadlines", icon: <BookOpen size={14} />,      count: events.length },
+          ...(schoolPaused ? [] : [{ key: "deadlines" as const, label: "Deadlines", icon: <BookOpen size={14} />, count: events.length }]),
           { key: "messages",  label: "Messages",  icon: <MessageSquare size={14} />, count: logs.length },
           { key: "reminders", label: "Reminders", icon: <Bell size={14} />,           count: active.length },
         ] as const).map(({ key, label, icon, count }) => (
@@ -292,7 +300,7 @@ export function RemindersView() {
       </div>
 
       {/* ── Deadlines tab ── */}
-      {tab === "deadlines" && (
+      {tab === "deadlines" && !schoolPaused && (
         <div>
           <div style={{ marginBottom: "1.25rem" }}>
             <ScheduleImport />

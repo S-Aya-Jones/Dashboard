@@ -92,7 +92,7 @@ export function TextSettings() {
     >
       <div>
         <p className="font-serif text-lg flex items-center gap-2" style={{ color: "var(--text)" }}>
-          <MessageSquare size={16} style={{ color: "var(--purple)" }} /> Send it as a text too
+          <MessageSquare size={16} style={{ color: "var(--purple)" }} /> Texts
         </p>
         <p className="text-sm mt-1.5 leading-relaxed" style={{ color: "var(--text-muted)" }}>
           Every notification is sent as a text to your phone.
@@ -115,7 +115,7 @@ export function TextSettings() {
           className="w-4 h-4"
           style={{ accentColor: "var(--purple)" }}
         />
-        <span className="text-sm" style={{ color: "var(--text)" }}>Text me too</span>
+        <span className="text-sm" style={{ color: "var(--text)" }}>Send me texts</span>
       </label>
 
       <div className="grid sm:grid-cols-2 gap-2">
