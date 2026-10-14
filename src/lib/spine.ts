@@ -11,10 +11,11 @@ import { whatIsDue, dueLine } from "@/lib/people";
 import { unnotifiedUpdates, markUpdatesNotified, updateDigest } from "@/lib/schoolUpdates";
 import { dayLine, blockCues, whyToday, upcomingAssessments, say } from "@/lib/planBrief";
 import {
-  morningWeekday, MIDMORNING, saturdayMorning, sundayMorning,
+  morningWeekday, midmorning, saturdayMorning, sundayMorning,
   eveningText, weeklySummary, wholePlan,
 } from "@/lib/habitTexts";
 import { nextTopic } from "@/lib/studyTopics";
+import { bridges } from "@/lib/driving";
 import { composeMorning } from "@/lib/morningText";
 import { RESET_PROMPT } from "@/lib/textCommands";
 import { openResetWindow } from "@/lib/weeklyReset";
@@ -346,7 +347,13 @@ export const SLOTS: Slot[] = [
         await notify(written);
         return "composed";
       }
-      await notify(morningWeekday(chicagoDateStr(), await wholePlan(), (await nextTopic())?.title ?? null));
+      const bridgeList = await bridges().catch(() => []);
+      await notify(morningWeekday(
+        chicagoDateStr(),
+        await wholePlan(),
+        (await nextTopic())?.title ?? null,
+        bridgeList.find(b => b.reps < b.target)?.label ?? null,
+      ));
       return "assembled";
     },
   },
@@ -356,7 +363,7 @@ export const SLOTS: Slot[] = [
     time: "10:45",
     graceMin: 60,
     run: async () => {
-      await notify(MIDMORNING);
+      await notify(midmorning(chicagoDateStr()));
       return "sent";
     },
   },
@@ -366,7 +373,7 @@ export const SLOTS: Slot[] = [
     time: "09:00",
     graceMin: 90,
     run: async () => {
-      await notify(saturdayMorning(await wholePlan(), (await nextTopic())?.title ?? null));
+      await notify(saturdayMorning(await wholePlan(), (await nextTopic())?.title ?? null, chicagoDateStr()));
       return "sent";
     },
   },
@@ -376,9 +383,7 @@ export const SLOTS: Slot[] = [
     time: "09:00",
     graceMin: 90,
     run: async () => {
-      const text = sundayMorning(await wholePlan());
-      if (!text) return "nothing planned";
-      await notify(text);
+      await notify(sundayMorning(await wholePlan(), chicagoDateStr()));
       return "sent";
     },
   },

@@ -1,5 +1,6 @@
 import { neonClient } from "@/lib/neon";
 import { microExposureFor } from "@/lib/driving";
+import { driveWindow, driveTiming } from "@/lib/daylight";
 
 // The habit text system.
 //
@@ -18,6 +19,25 @@ export type Day = typeof DAYS[number];
 /** Which days carry a study block, and which carry a drive. From her spec. */
 export const STUDY_DAYS: Day[] = ["mon", "wed", "sat"];
 export const DRIVE_DAYS: Day[] = ["tue", "thu", "sat"];
+
+/**
+ * The days she works from home.
+ *
+ * She still wants the texts on these days — she can walk at the flat. What
+ * changes is everything the texts assume: there is no work car park, no lift,
+ * no drive home, and the treadmill is her own. Half the week's small exposures
+ * attach to a building she is not in, and sending them anyway is how a text
+ * stops being read.
+ *
+ * It also makes Wednesday the best driving window she has: daylight, midday,
+ * no commute at either end. That is offered rather than scheduled, because the
+ * three drive days are hers.
+ */
+export const WFH_DAYS: Day[] = ["wed"];
+
+export function atHome(day: Day): boolean {
+  return WFH_DAYS.includes(day) || day === "sat" || day === "sun";
+}
 
 export const STEP_GOAL = 20000;
 /** Steps per minute on the treadmill, for the "how much longer" reply. */
@@ -137,8 +157,14 @@ function pick(plan: PlanItem[], day: Day, kind: "study" | "drive"): PlanItem | n
   return plan.find(p => p.day === day && p.kind === kind) ?? null;
 }
 
-export function morningWeekday(dateStr: string, plan: PlanItem[], topic?: string | null): string {
+export function morningWeekday(
+  dateStr: string,
+  plan: PlanItem[],
+  topic?: string | null,
+  nextBridge?: string | null,
+): string {
   const day = dayOf(dateStr);
+  const home = atHome(day);
   const lines = [`Treadmill: 45 min at 1.5 to 2 mph. Goal today: ${STEP_GOAL.toLocaleString("en-US")} steps.`];
 
   if (day === "mon" && topic) lines.push(`Study 3:30 to 4:30: ${topic}.`);
@@ -146,19 +172,42 @@ export function morningWeekday(dateStr: string, plan: PlanItem[], topic?: string
   if (day === "tue" || day === "thu") {
     const p = pick(plan, day, "drive");
     if (p) {
-      lines.push(`Drive home today: ${p.detail}${p.link ? ` ${p.link}` : ""}. Rate your anxiety before you start.`);
+      // The weekday drive is the commute, so it happens when work ends whether
+      // that is daylight or not. Once it isn't, saying so is the useful part —
+      // she can decide to go at lunch or leave it for Saturday.
+      const dark = driveWindow(dateStr).note;
+      lines.push(
+        `Drive home today: ${p.detail}${p.link ? ` ${p.link}` : ""}. Rate your anxiety before you start.` +
+        (dark ? ` ${dark}` : ""),
+      );
     }
   }
   if (day === "thu") lines.push("Send Kasey your weekly update.");
 
-  lines.push(microExposureFor(dateStr));
+  lines.push(microExposureFor(dateStr, { atHome: home, nextBridge }));
 
   return lines.join("\n");
 }
 
-export const MIDMORNING = "Lift or walk, 30 min.";
+/**
+ * Half past ten, before lunch.
+ *
+ * At work this is the walking treadmill. At home it is whatever she has, and
+ * the thing worth adding is that the roads outside are empty and it is light —
+ * a window she does not get on any other working day.
+ */
+export function midmorning(dateStr: string): string {
+  const day = dayOf(dateStr);
+  if (!atHome(day)) return "Lift or walk, 30 min.";
 
-export function saturdayMorning(plan: PlanItem[], topic?: string | null): string {
+  const w = driveWindow(dateStr);
+  const offer = w.label
+    ? ` Best driving window of your week is today: ${w.label}, if you want it.`
+    : "";
+  return `Lift or walk, 30 min — you're home today, so your own treadmill or round the block.${offer}`;
+}
+
+export function saturdayMorning(plan: PlanItem[], topic?: string | null, dateStr?: string): string {
   const p = pick(plan, "sat", "study");
   const drive = pick(plan, "sat", "drive");
   const lines = ["Morning walk, 45 min."];
@@ -167,7 +216,10 @@ export function saturdayMorning(plan: PlanItem[], topic?: string | null): string
   // she wants to go, not a lap of the block. Weekdays carry the small stuff.
   if (drive) {
     const mins = drive.minutes ? `, about ${drive.minutes} min` : "";
-    lines.push(`Drive out to ${drive.detail}${mins}.${drive.link ? ` ${drive.link}` : ""} Rate your anxiety before you start.`);
+    // When to go, not just where. Her two conditions are no traffic and no
+    // dark, and both of those are a clock, so the clock belongs in the text.
+    const when = dateStr ? driveTiming(dateStr) : null;
+    lines.push(`Drive out to ${drive.detail}${mins}.${drive.link ? ` ${drive.link}` : ""}${when ? ` ${when}` : ""} Rate your anxiety before you start.`);
   }
   if (topic) lines.push(`Study 10:00 to 11:30: ${topic}${p?.location ? ` at ${p.location}` : ""}.`);
   return lines.join(" ");
@@ -180,11 +232,19 @@ export function saturdayMorning(plan: PlanItem[], topic?: string | null): string
  * planned something. Two long drives in one weekend is a plan that gets
  * abandoned in week two, and a text insisting on one she did not plan is noise.
  */
-export function sundayMorning(plan: PlanItem[]): string | null {
+export function sundayMorning(plan: PlanItem[], dateStr?: string): string {
+  // The walk is unconditional now. This used to return null when no drive was
+  // planned, which meant the one day of the week with the most time in it was
+  // also the only morning that said nothing at all.
+  const lines = ["Walk today, 45 min. Set the time now rather than later."];
+
   const p = pick(plan, "sun", "drive");
-  if (!p) return null;
-  const mins = p.minutes ? `, about ${p.minutes} min` : "";
-  return `Drive today: ${p.detail}${mins}.${p.link ? ` ${p.link}` : ""} Rate your anxiety before you start.`;
+  if (p) {
+    const mins = p.minutes ? `, about ${p.minutes} min` : "";
+    const when = dateStr ? driveTiming(dateStr) : null;
+    lines.push(`Drive today: ${p.detail}${mins}.${p.link ? ` ${p.link}` : ""}${when ? ` ${when}` : ""} Rate your anxiety before you start.`);
+  }
+  return lines.join(" ");
 }
 
 export function eveningText(dateStr: string): string {
