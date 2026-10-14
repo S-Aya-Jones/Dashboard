@@ -39,9 +39,12 @@ export async function ensureDrivingTables() {
       key        TEXT PRIMARY KEY,
       label      TEXT NOT NULL,
       address    TEXT NOT NULL,
+      kind       TEXT NOT NULL DEFAULT 'anchor',
       updated_at TIMESTAMPTZ DEFAULT NOW()
     )
   `;
+  // Added after the fact; an existing table from the first version has no kind.
+  await sql`ALTER TABLE driving_places ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'anchor'`;
   await sql`
     CREATE TABLE IF NOT EXISTS driving_progress (
       rung       TEXT PRIMARY KEY,
@@ -52,26 +55,62 @@ export async function ensureDrivingTables() {
   `;
 }
 
-export interface Place { key: string; label: string; address: string }
+/**
+ * A place, either an anchor or somewhere worth driving to.
+ *
+ * Anchors are home and work — the two fixed points every route is measured
+ * from. Destinations are the rest: the mall, the cinema, a coffee place across
+ * town. They exist because "a weekend drive somewhere you actually want to go"
+ * is not a rung anyone can act on until there is a list of somewheres.
+ */
+export interface Place { key: string; label: string; address: string; kind: "anchor" | "destination" }
 
 export async function places(): Promise<Place[]> {
   await ensureDrivingTables();
   const sql = db();
-  const rows = await sql`SELECT key, label, address FROM driving_places ORDER BY key`;
+  const rows = await sql`SELECT key, label, address, kind FROM driving_places ORDER BY kind, label`;
   return rows.map(r => {
     const x = r as Record<string, unknown>;
-    return { key: String(x.key), label: String(x.label), address: String(x.address) };
+    return {
+      key: String(x.key), label: String(x.label), address: String(x.address),
+      kind: (x.kind as string) === "destination" ? "destination" : "anchor",
+    };
   });
 }
 
-export async function setPlace(key: string, label: string, address: string): Promise<void> {
+export async function setPlace(
+  key: string, label: string, address: string, kind: "anchor" | "destination" = "anchor",
+): Promise<void> {
   await ensureDrivingTables();
   const sql = db();
   await sql`
-    INSERT INTO driving_places (key, label, address, updated_at)
-    VALUES (${key}, ${label}, ${address}, NOW())
-    ON CONFLICT (key) DO UPDATE SET label = EXCLUDED.label, address = EXCLUDED.address, updated_at = NOW()
+    INSERT INTO driving_places (key, label, address, kind, updated_at)
+    VALUES (${key}, ${label}, ${address}, ${kind}, NOW())
+    ON CONFLICT (key) DO UPDATE SET
+      label = EXCLUDED.label, address = EXCLUDED.address,
+      kind = EXCLUDED.kind, updated_at = NOW()
   `;
+}
+
+export async function removePlace(key: string): Promise<void> {
+  await ensureDrivingTables();
+  const sql = db();
+  await sql`DELETE FROM driving_places WHERE key = ${key}`;
+}
+
+/**
+ * Both routes to a destination: the one that avoids highways and the one that
+ * doesn't.
+ *
+ * Shown side by side on purpose. The difference between them is the ladder —
+ * same place, same car, and the only thing that changed is how close the road
+ * gets to an interstate.
+ */
+export function routePair(from: string, to: string): { easy: string; harder: string } {
+  return {
+    easy: routeLink(from, to),
+    harder: routeLink(from, to, { avoidHighways: false }),
+  };
 }
 
 /**
@@ -114,41 +153,50 @@ export interface Rung {
 }
 
 /**
- * Driving, on surface streets only.
+ * Driving, graded by how close the route gets to a highway.
  *
- * The rungs are about who is in the car, how well she knows the road, how much
- * traffic, and how much light — not about distance. Distance is the thing a
- * phobia ladder gets wrong most often: a long drive on a road she knows is
- * easier than a short one she doesn't.
+ * The first version of this ladder started at "sit in the car, engine running"
+ * and "drive around the block". She drives to work every day and to Target at
+ * the weekend; those rungs were built for someone who does not drive, and
+ * handing them to someone who does is both useless and a bit insulting.
+ *
+ * The real variable is hers: same destination, different route, graded by
+ * proximity to an interstate. Not on it, near it — being alongside a highway is
+ * its own fear and is usually left out of a ladder entirely. So the order runs
+ * surface streets, then parallel, then over, then under, then the ramp without
+ * taking it, and only then one exit.
+ *
+ * Destinations are deliberately things she would want to reach anyway. A drive
+ * that ends at a cinema is a drive she will take twice.
  */
 export const DRIVING: Rung[] = [
-  { id: "d-sit", track: "driving", target: 1,
-    title: "Sit in the car on the drive, engine running, five minutes",
-    why: "No destination, no decision. Just the inside of the car being an ordinary place again." },
-  { id: "d-block", track: "driving", target: 3,
-    title: "Around the block and home",
-    why: "Short enough that stopping isn't a failure. Three times, not once — the point is that it stops being an event." },
-  { id: "d-work-known", track: "driving", target: 3, route: { from: "home", to: "work" },
-    title: "Home to work, surface streets, the way you always go",
-    why: "The road you know best in the city. This is the baseline everything else is measured against." },
-  { id: "d-work-return", track: "driving", target: 3, route: { from: "work", to: "home" },
-    title: "Work to home, same roads, after a shift",
-    why: "Tired is a different driver. Same road, harder conditions." },
-  { id: "d-errand", track: "driving", target: 3,
-    title: "One errand you'd normally put off — groceries, the pharmacy",
-    why: "A real reason to be in the car. Exposure that buys you something." },
-  { id: "d-newroad", track: "driving", target: 3,
-    title: "One new surface-street route — the same one, three times",
-    why: "Unfamiliar is not a rung to climb past. It wears off with repetition. Three drives on one road beats one drive on three." },
-  { id: "d-traffic", track: "driving", target: 2,
-    title: "A road you know, at a busy hour",
-    why: "Traffic, with everything else held constant." },
-  { id: "d-dark", track: "driving", target: 2,
-    title: "A road you know, after dark",
-    why: "Less light, nothing else new." },
-  { id: "d-far", track: "driving", target: 2,
-    title: "Thirty minutes out and back, surface streets",
-    why: "Distance, last — and still no interstate." },
+  { id: "d-fun-surface", track: "driving", target: 3,
+    title: "A weekend drive somewhere you actually want to go — mall, cinema, coffee — surface streets only",
+    why: "You drive every day. What you don't do is drive somewhere for the pleasure of it. Pick one place and go three times; the third trip is a different experience from the first." },
+  { id: "d-fun-second", track: "driving", target: 2,
+    title: "The same place, a different surface route",
+    why: "Known destination, unknown roads. Only one variable changes, which is the whole trick." },
+  { id: "d-further", track: "driving", target: 3,
+    title: "Somewhere further out, still no interstate",
+    why: "Longer time in the car on roads of the same kind. Distance, with nothing else new." },
+  { id: "d-parallel", track: "driving", target: 3,
+    title: "A route that runs alongside a highway for a stretch",
+    why: "Being next to one is its own thing, separate from being on it. This is the rung that is usually skipped, and it is the one you named." },
+  { id: "d-overpass", track: "driving", target: 3,
+    title: "A route that crosses over a highway on an overpass",
+    why: "Above the traffic, briefly, with a rail either side. Bridge, height and highway in about eight seconds — and you can pick one on a road you already know." },
+  { id: "d-under", track: "driving", target: 2,
+    title: "A route that passes underneath a highway",
+    why: "Same proximity, no height. Worth doing if the overpass is the part that bites." },
+  { id: "d-ramp-look", track: "driving", target: 2,
+    title: "Drive to an interstate on-ramp, then turn away from it",
+    why: "All the approach, none of the merge. The point is to be at the thing and choose, rather than avoiding the whole area." },
+  { id: "d-one-exit", track: "driving", target: 3,
+    title: "One interstate exit, off-peak — on and straight back off",
+    why: "The shortest possible version. Sunday morning, light traffic, stay in the right lane the entire time." },
+  { id: "d-few-exits", track: "driving", target: 3,
+    title: "Two or three exits, off-peak",
+    why: "Merge, stay right, exit. Everything after this is just more of the same." },
 ];
 
 /**
@@ -312,3 +360,41 @@ export const TRACK_LABEL: Record<Track, string> = {
   bridges: "Bridges",
   heights: "Heights",
 };
+
+
+// ── The small ones, on days she is already having ────────────────────────────
+//
+// Her words: "these are things that go missing or I forget to do." That is not
+// a motivation problem, it is a delivery problem. A ladder on a page she has to
+// open is a ladder she opens on the days she was going to do the work anyway.
+//
+// So these ride along in the weekday morning text instead. Every one of them
+// attaches to something already happening — arriving at work, parking, going
+// up to her floor, driving home — and none takes more than a couple of minutes.
+// The lift is hers, not a substitution: she named it, so it stays, rather than
+// being swapped for the stairs because a ladder somewhere says stairs are
+// harder.
+//
+// They rotate by date so the same one does not arrive five days running and
+// stop being read.
+
+export const MICRO_EXPOSURES: string[] = [
+  "Park one level higher than you need to.",
+  "Take the lift to the highest floor you can reach, then come back down.",
+  "Stand at an upper-floor window and look down, not out. Thirty seconds.",
+  "Park high, then walk to the outside wall of that level before you go in.",
+  "Take the lift rather than the stairs, and ride one floor past yours.",
+  "On the way home, take the route that crosses over the highway rather than under.",
+  "Stand at the garage rail on your way to the car. Count to thirty before you get in.",
+];
+
+/**
+ * Today's small one.
+ *
+ * Keyed off the date rather than chosen at random, so opening the text twice
+ * shows the same thing and a week does not repeat one three times.
+ */
+export function microExposureFor(dateStr: string): string {
+  const seed = dateStr.split("-").reduce((n, p) => n * 31 + Number(p), 11);
+  return MICRO_EXPOSURES[seed % MICRO_EXPOSURES.length];
+}
