@@ -7,14 +7,14 @@ import {
 import { driveOptions, optionsText } from "@/lib/driveOptions";
 import { progress as studyProgress } from "@/lib/studyTopics";
 import { logsBetween, weekBounds, dayOf } from "@/lib/habitTexts";
-import { parseCommand, parseDecline, RESET_PROMPT, type Command } from "@/lib/textCommands";
+import {
+  parseCommand, parseDecline, parseWriteIntent, RESET_PROMPT, type Command,
+} from "@/lib/textCommands";
 import {
   planFor, setPlanItem, clearPlanItem, DRIVE_DAYS, STUDY_DAYS, type Day,
 } from "@/lib/habitTexts";
-import {
-  openResetWindow, resetWindowOpen, closeResetWindow,
-  parseReview, saveReview, reviewAck, weekEndFor,
-} from "@/lib/weeklyReset";
+import { openResetWindow, parseReview, saveReview, reviewAck, weekEndFor } from "@/lib/weeklyReset";
+import { openCapture, closeCapture, openCaptureKind } from "@/lib/pending";
 
 // Carrying out what she texted.
 //
@@ -140,25 +140,57 @@ const DAY_NAME: Record<Day, string> = {
 const capitalise = (d: Day) => DAY_NAME[d];
 
 /**
- * Read a message as the answer to the Sunday reset, if one is owing.
+ * Catch a message that something earlier asked for.
  *
- * Returns null when no reset is open or the message is too short to be the
- * answer to four questions — a "yeah" or a "k" after the prompt is not a
- * review, and recording it as one would put an empty week on the dashboard.
+ * Three windows lead here: she said she wanted to journal, she said she wanted
+ * to pray, or Sunday's reset went out. In each case this message is the thing
+ * itself and must be written down, not answered.
  *
- * The raw text is saved before the parsing runs, so her words survive even if
- * the model is down, out of credit, or returns nonsense.
+ * Returns null when no window is open, so everything else is unaffected.
  */
-export async function maybeReview(body: string): Promise<string | null> {
-  if (!(await resetWindowOpen())) return null;
+export async function maybeCapture(body: string): Promise<string | null> {
+  const kind = await openCaptureKind();
+  if (!kind) return null;
+
   const text = body.trim();
+  if (!text) return null;
+
+  if (kind !== "review") {
+    // Anything she sends counts. A three-word entry is still an entry, and
+    // deciding hers was too short to keep would be the app overruling her.
+    await closeCapture(kind);
+    return writeJournal(text, kind);
+  }
+
+  // The review is different: it answers four questions, so a "yeah" or a "k"
+  // after the prompt is not it. Leaving the window open means her real answer,
+  // sent a minute later, still lands.
   if (text.split(/\s+/).length < 5) return null;
 
+  // Saved before the parsing runs, so her words survive even if the model is
+  // down, out of credit, or returns nonsense.
   await writeJournal(text, "journal");
   const review = await parseReview(text);
   await saveReview(weekEndFor(), review, text);
-  await closeResetWindow();
+  await closeCapture("review");
   return reviewAck(review);
+}
+
+/**
+ * "Can I do a journal entry?" — yes, and the next message is it.
+ *
+ * Answering the question is not enough. If this only said "text journal
+ * followed by what you want to save" she would have to hold a keyword in her
+ * head while composing the thing she actually wanted to write.
+ */
+export async function maybeWriteIntent(body: string): Promise<string | null> {
+  const kind = parseWriteIntent(body);
+  if (!kind) return null;
+
+  await openCapture(kind);
+  return kind === "prayer"
+    ? "Go ahead — send it however it comes out and I'll keep it with your prayers."
+    : "Go ahead — send it however it comes out and I'll save it to your journal, dated today.";
 }
 
 /**

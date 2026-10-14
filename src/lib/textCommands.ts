@@ -179,6 +179,41 @@ export function parseDecline(body: string): { what: "drive" | "study" | null } |
   return { what };
 }
 
+// "Can I do a journal entry?" "Can you log my journal if I tell you what's
+// going on?"
+//
+// She asked both and was told no, because neither starts with the word
+// "journal". The command form is for when she already knows what she wants to
+// write; this is for when she is asking whether she can.
+//
+// Unlike the other matchers this one wants the question mark — it is an ask,
+// not an entry. "journal today was heavy" is already handled above and never
+// reaches here.
+const WANTS_JOURNAL = /\b(journal|journall?ing|entry|write (this|it) down|log (this|that|what))\b/i;
+const WANTS_PRAYER = /\b(pray|prayer|prayers)\b/i;
+const ASKING = /\b(can|could|would|will|want to|wanna|i'?d like|how do i|is there a way|able to|let me|help me|ready to)\b/i;
+
+/**
+ * Read a message as wanting to write something down, without saying what yet.
+ *
+ * Returns the kind she means, or null. The caller opens a window and saves her
+ * next message, which is the whole point: she should never have to learn a
+ * word to be able to keep a journal.
+ */
+export function parseWriteIntent(body: string): "journal" | "prayer" | null {
+  const t = String(body ?? "").trim();
+  if (!t) return null;
+  // Longer than a sentence and it is the entry itself, not a question about
+  // writing one. Saving an eighty-word message as a prompt to write would lose
+  // it, which is the one outcome that must not happen here.
+  if (t.split(/\s+/).length > 20) return null;
+  if (!ASKING.test(t)) return null;
+
+  if (WANTS_PRAYER.test(t)) return "prayer";
+  if (WANTS_JOURNAL.test(t)) return "journal";
+  return null;
+}
+
 /** What the Sunday reset asks, in one message she can answer in one reply. */
 export const RESET_QUESTIONS = [
   "1. What did you avoid this week, and what did you face?",

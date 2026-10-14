@@ -7,7 +7,7 @@ import { parseReply, logEntry, setPlanItem, stepsReply } from "@/lib/habitTexts"
 import { chicagoDay } from "@/lib/planBrief";
 import { nextTopic, markDone, passed } from "@/lib/studyTopics";
 import { aiReply } from "@/lib/aiText";
-import { runCommand, maybeReview, maybeDecline } from "@/lib/textActions";
+import { runCommand, maybeCapture, maybeWriteIntent, maybeDecline } from "@/lib/textActions";
 import { HELP_TEXT } from "@/lib/textCommands";
 import { findByPhone as subscriberByPhone } from "@/lib/smsSubscribers";
 
@@ -135,11 +135,15 @@ export async function POST(req: NextRequest) {
         const done = await runCommand(body);
         if (done) return twiml(done);
 
-        // If the Sunday reset is still waiting on an answer, this is it. After
-        // the commands, so that texting "drive" on a Sunday evening still asks
-        // where to drive instead of being filed as a week in review.
-        const review = await maybeReview(body);
-        if (review) return twiml(review);
+        // Something earlier asked for this message — a journal entry she said
+        // she wanted to write, or Sunday's review. After the commands, so that
+        // texting "drive" still asks where to drive instead of being filed.
+        const captured = await maybeCapture(body);
+        if (captured) return twiml(captured);
+
+        // "Can I do a journal entry?" Yes — and the next message is it.
+        const intent = await maybeWriteIntent(body);
+        if (intent) return twiml(intent);
 
         // "I don't think I can do this today" — move it rather than discuss
         // it. Only fires when something is actually on today; otherwise it
