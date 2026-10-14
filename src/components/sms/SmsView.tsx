@@ -376,7 +376,7 @@ export function SmsView({ data, update }: SmsViewProps) {
             </p>
             <ol className="space-y-1.5 text-xs" style={{ color: "var(--text-muted)" }}>
               <li>1. Go to <span style={{ color: LIME }}>console.twilio.com</span> → Phone Numbers → Manage → Active Numbers</li>
-              <li>2. Click your number <span style={{ color: "var(--text)" }}>+16158020682</span></li>
+              <li>2. Click your Twilio number</li>
               <li>3. Under <span style={{ color: LIME }}>Messaging Configuration</span> → &ldquo;A message comes in&rdquo; → set to <span style={{ color: LIME }}>Webhook</span></li>
               <li>4. Paste this URL:</li>
             </ol>

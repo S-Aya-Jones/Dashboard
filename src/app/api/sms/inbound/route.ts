@@ -6,6 +6,8 @@ import {
 import { parseReply, logEntry, setPlanItem, stepsReply } from "@/lib/habitTexts";
 import { chicagoDay } from "@/lib/planBrief";
 import { nextTopic, markDone, passed } from "@/lib/studyTopics";
+import { aiReply } from "@/lib/aiText";
+import { findByPhone as subscriberByPhone } from "@/lib/smsSubscribers";
 
 export const dynamic = "force-dynamic";
 
@@ -112,10 +114,21 @@ export async function POST(req: NextRequest) {
         return twiml(`Plan updated: ${days}.`);
       }
 
-      default:
-        // A person talking to a robot. Say nothing rather than send an
-        // unsolicited message to a number that didn't ask for one.
-        return twiml(null);
+      default: {
+        // Not a keyword and not a log. Previously this fell into silence, which
+        // is what made the texts one-way — she could be told things but could
+        // not ask anything.
+        //
+        // Only subscribers get an answer. An unknown number texting in gets
+        // nothing, because replying would be sending an unsolicited message to
+        // someone who never consented, which is the exact thing the campaign
+        // registration promises not to do.
+        const sub = await subscriberByPhone(phone);
+        if (!sub?.active) return twiml(null);
+
+        const answer = await aiReply(body);
+        return twiml(answer);
+      }
     }
   } catch {
     return twiml(null);
