@@ -1,8 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { firstText } from "@/lib/aiError";
 import { chicagoDay, dayLine } from "@/lib/planBrief";
-import { wholePlan, dayOf } from "@/lib/habitTexts";
+import { wholePlan, dayOf, atHome } from "@/lib/habitTexts";
 import { microExposureFor } from "@/lib/driving";
+import { driveWindow, daylight } from "@/lib/daylight";
 import { nextTopic } from "@/lib/studyTopics";
 import { places, bridges, progressRows, buildTracks } from "@/lib/driving";
 import { driveOptions } from "@/lib/driveOptions";
@@ -28,6 +29,11 @@ import { CARDS, SAVINGS, nextPayday, money } from "@/lib/paycheckPlan";
 export interface MorningFacts {
   date: string;
   weekday: string;
+  /** No work car park, no lift, no commute — and the quietest roads of her week. */
+  workingFromHome: boolean;
+  sunset: string | null;
+  driveWindow: string | null;
+  darkEarly: string | null;
   schedule: string;
   microExposure: string;
   studyTopic: string | null;
@@ -62,12 +68,22 @@ export async function gatherMorning(dateStr = chicagoDay()): Promise<MorningFact
 
   const planned = plan.find(p => p.day === day && p.kind === "drive");
   const payday = nextPayday(dateStr);
+  const home = atHome(day);
+  const light = daylight(dateStr);
+  const window = driveWindow(dateStr);
 
   return {
     date: dateStr,
     weekday: day,
+    workingFromHome: home,
+    sunset: light?.sunsetLabel ?? null,
+    driveWindow: window.label,
+    darkEarly: window.note,
     schedule: dayLine(dateStr),
-    microExposure: microExposureFor(dateStr),
+    microExposure: microExposureFor(dateStr, {
+      atHome: home,
+      nextBridge: bridgeList.find(b => b.reps < b.target)?.label ?? null,
+    }),
     studyTopic: topic?.title ?? null,
     plannedDrive: planned ? { detail: planned.detail, link: planned.link } : null,
     driveOptions: opts.options.map(o => `${o.label} — ${o.detail}${o.link ? ` ${o.link}` : ""}`),
@@ -100,6 +116,8 @@ Rules:
 - Plain text, no markdown, no emoji, no greeting, no sign-off.
 - Always include the walk: 45 minutes on the treadmill at 1.5 to 2 mph, goal 20,000 steps.
 - Always include the one small exposure you are given, word for word.
+- On a workingFromHome day she is not going to an office: no car park, no lift, no drive home. The walk is her own treadmill or the block. If there is a driveWindow, you may offer it once as the quietest roads of her week — an offer, not an instruction.
+- Say the sunset time only when darkEarly is set, and then say it once.
 - If there is a drive today, name the place and paste its link exactly as given. Never invent a street, route or place name.
 - Mention money only if something is actually happening: a bill due in the next three days, or payday today or tomorrow. The fortnightly plan is the same every time and is not news.
 - Mention email only if one of the listed ones genuinely needs her before this evening.

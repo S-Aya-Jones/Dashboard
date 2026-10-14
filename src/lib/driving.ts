@@ -394,6 +394,20 @@ export const TRACK_LABEL: Record<Track, string> = {
 //
 // They rotate by date so the same one does not arrive five days running and
 // stop being read.
+//
+// Every one of them assumes she is going somewhere — a car park, a lift, a
+// floor above the ground. On a day she works from home there is no car park,
+// and a text telling her to park one level higher is a text that teaches her
+// these are written for somebody else. So they are split by where she is, and
+// the at-home set does the work that can be done from a kitchen table.
+//
+// The at-home ones are deliberately not inventions about her flat. The app does
+// not know whether she has a balcony, a stairwell or a window above the second
+// floor, and guessing wrong is how a list stops being believed. What it does
+// know is which bridge is next, so the at-home work is rehearsal of that —
+// looking at it, and walking through it in order. That is not a consolation
+// prize: imagining the route in sequence is the standard between-sessions
+// exercise, and it is the half of exposure that does not need a car.
 
 export const MICRO_EXPOSURES: string[] = [
   "Park one level higher than you need to.",
@@ -405,15 +419,34 @@ export const MICRO_EXPOSURES: string[] = [
   "Stand at the garage rail on your way to the car. Count to thirty before you get in.",
 ];
 
+/** The ones that need nothing but her phone and a few minutes. */
+export const HOME_EXPOSURES: string[] = [
+  "Pull up [bridge] on street view and drive it with your eyes, start to finish.",
+  "Walk through [bridge] in your head, in order, at the speed you would actually drive it.",
+  "Watch two minutes of rooftop or drone footage. Eyes on the drop, not the horizon.",
+  "Look at [bridge] on the map and pick which lane you would take.",
+];
+
+/** With no bridges saved yet, the ones that name one cannot be used. */
+const GENERIC_HOME = "Watch two minutes of rooftop or drone footage. Eyes on the drop, not the horizon.";
+
 /**
  * Today's small one.
  *
  * Keyed off the date rather than chosen at random, so opening the text twice
  * shows the same thing and a week does not repeat one three times.
  */
-export function microExposureFor(dateStr: string): string {
+export function microExposureFor(
+  dateStr: string,
+  opts: { atHome?: boolean; nextBridge?: string | null } = {},
+): string {
   const seed = dateStr.split("-").reduce((n, p) => n * 31 + Number(p), 11);
-  return MICRO_EXPOSURES[seed % MICRO_EXPOSURES.length];
+  if (!opts.atHome) return MICRO_EXPOSURES[seed % MICRO_EXPOSURES.length];
+
+  const bridge = opts.nextBridge?.trim();
+  const pool = bridge ? HOME_EXPOSURES : [GENERIC_HOME];
+  const text = pool[seed % pool.length];
+  return bridge ? text.replace("[bridge]", bridge) : text;
 }
 
 
