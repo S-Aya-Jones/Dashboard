@@ -45,6 +45,23 @@ export async function ensureDrivingTables() {
   `;
   // Added after the fact; an existing table from the first version has no kind.
   await sql`ALTER TABLE driving_places ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'anchor'`;
+  // Her actual bridges, by name, in her order of difficulty.
+  //
+  // In the database rather than in this file for the same reason her address
+  // is: "the bridge that gets me home" is a road name plus a fact about where
+  // she lives, and this repository is public.
+  await sql`
+    CREATE TABLE IF NOT EXISTS driving_bridges (
+      id          SERIAL PRIMARY KEY,
+      label       TEXT NOT NULL,
+      note        TEXT,
+      rank        INT NOT NULL DEFAULT 0,
+      done_before BOOLEAN NOT NULL DEFAULT FALSE,
+      reps        INT NOT NULL DEFAULT 0,
+      target      INT NOT NULL DEFAULT 3,
+      last_at     TIMESTAMPTZ
+    )
+  `;
   await sql`
     CREATE TABLE IF NOT EXISTS driving_progress (
       rung       TEXT PRIMARY KEY,
@@ -397,4 +414,91 @@ export const MICRO_EXPOSURES: string[] = [
 export function microExposureFor(dateStr: string): string {
   const seed = dateStr.split("-").reduce((n, p) => n * 31 + Number(p), 11);
   return MICRO_EXPOSURES[seed % MICRO_EXPOSURES.length];
+}
+
+
+// ── Her bridges ──────────────────────────────────────────────────────────────
+//
+// The generic bridge rungs are a method: walk one, ride one as a passenger,
+// drive the easiest, drive a harder one. They cannot name a bridge, because the
+// code does not know her city and must not guess at it.
+//
+// These rows are the bridges themselves, in the order she puts them. They carry
+// one flag the generic rungs do not: whether she has driven it before.
+//
+// That distinction does more work than it looks like. She has driven the
+// Charlotte overpass alone and has crossed the Clarksville Pike bridge in the
+// past; both lapsed when she moved and her daily route stopped including them.
+// Regaining a crossing is not the same task as attempting one for the first
+// time — the evidence that she can already do it exists, and a ladder that
+// treats it as new throws that away.
+
+export interface Bridge {
+  id: number;
+  label: string;
+  note: string | null;
+  rank: number;
+  doneBefore: boolean;
+  reps: number;
+  target: number;
+  lastAt: string | null;
+}
+
+export async function bridges(): Promise<Bridge[]> {
+  await ensureDrivingTables();
+  const sql = db();
+  const rows = await sql`SELECT * FROM driving_bridges ORDER BY rank, id`;
+  return rows.map(r => {
+    const x = r as Record<string, unknown>;
+    return {
+      id: Number(x.id),
+      label: String(x.label),
+      note: (x.note as string) ?? null,
+      rank: Number(x.rank),
+      doneBefore: Boolean(x.done_before),
+      reps: Number(x.reps),
+      target: Number(x.target),
+      lastAt: x.last_at ? new Date(x.last_at as string).toISOString() : null,
+    };
+  });
+}
+
+export async function addBridge(b: {
+  label: string; note?: string | null; rank?: number; doneBefore?: boolean; target?: number;
+}): Promise<void> {
+  await ensureDrivingTables();
+  const sql = db();
+  await sql`
+    INSERT INTO driving_bridges (label, note, rank, done_before, target)
+    VALUES (${b.label}, ${b.note ?? null}, ${b.rank ?? 0}, ${b.doneBefore ?? false}, ${b.target ?? 3})
+  `;
+}
+
+export async function logBridge(id: number): Promise<void> {
+  await ensureDrivingTables();
+  const sql = db();
+  await sql`UPDATE driving_bridges SET reps = reps + 1, last_at = NOW() WHERE id = ${id}`;
+}
+
+export async function removeBridge(id: number): Promise<void> {
+  await ensureDrivingTables();
+  const sql = db();
+  await sql`DELETE FROM driving_bridges WHERE id = ${id}`;
+}
+
+/** The one to drive next: lowest-ranked that still has reps owing. */
+export function nextBridge(list: Bridge[]): Bridge | null {
+  return list.find(b => b.reps < b.target) ?? null;
+}
+
+/**
+ * How to introduce a crossing in a text.
+ *
+ * A bridge she has driven before gets said so. It is the difference between
+ * being asked to do something and being asked to do something again.
+ */
+export function bridgeLine(b: Bridge): string {
+  const left = b.target - b.reps;
+  const past = b.doneBefore ? "You have driven this one before. " : "";
+  return `${past}${b.label}${b.note ? ` — ${b.note}` : ""}. ${left} more to make it ordinary again.`;
 }

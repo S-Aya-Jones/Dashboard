@@ -21,7 +21,14 @@ interface Rung {
 interface TrackView { track: string; rungs: Rung[]; doneCount: number; current: Rung | null }
 interface Place { key: string; label: string; address: string; kind: "anchor" | "destination" }
 interface Dest { key: string; label: string; easy: string; harder: string }
-interface Payload { places: Place[]; destinations: Dest[]; tracks: TrackView[] }
+interface Bridge {
+  id: number; label: string; note: string | null;
+  doneBefore: boolean; reps: number; target: number;
+}
+interface Payload {
+  places: Place[]; destinations: Dest[]; tracks: TrackView[];
+  bridges: Bridge[]; nextBridge: Bridge | null;
+}
 
 const TRACK_META: Record<string, { label: string; icon: typeof Car; colour: string }> = {
   driving: { label: "Driving",  icon: Car,      colour: "#B4552F" },
@@ -36,6 +43,9 @@ export function DrivingLadders() {
   const [work, setWork] = useState("");
   const [destName, setDestName] = useState("");
   const [destAddr, setDestAddr] = useState("");
+  const [brLabel, setBrLabel] = useState("");
+  const [brNote, setBrNote] = useState("");
+  const [brBefore, setBrBefore] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(() => {
@@ -166,6 +176,87 @@ export function DrivingLadders() {
           );
         })}
       </div>
+
+      {open === "bridges" && (
+        <div className="rounded-2xl p-5" style={{ background: "var(--surface)", border: "1.5px solid var(--border)" }}>
+          <h3 className="section-title mb-1">Your bridges, easiest first</h3>
+          <p className="text-xs mb-3 leading-relaxed" style={{ color: "var(--text-muted)" }}>
+            Named crossings in your order, not a generic ladder. A bridge you&apos;ve driven
+            before is marked — getting one back is a different job from doing it the first time.
+          </p>
+
+          {(data.bridges ?? []).length > 0 && (
+            <div className="space-y-1.5 mb-3">
+              {data.bridges.map(b => {
+                const complete = b.reps >= b.target;
+                const isNext = data.nextBridge?.id === b.id;
+                return (
+                  <div key={b.id} className="rounded-xl px-3 py-2.5"
+                    style={{
+                      background: "var(--bg)",
+                      border: isNext ? "1.5px solid rgba(46,111,191,0.45)" : "1.5px solid transparent",
+                      opacity: complete ? 0.55 : 1,
+                    }}>
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                      <span className="text-sm font-semibold"
+                        style={{ color: "var(--text)", textDecoration: complete ? "line-through" : undefined }}>
+                        {b.label}
+                      </span>
+                      {b.doneBefore && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+                          style={{ background: "rgba(63,111,94,0.14)", color: "#3F6F5E" }}>
+                          done before
+                        </span>
+                      )}
+                      <span className="text-[11px] tabular-nums ml-auto" style={{ color: "#2E6FBF", fontWeight: 600 }}>
+                        {b.reps}/{b.target}
+                      </span>
+                      {!complete && (
+                        <button onClick={() => post({ logBridge: b.id })} disabled={saving}
+                          className="text-[11px] font-bold px-2.5 py-1 rounded-lg"
+                          style={{ background: "#2E6FBF", color: "#fff" }}>Crossed it</button>
+                      )}
+                      <button onClick={() => post({ removeBridge: b.id })}
+                        className="text-[11px]" style={{ color: "var(--text-light)" }}>×</button>
+                    </div>
+                    {b.note && (
+                      <p className="text-[11px] mt-0.5 leading-relaxed" style={{ color: "var(--text-muted)" }}>{b.note}</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <div className="flex gap-2 flex-wrap items-center">
+            <input value={brLabel} onChange={e => setBrLabel(e.target.value)} placeholder="Bridge, e.g. Charlotte overpass"
+              className="flex-1 min-w-[9rem] text-sm px-3 py-2 rounded-xl"
+              style={{ background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)" }} />
+            <input value={brNote} onChange={e => setBrNote(e.target.value)} placeholder="Note (optional)"
+              className="flex-1 min-w-[9rem] text-sm px-3 py-2 rounded-xl"
+              style={{ background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text)" }} />
+            <label className="flex items-center gap-1.5 text-xs" style={{ color: "var(--text-muted)" }}>
+              <input type="checkbox" checked={brBefore} onChange={e => setBrBefore(e.target.checked)}
+                style={{ accentColor: "#3F6F5E" }} />
+              done before
+            </label>
+            <button
+              onClick={async () => {
+                if (!brLabel.trim()) return;
+                await post({ bridge: {
+                  label: brLabel.trim(), note: brNote.trim() || null,
+                  rank: (data.bridges?.length ?? 0) + 1, doneBefore: brBefore,
+                } });
+                setBrLabel(""); setBrNote(""); setBrBefore(false);
+              }}
+              disabled={saving || !brLabel.trim()}
+              className="px-4 py-2 rounded-xl text-sm font-bold disabled:opacity-40"
+              style={{ background: "var(--text)", color: "var(--surface)" }}>
+              Add
+            </button>
+          </div>
+        </div>
+      )}
 
       {data.tracks.filter(t => t.track === open).map(t => {
         const meta = TRACK_META[t.track];
