@@ -7,7 +7,7 @@ import {
   Sparkles, DollarSign,
   ChevronLeft, ChevronRight, Dumbbell, Gem, UtensilsCrossed,
   LayoutGrid, MoreHorizontal, X, Zap, Shield, Bell, Mail, Clock, Mic, ListChecks, GraduationCap, Users, HeartHandshake, CircleCheck, Scissors, FolderOpen, Layers,
-  NotebookPen, Stethoscope, SlidersHorizontal, Flag, type LucideIcon,
+  NotebookPen, Stethoscope, SlidersHorizontal, Flag, Car, type LucideIcon,
 } from "lucide-react";
 import { visibleModules, pausedModules } from "@/lib/modules";
 import { usePausedModules } from "@/hooks/usePausedModules";
@@ -19,7 +19,7 @@ import { SaveIndicator } from "@/components/ui/SaveIndicator";
 const ICONS: Record<string, LucideIcon> = {
   Sun, Clock, NotebookPen, CircleCheck, DollarSign, Brain, Shield, Dumbbell,
   Sparkles, UtensilsCrossed, Mic, Layers, ListChecks, GraduationCap, Mail,
-  FolderOpen, Users, BookOpen, Scissors, Stethoscope, HeartHandshake, Bell, Gem, Flag,
+  FolderOpen, Users, BookOpen, Scissors, Stethoscope, HeartHandshake, Bell, Gem, Flag, Car,
 };
 
 const iconFor = (name: string): LucideIcon => ICONS[name] ?? LayoutGrid;

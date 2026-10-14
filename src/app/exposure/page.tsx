@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/nav/Sidebar";
 import { ExposureHub } from "@/components/exposure/ExposureHub";
 import { DashboardShell } from "@/components/DashboardShell";
 import { ExposureView } from "@/components/exposure/ExposureView";
+import { DrivingLadders } from "@/components/exposure/DrivingLadders";
 
 export default function Page() {
   const [legacy, setLegacy] = useState(false);
@@ -21,7 +22,7 @@ export default function Page() {
           <div>
             <h1 className="font-serif text-3xl" style={{ color: "var(--text)" }}>Getting your life back</h1>
             <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginTop: "0.25rem" }}>
-              One step at a time — driving, heights, and a panic button that&apos;s always within reach.
+              Driving, bridges and heights — three ladders, each one rep at a time.
             </p>
           </div>
           <button onClick={() => setLegacy(true)} className="text-xs underline flex-shrink-0 mt-2"
@@ -29,7 +30,10 @@ export default function Page() {
             old log
           </button>
         </div>
-        <ExposureHub />
+        <DrivingLadders />
+        <div style={{ marginTop: "2rem" }}>
+          <ExposureHub />
+        </div>
       </main>
     </div>
   );

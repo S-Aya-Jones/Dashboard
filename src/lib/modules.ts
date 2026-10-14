@@ -36,7 +36,7 @@ export const MODULES: ModuleDef[] = [
   { href: "/finances",     label: "Finances",        icon: "DollarSign",     group: "money" },
 
   // ── Body and head ──
-  { href: "/exposure",     label: "Exposure",        icon: "Brain",          group: "health" },
+  { href: "/exposure",     label: "Driving",         icon: "Car",            group: "health" },
   { href: "/felt-safety",  label: "Felt Safety",     icon: "Shield",         group: "health" },
   { href: "/fitness",      label: "Fitness",         icon: "Dumbbell",       group: "health", pausedByDefault: true, note: "Ladder lives in the schedule now. Your weight and workout history stay here." },
   { href: "/skincare",     label: "Skincare",        icon: "Sparkles",       group: "health" },

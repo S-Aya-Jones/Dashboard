@@ -16,6 +16,7 @@ import { applyChanges, rowsFromBlocks, isoDate } from "@/lib/dayPlan";
 import { useDatedChanges } from "@/lib/useDatedChanges";
 import { whenChip } from "@/lib/whenText";
 import { ReviewCallout } from "@/components/review/ReviewSession";
+import { StudyChecklist } from "@/components/today/StudyChecklist";
 
 interface Props {
   data: DashboardData;
@@ -125,6 +126,7 @@ export function TodayView({ data, update }: Props) {
 
       {/* Cards waiting. Only appears when something is actually due. */}
       <ReviewCallout />
+      <StudyChecklist />
 
       {/* Today's Timeline */}
       <Card title="Today's Schedule" subtitle="Your norms + calendar, merged">

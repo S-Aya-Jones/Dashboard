@@ -136,18 +136,12 @@ function pick(plan: PlanItem[], day: Day, kind: "study" | "drive"): PlanItem | n
   return plan.find(p => p.day === day && p.kind === kind) ?? null;
 }
 
-export function morningWeekday(dateStr: string, plan: PlanItem[]): string {
+export function morningWeekday(dateStr: string, plan: PlanItem[], topic?: string | null): string {
   const day = dayOf(dateStr);
   const lines = [`Treadmill: 45 min at 1.5 to 2 mph. Goal today: ${STEP_GOAL.toLocaleString("en-US")} steps.`];
 
-  if (day === "mon") {
-    const p = pick(plan, "mon", "study");
-    if (p) lines.push(`Study 3:30 to 4:30: ${p.detail}.`);
-  }
-  if (day === "wed") {
-    const p = pick(plan, "wed", "study");
-    if (p) lines.push(`Study 2:45 to 3:45: ${p.detail}.`);
-  }
+  if (day === "mon" && topic) lines.push(`Study 3:30 to 4:30: ${topic}.`);
+  if (day === "wed" && topic) lines.push(`Study 2:45 to 3:45: ${topic}.`);
   if (day === "tue" || day === "thu") {
     const p = pick(plan, day, "drive");
     if (p) {
@@ -161,10 +155,10 @@ export function morningWeekday(dateStr: string, plan: PlanItem[]): string {
 
 export const MIDMORNING = "Lift or walk, 30 min.";
 
-export function saturdayMorning(plan: PlanItem[]): string {
+export function saturdayMorning(plan: PlanItem[], topic?: string | null): string {
   const p = pick(plan, "sat", "study");
   const lines = ["Morning walk, 45 min."];
-  if (p) lines.push(`Study 10:00 to 11:30: ${p.detail}${p.location ? ` at ${p.location}` : ""}.`);
+  if (topic) lines.push(`Study 10:00 to 11:30: ${topic}${p?.location ? ` at ${p.location}` : ""}.`);
   return lines.join(" ");
 }
 
