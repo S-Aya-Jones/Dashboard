@@ -7,6 +7,7 @@ import {
 import { sendSms, smsAlsoEnabled } from "@/lib/sms";
 import { dueNotifications, markNotified, upsertObligation } from "@/lib/obligations";
 import { loadData } from "@/lib/db";
+import { schoolIsPaused } from "@/lib/modules";
 import { whatIsDue, dueLine } from "@/lib/people";
 import { unnotifiedUpdates, markUpdatesNotified, updateDigest } from "@/lib/schoolUpdates";
 import { dayLine, blockCues, whyToday, upcomingAssessments, say } from "@/lib/planBrief";
@@ -320,12 +321,7 @@ interface SlotCtx {
  */
 async function schoolPaused(): Promise<boolean> {
   try {
-    const data = await loadData();
-    const paused = data.pausedModules;
-    // Undefined means she has never touched the switches, and School is paused
-    // by default — which is exactly the state she is in.
-    if (!paused) return true;
-    return paused.includes("/school") || paused.includes("/school-inbox");
+    return schoolIsPaused((await loadData()).pausedModules);
   } catch {
     return true;   // when in doubt, say less
   }
@@ -428,19 +424,13 @@ export const SLOTS: Slot[] = [
     days: [1, 2, 3, 4, 5],
     time: "06:50",
     graceMin: 150,
-    run: async ({ origin, dow }) => {
-      try {
-        const res = await fetch(`${origin}/api/cron/morning-briefing`, {
-          headers: { authorization: `Bearer ${process.env.CRON_SECRET}` },
-          cache: "no-store",
-        });
-        if (res.ok) return "ai-briefing";
-        throw new Error(`briefing ${res.status}`);
-      } catch {
-        const assessments = await getCourseAssessments();
-        await notify(buildFallbackMorning(assessments, dow));
-        return "fallback-daymap";
-      }
+    run: async ({ dow }) => {
+      // The route this used to call is retired, so only the fallback is left.
+      // The slot itself is retired too and never runs; this stays correct
+      // rather than pointing at a URL that now returns 410.
+      const assessments = await getCourseAssessments();
+      await notify(buildFallbackMorning(assessments, dow));
+      return "fallback-daymap";
     },
   },
   {

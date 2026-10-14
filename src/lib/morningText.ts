@@ -8,6 +8,7 @@ import { nextTopic } from "@/lib/studyTopics";
 import { places, bridges, progressRows, buildTracks } from "@/lib/driving";
 import { driveOptions } from "@/lib/driveOptions";
 import { loadData } from "@/lib/db";
+import { schoolIsPaused } from "@/lib/modules";
 import { getActionableEmails } from "@/lib/gmail";
 import { CARDS, SAVINGS, nextPayday, money } from "@/lib/paycheckPlan";
 
@@ -103,7 +104,11 @@ export async function gatherMorning(dateStr = chicagoDay()): Promise<MorningFact
         return gap >= 0 && gap <= 3;
       })
       .map(b => `${b.name} ${money(Number(b.amount ?? 0))} due on the ${b.dayOfMonth}`),
+    // School mail is dropped while the programme is suspended. A deadline she
+    // is not sitting is the most alarming line the briefing can carry and the
+    // one she can do nothing about.
     emailsWorthKnowing: [...mail.deadlines, ...mail.bills, ...mail.action]
+      .filter(e => !(schoolIsPaused(data?.pausedModules) && e.category === "school"))
       .slice(0, 3)
       .map(e => `${e.senderName ?? e.senderEmail ?? "someone"}: ${e.subject ?? ""}`.trim()),
   };

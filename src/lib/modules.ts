@@ -92,3 +92,19 @@ export function pausedModules(stored: string[] | null | undefined): ModuleDef[] 
   const paused = pausedSet(stored);
   return MODULES.filter(m => m.href !== "/" && paused.has(m.href));
 }
+
+/**
+ * Whether school notifications should go out at all.
+ *
+ * Lives here rather than in the dispatcher because the dispatcher is not the
+ * only thing that sends. The urgent-email route had its own path to her phone
+ * and no idea she was on a break, so a Microbiology quiz three weeks into a
+ * suspended programme arrived as "this needs your focus today". Pausing a
+ * section has to mean one thing everywhere, so there is one function.
+ */
+export function schoolIsPaused(stored: string[] | null | undefined): boolean {
+  // Undefined means she has never touched the switches, and School is paused
+  // by default — which is exactly the state she is in.
+  if (!stored) return true;
+  return stored.includes("/school") || stored.includes("/school-inbox");
+}
