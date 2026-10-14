@@ -170,9 +170,9 @@ export function saturdayMorning(plan: PlanItem[]): string {
 
 export function sundayMorning(plan: PlanItem[]): string {
   const p = pick(plan, "sun", "drive");
-  if (!p) return "Long drive today. Rate your anxiety before you start.";
+  if (!p) return "Drive today. Rate your anxiety before you start.";
   const mins = p.minutes ? `, about ${p.minutes} min` : "";
-  return `Long drive today: ${p.detail}${mins}.${p.link ? ` ${p.link}` : ""} Rate your anxiety before you start.`;
+  return `Drive today: ${p.detail}${mins}.${p.link ? ` ${p.link}` : ""} Rate your anxiety before you start.`;
 }
 
 export const SUNDAY_WRAP = "Weekly wrap-up time.";
