@@ -167,6 +167,15 @@ export interface Rung {
   target: number;
   /** Fill from her saved places at render time; never hardcoded. */
   route?: { from: string; to: string };
+  /**
+   * Needs its own trip, rather than riding along on a day she was having
+   * anyway. Her words: "a real exposure is like you walk the pedestrian bridge
+   * — I'd have to find time outside work to do it."
+   *
+   * These are the ones the week has to make room for, so they are marked and
+   * scheduled rather than left to be noticed.
+   */
+  trip?: boolean;
 }
 
 /**
@@ -230,13 +239,13 @@ export const DRIVING: Rung[] = [
  * middle — which is exactly the thing a car takes away.
  */
 export const BRIDGES: Rung[] = [
-  { id: "b-walk", track: "bridges", target: 3,
+  { id: "b-walk", trip: true, track: "bridges", target: 3,
     title: "Walk a pedestrian bridge over the river, all the way across",
     why: "Bridge and height at once, with no car. You can stop in the middle, which is the one thing driving never lets you do. Nashville's pedestrian bridge over the Cumberland is the obvious one — check it on the map first." },
-  { id: "b-walk-look", track: "bridges", target: 3,
+  { id: "b-walk-look", trip: true, track: "bridges", target: 3,
     title: "Same walk, stop in the middle and look down for a slow count of thirty",
     why: "The looking is the exposure. Crossing while not looking teaches you that you got away with it." },
-  { id: "b-passenger", track: "bridges", target: 2,
+  { id: "b-passenger", trip: true, track: "bridges", target: 2,
     title: "Cross a short bridge as a passenger",
     why: "The route and the height without the steering. Ask whoever's driving to take the same one twice." },
   { id: "b-known-quiet", track: "bridges", target: 3,
@@ -245,10 +254,10 @@ export const BRIDGES: Rung[] = [
   { id: "b-known-busy", track: "bridges", target: 2,
     title: "Same bridge, ordinary traffic",
     why: "Traffic means you can't choose your speed. Same crossing otherwise." },
-  { id: "b-longer", track: "bridges", target: 3,
+  { id: "b-longer", trip: true, track: "bridges", target: 3,
     title: "A longer bridge you've crossed before as a passenger",
     why: "Longer means more time up there with nowhere to pull over. Pick one you've already seen from the passenger seat." },
-  { id: "b-new", track: "bridges", target: 3,
+  { id: "b-new", trip: true, track: "bridges", target: 3,
     title: "A bridge you haven't driven, scouted on the map first",
     why: "Look at it on street view before you go. Knowing the shape of it removes the part of the fear that's just not knowing." },
 ];
@@ -277,10 +286,10 @@ export const HEIGHTS: Rung[] = [
   { id: "h-window-high", track: "heights", target: 3,
     title: "The same, from the highest floor you can get to",
     why: "Same action, more height. The action being identical is what makes the height the variable." },
-  { id: "h-bridge-rail", track: "heights", target: 3,
+  { id: "h-bridge-rail", trip: true, track: "heights", target: 3,
     title: "On the pedestrian bridge, stand at the rail rather than the middle",
     why: "Shares a rung with the bridge track on purpose. Two fears, one walk." },
-  { id: "h-overlook", track: "heights", target: 2,
+  { id: "h-overlook", trip: true, track: "heights", target: 2,
     title: "Drive to an overlook on surface streets and stand at the edge",
     why: "Driving and height in one trip, no interstate. The drive is the warm-up, the standing is the work." },
 ];
@@ -381,73 +390,25 @@ export const TRACK_LABEL: Record<Track, string> = {
 
 // ── The small ones, on days she is already having ────────────────────────────
 //
-// Her words: "these are things that go missing or I forget to do." That is not
-// a motivation problem, it is a delivery problem. A ladder on a page she has to
-// open is a ladder she opens on the days she was going to do the work anyway.
+// There used to be a rotating list here: park a level higher, ride the lift
+// past your floor, stand at the garage rail. The idea was right — her words,
+// "these are things that go missing or I forget to do", which is a delivery
+// problem and not a motivation one — but the shape was wrong twice over.
 //
-// So these ride along in the weekday morning text instead. Every one of them
-// attaches to something already happening — arriving at work, parking, going
-// up to her floor, driving home — and none takes more than a couple of minutes.
-// The lift is hers, not a substitution: she named it, so it stays, rather than
-// being swapped for the stairs because a ladder somewhere says stairs are
-// harder.
+// It assumed she was at work, so on a day at home it told her to park somewhere
+// she was not going. Covering that with phone-sized substitutes (drone footage,
+// a bridge on street view) made it worse: she named those for what they were,
+// and looking at a picture of a height is not exposure to a height.
 //
-// They rotate by date so the same one does not arrive five days running and
-// stop being read.
+// It also did not go anywhere. A list that rotates is a list that stays level,
+// and the point of a ladder is that it climbs.
 //
-// Every one of them assumes she is going somewhere — a car park, a lift, a
-// floor above the ground. On a day she works from home there is no car park,
-// and a text telling her to park one level higher is a text that teaches her
-// these are written for somebody else. So they are split by where she is, and
-// the at-home set does the work that can be done from a kitchen table.
-//
-// The at-home ones are deliberately not inventions about her flat. The app does
-// not know whether she has a balcony, a stairwell or a window above the second
-// floor, and guessing wrong is how a list stops being believed. What it does
-// know is which bridge is next, so the at-home work is rehearsal of that —
-// looking at it, and walking through it in order. That is not a consolation
-// prize: imagining the route in sequence is the standard between-sessions
-// exercise, and it is the half of exposure that does not need a car.
-
-export const MICRO_EXPOSURES: string[] = [
-  "Park one level higher than you need to.",
-  "Take the lift to the highest floor you can reach, then come back down.",
-  "Stand at an upper-floor window and look down, not out. Thirty seconds.",
-  "Park high, then walk to the outside wall of that level before you go in.",
-  "Take the lift rather than the stairs, and ride one floor past yours.",
-  "On the way home, take the route that crosses over the highway rather than under.",
-  "Stand at the garage rail on your way to the car. Count to thirty before you get in.",
-];
-
-/** The ones that need nothing but her phone and a few minutes. */
-export const HOME_EXPOSURES: string[] = [
-  "Pull up [bridge] on street view and drive it with your eyes, start to finish.",
-  "Walk through [bridge] in your head, in order, at the speed you would actually drive it.",
-  "Watch two minutes of rooftop or drone footage. Eyes on the drop, not the horizon.",
-  "Look at [bridge] on the map and pick which lane you would take.",
-];
-
-/** With no bridges saved yet, the ones that name one cannot be used. */
-const GENERIC_HOME = "Watch two minutes of rooftop or drone footage. Eyes on the drop, not the horizon.";
-
-/**
- * Today's small one.
- *
- * Keyed off the date rather than chosen at random, so opening the text twice
- * shows the same thing and a week does not repeat one three times.
- */
-export function microExposureFor(
-  dateStr: string,
-  opts: { atHome?: boolean; nextBridge?: string | null } = {},
-): string {
-  const seed = dateStr.split("-").reduce((n, p) => n * 31 + Number(p), 11);
-  if (!opts.atHome) return MICRO_EXPOSURES[seed % MICRO_EXPOSURES.length];
-
-  const bridge = opts.nextBridge?.trim();
-  const pool = bridge ? HOME_EXPOSURES : [GENERIC_HOME];
-  const text = pool[seed % pool.length];
-  return bridge ? text.replace("[bridge]", bridge) : text;
-}
+// Both are fixed by the same move, which is hers: count floors, not places.
+// Height is one of the few things she has access to almost everywhere — her own
+// building has upper floors, so does work, so does any car park — and a floor
+// number is the same unit in all of them. That lives in heights.ts, and it
+// climbs. What is left in the driving ladder is the overpass rung, which is a
+// driving exposure and belongs with the drive.
 
 
 // ── Her bridges ──────────────────────────────────────────────────────────────
@@ -534,4 +495,24 @@ export function bridgeLine(b: Bridge): string {
   const left = b.target - b.reps;
   const past = b.doneBefore ? "You have driven this one before. " : "";
   return `${past}${b.label}${b.note ? ` — ${b.note}` : ""}. ${left} more to make it ordinary again.`;
+}
+
+/**
+ * The next exposure that needs an hour of its own.
+ *
+ * The small stuff rides along on days she is already having. These do not: you
+ * cannot walk a pedestrian bridge on the way past your desk. They are the ones
+ * that only happen if the week makes room, so something has to name one and ask
+ * for a time — which is what the weekend text does with this.
+ *
+ * Bridges before heights, because bridges are the track she said she wants
+ * back.
+ */
+export function nextTrip(tracks: TrackView[]): { track: Track; title: string; why: string } | null {
+  for (const name of ["bridges", "heights"] as Track[]) {
+    const t = tracks.find(x => x.track === name);
+    const rung = t?.rungs.find(r => !r.complete && r.trip);
+    if (rung) return { track: name, title: rung.title, why: rung.why };
+  }
+  return null;
 }

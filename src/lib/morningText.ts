@@ -2,8 +2,8 @@ import Anthropic from "@anthropic-ai/sdk";
 import { firstText } from "@/lib/aiError";
 import { chicagoDay, dayLine } from "@/lib/planBrief";
 import { wholePlan, dayOf, atHome } from "@/lib/habitTexts";
-import { microExposureFor } from "@/lib/driving";
 import { driveWindow, daylight } from "@/lib/daylight";
+import { state as heightState, spots as heightSpots, stepText } from "@/lib/heights";
 import { nextTopic } from "@/lib/studyTopics";
 import { places, bridges, progressRows, buildTracks } from "@/lib/driving";
 import { driveOptions } from "@/lib/driveOptions";
@@ -36,7 +36,8 @@ export interface MorningFacts {
   driveWindow: string | null;
   darkEarly: string | null;
   schedule: string;
-  microExposure: string;
+  /** The climb: one floor at a time, possible wherever she is. */
+  heightStep: string | null;
   studyTopic: string | null;
   plannedDrive: { detail: string; link: string | null } | null;
   driveOptions: string[];
@@ -52,7 +53,7 @@ function daysBetween(from: string, to: string): number {
 export async function gatherMorning(dateStr = chicagoDay()): Promise<MorningFacts> {
   const day = dayOf(dateStr);
 
-  const [plan, topic, placeList, bridgeList, state, data, mail] = await Promise.all([
+  const [plan, topic, placeList, bridgeList, state, data, mail, hState, hSpots] = await Promise.all([
     wholePlan().catch(() => []),
     nextTopic().catch(() => null),
     places().catch(() => []),
@@ -60,6 +61,8 @@ export async function gatherMorning(dateStr = chicagoDay()): Promise<MorningFact
     progressRows().catch(() => []),
     loadData().catch(() => null),
     getActionableEmails().catch(() => ({ deadlines: [], health: [], bills: [], action: [] })),
+    heightState().catch(() => null),
+    heightSpots().catch(() => []),
   ]);
 
   const opts = driveOptions({
@@ -81,10 +84,7 @@ export async function gatherMorning(dateStr = chicagoDay()): Promise<MorningFact
     driveWindow: window.label,
     darkEarly: window.note,
     schedule: dayLine(dateStr),
-    microExposure: microExposureFor(dateStr, {
-      atHome: home,
-      nextBridge: bridgeList.find(b => b.reps < b.target)?.label ?? null,
-    }),
+    heightStep: hState ? stepText(hState, hSpots) : null,
     studyTopic: topic?.title ?? null,
     plannedDrive: planned ? { detail: planned.detail, link: planned.link } : null,
     driveOptions: opts.options.map(o => `${o.label} — ${o.detail}${o.link ? ` ${o.link}` : ""}`),
@@ -120,7 +120,7 @@ Rules:
 - Under 420 characters. It is an SMS.
 - Plain text, no markdown, no emoji, no greeting, no sign-off.
 - Always include the walk: 45 minutes on the treadmill at 1.5 to 2 mph, goal 20,000 steps.
-- Always include the one small exposure you are given, word for word.
+- Always include heightStep, word for word, when there is one. It is the day's heights work and it is the same whether she is at the office or at home.
 - On a workingFromHome day she is not going to an office: no car park, no lift, no drive home. The walk is her own treadmill or the block. If there is a driveWindow, you may offer it once as the quietest roads of her week — an offer, not an instruction.
 - Say the sunset time only when darkEarly is set, and then say it once.
 - If there is a drive today, name the place and paste its link exactly as given. Never invent a street, route or place name.
