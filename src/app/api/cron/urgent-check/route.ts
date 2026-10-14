@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { firstText } from "@/lib/aiError";
 import Anthropic from "@anthropic-ai/sdk";
 import { sendSms } from "@/lib/sms";
+import { loadData } from "@/lib/db";
+import { schoolIsPaused } from "@/lib/modules";
 import {
   getUnnotifiedUrgentEvents,
   markEventNotified,
@@ -34,6 +36,13 @@ function fmtEventDate(iso: string): string {
 
 export async function GET(_req: NextRequest) {
   try {
+    // Nothing else in the app sends her school anything while the programme is
+    // suspended — but this route had its own path to her phone and did not
+    // know. The result was "Microbiology Quiz 3 ... this needs your focus
+    // today" during a break from school, about a quiz she is not sitting.
+    const noSchool = await loadData()
+      .then(d => schoolIsPaused(d.pausedModules))
+      .catch(() => true);
     // 0. 1-hour alerts — fire before anything else
     const oneHourEvents = await getEventsComingIn1Hour();
     for (const ev of oneHourEvents) {
@@ -46,7 +55,7 @@ export async function GET(_req: NextRequest) {
     }
 
     // 1. Upcoming events (within 48h) not yet notified
-    const urgentEvents = await getUnnotifiedUrgentEvents();
+    const urgentEvents = await getUnnotifiedUrgentEvents({ excludeSchool: noSchool });
 
     // 2. New action/school emails from the last 2 hours not yet individually notified
     const recentEmails = await getStoredEmails(20, 0);
@@ -55,6 +64,7 @@ export async function GET(_req: NextRequest) {
     for (const email of recentEmails) {
       if (email.receivedAt < twoHoursAgo) continue;
       if (email.category !== "action" && email.category !== "school") continue;
+      if (noSchool && email.category === "school") continue;
       if (await hasBeenUrgentNotified(email.id)) continue;
       newUrgentEmails.push(email);
     }
@@ -65,7 +75,7 @@ export async function GET(_req: NextRequest) {
     }
 
     // 3. Get broader upcoming events for context (next 7 days)
-    const weekEvents = await getUpcomingEvents(7);
+    const weekEvents = await getUpcomingEvents(7, { excludeSchool: noSchool });
 
     // 4. Build context for Claude
     const context = {

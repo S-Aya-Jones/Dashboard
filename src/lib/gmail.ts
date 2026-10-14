@@ -711,17 +711,27 @@ export async function upsertEmailEvents(events: EmailEvent[]): Promise<void> {
   }
 }
 
-export async function getUpcomingEvents(daysAhead = 14): Promise<(EmailEvent & { id: string; notified: boolean })[]> {
+export async function getUpcomingEvents(daysAhead = 14, opts: { excludeSchool?: boolean } = {}): Promise<(EmailEvent & { id: string; notified: boolean })[]> {
   await ensureEventTables();
   const sql = db();
   const cutoff = new Date(Date.now() + daysAhead * 86400000).toISOString();
   const now = new Date().toISOString();
-  const rows = await sql`
-    SELECT * FROM email_events
-    WHERE is_past = false AND event_date >= ${now} AND event_date <= ${cutoff}
-    ORDER BY event_date ASC
-    LIMIT 100
-  `;
+  if (opts.excludeSchool) await ensureGmailTables();
+  const rows = opts.excludeSchool
+    ? await sql`
+        SELECT ev.* FROM email_events ev
+        LEFT JOIN school_emails em ON em.id = ev.email_id
+        WHERE ev.is_past = false AND ev.event_date >= ${now} AND ev.event_date <= ${cutoff}
+        AND COALESCE(em.category, 'general') <> 'school'
+        ORDER BY ev.event_date ASC
+        LIMIT 100
+      `
+    : await sql`
+        SELECT * FROM email_events
+        WHERE is_past = false AND event_date >= ${now} AND event_date <= ${cutoff}
+        ORDER BY event_date ASC
+        LIMIT 100
+      `;
   const events = rows.map(r => ({
     id:            r.id as string,
     emailId:       r.email_id as string,
@@ -747,17 +757,37 @@ export async function getUpcomingEvents(daysAhead = 14): Promise<(EmailEvent & {
   });
 }
 
-export async function getUnnotifiedUrgentEvents(): Promise<Array<EmailEvent & { id: string }>> {
+/**
+ * Events in the next 48 hours that she has not been told about.
+ *
+ * `excludeSchool` drops the ones extracted from school mail. An event row
+ * carries no category of its own — it knows only the email it came out of — so
+ * the category is read back off that email. Without this a suspended programme
+ * still sends quiz deadlines, which is how a break stops feeling like one.
+ */
+export async function getUnnotifiedUrgentEvents(
+  opts: { excludeSchool?: boolean } = {},
+): Promise<Array<EmailEvent & { id: string }>> {
   await ensureEventTables();
+  await ensureGmailTables();
   const sql = db();
   const now = new Date().toISOString();
   const horizon = new Date(Date.now() + 48 * 3600000).toISOString();
-  const rows = await sql`
-    SELECT * FROM email_events
-    WHERE notified = false AND is_past = false
-    AND event_date >= ${now} AND event_date <= ${horizon}
-    ORDER BY event_date ASC
-  `;
+  const rows = opts.excludeSchool
+    ? await sql`
+        SELECT ev.* FROM email_events ev
+        LEFT JOIN school_emails em ON em.id = ev.email_id
+        WHERE ev.notified = false AND ev.is_past = false
+        AND ev.event_date >= ${now} AND ev.event_date <= ${horizon}
+        AND COALESCE(em.category, 'general') <> 'school'
+        ORDER BY ev.event_date ASC
+      `
+    : await sql`
+        SELECT * FROM email_events
+        WHERE notified = false AND is_past = false
+        AND event_date >= ${now} AND event_date <= ${horizon}
+        ORDER BY event_date ASC
+      `;
   return rows.map(r => ({
     id:            r.id as string,
     emailId:       r.email_id as string,
@@ -873,7 +903,7 @@ export async function fetchSingleEmail(accessToken: string, id: string): Promise
 }
 
 // For morning briefing intelligence
-export async function getActionableEmails(): Promise<{ deadlines: StoredEmail[]; health: StoredEmail[]; bills: StoredEmail[]; action: StoredEmail[] }> {
+export async function getActionableEmails(opts: { excludeSchool?: boolean } = {}): Promise<{ deadlines: StoredEmail[]; health: StoredEmail[]; bills: StoredEmail[]; action: StoredEmail[] }> {
   await ensureGmailTables();
   const sql = db();
   const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
@@ -902,10 +932,14 @@ export async function getActionableEmails(): Promise<{ deadlines: StoredEmail[];
     category:      (r.category as EmailCategory) ?? "general",
   }));
   const soon = new Date(Date.now() + 14 * 86400000).toISOString();
+  // A deadline from a suspended programme is not a deadline. It is the single
+  // most alarming thing the briefing can say and the one she can do nothing
+  // about, so on a break it is not said.
+  const kept = opts.excludeSchool ? all.filter(e => e.category !== "school") : all;
   return {
-    deadlines: all.filter(e => e.deadlineAt && e.deadlineAt < soon),
-    health:    all.filter(e => e.category === "health"),
-    bills:     all.filter(e => e.category === "bills"),
-    action:    all.filter(e => e.category === "action"),
+    deadlines: kept.filter(e => e.deadlineAt && e.deadlineAt < soon),
+    health:    kept.filter(e => e.category === "health"),
+    bills:     kept.filter(e => e.category === "bills"),
+    action:    kept.filter(e => e.category === "action"),
   };
 }
