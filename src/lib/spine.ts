@@ -15,6 +15,7 @@ import {
   SUNDAY_WRAP, eveningText, weeklySummary, wholePlan,
 } from "@/lib/habitTexts";
 import { nextTopic } from "@/lib/studyTopics";
+import { composeMorning } from "@/lib/morningText";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // The notification spine: every scheduled ping in Aya's day, fired by
@@ -335,8 +336,16 @@ export const SLOTS: Slot[] = [
     time: "07:45",
     graceMin: 60,
     run: async () => {
+      // Composed when it can be, assembled when it can't. A missing briefing
+      // is worse than a plain one, so the fallback is the old fixed text
+      // rather than silence.
+      const written = await composeMorning();
+      if (written) {
+        await notify(written);
+        return "composed";
+      }
       await notify(morningWeekday(chicagoDateStr(), await wholePlan(), (await nextTopic())?.title ?? null));
-      return "sent";
+      return "assembled";
     },
   },
   {
