@@ -7,6 +7,8 @@ import { parseReply, logEntry, setPlanItem, stepsReply } from "@/lib/habitTexts"
 import { chicagoDay } from "@/lib/planBrief";
 import { nextTopic, markDone, passed } from "@/lib/studyTopics";
 import { aiReply } from "@/lib/aiText";
+import { runCommand } from "@/lib/textActions";
+import { HELP_TEXT } from "@/lib/textCommands";
 import { findByPhone as subscriberByPhone } from "@/lib/smsSubscribers";
 
 export const dynamic = "force-dynamic";
@@ -126,8 +128,15 @@ export async function POST(req: NextRequest) {
         const sub = await subscriberByPhone(phone);
         if (!sub?.active) return twiml(null);
 
+        // A command writes something; a question gets answered. Commands are
+        // tried first and recognised by their leading word only, so anything
+        // that isn't one falls through to the assistant rather than being
+        // rejected — a sentence she meant someone to read must never bounce.
+        const done = await runCommand(body);
+        if (done) return twiml(done);
+
         const answer = await aiReply(body);
-        return twiml(answer);
+        return twiml(answer ?? HELP_TEXT);
       }
     }
   } catch {
