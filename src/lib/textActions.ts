@@ -16,6 +16,7 @@ import {
 import { openResetWindow, parseReview, saveReview, reviewAck, weekEndFor } from "@/lib/weeklyReset";
 import { openCapture, closeCapture, openCaptureKind } from "@/lib/pending";
 import { logTrip, setFloor, addSpot } from "@/lib/heights";
+import { forget } from "@/lib/learned";
 
 // Carrying out what she texted.
 //
@@ -275,6 +276,13 @@ export async function runCommand(body: string): Promise<string | null> {
     case "addSpot":
       await addSpot(cmd.label, cmd.topFloor);
       return `Saved ${cmd.label}, ${cmd.topFloor} floors.`;
+
+    case "forget": {
+      const gone = await forget(cmd.label);
+      return gone
+        ? `Dropped "${cmd.label}".`
+        : `Nothing saved matching "${cmd.label}".`;
+    }
 
     case "move": {
       // Moving is a delete plus an insert, because the plan is keyed on the day

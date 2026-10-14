@@ -1,4 +1,5 @@
 import { neonClient } from "@/lib/neon";
+import { nextLearned } from "@/lib/learned";
 
 // Going up, one floor at a time.
 //
@@ -159,4 +160,27 @@ export function stepText(s: HeightState, available: Spot[]): string {
 export async function heightSummary(): Promise<string> {
   const s = await state();
   return `Floor ${s.floor}, ${s.reps} of ${s.perFloor}`;
+}
+
+/**
+ * The heights line for today.
+ *
+ * Prefers one she found herself. A generic "ride up to floor 3 and look out of
+ * a window" is a description of an exposure; "the building four crossing" is an
+ * exposure — it has a door, a route and a reason to be walking it, and she has
+ * already proved she will do it.
+ *
+ * Falls back to the floor count when she has not reported anything yet, or when
+ * everything she has reported is at its target.
+ */
+export async function dailyHeightLine(): Promise<string | null> {
+  const found = await nextLearned().catch(() => null);
+  if (found) {
+    return `Heights: ${found.label}. ${found.detail} (${found.reps}/${found.target})`;
+  }
+  const [s, p] = await Promise.all([
+    state().catch(() => null),
+    spots().catch(() => []),
+  ]);
+  return s ? stepText(s, p) : null;
 }

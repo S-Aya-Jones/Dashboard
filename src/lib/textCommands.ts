@@ -32,6 +32,7 @@ export type Command =
   | { kind: "heightDone" }
   | { kind: "setFloor"; floor: number }
   | { kind: "addSpot"; label: string; topFloor: number }
+  | { kind: "forget"; label: string }
   | null;
 
 export type Day = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
@@ -167,6 +168,9 @@ export function parseCommand(body: string): Command {
     case "heights":
     case "height":
       return rest ? null : { kind: "heightDone" };
+
+    case "forget":
+      return rest ? { kind: "forget", label: rest } : null;
 
     case "crossed":
       return rest ? { kind: "droveBridge", label: rest } : null;

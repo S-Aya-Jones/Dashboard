@@ -3,7 +3,7 @@ import { firstText } from "@/lib/aiError";
 import { chicagoDay, dayLine } from "@/lib/planBrief";
 import { wholePlan, dayOf, atHome } from "@/lib/habitTexts";
 import { driveWindow, daylight } from "@/lib/daylight";
-import { state as heightState, spots as heightSpots, stepText } from "@/lib/heights";
+import { dailyHeightLine } from "@/lib/heights";
 import { nextTopic } from "@/lib/studyTopics";
 import { places, bridges, progressRows, buildTracks } from "@/lib/driving";
 import { driveOptions } from "@/lib/driveOptions";
@@ -53,7 +53,7 @@ function daysBetween(from: string, to: string): number {
 export async function gatherMorning(dateStr = chicagoDay()): Promise<MorningFacts> {
   const day = dayOf(dateStr);
 
-  const [plan, topic, placeList, bridgeList, state, data, mail, hState, hSpots] = await Promise.all([
+  const [plan, topic, placeList, bridgeList, state, data, mail, heightLine] = await Promise.all([
     wholePlan().catch(() => []),
     nextTopic().catch(() => null),
     places().catch(() => []),
@@ -61,8 +61,7 @@ export async function gatherMorning(dateStr = chicagoDay()): Promise<MorningFact
     progressRows().catch(() => []),
     loadData().catch(() => null),
     getActionableEmails().catch(() => ({ deadlines: [], health: [], bills: [], action: [] })),
-    heightState().catch(() => null),
-    heightSpots().catch(() => []),
+    dailyHeightLine().catch(() => null),
   ]);
 
   const opts = driveOptions({
@@ -84,7 +83,7 @@ export async function gatherMorning(dateStr = chicagoDay()): Promise<MorningFact
     driveWindow: window.label,
     darkEarly: window.note,
     schedule: dayLine(dateStr),
-    heightStep: hState ? stepText(hState, hSpots) : null,
+    heightStep: heightLine,
     studyTopic: topic?.title ?? null,
     plannedDrive: planned ? { detail: planned.detail, link: planned.link } : null,
     driveOptions: opts.options.map(o => `${o.label} — ${o.detail}${o.link ? ` ${o.link}` : ""}`),

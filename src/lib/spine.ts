@@ -17,7 +17,7 @@ import {
 } from "@/lib/habitTexts";
 import { nextTopic } from "@/lib/studyTopics";
 import { bridges, places, progressRows, buildTracks, nextTrip } from "@/lib/driving";
-import { state as heightState, spots as heightSpots, stepText } from "@/lib/heights";
+import { dailyHeightLine } from "@/lib/heights";
 import { composeMorning } from "@/lib/morningText";
 import { RESET_PROMPT } from "@/lib/textCommands";
 import { openResetWindow } from "@/lib/weeklyReset";
@@ -356,15 +356,11 @@ export const SLOTS: Slot[] = [
         await notify(written);
         return "composed";
       }
-      const [hs, hp] = await Promise.all([
-        heightState().catch(() => null),
-        heightSpots().catch(() => []),
-      ]);
       await notify(morningWeekday(
         chicagoDateStr(),
         await wholePlan(),
         (await nextTopic())?.title ?? null,
-        hs ? stepText(hs, hp) : null,
+        await dailyHeightLine().catch(() => null),
       ));
       return "assembled";
     },

@@ -8,6 +8,7 @@ import { chicagoDay } from "@/lib/planBrief";
 import { nextTopic, markDone, passed } from "@/lib/studyTopics";
 import { aiReply } from "@/lib/aiText";
 import { runCommand, maybeCapture, maybeWriteIntent, maybeDecline } from "@/lib/textActions";
+import { readAndLog } from "@/lib/logReader";
 import { HELP_TEXT } from "@/lib/textCommands";
 import { findByPhone as subscriberByPhone } from "@/lib/smsSubscribers";
 
@@ -150,6 +151,13 @@ export async function POST(req: NextRequest) {
         // falls through and gets answered like any other sentence.
         const moved = await maybeDecline(body);
         if (moved) return twiml(moved);
+
+        // She told it what she did, in her own words. Last of the writing
+        // paths, so nothing with a shape of its own gets read loosely — and
+        // ahead of the assistant, because a day's work should be filed, not
+        // complimented.
+        const logged = await readAndLog(body);
+        if (logged) return twiml(logged);
 
         const answer = await aiReply(body);
         return twiml(answer ?? HELP_TEXT);
