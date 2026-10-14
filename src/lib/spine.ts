@@ -16,7 +16,8 @@ import {
   eveningText, weeklySummary, wholePlan,
 } from "@/lib/habitTexts";
 import { nextTopic } from "@/lib/studyTopics";
-import { bridges } from "@/lib/driving";
+import { bridges, places, progressRows, buildTracks, nextTrip } from "@/lib/driving";
+import { state as heightState, spots as heightSpots, stepText } from "@/lib/heights";
 import { composeMorning } from "@/lib/morningText";
 import { RESET_PROMPT } from "@/lib/textCommands";
 import { openResetWindow } from "@/lib/weeklyReset";
@@ -332,7 +333,9 @@ export const SLOTS: Slot[] = [
   {
     key: "habit-morning",
     days: [1, 2, 3, 4, 5],
-    time: "07:45",
+    // Moved from 7:45 to when she actually gets there. A text about what to do
+    // on arrival is no use once she is already at her desk.
+    time: "07:20",
     graceMin: 60,
     run: async () => {
       // Composed when it can be, assembled when it can't. A missing briefing
@@ -343,12 +346,15 @@ export const SLOTS: Slot[] = [
         await notify(written);
         return "composed";
       }
-      const bridgeList = await bridges().catch(() => []);
+      const [hs, hp] = await Promise.all([
+        heightState().catch(() => null),
+        heightSpots().catch(() => []),
+      ]);
       await notify(morningWeekday(
         chicagoDateStr(),
         await wholePlan(),
         (await nextTopic())?.title ?? null,
-        bridgeList.find(b => b.reps < b.target)?.label ?? null,
+        hs ? stepText(hs, hp) : null,
       ));
       return "assembled";
     },
@@ -360,6 +366,30 @@ export const SLOTS: Slot[] = [
     graceMin: 60,
     run: async () => {
       await notify(midmorning(chicagoDateStr()));
+      return "sent";
+    },
+  },
+  {
+    // The exposures that cannot ride along on a day she was having anyway: the
+    // pedestrian bridge, the overlook. They only happen if the week makes room,
+    // so Friday evening names the next one and asks for a time, while the
+    // weekend is still unspent.
+    key: "exposure-trip",
+    days: [5],
+    time: "17:30",
+    graceMin: 120,
+    run: async () => {
+      const [placeList, state] = await Promise.all([
+        places().catch(() => []),
+        progressRows().catch(() => []),
+      ]);
+      const trip = nextTrip(buildTracks(state, placeList));
+      if (!trip) return "nothing owing";
+
+      await notify(
+        `This weekend's real one: ${trip.title}\n\n${trip.why}\n\n` +
+        `Text me a day and time and I'll hold it. "I can't this weekend" is a fine answer too.`,
+      );
       return "sent";
     },
   },

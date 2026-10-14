@@ -15,6 +15,7 @@ import {
 } from "@/lib/habitTexts";
 import { openResetWindow, parseReview, saveReview, reviewAck, weekEndFor } from "@/lib/weeklyReset";
 import { openCapture, closeCapture, openCaptureKind } from "@/lib/pending";
+import { logTrip, setFloor, addSpot } from "@/lib/heights";
 
 // Carrying out what she texted.
 //
@@ -259,6 +260,21 @@ export async function runCommand(body: string): Promise<string | null> {
 
     case "status":
       return statusReply();
+
+    case "heightDone": {
+      const r = await logTrip();
+      return r.advanced
+        ? `Logged. Floor ${r.floor} from now on — that's one higher.`
+        : `Logged. ${r.floor === 1 ? "Ground" : `Floor ${r.floor}`}, ${r.reps} of 2. One more and you go up.`;
+    }
+
+    case "setFloor":
+      await setFloor(cmd.floor);
+      return `Set to floor ${cmd.floor}. Starting the count again from there.`;
+
+    case "addSpot":
+      await addSpot(cmd.label, cmd.topFloor);
+      return `Saved ${cmd.label}, ${cmd.topFloor} floors.`;
 
     case "move": {
       // Moving is a delete plus an insert, because the plan is keyed on the day

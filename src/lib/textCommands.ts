@@ -29,6 +29,9 @@ export type Command =
   | { kind: "reset" }
   | { kind: "status" }
   | { kind: "move"; what: "drive" | "study"; from: Day | null; to: Day }
+  | { kind: "heightDone" }
+  | { kind: "setFloor"; floor: number }
+  | { kind: "addSpot"; label: string; topFloor: number }
   | null;
 
 export type Day = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
@@ -108,6 +111,21 @@ export function parseCommand(body: string): Command {
         return label && address ? { kind: "addPlace", label, address } : null;
       }
 
+      if (what === "building" || what === "spot") {
+        // "add building four, 6" — the name she uses for it and how high it
+        // goes. The number is what lets the app say whether the next floor on
+        // the ladder is reachable there.
+        const comma = value.lastIndexOf(",");
+        if (comma < 0) return null;
+        const name = value.slice(0, comma).trim();
+        const top = Number(value.slice(comma + 1).replace(/[^0-9]/g, ""));
+        if (!name || !Number.isFinite(top) || top <= 0) return null;
+        // "add building four" means the one she calls Building 4, so the word
+        // she used is part of the name and not just the keyword.
+        const label = what === "building" ? `Building ${name}` : name;
+        return { kind: "addSpot", label, topFloor: top };
+      }
+
       if (what === "bridge") {
         // A trailing "done before" marks one she has crossed and lost, which
         // changes what the app says about it rather than where it sits.
@@ -136,6 +154,19 @@ export function parseCommand(body: string): Command {
       const before = toIdx > 0 ? words.slice(0, toIdx).map(dayWord).find(Boolean) ?? null : null;
       return { kind: "move", what, from: before, to };
     }
+
+    case "floor":
+    case "floors": {
+      // "floor" on its own logs the climb; "floor 5" sets where she is, for
+      // when the app and the building disagree.
+      if (!rest) return { kind: "heightDone" };
+      const n = Number(rest.replace(/[^0-9]/g, ""));
+      return Number.isFinite(n) && n > 0 ? { kind: "setFloor", floor: n } : null;
+    }
+
+    case "heights":
+    case "height":
+      return rest ? null : { kind: "heightDone" };
 
     case "crossed":
       return rest ? { kind: "droveBridge", label: rest } : null;
@@ -239,5 +270,7 @@ export const HELP_TEXT =
   "add bridge <name>, done before\n" +
   "set home <address>\n" +
   "status — where everything stands\n" +
+  "floor — logs today's climb\n" +
+  "add building four, 6 — name and how high it goes\n" +
   "move drive to saturday — shifts it\n" +
   "Or just ask me something.";

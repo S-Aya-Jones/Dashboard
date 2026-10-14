@@ -1,5 +1,4 @@
 import { neonClient } from "@/lib/neon";
-import { microExposureFor } from "@/lib/driving";
 import { driveWindow, driveTiming } from "@/lib/daylight";
 
 // The habit text system.
@@ -161,10 +160,9 @@ export function morningWeekday(
   dateStr: string,
   plan: PlanItem[],
   topic?: string | null,
-  nextBridge?: string | null,
+  heightStep?: string | null,
 ): string {
   const day = dayOf(dateStr);
-  const home = atHome(day);
   const lines = [`Treadmill: 45 min at 1.5 to 2 mph. Goal today: ${STEP_GOAL.toLocaleString("en-US")} steps.`];
 
   if (day === "mon" && topic) lines.push(`Study 3:30 to 4:30: ${topic}.`);
@@ -184,7 +182,9 @@ export function morningWeekday(
   }
   if (day === "thu") lines.push("Send Kasey your weekly update.");
 
-  lines.push(microExposureFor(dateStr, { atHome: home, nextBridge }));
+  // The climb. Possible wherever she is, which is why it is the one that runs
+  // every day rather than only on days she goes to an office.
+  if (heightStep) lines.push(heightStep);
 
   return lines.join("\n");
 }
