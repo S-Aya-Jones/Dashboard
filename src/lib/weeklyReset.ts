@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { neonClient } from "@/lib/neon";
 import { firstText } from "@/lib/aiError";
 import { chicagoDay } from "@/lib/planBrief";
+import { openCapture, closeCapture } from "@/lib/pending";
 
 // The Sunday reset.
 //
@@ -18,9 +19,7 @@ import { chicagoDay } from "@/lib/planBrief";
 // savings is at 800" is only a reset answer if a reset was just asked for;
 // said on a Tuesday it is a sentence for the assistant. So sending the
 // questions opens a window, and the next free-text message inside it is read as
-// the answer.
-
-const WINDOW_HOURS = 8;
+// the answer. The window itself lives in pending.ts, shared with journalling.
 
 function db() {
   const url = process.env.DATABASE_URL;
@@ -45,38 +44,10 @@ export async function ensureResetTables() {
       created_at   TIMESTAMPTZ DEFAULT NOW()
     )
   `;
-  await sql`
-    CREATE TABLE IF NOT EXISTS reset_pending (
-      id       INT PRIMARY KEY DEFAULT 1,
-      asked_at TIMESTAMPTZ NOT NULL
-    )
-  `;
 }
 
-export async function openResetWindow(): Promise<void> {
-  await ensureResetTables();
-  const sql = db();
-  await sql`
-    INSERT INTO reset_pending (id, asked_at) VALUES (1, NOW())
-    ON CONFLICT (id) DO UPDATE SET asked_at = NOW()
-  `;
-}
-
-export async function resetWindowOpen(): Promise<boolean> {
-  await ensureResetTables();
-  const sql = db();
-  const rows = await sql`
-    SELECT asked_at FROM reset_pending
-    WHERE id = 1 AND asked_at > NOW() - (${WINDOW_HOURS} * INTERVAL '1 hour')
-  `;
-  return rows.length > 0;
-}
-
-export async function closeResetWindow(): Promise<void> {
-  await ensureResetTables();
-  const sql = db();
-  await sql`DELETE FROM reset_pending WHERE id = 1`;
-}
+export const openResetWindow = () => openCapture("review");
+export const closeResetWindow = () => closeCapture("review");
 
 export interface Review {
   savings: number | null;
