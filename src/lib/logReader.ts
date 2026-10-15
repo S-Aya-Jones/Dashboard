@@ -4,6 +4,7 @@ import { chicagoDay } from "@/lib/planBrief";
 import { logEntry } from "@/lib/habitTexts";
 import { logTrip, setFloor, state as heightState } from "@/lib/heights";
 import { learn, type Track } from "@/lib/learned";
+import { logWorkout } from "@/lib/activity";
 
 // Telling it what you did, in your own words.
 //
@@ -34,7 +35,7 @@ import { learn, type Track } from "@/lib/learned";
 // recording nothing, because then none of it can be trusted.
 
 export interface Event {
-  kind: "steps" | "height" | "exposure" | "drive" | "study" | "skip";
+  kind: "steps" | "height" | "exposure" | "drive" | "study" | "skip" | "workout";
   steps?: number;
   /** Which floor or level she got to, when she says. */
   floor?: number;
@@ -63,6 +64,7 @@ Event shapes:
 {"kind":"drive","before":60,"peak":80,"after":30}
 {"kind":"study","minutes":45,"quiz":"5/6"}
 {"kind":"skip","reason":"too tired"}
+{"kind":"workout","minutes":40,"detail":"lifted, legs"}
 
 Rules, in order of importance:
 
@@ -78,9 +80,11 @@ Rules, in order of importance:
 
 6. track is "heights", "bridges" or "driving". Stairs, lifts, upper floors, open edges and walkways above ground are "heights".
 
+6b. "workout" is deliberate exercise with a duration: a lift, a class, a gym session. Walking on the treadmill is steps and never a workout.
+
 7. Quote her, trimmed, in detail. Do not editorialise and do not praise.`;
 
-const KINDS = ["steps", "height", "exposure", "drive", "study", "skip"];
+const KINDS = ["steps", "height", "exposure", "drive", "study", "skip", "workout"];
 
 /**
  * Whether a message is worth spending a model call on.
@@ -226,6 +230,16 @@ export async function applyEvents(events: Event[]): Promise<string | null> {
           if (m == null) break;
           await logEntry(today, { kind: "study", minutes: m, quiz: e.quiz ?? null });
           said.push(`study ${m} min${e.quiz ? `, ${e.quiz}` : ""}`);
+          break;
+        }
+
+        case "workout": {
+          // The treadmill walking is steps and is counted there. This is the
+          // deliberate kind: a lift, a class, a gym session.
+          const m = num(e.minutes);
+          if (m == null) break;
+          await logWorkout(today, m, e.detail?.trim() ?? null);
+          said.push(`workout ${m} min${e.detail ? `, ${e.detail.trim()}` : ""}`);
           break;
         }
 

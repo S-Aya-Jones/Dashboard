@@ -18,6 +18,7 @@ import { whenChip } from "@/lib/whenText";
 import { ReviewCallout } from "@/components/review/ReviewSession";
 import { StudyChecklist } from "@/components/today/StudyChecklist";
 import { WeeklyReview } from "@/components/today/WeeklyReview";
+import { ActivityCard } from "@/components/today/ActivityCard";
 
 interface Props {
   data: DashboardData;
@@ -128,6 +129,7 @@ export function TodayView({ data, update }: Props) {
       {/* Cards waiting. Only appears when something is actually due. */}
       <ReviewCallout />
       <StudyChecklist />
+      <ActivityCard />
       <WeeklyReview />
 
       {/* Today's Timeline */}
