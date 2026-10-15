@@ -9,6 +9,7 @@ import { nextTopic, markDone, passed } from "@/lib/studyTopics";
 import { aiReply } from "@/lib/aiText";
 import { runCommand, maybeCapture, maybeWriteIntent, maybeDecline } from "@/lib/textActions";
 import { readAndLog } from "@/lib/logReader";
+import { runExposureReply } from "@/lib/exposure/replies";
 import { HELP_TEXT } from "@/lib/textCommands";
 import { findByPhone as subscriberByPhone } from "@/lib/smsSubscribers";
 
@@ -67,6 +68,12 @@ export async function POST(req: NextRequest) {
     // Not a keyword, so it may be a habit log. Order matters: STOP and HELP are
     // checked first above, because a reply must never be swallowed by the
     // logger when it was meant to stop messages.
+    // The exposure replies come first. "drive 40 75 20 no" and the older
+    // "drive 60 80 30" both match a three number drive log, and the older
+    // parser would drop the one word that decides whether it was clean.
+    const exposure = await runExposureReply(body);
+    if (exposure) return twiml(exposure);
+
     const parsed = parseReply(body);
     const today = chicagoDay();
 

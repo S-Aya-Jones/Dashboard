@@ -13,11 +13,14 @@ import { unnotifiedUpdates, markUpdatesNotified, updateDigest } from "@/lib/scho
 import { dayLine, blockCues, whyToday, upcomingAssessments, say } from "@/lib/planBrief";
 import {
   morningWeekday, midmorning, saturdayMorning, sundayMorning,
-  eveningText, weeklySummary, wholePlan,
+  eveningText, weeklySummary, wholePlan, weekBounds as habitWeekBounds,
 } from "@/lib/habitTexts";
 import { nextTopic } from "@/lib/studyTopics";
 import { bridges, places, progressRows, buildTracks, nextTrip } from "@/lib/driving";
-import { dailyHeightLine } from "@/lib/heights";
+import {
+  morningDriveLine, midmorningHeightLine, eveningLines, sundayDriveLine,
+  duskLine, darkLine, summaryBlock,
+} from "@/lib/exposure/lines";
 import { composeMorning } from "@/lib/morningText";
 import { RESET_PROMPT } from "@/lib/textCommands";
 import { openResetWindow } from "@/lib/weeklyReset";
@@ -351,17 +354,19 @@ export const SLOTS: Slot[] = [
       // Composed when it can be, assembled when it can't. A missing briefing
       // is worse than a plain one, so the fallback is the old fixed text
       // rather than silence.
+      const day = chicagoDateStr();
+      // The drive line is hers, word for word, with her route and her link. It
+      // is appended rather than handed to the model, because a composed
+      // paraphrase of a route is a different route.
+      const drive = await morningDriveLine(day).catch(() => null);
+
       const written = await composeMorning();
       if (written) {
-        await notify(written);
+        await notify(drive ? `${written}\n${drive}` : written);
         return "composed";
       }
-      await notify(morningWeekday(
-        chicagoDateStr(),
-        await wholePlan(),
-        (await nextTopic())?.title ?? null,
-        await dailyHeightLine().catch(() => null),
-      ));
+      const base = morningWeekday(day, await wholePlan(), (await nextTopic())?.title ?? null, null);
+      await notify(drive ? `${base}\n${drive}` : base);
       return "assembled";
     },
   },
@@ -371,7 +376,10 @@ export const SLOTS: Slot[] = [
     time: "10:45",
     graceMin: 60,
     run: async () => {
-      await notify(midmorning(chicagoDateStr()));
+      const day = chicagoDateStr();
+      const height = await midmorningHeightLine(day).catch(() => null);
+      const base = midmorning(day);
+      await notify(height ? `${height}\n${base}` : base);
       return "sent";
     },
   },
@@ -415,7 +423,10 @@ export const SLOTS: Slot[] = [
     time: "09:00",
     graceMin: 90,
     run: async () => {
-      await notify(sundayMorning(await wholePlan(), chicagoDateStr()));
+      const day = chicagoDateStr();
+      const big = await sundayDriveLine(day).catch(() => null);
+      const base = sundayMorning(await wholePlan(), day);
+      await notify(big ? `${base}\n${big}` : base);
       return "sent";
     },
   },
@@ -425,7 +436,37 @@ export const SLOTS: Slot[] = [
     time: "16:30",
     graceMin: 60,
     run: async () => {
-      await notify(await weeklySummary(chicagoDateStr()));
+      const day = chicagoDateStr();
+      const { start, end } = habitWeekBounds(day);
+      const block = await summaryBlock(start, end).catch(() => "");
+      const base = await weeklySummary(day);
+      await notify(block ? `${base}\n\n${block}` : base);
+      return "sent";
+    },
+  },
+  {
+    // The dusk drive. Its own send because it leaves at sunset, which the nine
+    // o'clock text cannot know how to wait for.
+    key: "exposure-dusk",
+    days: [0],
+    time: "16:10",
+    graceMin: 30,
+    run: async () => {
+      const line = await duskLine(chicagoDateStr());
+      if (!line) return "not a dusk week";
+      await notify(line);
+      return "sent";
+    },
+  },
+  {
+    key: "exposure-dark",
+    days: [0],
+    time: "17:30",
+    graceMin: 30,
+    run: async () => {
+      const line = await darkLine(chicagoDateStr());
+      if (!line) return "not a dark week";
+      await notify(line);
       return "sent";
     },
   },
@@ -449,7 +490,9 @@ export const SLOTS: Slot[] = [
     time: "19:00",
     graceMin: 90,
     run: async () => {
-      await notify(eveningText(chicagoDateStr()));
+      const day = chicagoDateStr();
+      const extra = await eveningLines(day).catch(() => []);
+      await notify([eveningText(day), ...extra].join("\n"));
       return "sent";
     },
   },
