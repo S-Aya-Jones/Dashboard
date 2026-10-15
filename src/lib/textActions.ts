@@ -17,6 +17,7 @@ import { openResetWindow, parseReview, saveReview, reviewAck, weekEndFor } from 
 import { openCapture, closeCapture, openCaptureKind } from "@/lib/pending";
 import { logTrip, setFloor, addSpot } from "@/lib/heights";
 import { forget } from "@/lib/learned";
+import { listActiveReminders, stopRemindersMatching } from "@/lib/telegram";
 
 // Carrying out what she texted.
 //
@@ -276,6 +277,23 @@ export async function runCommand(body: string): Promise<string | null> {
     case "addSpot":
       await addSpot(cmd.label, cmd.topFloor);
       return `Saved ${cmd.label}, ${cmd.topFloor} floors.`;
+
+    case "listReminders": {
+      const rows = await listActiveReminders();
+      if (!rows.length) return "No reminders switched on.";
+      return (
+        "Reminders still on:\n" +
+        rows.map(r => `• ${r.title} — ${r.timeOfDay}`).join("\n") +
+        '\nText: mute reminder <name>'
+      );
+    }
+
+    case "stopReminder": {
+      const stopped = await stopRemindersMatching(cmd.label);
+      return stopped.length
+        ? `Stopped: ${stopped.join(", ")}. That won't text you again.`
+        : `No reminder matching "${cmd.label}". Text "reminders" to see what's on.`;
+    }
 
     case "forget": {
       const gone = await forget(cmd.label);

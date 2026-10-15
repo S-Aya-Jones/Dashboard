@@ -304,3 +304,38 @@ function reminderFromRow(r: Record<string, unknown>): Reminder {
     createdAt:    toIso(r.created_at),
   };
 }
+
+/**
+ * Every reminder still switched on.
+ *
+ * These are rows she created months ago through a screen, and there has never
+ * been a way to see or stop one from her phone. So "Orgo study block, 7:00 PM"
+ * kept arriving all through a break from school — a text about a course she is
+ * not taking, which nothing in the app could be told to stop.
+ */
+export async function listActiveReminders(): Promise<Reminder[]> {
+  await ensureTelegramTables();
+  const sql = getDb();
+  const rows = await sql`SELECT * FROM reminders WHERE active = true ORDER BY time_of_day`;
+  return rows.map(reminderFromRow);
+}
+
+/**
+ * Switch off any reminder whose title matches.
+ *
+ * Matched loosely, because she will text "stop reminder orgo" rather than the
+ * title she typed into a form in June. Returns the titles that were stopped so
+ * the reply can name them — silently matching the wrong one would be worse than
+ * matching none.
+ */
+export async function stopRemindersMatching(needle: string): Promise<string[]> {
+  await ensureTelegramTables();
+  const sql = getDb();
+  const like = `%${needle.trim().toLowerCase()}%`;
+  const rows = await sql`
+    UPDATE reminders SET active = false
+    WHERE active = true AND lower(title) LIKE ${like}
+    RETURNING title
+  `;
+  return rows.map(r => String((r as Record<string, unknown>).title));
+}
