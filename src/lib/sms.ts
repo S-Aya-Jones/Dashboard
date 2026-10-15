@@ -270,10 +270,29 @@ export async function verifyTwilio(sid: string, token: string): Promise<{ ok: bo
 export async function sendSmsTo(phone: string, message: string): Promise<boolean> {
   const digits = phone.replace(/\D/g, "").replace(/^1/, "");
   if (digits.length !== 10) return false;
-  return sendViaTwilio(message.replace(/<[^>]+>/g, "").slice(0, 1200), digits);
+  return sendViaTwilio(noDashes(message).replace(/<[^>]+>/g, "").slice(0, 1200), digits);
+}
+
+/**
+ * No dashes in any text.
+ *
+ * Her instruction, and a standing one. The lines are written without them, so
+ * this is a backstop for everything older than that rule rather than the place
+ * the rule is kept.
+ *
+ * Only dashes used as punctuation are touched. A hyphen inside a word is part
+ * of the word, and breaking "T-Mobile" or "check-in" to satisfy a rule about
+ * punctuation would be following the letter of it into nonsense.
+ */
+export function noDashes(text: string): string {
+  return String(text ?? "")
+    .replace(/\s+[\u2014\u2013]\s+/g, ". ")
+    .replace(/\s+-\s+/g, ". ")
+    .replace(/[\u2014\u2013]/g, ",");
 }
 
 export async function sendSms(message: string): Promise<boolean> {
+  message = noDashes(message);
   const user = process.env.GMAIL_USER;
   const pass = process.env.GMAIL_APP_PASSWORD;
 
