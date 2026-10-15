@@ -18,6 +18,8 @@ import { openCapture, closeCapture, openCaptureKind } from "@/lib/pending";
 import { logTrip, setFloor, addSpot } from "@/lib/heights";
 import { forget } from "@/lib/learned";
 import { listActiveReminders, stopRemindersMatching } from "@/lib/telegram";
+import { setAppKey } from "@/lib/appkeys";
+import { hashPin } from "@/lib/lock";
 
 // Carrying out what she texted.
 //
@@ -277,6 +279,13 @@ export async function runCommand(body: string): Promise<string | null> {
     case "addSpot":
       await addSpot(cmd.label, cmd.topFloor);
       return `Saved ${cmd.label}, ${cmd.topFloor} floors.`;
+
+    case "setPin": {
+      // The way back in. Texting it proves she has her phone, which is the
+      // same thing the dashboard would be protecting.
+      await setAppKey("APP_PIN_HASH", await hashPin(cmd.pin));
+      return "PIN set. It will ask for it next time you open the dashboard.";
+    }
 
     case "listReminders": {
       const rows = await listActiveReminders();

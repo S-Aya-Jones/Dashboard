@@ -35,6 +35,7 @@ export type Command =
   | { kind: "forget"; label: string }
   | { kind: "listReminders" }
   | { kind: "stopReminder"; label: string }
+  | { kind: "setPin"; pin: string }
   | null;
 
 export type Day = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
@@ -94,6 +95,10 @@ export function parseCommand(body: string): Command {
     case "set": {
       const { head: what, rest: value } = split(rest);
       if (!value) return null;
+      if (what === "pin") {
+        const digits = value.replace(/[^0-9]/g, "");
+        return digits.length >= 4 ? { kind: "setPin", pin: digits } : null;
+      }
       if (what === "home") return { kind: "setHome", address: value };
       if (what === "work") return { kind: "setWork", address: value };
       return null;

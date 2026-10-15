@@ -21,6 +21,7 @@ import {
   morningDriveLine, midmorningHeightLine, eveningLines, sundayDriveLine,
   duskLine, darkLine, summaryBlock,
 } from "@/lib/exposure/lines";
+import { yesterdayLine } from "@/lib/activity";
 import { composeMorning } from "@/lib/morningText";
 import { RESET_PROMPT } from "@/lib/textCommands";
 import { openResetWindow } from "@/lib/weeklyReset";
@@ -359,15 +360,15 @@ export const SLOTS: Slot[] = [
       // is appended rather than handed to the model, because a composed
       // paraphrase of a route is a different route.
       const drive = await morningDriveLine(day).catch(() => null);
+      // Yesterday gets an answer without her opening anything. Silent on a day
+      // she logged nothing, because a daily "you logged no steps" is how the
+      // top line stops being read.
+      const yday = await yesterdayLine(day).catch(() => null);
 
       const written = await composeMorning();
-      if (written) {
-        await notify(drive ? `${written}\n${drive}` : written);
-        return "composed";
-      }
-      const base = morningWeekday(day, await wholePlan(), (await nextTopic())?.title ?? null, null);
-      await notify(drive ? `${base}\n${drive}` : base);
-      return "assembled";
+      const base = written ?? morningWeekday(day, await wholePlan(), (await nextTopic())?.title ?? null, null);
+      await notify([yday, base, drive].filter(Boolean).join("\n"));
+      return written ? "composed" : "assembled";
     },
   },
   {
