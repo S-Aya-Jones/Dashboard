@@ -33,6 +33,8 @@ export type Command =
   | { kind: "setFloor"; floor: number }
   | { kind: "addSpot"; label: string; topFloor: number }
   | { kind: "forget"; label: string }
+  | { kind: "listReminders" }
+  | { kind: "stopReminder"; label: string }
   | null;
 
 export type Day = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
@@ -169,6 +171,22 @@ export function parseCommand(body: string): Command {
     case "height":
       return rest ? null : { kind: "heightDone" };
 
+    case "reminders":
+      return rest ? null : { kind: "listReminders" };
+
+    case "mute":
+    case "cancel": {
+      // Deliberately not "stop reminder orgo". STOP is the carrier opt-out
+      // keyword, and while this app would read that message correctly, the
+      // carrier sees it first and some of them match on the leading word
+      // rather than the whole body. The cost of being wrong is her entire
+      // text system going silent and needing START to come back, so the word
+      // is simply never used as an opening.
+      const { head: what, rest: which } = split(rest);
+      if (what !== "reminder" && what !== "reminders") return null;
+      return which ? { kind: "stopReminder", label: which } : null;
+    }
+
     case "forget":
       return rest ? { kind: "forget", label: rest } : null;
 
@@ -276,5 +294,7 @@ export const HELP_TEXT =
   "status — where everything stands\n" +
   "floor — logs today's climb\n" +
   "add building four, 6 — name and how high it goes\n" +
+  "reminders — what's still scheduled\n" +
+  "mute reminder <name> — switches one off\n" +
   "move drive to saturday — shifts it\n" +
   "Or just ask me something.";

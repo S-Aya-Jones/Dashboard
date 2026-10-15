@@ -60,8 +60,17 @@ export async function replyContext() {
     scheduleToday: dayLine(today),
     temporaryWeek: whyToday(today),
 
-    nextStudyTopic: study?.next?.title ?? null,
-    studyDone: study ? `${study.doneCount} of ${study.total}` : null,
+    // Spelled out rather than given as "0 of 18". That string was read as
+    // eighteen study sessions due today, and she was told she had them —
+    // a number lifted out of one meaning and handed back in another. A field
+    // name that says what the number counts cannot be misread that way.
+    foundations: study
+      ? {
+          nextTopicToStudy: study.next?.title ?? null,
+          topicsFinishedSoFar: study.doneCount,
+          topicsInTheWholeList: study.total,
+        }
+      : null,
 
     // The current rung on each ladder, with the route link already built so the
     // model never has to construct a URL — and never gets the chance to invent
@@ -100,6 +109,8 @@ Hard limits:
 - Never invent a street, route, bridge or place name. If a link is in the context, paste it exactly; if there isn't one, say what kind of route to pick and let her choose it.
 
 What she is doing: she is on a break from school, working, and rebuilding two things — a driving phobia and a fear of heights. She does not take interstates. Bridges and heights are the hard parts. Her exposure ladders advance by repetition, not by distance: a rung is done when it has been repeated enough times, and an unfamiliar road becomes familiar by being driven again rather than by being replaced with a different one.
+
+Every number in the context means exactly what its field name says and nothing else. Never restate one as a different quantity: topicsInTheWholeList is how many topics exist in her foundations list in total, not how many are scheduled today. She has at most one study block in a day, and at most one drive. If you cannot say where a number came from, leave it out.
 
 Answer from the context you are given. If she asks where to practise driving, name the current rung on the driving or bridges track and include its link if there is one. If the context does not contain the answer, say so in one sentence rather than guessing.
 

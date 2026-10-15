@@ -83,6 +83,31 @@ Rules, in order of importance:
 const KINDS = ["steps", "height", "exposure", "drive", "study", "skip"];
 
 /**
+ * Whether a message is worth spending a model call on.
+ *
+ * This started as a six-word minimum and that was wrong in the one case it
+ * most needed to be right. She replied to the evening text with
+ *
+ *   "13202 so far no quiz"
+ *
+ * — five words, a real step count, and a clear statement that there was no
+ * quiz. It fell straight past the logger into the assistant, which complimented
+ * her on it and wrote down nothing.
+ *
+ * A digit is the giveaway. Almost everything she wants recorded has a number in
+ * it, and almost nothing she says in passing does — so a short message with a
+ * number in it is read, and a short one without is not. Longer messages are
+ * read either way, because that is where a day gets described in prose.
+ */
+export function worthReading(body: string): boolean {
+  const t = String(body ?? "").trim();
+  if (!t) return false;
+  const words = t.split(/\s+/).length;
+  if (words >= 6) return true;
+  return words >= 2 && /\d/.test(t);
+}
+
+/**
  * Pull the events out of a model reply.
  *
  * Separate from the call so it can be tested without a key, a network or a
@@ -112,8 +137,7 @@ export function parseEvents(raw: string): Event[] {
 export async function readEvents(body: string): Promise<Event[]> {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return [];
-  // Too short to be a report of a day. The rigid parsers already own these.
-  if (body.trim().split(/\s+/).length < 6) return [];
+  if (!worthReading(body)) return [];
 
   try {
     const client = new Anthropic({ apiKey: key });
