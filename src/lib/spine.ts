@@ -22,6 +22,7 @@ import {
   duskLine, darkLine, summaryBlock,
 } from "@/lib/exposure/lines";
 import { yesterdayLine } from "@/lib/activity";
+import { mcatAfternoonLine, mcatStartLine, mcatSummaryBlock } from "@/lib/mcat/lines";
 import { composeMorning } from "@/lib/morningText";
 import { RESET_PROMPT } from "@/lib/textCommands";
 import { openResetWindow } from "@/lib/weeklyReset";
@@ -440,8 +441,9 @@ export const SLOTS: Slot[] = [
       const day = chicagoDateStr();
       const { start, end } = habitWeekBounds(day);
       const block = await summaryBlock(start, end).catch(() => "");
+      const mcat = await mcatSummaryBlock(day).catch(() => null);
       const base = await weeklySummary(day);
-      await notify(block ? `${base}\n\n${block}` : base);
+      await notify([base, block, mcat].filter(Boolean).join("\n\n"));
       return "sent";
     },
   },
@@ -591,7 +593,24 @@ export const SLOTS: Slot[] = [
     // about an afternoon that already started without it.
     graceMin: 20,
     run: async () => {
-      await notify(buildLeaveWorkMsg());
+      const day = chicagoDateStr();
+      const mcat = await mcatAfternoonLine(day).catch(() => null);
+      await notify([buildLeaveWorkMsg(), mcat].filter(Boolean).join("\n"));
+      return "sent";
+    },
+  },
+  {
+    // Three o'clock, when the two hours start. The only new send the plan adds:
+    // it runs for six months and the fastest way to make her stop reading any
+    // of it is to text about it five times a day.
+    key: "mcat-start",
+    days: [0, 1, 2, 3, 4, 5, 6],
+    time: "15:00",
+    graceMin: 45,
+    run: async () => {
+      const line = await mcatStartLine(chicagoDateStr());
+      if (!line) return "outside the plan";
+      await notify(line);
       return "sent";
     },
   },

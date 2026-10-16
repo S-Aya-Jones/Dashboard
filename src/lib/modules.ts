@@ -52,6 +52,10 @@ export const MODULES: ModuleDef[] = [
   { href: "/material",     label: "Shared material", icon: "FolderOpen",     group: "school", pausedByDefault: true },
   { href: "/partners",     label: "Study Partners",  icon: "Users",          group: "school", pausedByDefault: true },
   { href: "/mcat",         label: "Med School",      icon: "BookOpen",       group: "school", pausedByDefault: true },
+  // Not paused with school: the MCAT plan is hers, not the MHS programme she
+  // stepped away from, and unpausing School to reach it would switch her quiz
+  // and inbox texts back on at the same time.
+  { href: "/mcat-plan",    label: "Question Plan",   icon: "ListChecks",     group: "daily",  pausedByDefault: false },
   { href: "/catch-up",     label: "Catch-up week",   icon: "Scissors",       group: "school", pausedByDefault: true, note: "Built for a semester that has to bend. Nothing to bend right now." },
   { href: "/shadowing",    label: "Shadowing",       icon: "Stethoscope",    group: "school", pausedByDefault: true },
 
