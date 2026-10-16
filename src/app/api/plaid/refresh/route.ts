@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getPlaidClient, getPlaidItems, decryptToken } from "@/lib/plaid";
 
+export const dynamic = "force-dynamic";
+
 // 5-minute cooldown — prevents spamming Plaid with refresh requests
 const cooldown = new Map<string, { refreshedAt: number }>();
 const COOLDOWN  = 5 * 60 * 1000;

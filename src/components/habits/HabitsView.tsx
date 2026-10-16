@@ -14,8 +14,18 @@ interface Props {
   update: (fn: (d: DashboardData) => DashboardData) => void;
 }
 
-const ICON_OPTIONS = ["🙏", "📖", "🚶🏾‍♀️", "✨", "🌙", "📚", "💧", "📵", "🍎", "🏃🏾‍♀️", "🧘🏾‍♀️", "💊", "✍️", "🎾", "🌿", "🌸", "⭐", "🌅", "💤", "🫀"];
-const COLOR_OPTIONS = ["#71816D", "#DA667B", "#FFFFFF", "rgba(255,255,255,0.3)", "#8A9E87", "#5A6E58", "#A8967E", "#C99A5C"];
+// Habits are identified by their colour, not by a glyph — a row of emoji
+// reads as clip art next to the serif headings.
+function Dot({ color }: { color: string }) {
+  return (
+    <span
+      className="inline-block rounded-full flex-shrink-0"
+      style={{ width: 8, height: 8, background: color }}
+    />
+  );
+}
+
+const COLOR_OPTIONS = ["#71816D", "#DA667B", "#B4552F", "#E0A44A", "#8A9E87", "#5A6E58", "#A8967E", "#C99A5C"];
 
 function getLast14Days(): string[] {
   const days: string[] = [];
@@ -27,7 +37,7 @@ function getLast14Days(): string[] {
 
 export function HabitsView({ data, update }: Props) {
   const [manageOpen, setManageOpen] = useState(false);
-  const [newHabit, setNewHabit] = useState<{ name: string; icon: string; color: string; section: "daily" | "devotional"; weeklyGoal: number }>({ name: "", icon: "⭐", color: "#71816D", section: "daily", weeklyGoal: 5 });
+  const [newHabit, setNewHabit] = useState<{ name: string; icon: string; color: string; section: "daily" | "devotional"; weeklyGoal: number }>({ name: "", icon: "", color: "#71816D", section: "daily", weeklyGoal: 5 });
 
   const days = getLast14Days();
   const today = todayStr();
@@ -54,7 +64,7 @@ export function HabitsView({ data, update }: Props) {
       ...d,
       habits: [...d.habits, { ...newHabit, id: id(), order: d.habits.length }],
     }));
-    setNewHabit({ name: "", icon: "⭐", color: "#71816D", section: "daily", weeklyGoal: 5 });
+    setNewHabit({ name: "", icon: "", color: "#71816D", section: "daily", weeklyGoal: 5 });
   };
 
   const deleteHabit = (habitId: string) => {
@@ -122,7 +132,7 @@ export function HabitsView({ data, update }: Props) {
                       <tr key={habit.id} className="border-t border-cream-darker">
                         <td className="pr-3 py-2">
                           <div className="flex items-center gap-2">
-                            <span>{habit.icon}</span>
+                            <Dot color={habit.color} />
                             <span className="text-brown font-medium truncate max-w-[90px]">{habit.name}</span>
                           </div>
                         </td>
@@ -139,7 +149,7 @@ export function HabitsView({ data, update }: Props) {
                                 `}
                                 style={done ? { background: habit.color } : {}}
                               >
-                                {done && <Check size={10} className="text-white" />}
+                                {done && <Check size={10} />}
                               </button>
                             </td>
                           );
@@ -173,19 +183,6 @@ export function HabitsView({ data, update }: Props) {
                 <option value="devotional">Devotional</option>
               </select>
             </div>
-            <div className="flex gap-2 items-center">
-              <div className="flex-1">
-                <p className="text-xs text-sand-dark mb-1">Icon</p>
-                <div className="flex flex-wrap gap-1">
-                  {ICON_OPTIONS.map((icon) => (
-                    <button key={icon} onClick={() => setNewHabit({ ...newHabit, icon })}
-                      className={`w-8 h-8 rounded-lg text-base transition-all ${newHabit.icon === icon ? "bg-cream-darker ring-2 ring-terracotta" : "hover:bg-cream-dark"}`}>
-                      {icon}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
             <div>
               <p className="text-xs text-sand-dark mb-1">Color</p>
               <div className="flex gap-2">
@@ -212,7 +209,7 @@ export function HabitsView({ data, update }: Props) {
               {data.habits.sort((a, b) => a.order - b.order).map((habit) => (
                 <div key={habit.id} className="flex items-center gap-3 p-2 rounded-xl bg-cream-dark">
                   <GripVertical size={14} className="text-sand cursor-grab" />
-                  <span className="text-base">{habit.icon}</span>
+                  <Dot color={habit.color} />
                   <span className="flex-1 text-sm text-brown">{habit.name}</span>
                   <span className="text-xs text-sand-dark">{habit.section}</span>
                   <button onClick={() => deleteHabit(habit.id)} className="text-sand hover:text-rose transition-colors">

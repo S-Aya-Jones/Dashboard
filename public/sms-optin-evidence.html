@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SMS Opt-In Evidence — Aya's Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #F4F0FE; color: #1E1340; padding: 2rem 1rem 4rem; }
+    .wrap { max-width: 640px; margin: 0 auto; }
+    .badge { display: inline-block; background: #7C5CFC; color: #fff; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 0.3rem 0.75rem; border-radius: 20px; margin-bottom: 1.5rem; }
+    h1 { font-family: Georgia, serif; font-size: 1.9rem; font-weight: 500; color: #1E1340; margin-bottom: 0.5rem; }
+    .subtitle { font-size: 0.85rem; color: #7C6FAE; margin-bottom: 2.5rem; }
+    .section { background: #fff; border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; border: 1px solid rgba(124,92,252,0.15); box-shadow: 0 4px 24px rgba(124,92,252,0.08); }
+    .section-label { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; color: #A89ECC; text-transform: uppercase; margin-bottom: 0.75rem; }
+    table { width: 100%; font-size: 0.85rem; border-collapse: collapse; }
+    td { padding: 0.4rem 0; vertical-align: top; }
+    td:first-child { color: #7C6FAE; font-weight: 500; padding-right: 1rem; white-space: nowrap; width: 40%; }
+    td:last-child { color: #1E1340; }
+    .desc { font-size: 0.9rem; line-height: 1.7; color: #1E1340; margin-bottom: 1rem; }
+    .examples { background: #FAF8FF; border-radius: 10px; padding: 1rem; margin-bottom: 1rem; border: 1px solid rgba(124,92,252,0.1); }
+    .examples-label { font-size: 0.75rem; font-weight: 600; color: #7C5CFC; margin-bottom: 0.5rem; }
+    .example { font-size: 0.8rem; color: #1E1340; font-style: italic; margin-bottom: 0.35rem; }
+    .consent-box { display: flex; gap: 0.75rem; align-items: flex-start; padding: 1rem; background: rgba(124,92,252,0.04); border-radius: 10px; border: 1px solid rgba(124,92,252,0.2); margin-bottom: 1.25rem; }
+    .checkbox { width: 18px; height: 18px; background: #7C5CFC; border-radius: 3px; flex-shrink: 0; margin-top: 2px; display: flex; align-items: center; justify-content: center; }
+    .checkbox::after { content: '✓'; color: #fff; font-size: 12px; font-weight: 700; }
+    .consent-text { font-size: 0.85rem; line-height: 1.6; color: #1E1340; }
+    .confirm-btn { display: block; width: 100%; padding: 0.85rem; background: #7C5CFC; color: #fff; font-size: 0.95rem; font-weight: 600; border: none; border-radius: 10px; text-align: center; margin-bottom: 1.25rem; cursor: pointer; }
+    .disclosures { font-size: 0.78rem; line-height: 1.8; color: #7C6FAE; border-top: 1px solid rgba(124,92,252,0.12); padding-top: 1rem; }
+    .disclosures p { margin-bottom: 0.3rem; }
+    .disclosures strong { color: #1E1340; }
+    .flow-diagram { background: #fff; border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; border: 1px solid rgba(124,92,252,0.15); }
+    .flow-step { display: flex; gap: 1rem; align-items: flex-start; margin-bottom: 1.25rem; }
+    .step-num { width: 28px; height: 28px; background: #7C5CFC; color: #fff; border-radius: 50%; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+    .step-content h3 { font-size: 0.9rem; font-weight: 600; color: #1E1340; margin-bottom: 0.25rem; }
+    .step-content p { font-size: 0.82rem; color: #7C6FAE; line-height: 1.5; }
+    .urls { background: rgba(124,92,252,0.04); border-radius: 10px; padding: 1rem; }
+    .url-row { display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0; border-bottom: 1px solid rgba(124,92,252,0.08); font-size: 0.82rem; }
+    .url-row:last-child { border-bottom: none; }
+    .url-label { color: #7C6FAE; font-weight: 500; }
+    .url-link { color: #7C5CFC; word-break: break-all; font-size: 0.78rem; }
+    .footer { text-align: center; font-size: 0.75rem; color: #A89ECC; margin-top: 2rem; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="badge">Twilio A2P 10DLC — Opt-In Evidence</div>
+  <h1>SMS Notifications</h1>
+  <p class="subtitle">Aya's Dashboard · Sole Proprietor · Automated daily wellness reminders</p>
+
+  <!-- Business Info -->
+  <div class="section">
+    <div class="section-label">Business Information</div>
+    <table>
+      <tr><td>Business Name</td><td>Aya's Dashboard</td></tr>
+      <tr><td>Owner / Operator</td><td>Shaniqua Jones</td></tr>
+      <tr><td>Business Type</td><td>Sole Proprietor — Personal Wellness Application</td></tr>
+      <tr><td>Contact Email</td><td>shaniquaayajones@gmail.com</td></tr>
+      <tr><td>Program Name</td><td>Aya's Dashboard — Personal Wellness Reminders</td></tr>
+      <tr><td>Message Frequency</td><td>Up to 2 messages per day</td></tr>
+      <tr><td>Opt-In URL</td><td>https://dashboard-phi-six-70.vercel.app/sms-opt-in</td></tr>
+    </table>
+  </div>
+
+  <!-- Opt-In Flow Diagram -->
+  <div class="flow-diagram">
+    <div class="section-label">Opt-In Flow (Step by Step)</div>
+    <div class="flow-step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h3>User visits the opt-in page</h3>
+        <p>The account holder (Shaniqua Jones) navigates to:<br><strong>https://dashboard-phi-six-70.vercel.app/sms-opt-in</strong></p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h3>User reads program description</h3>
+        <p>The page describes the SMS program, sending phone number, message frequency, rates, and STOP/HELP instructions before any consent is collected.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <h3>User checks the consent checkbox</h3>
+        <p>The checkbox is unchecked by default. The label reads the full consent statement including frequency, rates, and opt-out instructions.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <h3>User clicks "Confirm Opt-In"</h3>
+        <p>The button is disabled until the checkbox is checked. Clicking it confirms enrollment and shows a success message.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Opt-In Page Replica -->
+  <div class="section">
+    <div class="section-label">Opt-In Page — As Seen by User</div>
+    <p class="desc">
+      This is a private, single-user personal wellness dashboard owned and operated by
+      Shaniqua Jones. The SMS program sends automated daily reminders and briefings
+      to the account holder's own registered mobile number only. No marketing messages,
+      promotions, or third-party communications are sent.
+    </p>
+    <div class="examples">
+      <div class="examples-label">Example messages:</div>
+      <p class="example">"Good morning! Your workout today: Upper Body Push. 3 habits completed yesterday. Stay on track! 💪"</p>
+      <p class="example">"Daily check-in: 4/5 habits done, 7.5 hrs sleep, 2L water. You're killing it."</p>
+    </div>
+    <div class="consent-box">
+      <div class="checkbox"></div>
+      <p class="consent-text">
+        By checking this box, I consent to receive recurring automated SMS messages from
+        Aya's Dashboard, including daily workout reminders, wellness check-ins, and
+        fitness updates. Up to 2 messages per day. Msg &amp; data rates may apply. Reply
+        STOP to cancel, HELP for help.
+      </p>
+    </div>
+    <div class="confirm-btn">Confirm Opt-In</div>
+    <div class="disclosures">
+      <p><strong>Program Name:</strong> Aya's Dashboard — Personal Wellness Reminders</p>
+      <p><strong>Message Frequency:</strong> Up to 2 messages per day.</p>
+      <p><strong>Msg &amp; Data Rates May Apply.</strong></p>
+      <p><strong>To Stop:</strong> Reply STOP to cancel at any time.</p>
+      <p><strong>For Help:</strong> Reply HELP or email shaniquaayajones@gmail.com</p>
+      <p>Phone numbers are <strong>never shared with third parties.</strong></p>
+    </div>
+  </div>
+
+  <!-- URLs -->
+  <div class="section">
+    <div class="section-label">All Required URLs</div>
+    <div class="urls">
+      <div class="url-row"><span class="url-label">Opt-In Page</span><span class="url-link">https://dashboard-phi-six-70.vercel.app/sms-opt-in</span></div>
+      <div class="url-row"><span class="url-label">Privacy Policy</span><span class="url-link">https://dashboard-phi-six-70.vercel.app/privacy</span></div>
+      <div class="url-row"><span class="url-label">Terms of Service</span><span class="url-link">https://dashboard-phi-six-70.vercel.app/terms</span></div>
+      <div class="url-row"><span class="url-label">This Evidence Page</span><span class="url-link">https://dashboard-phi-six-70.vercel.app/sms-optin-evidence.html</span></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Aya's Dashboard · Sole Proprietor · shaniquaayajones@gmail.com · Campaign SID: CM67ff8e6034f81ea38ef5764247b86371
+  </div>
+</div>
+</body>
+</html>

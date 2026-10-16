@@ -1,0 +1,951 @@
+import { neonClient } from "@/lib/neon";
+import {
+  getDueReminders,
+  advanceReminder,
+  formatTimeOfDay,
+} from "@/lib/telegram";
+import { sendSms, smsAlsoEnabled } from "@/lib/sms";
+import { dueNotifications, markNotified, upsertObligation } from "@/lib/obligations";
+import { loadData } from "@/lib/db";
+import { schoolIsPaused } from "@/lib/modules";
+import { whatIsDue, dueLine } from "@/lib/people";
+import { unnotifiedUpdates, markUpdatesNotified, updateDigest } from "@/lib/schoolUpdates";
+import { dayLine, blockCues, whyToday, upcomingAssessments, say } from "@/lib/planBrief";
+import {
+  morningWeekday, midmorning, saturdayMorning, sundayMorning,
+  eveningText, weeklySummary, wholePlan, weekBounds as habitWeekBounds,
+} from "@/lib/habitTexts";
+import { nextTopic } from "@/lib/studyTopics";
+import { bridges, places, progressRows, buildTracks, nextTrip } from "@/lib/driving";
+import {
+  morningDriveLine, midmorningHeightLine, eveningLines, sundayDriveLine,
+  duskLine, darkLine, summaryBlock,
+} from "@/lib/exposure/lines";
+import { yesterdayLine } from "@/lib/activity";
+import { mcatAfternoonLine, mcatStartLine, mcatSummaryBlock } from "@/lib/mcat/lines";
+import { composeMorning } from "@/lib/morningText";
+import { RESET_PROMPT } from "@/lib/textCommands";
+import { openResetWindow } from "@/lib/weeklyReset";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The notification spine: every scheduled ping in Aya's day, fired by
+// /api/cron/dispatch whenever something hits it (cron-job.org every ~5 min,
+// plus two Vercel backstop crons). A cron_runs row per (slot, chicago-day)
+// makes sends exactly-once no matter how many pingers overlap.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const TZ = "America/Chicago";
+
+// Telegram always; a plain-text copy by SMS too when texting is switched on.
+// The switch now lives in the app rather than only in a Vercel env var, so it
+// can be flipped without a redeploy.
+/**
+ * Deliver one message.
+ *
+ * Text only. Telegram used to go out alongside every SMS, which meant two
+ * copies of everything and no way to tell which channel had actually worked —
+ * a text that silently failed looked fine because the Telegram arrived.
+ *
+ * The HTML stripping stays: these strings carry <b> tags from when Telegram
+ * rendered them, and a text message shows the tags rather than the bold.
+ */
+async function notify(text: string): Promise<void> {
+  await sendSms(text.replace(/<[^>]+>/g, "")).catch(() => false);
+}
+
+function db() {
+  const url = process.env.DATABASE_URL;
+  if (!url) throw new Error("DATABASE_URL is not set");
+  return neonClient(url);
+}
+
+export function chicagoNow(): Date {
+  return new Date(new Date().toLocaleString("en-US", { timeZone: TZ }));
+}
+
+export function chicagoDateStr(d?: Date): string {
+  const c = d ?? chicagoNow();
+  const y = c.getFullYear();
+  const m = (c.getMonth() + 1).toString().padStart(2, "0");
+  const day = c.getDate().toString().padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+async function ensureCronRuns() {
+  const sql = db();
+  await sql`
+    CREATE TABLE IF NOT EXISTS cron_runs (
+      slot    TEXT NOT NULL,
+      day     TEXT NOT NULL,
+      sent_at TIMESTAMPTZ DEFAULT NOW(),
+      detail  TEXT,
+      PRIMARY KEY (slot, day)
+    )
+  `;
+}
+
+// Atomically claim a (slot, day). True = we own this send.
+async function claimSlot(slot: string, day: string, detail: string): Promise<boolean> {
+  const sql = db();
+  const rows = await sql`
+    INSERT INTO cron_runs (slot, day, detail)
+    VALUES (${slot}, ${day}, ${detail})
+    ON CONFLICT (slot, day) DO NOTHING
+    RETURNING slot
+  `;
+  return rows.length > 0;
+}
+
+// ─── Assessment helpers ──────────────────────────────────────────────────────
+
+export interface Assessment {
+  course: string;
+  title: string;
+  date: Date;
+  daysOut: number;
+  weightPct?: number;
+  /** Set when the assessment opens and closes on a window rather than a sitting. */
+  window?: { opens: string; due: string };
+}
+
+/**
+ * The term's quizzes and exams, from the typed syllabus data.
+ *
+ * This used to read her inbox for events tagged `course-`, which meant the
+ * texts only knew what an email happened to have said. The 8/19 announcement
+ * moved two Exam 1s by two days and turned both into overnight windows, and
+ * nothing in the extraction pipeline noticed — she'd have been told the wrong
+ * morning. ASSESSMENTS is the same source the Grades and Schedule pages use.
+ */
+export async function getCourseAssessments(daysAhead = 45): Promise<Assessment[]> {
+  const today = chicagoDateStr();
+  return upcomingAssessments(today, daysAhead).map(a => ({
+    course: a.course,
+    title: `${a.short} ${a.kind === "exam" ? "Exam" : "Quiz"} ${a.number}`,
+    date: new Date(`${a.date}T${a.time || "08:00"}:00`),
+    daysOut: a.daysOut,
+    weightPct: a.weightPct,
+    ...(a.window ? { window: a.window } : {}),
+  }));
+}
+
+function fmtAssessment(a: Assessment): string {
+  const dateStr = a.date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const when =
+    a.daysOut === 0 ? "TODAY" :
+    a.daysOut === 1 ? "tomorrow" :
+    a.daysOut <= 6  ? a.date.toLocaleDateString("en-US", { weekday: "long" }) :
+    dateStr;
+  const at = a.window
+    ? ` · window ${say(a.window.opens)}–${say(a.window.due)}`
+    : "";
+  const worth = a.weightPct ? ` · ${a.weightPct}%` : "";
+  return a.daysOut <= 1
+    ? `${a.title} — ${when} (${dateStr})${at}${worth}`
+    : `${a.title} — ${when}${at}${worth}`;
+}
+
+// Tonight's Block 1/2: the two distinct courses with the nearest assessments.
+function pickBlocks(assessments: Assessment[]): { b1?: Assessment; b2?: Assessment } {
+  const seen = new Set<string>();
+  const perCourse: Assessment[] = [];
+  for (const a of assessments) {
+    if (a.daysOut < 0) continue;
+    if (seen.has(a.course)) continue;
+    seen.add(a.course);
+    perCourse.push(a);
+  }
+  return { b1: perCourse[0], b2: perCourse[1] };
+}
+
+// ─── Message builders ────────────────────────────────────────────────────────
+
+// Classes are Mon/Wed Biochem 8-10 + Physio 10-12, Tue/Thu Micro 8-10 + CMB
+// 10-12, per the official MHS 26/27 schedule. Evenings anchor to that
+// morning's subjects — same-day review is the strongest lever against
+// forgetting — UNLESS an assessment is close, in which case the deadline wins.
+const DAY_SUBJECTS: Record<number, string[]> = {
+  1: ["Biochemistry", "Physiology"],
+  2: ["Microbiology", "Cell & Molecular Bio"],
+  3: ["Biochemistry", "Physiology"],
+  4: ["Microbiology", "Cell & Molecular Bio"],
+};
+
+/**
+ * The assessment sitting at tomorrow morning, if there is one.
+ *
+ * Quizzes and exams open at 12:00am on their scheduled day and are due by 9
+ * (quiz) or 10 (exam). Aya works 7:00–2:30 and won't take one during work, so
+ * she takes it the moment it opens — which makes the night before a quiz a
+ * different night from every other one, and the app should already know that
+ * rather than her having to remember.
+ */
+export async function assessmentAtMidnight(): Promise<Assessment | null> {
+  const all = await getCourseAssessments(3).catch(() => []);
+  const tomorrow = all.filter(a => a.daysOut === 1 && !/review/i.test(a.title));
+  if (!tomorrow.length) return null;
+  // An exam outranks a quiz if both somehow land together.
+  return tomorrow.sort((a, b) => Number(/exam/i.test(b.title)) - Number(/exam/i.test(a.title)))[0];
+}
+
+function isUrgent(a: Assessment): boolean {
+  const isExam = /exam/i.test(a.title);
+  return a.daysOut >= 0 && a.daysOut <= (isExam ? 7 : 5);
+}
+
+function buildStudyBlocksMsg(assessments: Assessment[], dow: number): string {
+  const { b1, b2 } = pickBlocks(assessments);
+  const tomorrow = assessments.filter(a => a.daysOut === 1);
+  const urgent = assessments.filter(isUrgent);
+
+  if (dow === 3) {
+    // Wednesday: post-therapy — light night only
+    let msg =
+      "4:55 \u2014 Wednesday is a light night (therapy day). No new material: " +
+      "flashcards and a rewatch of this morning's Biochem and Physio.";
+    if (tomorrow.length) {
+      msg += `\n\nTomorrow: ${tomorrow.map(a => a.title).join(", ")}. It opens at midnight and you take it then, so tonight is the light pass — no new material, and sleep between now and 11:30.`;
+    }
+    return msg;
+  }
+
+  let msg: string;
+
+  if (urgent.length > 0) {
+    // Deadline mode — nearest assessments take the blocks
+    msg = "4:55 \u2014 study blocks tonight (exam mode):\n";
+    if (b1) msg += `\nBlock 1 (5:00\u20136:30): ${b1.course} \u2014 practice questions first. ${fmtAssessment(b1)}`;
+    if (b2) msg += `\nBlock 2 (7:00\u20138:00): ${b2.course} \u2014 ${fmtAssessment(b2)}. Log every miss.`;
+  } else if (DAY_SUBJECTS[dow]) {
+    // Quiet stretch — review what you heard in class this morning
+    const [first, second] = DAY_SUBJECTS[dow];
+    msg =
+      "4:55 \u2014 study blocks tonight (same-day review \u2014 you had both this morning):\n" +
+      `\nBlock 1 (5:00\u20136:30): ${first} \u2014 questions first, then the notes` +
+      `\nBlock 2 (7:00\u20138:00): ${second} \u2014 log every miss in the error log`;
+    const soon = assessments.filter(a => a.daysOut >= 0).slice(0, 1);
+    if (soon.length) msg += `\n\nNext up: ${fmtAssessment(soon[0])}`;
+  } else if (dow === 5) {
+    msg =
+      "4:55 \u2014 Friday. Rap Session is done; give this block to whichever course felt " +
+      "worst this week, then it's Deandra time.";
+  } else if (dow === 0) {
+    msg = "4:55 \u2014 Sunday: run the error log, then the nearest assessment.";
+    if (b1) msg += `\n\nStart with ${b1.course} \u2014 ${fmtAssessment(b1)}`;
+  } else {
+    msg = "4:55 \u2014 study blocks tonight:\n";
+    if (b1) msg += `\nBlock 1 (5:00\u20136:30): ${b1.course}`;
+    if (b2) msg += `\nBlock 2 (7:00\u20138:00): ${b2.course}`;
+  }
+
+  if (tomorrow.length) {
+    msg += `\n\nTOMORROW: ${tomorrow.map(a => a.title).join(", ")}. Block 1 becomes the final review. It opens at midnight and you sit it then — so get horizontal by 9 and set an alarm for 11:30 rather than trying to stay up.`;
+  }
+  msg += "\n\nSkincare at 8.";
+  return msg;
+}
+
+/**
+ * The 2:25 "wrap it up" text.
+ *
+ * The afternoon is read off today's actual plan rather than described from
+ * memory — the gym moved off 5am and into this stretch, and a message that
+ * still promised a free afternoon would be sending her home to nothing.
+ */
+/**
+ * The end of the working day, sent before the end of the working day.
+ *
+ * It used to go at 2:25 for a day that finishes at 2:30, which left five
+ * minutes and no room at all — on a day she got away early it arrived after she
+ * had already gone. 2:05 gives her the afternoon while she can still do
+ * something about it.
+ *
+ * The wording avoids "head home" on days she is already there.
+ */
+function buildLeaveWorkMsg(): string {
+  const day = chicagoDateStr();
+  const after = blockCues(day).filter(([t]) => slotMinutes(t) >= 14 * 60 + 30);
+  if (!after.length) return "2:05 — nearly done. Nothing on the board this afternoon; take it.";
+  const line = after.map(([t, label]) => `${say(t)} ${label}`).join(" → ");
+  return `2:05 — start wrapping up. From here: ${line}.`;
+}
+
+function buildWeekPlanMsg(assessments: Assessment[]): string {
+  const week = assessments.filter(a => a.daysOut >= 0 && a.daysOut <= 7);
+  let msg = "7:00 — Sunday planning, 20 minutes. This week on the board:\n";
+  msg += week.length
+    ? "\n" + week.map(a => `• ${fmtAssessment(a)}`).join("\n")
+    : "\n• No quizzes or exams in the next 7 days — get ahead, don't coast.";
+  msg +=
+    "\n\nChecklist:" +
+    "\n• Meals cooked for Mon–Wed?" +
+    "\n• Gym bag in the car for the week? It's afternoons now — Mon, Tue, Thu, Fri, Sat." +
+    "\n• Exposure homework from your therapist scheduled?" +
+    "\n• Anything due that isn't on the board? Add it now." +
+    "\n\nThen skincare at 8. The week is already won or lost right here.";
+  return msg;
+}
+
+function buildFallbackMorning(assessments: Assessment[], _dow: number): string {
+  const day = chicagoDateStr();
+  const soon = assessments.filter(a => a.daysOut >= 0 && a.daysOut <= 7);
+  let msg = `Good morning Aya — ${dayLine(day)}`;
+  const why = whyToday(day);
+  if (why) msg += `\n\n${why}`;
+  if (soon.length) {
+    msg += "\n\nComing up:\n" + soon.slice(0, 5).map(a => `• ${fmtAssessment(a)}`).join("\n");
+  }
+  msg += "\n\nHeights doses at your 10am and 1:30 breaks. You know the plan — just execute today.";
+  return msg;
+}
+
+const SKINCARE_MSG =
+  "7:55 — study blocks are done. Skincare hour starts now: " +
+  "phone on the charger, call your boo while you do your routine, " +
+  "clothes laid out for the morning. Lights out at 9.";
+
+// ─── Slot table ──────────────────────────────────────────────────────────────
+
+interface Slot {
+  key: string;
+  days: number[];          // Chicago day-of-week (0=Sun)
+  time: string;            // "HH:MM" Chicago
+  graceMin: number;        // fire if now is within [time, time+grace]
+  /** Skipped entirely while the School section is paused. */
+  schoolOnly?: boolean;
+  /**
+   * Superseded by the habit text system. Kept in the table rather than deleted
+   * so switching one back on is a single word, and so the list still shows what
+   * the day used to look like.
+   */
+  retired?: boolean;
+  run: (ctx: SlotCtx) => Promise<string>;  // returns detail for cron_runs
+}
+
+interface SlotCtx {
+  origin: string;
+  dow: number;
+}
+
+/**
+ * Whether school notifications should go out at all.
+ *
+ * Pausing a section took it off the sidebar and did nothing to the texts, so
+ * she carried on getting "your quiz opens at midnight" and a 7am sweep of the
+ * school inbox through a break from school. A slot that belongs to a paused
+ * section must not send.
+ */
+async function schoolPaused(): Promise<boolean> {
+  try {
+    return schoolIsPaused((await loadData()).pausedModules);
+  } catch {
+    return true;   // when in doubt, say less
+  }
+}
+
+export const SLOTS: Slot[] = [
+  // ── The habit texts ──
+  {
+    key: "habit-morning",
+    days: [1, 2, 3, 4, 5],
+    // Moved from 7:45 to when she actually gets there. A text about what to do
+    // on arrival is no use once she is already at her desk.
+    time: "07:20",
+    graceMin: 60,
+    run: async () => {
+      // Composed when it can be, assembled when it can't. A missing briefing
+      // is worse than a plain one, so the fallback is the old fixed text
+      // rather than silence.
+      const day = chicagoDateStr();
+      // The drive line is hers, word for word, with her route and her link. It
+      // is appended rather than handed to the model, because a composed
+      // paraphrase of a route is a different route.
+      const drive = await morningDriveLine(day).catch(() => null);
+      // Yesterday gets an answer without her opening anything. Silent on a day
+      // she logged nothing, because a daily "you logged no steps" is how the
+      // top line stops being read.
+      const yday = await yesterdayLine(day).catch(() => null);
+
+      const written = await composeMorning();
+      const base = written ?? morningWeekday(day, await wholePlan(), (await nextTopic())?.title ?? null, null);
+      await notify([yday, base, drive].filter(Boolean).join("\n"));
+      return written ? "composed" : "assembled";
+    },
+  },
+  {
+    key: "habit-midmorning",
+    days: [1, 2, 3, 4, 5],
+    time: "10:45",
+    graceMin: 60,
+    run: async () => {
+      const day = chicagoDateStr();
+      const height = await midmorningHeightLine(day).catch(() => null);
+      const base = midmorning(day);
+      await notify(height ? `${height}\n${base}` : base);
+      return "sent";
+    },
+  },
+  {
+    // The exposures that cannot ride along on a day she was having anyway: the
+    // pedestrian bridge, the overlook. They only happen if the week makes room,
+    // so Friday evening names the next one and asks for a time, while the
+    // weekend is still unspent.
+    key: "exposure-trip",
+    days: [5],
+    time: "17:30",
+    graceMin: 120,
+    run: async () => {
+      const [placeList, state] = await Promise.all([
+        places().catch(() => []),
+        progressRows().catch(() => []),
+      ]);
+      const trip = nextTrip(buildTracks(state, placeList));
+      if (!trip) return "nothing owing";
+
+      await notify(
+        `This weekend's real one: ${trip.title}\n\n${trip.why}\n\n` +
+        `Text me a day and time and I'll hold it. "I can't this weekend" is a fine answer too.`,
+      );
+      return "sent";
+    },
+  },
+  {
+    key: "habit-saturday",
+    days: [6],
+    time: "09:00",
+    graceMin: 90,
+    run: async () => {
+      await notify(saturdayMorning(await wholePlan(), (await nextTopic())?.title ?? null, chicagoDateStr()));
+      return "sent";
+    },
+  },
+  {
+    key: "habit-sunday-drive",
+    days: [0],
+    time: "09:00",
+    graceMin: 90,
+    run: async () => {
+      const day = chicagoDateStr();
+      const big = await sundayDriveLine(day).catch(() => null);
+      const base = sundayMorning(await wholePlan(), day);
+      await notify(big ? `${base}\n${big}` : base);
+      return "sent";
+    },
+  },
+  {
+    key: "habit-weekly-summary",
+    days: [0],
+    time: "16:30",
+    graceMin: 60,
+    run: async () => {
+      const day = chicagoDateStr();
+      const { start, end } = habitWeekBounds(day);
+      const block = await summaryBlock(start, end).catch(() => "");
+      const mcat = await mcatSummaryBlock(day).catch(() => null);
+      const base = await weeklySummary(day);
+      await notify([base, block, mcat].filter(Boolean).join("\n\n"));
+      return "sent";
+    },
+  },
+  {
+    // The dusk drive. Its own send because it leaves at sunset, which the nine
+    // o'clock text cannot know how to wait for.
+    key: "exposure-dusk",
+    days: [0],
+    time: "16:10",
+    graceMin: 30,
+    run: async () => {
+      const line = await duskLine(chicagoDateStr());
+      if (!line) return "not a dusk week";
+      await notify(line);
+      return "sent";
+    },
+  },
+  {
+    key: "exposure-dark",
+    days: [0],
+    time: "17:30",
+    graceMin: 30,
+    run: async () => {
+      const line = await darkLine(chicagoDateStr());
+      if (!line) return "not a dark week";
+      await notify(line);
+      return "sent";
+    },
+  },
+  {
+    key: "habit-sunday-wrap",
+    days: [0],
+    time: "17:00",
+    graceMin: 60,
+    run: async () => {
+      // The four questions, and a window opened for the answer. Whatever she
+      // texts back in the next few hours is read as the review rather than as
+      // a question for the assistant.
+      await openResetWindow();
+      await notify(RESET_PROMPT);
+      return "sent";
+    },
+  },
+  {
+    key: "habit-evening",
+    days: [0, 1, 2, 3, 4, 5, 6],
+    time: "19:00",
+    graceMin: 90,
+    run: async () => {
+      const day = chicagoDateStr();
+      const extra = await eveningLines(day).catch(() => []);
+      await notify([eveningText(day), ...extra].join("\n"));
+      return "sent";
+    },
+  },
+
+  {
+    key: "morning-briefing",
+    retired: true,
+    days: [1, 2, 3, 4, 5],
+    time: "06:50",
+    graceMin: 150,
+    run: async ({ dow }) => {
+      // The route this used to call is retired, so only the fallback is left.
+      // The slot itself is retired too and never runs; this stays correct
+      // rather than pointing at a URL that now returns 410.
+      const assessments = await getCourseAssessments();
+      await notify(buildFallbackMorning(assessments, dow));
+      return "fallback-daymap";
+    },
+  },
+  {
+    key: "morning-weekend",
+    retired: true,
+    days: [0, 6],
+    time: "07:00",
+    graceMin: 150,
+    run: async ({ dow }) => {
+      const assessments = await getCourseAssessments();
+      await notify(buildFallbackMorning(assessments, dow));
+      return "weekend-daymap";
+    },
+  },
+  {
+    key: "read-school-mail",
+    schoolOnly: true,
+    days: [0, 1, 2, 3, 4, 5, 6],
+    time: "07:10",
+    graceMin: 180,
+    run: async ({ origin }) => {
+      const res = await fetch(`${origin}/api/school/extract`, { method: "POST", cache: "no-store" });
+      const d = await res.json().catch(() => ({}));
+
+      // Dated work becomes a reminder on its own schedule. Everything else —
+      // a moved link, an access cut-off, a scholarship — has no date to fire
+      // on, so it is told to her once, here, and then marked as told.
+      const pending = await unnotifiedUpdates();
+      if (pending.length) {
+        await notify(updateDigest(pending));
+        await markUpdatesNotified(pending.map(u => u.id));
+      }
+
+      return `found ${d.found ?? 0} of ${d.scanned ?? 0}, told her ${pending.length}`;
+    },
+  },
+  {
+    // Birthdays and overdue calls. Late morning on purpose: a reminder to ring
+    // her grandma is useless at 6:50am and useless again after 9pm.
+    key: "people-checkin",
+    retired: true,
+    days: [0, 1, 2, 3, 4, 5, 6],
+    time: "11:00",
+    graceMin: 240,
+    run: async () => {
+      const data = await loadData("aya");
+      const due = whatIsDue(data.people ?? []);
+      if (!due.length) return "nobody due";
+
+      // Birthdays every day they are close; calls only on the day they fall
+      // due and then weekly, so an unreturned call doesn't nag daily.
+      const worth = due.filter(i =>
+        i.kind === "birthday" ? i.days <= 3 : i.days === 0 || (i.days > 0 && i.days % 7 === 0));
+      if (!worth.length) return `${due.length} due, none worth a message today`;
+
+      await notify(worth.map(dueLine).join("\n"));
+      return `${worth.length} sent`;
+    },
+  },
+  {
+    key: "money-watch",
+    retired: true,
+    days: [0, 1, 2, 3, 4, 5, 6],
+    time: "09:00",
+    graceMin: 180,
+    run: async ({ origin }) => {
+      const res = await fetch(`${origin}/api/finance/watch`, { method: "POST", cache: "no-store" });
+      const d = await res.json().catch(() => ({}));
+      return `${d.created ?? 0} money events`;
+    },
+  },
+  {
+    key: "leave-work",
+    days: [1, 2, 3, 4, 5],
+    time: "14:05",
+    // Short on purpose. This one exists to reach her before she leaves, so a
+    // catch-up that fires at three o'clock is not a catch-up, it is a message
+    // about an afternoon that already started without it.
+    graceMin: 20,
+    run: async () => {
+      const day = chicagoDateStr();
+      const mcat = await mcatAfternoonLine(day).catch(() => null);
+      await notify([buildLeaveWorkMsg(), mcat].filter(Boolean).join("\n"));
+      return "sent";
+    },
+  },
+  {
+    // Three o'clock, when the two hours start. The only new send the plan adds:
+    // it runs for six months and the fastest way to make her stop reading any
+    // of it is to text about it five times a day.
+    key: "mcat-start",
+    days: [0, 1, 2, 3, 4, 5, 6],
+    time: "15:00",
+    graceMin: 45,
+    run: async () => {
+      const line = await mcatStartLine(chicagoDateStr());
+      if (!line) return "outside the plan";
+      await notify(line);
+      return "sent";
+    },
+  },
+  {
+    key: "study-blocks",
+    schoolOnly: true,
+    days: [0, 1, 2, 3, 4],  // Sun–Thu (Fri = Deandra, Sat = open)
+    time: "16:55",
+    graceMin: 90,
+    run: async ({ dow }) => {
+      const assessments = await getCourseAssessments();
+      await notify(buildStudyBlocksMsg(assessments, dow));
+      return "sent";
+    },
+  },
+  {
+    key: "exposure-saturday",
+    retired: true,
+    days: [6],
+    time: "11:45",
+    graceMin: 90,
+    run: async () => {
+      await notify(
+        "11:45 \u2014 big driving exposure at 12:30, right off the back of therapy while it's fresh.\n\n" +
+        "\u2022 Open your saved route in the app (Exposure \u2192 Routes) \u2014 highways and tolls already avoided\n" +
+        "\u2022 Rate your fear before you turn the key, at the worst moment, and when you park\n" +
+        "\u2022 Panicking is allowed. Turning back is the only thing that costs you\n\n" +
+        "Log it when you're home \u2014 that's what draws the curve."
+      );
+      return "sent";
+    },
+  },
+  {
+    key: "exposure-checkin",
+    retired: true,
+    days: [0],
+    time: "18:00",
+    graceMin: 90,
+    run: async () => {
+      await notify(
+        "6:00 \u2014 weekly exposure check-in (5 minutes, in the app under Exposure \u2192 Check-in).\n\n" +
+        "What could you do this week that you couldn't a month ago? What did you avoid? " +
+        "What's the one step for next week?\n\n" +
+        "Bring it to therapy \u2014 it's exactly what they ask you."
+      );
+      return "sent";
+    },
+  },
+  {
+    key: "week-plan",
+    retired: true,
+    days: [0],
+    time: "19:00",
+    graceMin: 90,
+    run: async () => {
+      const assessments = await getCourseAssessments();
+      await notify(buildWeekPlanMsg(assessments));
+      return "sent";
+    },
+  },
+  {
+    key: "skincare",
+    retired: true,
+    days: [0, 1, 2, 3, 4, 5, 6],
+    time: "19:55",
+    graceMin: 60,
+    run: async () => {
+      // On a quiz eve the whole evening moves — say so here rather than
+      // sending the usual "lights out at 9" into a night that can't have one.
+      const a = await assessmentAtMidnight().catch(() => null);
+      if (a) {
+        await notify(
+          `8:00 — skincare now, because tonight runs long. ${a.title} opens at midnight.\n\n` +
+          "Plan: routine now, lie down 9 to 11:30, final flick through the error log, " +
+          "take it at 12, straight back to bed. Do not start the review at 11:55.\n\n" +
+          "Tomorrow's gym is optional. Sleep is worth more than the session."
+        );
+        return "quiz-eve";
+      }
+      await notify(SKINCARE_MSG);
+      return "sent";
+    },
+  },
+  {
+    // The whole point: she's asleep by 9 most nights, so the reminder has to
+    // reach her at the moment it opens, not before she went down.
+    key: "quiz-opens",
+    schoolOnly: true,
+    days: [0, 1, 2, 3, 4, 5, 6],
+    time: "23:50",
+    graceMin: 25,
+    run: async () => {
+      const a = await assessmentAtMidnight().catch(() => null);
+      if (!a) return "none";
+      const isExam = /exam/i.test(a.title);
+      await notify(
+        `${a.title} opens in 10 minutes.\n\n` +
+        `You have until ${isExam ? "10am" : "9am"}, but you're doing it now so it isn't hanging over the work day. ` +
+        `${isExam ? "Two hours" : "One hour"} is the window — that's plenty.\n\n` +
+        "No help is available until 8am if something breaks, so if the page won't load, stop and take it in the morning window instead."
+      );
+      return `quiz-opens:${a.title}`;
+    },
+  },
+];
+
+// ─── Dispatch ────────────────────────────────────────────────────────────────
+
+function minutesOfDay(d: Date): number {
+  return d.getHours() * 60 + d.getMinutes();
+}
+
+function slotMinutes(time: string): number {
+  const [h, m] = time.split(":").map(Number);
+  return h * 60 + m;
+}
+
+export interface DispatchResult {
+  /** True when the tick returned without opening a database connection. */
+  skipped?: boolean;
+  chicagoTime: string;
+  fired: string[];
+  remindersSent: number;
+  obligationsSent?: number;
+  urgentCheck: string;
+}
+
+// Today's blocks, so a nudge can land 30 minutes ahead of one.
+//
+// Derived, not typed. This was a second hardcoded copy of the week and it went
+// stale the moment the gym moved off 5am — her phone kept saying "gym in 30
+// minutes" at a quarter to five. It now comes from the same place the schedule
+// pages read, temporary weeks included, so an exam morning nudges for the exam.
+
+// ─── Staying off the database ────────────────────────────────────────────────
+//
+// Neon charges for the hours the database is awake, and puts it to sleep after
+// about five minutes with nothing to do. An external pinger hits this endpoint
+// every five minutes, so the only way it ever sleeps is if most of those pings
+// never touch the database at all.
+//
+// They didn't. Every tick used to run CREATE TABLE IF NOT EXISTS, write a
+// heartbeat row and run a DELETE before deciding whether anything was due. And
+// worse: a slot with graceMin 150 kept claimSlot() — a write — firing every
+// five minutes for two and a half hours after the message had already gone out.
+// Across the twelve slots that is 1,405 minutes of open window a day, which is
+// the entire day. The database never got five consecutive quiet minutes, so it
+// was billed for all 730 hours of the month and ran out in the first week.
+//
+// Now: a tick touches the database only when it has a specific reason to.
+
+/** Minutes past midnight, Chicago. */
+const ACTIVE_FROM = 5 * 60 + 30;
+const ACTIVE_TO = 22 * 60;
+
+/** How often to look for user reminders and obligations, which have no fixed time. */
+const SWEEP_EVERY_MIN = 30;
+
+/** The precise window in which a slot fires, as opposed to its catch-up grace. */
+const EXACT_WINDOW_MIN = 6;
+
+/**
+ * Is this one of the ticks that may talk to the database?
+ *
+ * Two reasons qualify: a slot is at its exact minute, or it is a sweep tick
+ * during waking hours. Everything else returns without a single query, which is
+ * what lets the compute go to sleep.
+ *
+ * The long grace windows still work — they are checked on sweep ticks, which
+ * is catch-up enough for a pinger that has gone quiet for half an hour.
+ */
+function shouldTouchDb(dow: number, nowMin: number): { touch: boolean; sweep: boolean } {
+  for (const slot of SLOTS) {
+    if (!slot.days.includes(dow)) continue;
+    const s = slotMinutes(slot.time);
+    if (nowMin >= s && nowMin <= s + EXACT_WINDOW_MIN) return { touch: true, sweep: false };
+  }
+
+  const sweep = nowMin >= ACTIVE_FROM && nowMin <= ACTIVE_TO && nowMin % SWEEP_EVERY_MIN < 5;
+  return { touch: sweep, sweep };
+}
+
+export async function runDispatch(origin: string): Promise<DispatchResult> {
+  const now = chicagoNow();
+  const dow = now.getDay();
+  const day = chicagoDateStr(now);
+  const nowMin = minutesOfDay(now);
+  const fired: string[] = [];
+
+  const { touch, sweep } = shouldTouchDb(dow, nowMin);
+  if (!touch) {
+    // The common case, and the whole point: no connection is opened.
+    return {
+      skipped: true, chicagoTime: `${day} ${now.toTimeString().slice(0, 5)}`,
+      fired: [], remindersSent: 0, urgentCheck: "skipped",
+    };
+  }
+
+  await ensureCronRuns();
+
+  // Heartbeat, on sweeps only — it exists to prove the pinger is alive, and
+  // twice an hour proves that just as well as twelve times.
+  if (sweep) {
+    const sql = db();
+    await sql`
+      INSERT INTO cron_runs (slot, day, detail) VALUES ('heartbeat', ${day}, 'ping')
+      ON CONFLICT (slot, day) DO UPDATE SET sent_at = NOW()
+    `;
+  }
+
+  // 1. Time-of-day slots. The exact minute always runs; the long grace window
+  //    is catch-up and is only consulted on a sweep, so a slot that already
+  //    fired stops costing a write every five minutes for the next two hours.
+  const noSchool = await schoolPaused();
+
+  for (const slot of SLOTS) {
+    if (!slot.days.includes(dow)) continue;
+    if (slot.retired) continue;
+    if (slot.schoolOnly && noSchool) continue;
+    const sMin = slotMinutes(slot.time);
+    const exact = nowMin >= sMin && nowMin <= sMin + EXACT_WINDOW_MIN;
+    const catchUp = sweep && nowMin > sMin && nowMin <= sMin + slot.graceMin;
+    if (!exact && !catchUp) continue;
+    if (!(await claimSlot(slot.key, day, "claimed"))) continue;
+    try {
+      const detail = await slot.run({ origin, dow });
+      const sql = db();
+      await sql`UPDATE cron_runs SET detail = ${detail} WHERE slot = ${slot.key} AND day = ${day}`;
+      fired.push(slot.key);
+    } catch (e) {
+      const sql = db();
+      await sql`UPDATE cron_runs SET detail = ${`error: ${String(e).slice(0, 200)}`} WHERE slot = ${slot.key} AND day = ${day}`;
+    }
+  }
+
+  // 2. The obligation engine — anything crossing a lead threshold. Runs on
+  //    every dispatch but stays quiet outside waking hours.
+  let obligationsSent = 0;
+  if (sweep && nowMin >= 7 * 60 && nowMin <= 21 * 60) {
+    try {
+      const due = await dueNotifications();
+      for (const d of due.slice(0, 4)) {   // never dump a wall of alerts
+        await notify(d.message);
+        await markNotified(d.id, d.stage);
+        obligationsSent++;
+      }
+    } catch { /* engine unavailable */ }
+  }
+
+  // 2b. Due user reminders — minute-precision now instead of a 9am daily sweep
+  let remindersSent = 0;
+  if (sweep) try {
+    const due = await getDueReminders();
+    for (const r of due) {
+      const timeStr = formatTimeOfDay(r.timeOfDay);
+      const text = r.body
+        ? `<b>${r.title}</b>\n${r.body}\n\n<i>${timeStr} reminder</i>`
+        : `<b>${r.title}</b>\n\n<i>${timeStr} reminder</i>`;
+      await notify(text);
+      await advanceReminder(r);
+      remindersSent++;
+    }
+  } catch { /* reminders table unavailable */ }
+
+  // 3. Urgent email + 1-hour event alerts (existing route, already idempotent)
+  let urgentCheck = "skipped";
+  try {
+    const res = await fetch(`${origin}/api/cron/urgent-check`, { cache: "no-store" });
+    urgentCheck = res.ok ? "ok" : `http ${res.status}`;
+  } catch (e) {
+    urgentCheck = `error: ${String(e).slice(0, 100)}`;
+  }
+
+  return {
+    // `now` is already Chicago wall-clock (chicagoNow) — format without a
+    // second timeZone shift
+    chicagoTime: now.toLocaleString("en-US"),
+    fired,
+    remindersSent,
+    obligationsSent,
+    urgentCheck,
+  };
+}
+
+// ─── Health ──────────────────────────────────────────────────────────────────
+
+export async function getSpineHealth() {
+  const now = chicagoNow();
+  const day = chicagoDateStr(now);
+
+  const config = {
+    telegramBotToken: !!process.env.TELEGRAM_BOT_TOKEN,
+    telegramChatId: !!process.env.TELEGRAM_CHAT_ID,
+    databaseUrl: !!process.env.DATABASE_URL,
+    cronSecret: !!process.env.CRON_SECRET,
+    anthropicKey: !!process.env.ANTHROPIC_API_KEY,
+    googleRefreshToken: !!process.env.GOOGLE_REFRESH_TOKEN,
+  };
+
+  let recentRuns: unknown[] = [];
+  let todaySlots: unknown[] = [];
+  let activeReminders = 0;
+  let upcomingAssessments = 0;
+  let lastPing: string | null = null;
+
+  try {
+    await ensureCronRuns();
+    const sql = db();
+    const hb = await sql`SELECT MAX(sent_at) AS last FROM cron_runs WHERE slot = 'heartbeat'`;
+    lastPing = hb[0]?.last ? String(hb[0].last) : null;
+    recentRuns = await sql`
+      SELECT slot, day, sent_at, detail FROM cron_runs
+      WHERE slot != 'heartbeat'
+      ORDER BY sent_at DESC LIMIT 25
+    `;
+    const todayRows = await sql`SELECT slot FROM cron_runs WHERE day = ${day}`;
+    const firedToday = new Set(todayRows.map(r => r.slot as string));
+    // Retired and school slots are excluded: a health page that lists nine
+    // texts which cannot fire is worse than one that lists none of them.
+    todaySlots = SLOTS
+      .filter(s => s.days.includes(now.getDay()) && !s.retired && !s.schoolOnly)
+      .map(s => ({ slot: s.key, time: s.time, fired: firedToday.has(s.key) }));
+    const rem = await sql`SELECT COUNT(*) AS cnt FROM reminders WHERE active = true`;
+    activeReminders = Number(rem[0]?.cnt ?? 0);
+    upcomingAssessments = (await getCourseAssessments()).filter(a => a.daysOut >= 0).length;
+  } catch { /* db unavailable — config flags still useful */ }
+
+  return {
+    chicagoTime: now.toLocaleString("en-US"),
+    // when the external pinger last hit dispatch — null means it has never run
+    lastPing,
+    config,
+    todaySlots,
+    recentRuns,
+    activeReminders,
+    upcomingAssessments,
+  };
+}

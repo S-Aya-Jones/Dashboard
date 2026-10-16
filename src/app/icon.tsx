@@ -4,12 +4,22 @@ export const runtime = "edge";
 export const size = { width: 512, height: 512 };
 export const contentType = "image/png";
 
+// A solid clay tile with a cream serif A.
+//
+// The previous icon was black with acid-lime lettering, left over from an
+// earlier design — so the one thing representing a warm cream-and-clay app on
+// her home screen was the only part of it that wasn't. Clay is the theme colour,
+// which also means the icon and the launch screen finally agree.
+//
+// No ring or inset shape: Android masks this to its own outline, and a circle
+// drawn inside a circle reads as a mistake once cropped. The letter sits within
+// the middle 60% so nothing important is lost to the mask.
 export default function Icon() {
   return new ImageResponse(
     (
       <div
         style={{
-          background: "#141414",
+          background: "#B4552F",
           width: "100%",
           height: "100%",
           display: "flex",
@@ -17,31 +27,19 @@ export default function Icon() {
           justifyContent: "center",
         }}
       >
-        <div
+        <span
           style={{
-            width: 360,
-            height: 360,
-            borderRadius: "50%",
-            background: "rgba(200,255,0,0.07)",
-            border: "2px solid rgba(200,255,0,0.18)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
+            fontSize: 300,
+            fontWeight: 500,
+            color: "#FAF6F1",
+            lineHeight: 1,
+            fontFamily: "Georgia, serif",
+            // Georgia's cap-height sits high; nudge it onto the optical centre.
+            marginTop: -18,
           }}
         >
-          <span
-            style={{
-              fontSize: 220,
-              fontWeight: 800,
-              color: "#C8FF00",
-              lineHeight: 1,
-              letterSpacing: "-10px",
-              fontFamily: "serif",
-            }}
-          >
-            A
-          </span>
-        </div>
+          A
+        </span>
       </div>
     ),
     { ...size },

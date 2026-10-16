@@ -9,10 +9,10 @@ export default function TermsPage() {
   return (
     <div
       style={{
-        background: "#111111",
+        background: "#FAF6F1",
         minHeight: "100vh",
         fontFamily: "'Inter', system-ui, sans-serif",
-        color: "#FFFFFF",
+        color: "#1C1613",
       }}
     >
       <div style={{ maxWidth: "720px", margin: "0 auto", padding: "3rem 1.5rem 5rem" }}>
@@ -34,13 +34,13 @@ export default function TermsPage() {
         </Link>
 
         {/* Header */}
-        <div style={{ marginBottom: "2.5rem", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "1.5rem" }}>
+        <div style={{ marginBottom: "2.5rem", borderBottom: "1px solid rgba(180,85,47,0.12)", paddingBottom: "1.5rem" }}>
           <h1
             style={{
               fontFamily: "'Cormorant Garamond', Georgia, serif",
               fontSize: "clamp(2rem, 5vw, 3rem)",
               fontWeight: 500,
-              color: "#FFFFFF",
+              color: "#1C1613",
               margin: "0 0 0.5rem",
               lineHeight: 1.15,
             }}
@@ -85,42 +85,47 @@ export default function TermsPage() {
 
           <Section title="SMS Messaging Terms">
             <p>
-              The account holder may register their own phone number to receive automated
-              SMS messages from this Application. By entering their phone number and
-              enabling SMS features, the account holder agrees to the following:
+              Subscribers may register a mobile number at{" "}
+              <a href="/sms-opt-in" style={{ color: "#B4552F", fontWeight: 600 }}>/sms-opt-in</a>{" "}
+              to receive recurring automated SMS messages from this Application. Subscribing
+              is entirely voluntary and is <strong>not required to create an account, to sign
+              in, or to use any part of the Application</strong> — every message sent by SMS
+              is also shown inside the app. By entering a mobile number and ticking the
+              consent box, a subscriber agrees to the following:
             </p>
             <ul>
               <li>
-                <strong>Message content:</strong> Automated daily productivity briefings,
-                including task summaries, habit progress, and other personal dashboard data
+                <strong>Message content:</strong> Automated schedule reminders, a daily
+                summary, reminders the subscriber has set in the Application, and
+                accountability updates. No marketing or promotional content is sent
               </li>
               <li>
-                <strong>Message frequency:</strong> Up to 1 message per day, plus responses
-                to account-holder-initiated commands or HELP requests
+                <strong>Message frequency:</strong> Recurring, up to 2 messages per day
               </li>
               <li>
                 <strong>Message and data rates:</strong> Standard message and data rates
-                from the account holder&apos;s mobile carrier may apply
+                from the subscriber&apos;s mobile carrier may apply
               </li>
               <li>
-                <strong>Opt-out:</strong> The account holder may opt out at any time by
-                replying <strong>STOP</strong> to any message. No further messages will be
-                sent after an opt-out is received
+                <strong>Opt-out:</strong> A subscriber may opt out at any time by replying{" "}
+                <strong>STOP</strong> to any message. The opt-out is recorded against that
+                number immediately and independently of any other subscriber, and no further
+                messages are sent to it
               </li>
               <li>
-                <strong>Help:</strong> The account holder may reply <strong>HELP</strong>{" "}
-                at any time to receive assistance information
+                <strong>Help:</strong> A subscriber may reply <strong>HELP</strong> at any
+                time to receive assistance information
               </li>
               <li>
-                <strong>Cancellation:</strong> The account holder may also cancel SMS
-                delivery at any time by removing their phone number from the Application
-                settings
+                <strong>Cancellation:</strong> A subscriber may also cancel SMS delivery at
+                any time by replying <strong>START</strong> to resubscribe or by contacting
+                support at the address below
               </li>
             </ul>
             <p>
-              Phone numbers used for SMS are never shared with third parties or used for
-              any purpose other than delivering these personal productivity messages to the
-              account holder.
+              Phone numbers used for SMS are never shared with third parties and are never
+              used for any purpose other than delivering the messages described above to the
+              subscriber who consented to them.
             </p>
           </Section>
 
@@ -185,7 +190,11 @@ export default function TermsPage() {
 
           <Section title="Contact">
             <p>
-              Questions about these Terms of Service may be directed to the account holder.
+              Questions about these Terms of Service may be directed to the account holder,
+              Shaniqua Jones, at{" "}
+              <a href="mailto:shaniquaayajones@gmail.com" style={{ color: "#B4552F", textDecoration: "none" }}>
+                shaniquaayajones@gmail.com
+              </a>.
               As this is a personal single-user application, no formal legal or support
               team exists — all inquiries go to the individual who owns and operates this
               dashboard.
@@ -198,7 +207,7 @@ export default function TermsPage() {
           style={{
             marginTop: "3rem",
             paddingTop: "1.5rem",
-            borderTop: "1px solid rgba(255,255,255,0.1)",
+            borderTop: "1px solid rgba(180,85,47,0.12)",
             fontSize: "0.8rem",
             color: "#A8967E",
             textAlign: "center",
@@ -219,15 +228,15 @@ function Section({ title, children }: { title: string; children: React.ReactNode
           fontFamily: "'Cormorant Garamond', Georgia, serif",
           fontSize: "1.35rem",
           fontWeight: 500,
-          color: "#FFFFFF",
+          color: "#1C1613",
           margin: "0 0 0.75rem",
           paddingBottom: "0.35rem",
-          borderBottom: "1px solid rgba(255,255,255,0.08)",
+          borderBottom: "1px solid rgba(180,85,47,0.10)",
         }}
       >
         {title}
       </h2>
-      <div style={{ color: "#FFFFFF" }}>
+      <div style={{ color: "#1C1613" }}>
         {children}
       </div>
     </div>

@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /sms-opt-in
+Allow: /terms
+Allow: /privacy
+Disallow: /

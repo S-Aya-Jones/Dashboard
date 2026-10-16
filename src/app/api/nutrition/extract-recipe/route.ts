@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 
+export const dynamic = "force-dynamic";
+
 // Allow up to 60s — vision + JSON generation can be slow on large images
 export const maxDuration = 60;
 
