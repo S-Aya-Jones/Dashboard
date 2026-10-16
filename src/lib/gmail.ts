@@ -806,17 +806,29 @@ export async function markEventNotified(id: string): Promise<void> {
   await sql`UPDATE email_events SET notified = true WHERE id = ${id}`;
 }
 
-export async function getEventsComingIn1Hour(): Promise<Array<EmailEvent & { id: string }>> {
+export async function getEventsComingIn1Hour(
+  opts: { excludeSchool?: boolean } = {},
+): Promise<Array<EmailEvent & { id: string }>> {
   await ensureEventTables();
+  if (opts.excludeSchool) await ensureGmailTables();
   const sql = db();
   const soon    = new Date(Date.now() + 30  * 60000).toISOString(); // 30 min from now
   const horizon = new Date(Date.now() + 90  * 60000).toISOString(); // 90 min from now
-  const rows = await sql`
-    SELECT * FROM email_events
-    WHERE notified_1h = false AND is_past = false
-    AND event_date >= ${soon} AND event_date <= ${horizon}
-    ORDER BY event_date ASC
-  `;
+  const rows = opts.excludeSchool
+    ? await sql`
+        SELECT ev.* FROM email_events ev
+        LEFT JOIN school_emails em ON em.id = ev.email_id
+        WHERE ev.notified_1h = false AND ev.is_past = false
+        AND ev.event_date >= ${soon} AND ev.event_date <= ${horizon}
+        AND COALESCE(em.category, 'general') <> 'school'
+        ORDER BY ev.event_date ASC
+      `
+    : await sql`
+        SELECT * FROM email_events
+        WHERE notified_1h = false AND is_past = false
+        AND event_date >= ${soon} AND event_date <= ${horizon}
+        ORDER BY event_date ASC
+      `;
   return rows.map(r => ({
     id:            r.id as string,
     emailId:       r.email_id as string,

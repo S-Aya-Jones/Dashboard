@@ -180,14 +180,29 @@ function phrase(o: Obligation, days: number): string {
  * Everything crossing a lead threshold right now. Each (obligation, stage)
  * fires exactly once; recurring items reset their stages when they roll over.
  */
-export async function dueNotifications(): Promise<Array<{ id: string; stage: string; message: string }>> {
+/**
+ * Everything crossing a lead threshold.
+ *
+ * `excludeSchool` drops the obligations that came from the programme she has
+ * stepped away from. Source is recorded on every row, so unlike the email
+ * events this needs no join and no guessing.
+ */
+export async function dueNotifications(
+  opts: { excludeSchool?: boolean } = {},
+): Promise<Array<{ id: string; stage: string; message: string }>> {
   await ensureObligations();
   const sql = db();
-  const rows = await sql`
-    SELECT * FROM obligations
-    WHERE active AND due_at < NOW() + INTERVAL '30 days'
-    ORDER BY due_at ASC
-  `;
+  const rows = opts.excludeSchool
+    ? await sql`
+        SELECT * FROM obligations
+        WHERE active AND due_at < NOW() + INTERVAL '30 days' AND source <> 'school'
+        ORDER BY due_at ASC
+      `
+    : await sql`
+        SELECT * FROM obligations
+        WHERE active AND due_at < NOW() + INTERVAL '30 days'
+        ORDER BY due_at ASC
+      `;
 
   const out: Array<{ id: string; stage: string; message: string }> = [];
 

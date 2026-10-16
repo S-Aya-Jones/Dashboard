@@ -43,8 +43,11 @@ export async function GET(_req: NextRequest) {
     const noSchool = await loadData()
       .then(d => schoolIsPaused(d.pausedModules))
       .catch(() => true);
-    // 0. 1-hour alerts — fire before anything else
-    const oneHourEvents = await getEventsComingIn1Hour();
+    // 0. The 90 minute alert, which fires before anything else and so has to
+    //    be gated too. Three of the four event paths were filtered and this
+    //    one was not, which is why "Starting in 90 min. Microbiology. Quiz 3"
+    //    still arrived during a break from school.
+    const oneHourEvents = await getEventsComingIn1Hour({ excludeSchool: noSchool });
     for (const ev of oneHourEvents) {
       const timeStr = new Date(ev.eventDate).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" });
       const diffMin = Math.round((new Date(ev.eventDate).getTime() - Date.now()) / 60000);

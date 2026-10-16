@@ -793,6 +793,11 @@ function shouldTouchDb(dow: number, nowMin: number): { touch: boolean; sweep: bo
   return { touch: sweep, sweep };
 }
 
+/** Enough of a reminder's title to match it again, lowercased. */
+function firstWord(title: string): string {
+  return (title.trim().split(/\s+/)[0] ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
 export async function runDispatch(origin: string): Promise<DispatchResult> {
   const now = chicagoNow();
   const dow = now.getDay();
@@ -851,7 +856,7 @@ export async function runDispatch(origin: string): Promise<DispatchResult> {
   let obligationsSent = 0;
   if (sweep && nowMin >= 7 * 60 && nowMin <= 21 * 60) {
     try {
-      const due = await dueNotifications();
+      const due = await dueNotifications({ excludeSchool: noSchool });
       for (const d of due.slice(0, 4)) {   // never dump a wall of alerts
         await notify(d.message);
         await markNotified(d.id, d.stage);
@@ -866,9 +871,14 @@ export async function runDispatch(origin: string): Promise<DispatchResult> {
     const due = await getDueReminders();
     for (const r of due) {
       const timeStr = formatTimeOfDay(r.timeOfDay);
+      // These are rows she created through a screen months ago, and there was
+      // no way to stop one from her phone until recently. "Orgo study block"
+      // has been arriving at seven every night through a break from school.
+      // Carrying the way out with the message is the difference between her
+      // knowing the command exists and her having to remember it.
       const text = r.body
-        ? `<b>${r.title}</b>\n${r.body}\n\n<i>${timeStr} reminder</i>`
-        : `<b>${r.title}</b>\n\n<i>${timeStr} reminder</i>`;
+        ? `<b>${r.title}</b>\n${r.body}\n\n<i>${timeStr} reminder</i>\nTo stop this: mute reminder ${firstWord(r.title)}`
+        : `<b>${r.title}</b>\n\n<i>${timeStr} reminder</i>\nTo stop this: mute reminder ${firstWord(r.title)}`;
       await notify(text);
       await advanceReminder(r);
       remindersSent++;
